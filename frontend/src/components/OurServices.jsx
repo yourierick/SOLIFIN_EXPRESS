@@ -4,11 +4,13 @@ import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useRef, useState, useEffect } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -63,6 +65,9 @@ export default function OurServices() {
   const { isDarkMode } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [isPaused, setIsPaused] = useState(false);
+  const swiperRef = useRef(null);
+  const desktopSwiperRef = useRef(null);
   
   // Fonction pour gérer le clic sur une carte de service
   const handleServiceClick = () => {
@@ -72,6 +77,27 @@ export default function OurServices() {
     } else {
       // Sinon, rediriger vers la page de connexion
       navigate("/login");
+    }
+  };
+
+  // Gérer le survol pour mettre en pause le défilement
+  const handleMouseEnter = () => {
+    setIsPaused(true);
+    if (desktopSwiperRef.current) {
+      desktopSwiperRef.current.autoplay.stop();
+    }
+    if (swiperRef.current) {
+      swiperRef.current.autoplay.stop();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsPaused(false);
+    if (desktopSwiperRef.current) {
+      desktopSwiperRef.current.autoplay.start();
+    }
+    if (swiperRef.current) {
+      swiperRef.current.autoplay.start();
     }
   };
 
@@ -172,20 +198,40 @@ export default function OurServices() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
-          className="mt-16 grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          className="mt-16 relative"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
-          {services?.map((service, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              whileHover="hover"
-              onClick={handleServiceClick}
-              className={`flex flex-col h-full p-0 rounded-2xl transition-all duration-300 overflow-hidden shadow-xl ${
-                isDarkMode
-                  ? "bg-gray-800 hover:shadow-green-500/40 border border-gray-700"
-                  : "bg-white hover:shadow-green-500/40 border border-gray-100"
-              } transform-gpu cursor-pointer`}
+          {/* Carrousel desktop - défilement par slides */}
+          <div className="hidden md:block">
+            <Swiper
+              ref={desktopSwiperRef}
+              modules={[Autoplay]}
+              spaceBetween={24}
+              slidesPerView="auto"
+              autoplay={{
+                delay: 4000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true,
+              }}
+              loop={false}
+              speed={800}
+              grabCursor={true}
+              className="w-full services-carousel"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
             >
+              {services?.map((service, index) => (
+                <SwiperSlide key={index} className="w-auto" style={{ width: '320px' }}>
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover="hover"
+                    className={`flex flex-col h-full p-0 rounded-2xl transition-all duration-300 overflow-hidden shadow-xl ${
+                      isDarkMode
+                        ? "bg-gray-800 hover:shadow-green-500/40 border border-gray-700"
+                        : "bg-white hover:shadow-green-500/40 border border-gray-100"
+                    }`}
+                  >
               <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
                 {index === 0 ? (
                   <Swiper
@@ -298,9 +344,266 @@ export default function OurServices() {
                     </motion.button>
                   )}
                 </div>
+                </div>
+              </motion.div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+
+          {/* Carrousel mobile - un card à la fois */}
+          <div className="md:hidden">
+            <Swiper
+              ref={swiperRef}
+              modules={[Autoplay, Navigation]}
+              spaceBetween={16}
+              centeredSlides={false}
+              slidesPerView={1}
+              autoplay={{
+                delay: 3000,
+                disableOnInteraction: false,
+              }}
+              navigation={{
+                nextEl: '.swiper-button-next-custom',
+                prevEl: '.swiper-button-prev-custom',
+              }}
+              allowTouchMove={false}
+              simulateTouch={false}
+              className="w-full"
+              speed={300}
+              onSlideChange={(swiper) => {
+                // Mettre à jour les indicateurs de position
+                const dots = document.querySelectorAll('.mobile-dot');
+                dots.forEach((dot, index) => {
+                  if (index === swiper.activeIndex) {
+                    dot.className = 'w-6 h-2 rounded-full bg-green-500 transition-all duration-200 mobile-dot';
+                  } else {
+                    dot.className = 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 transition-all duration-200 mobile-dot';
+                  }
+                });
+              }}
+            >
+              {services?.map((service, index) => (
+                <SwiperSlide key={index} className="flex items-stretch justify-center">
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover="hover"
+                    className={`w-full flex flex-col h-full p-0 rounded-2xl transition-all duration-300 overflow-hidden shadow-xl ${
+                      isDarkMode
+                        ? "bg-gray-800 hover:shadow-green-500/40 border border-gray-700"
+                        : "bg-white hover:shadow-green-500/40 border border-gray-100"
+                    }`}
+                    onTouchStart={() => {
+                      if (swiperRef.current) {
+                        swiperRef.current.autoplay.stop();
+                      }
+                    }}
+                    onTouchEnd={() => {
+                      setTimeout(() => {
+                        if (!isPaused && swiperRef.current) {
+                          swiperRef.current.autoplay.start();
+                        }
+                      }, 2000); // Reprend après 2 secondes
+                    }}
+                    onMouseEnter={() => {
+                      if (swiperRef.current) {
+                        swiperRef.current.autoplay.stop();
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setTimeout(() => {
+                        if (!isPaused && swiperRef.current) {
+                          swiperRef.current.autoplay.start();
+                        }
+                      }, 2000); // Reprend après 2 secondes
+                    }}
+                  >
+                    <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
+                      {index === 0 ? (
+                        <Swiper
+                          spaceBetween={30}
+                          centeredSlides={true}
+                          autoplay={{
+                            delay: 3000,
+                            disableOnInteraction: false,
+                          }}
+                          pagination={{
+                            clickable: true,
+                          }}
+                          navigation={true}
+                          modules={[Autoplay, Pagination, Navigation]}
+                          className="h-full w-full rounded-t-2xl"
+                        >
+                          {service?.images?.map((img, imgIndex) => (
+                            <SwiperSlide key={imgIndex} className="w-full h-full">
+                              <img
+                                src={img}
+                                alt={`${service.title} ${imgIndex + 1}`}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </SwiperSlide>
+                          ))}
+                        </Swiper>
+                      ) : (
+                        <img
+                          src={service?.image}
+                          alt={service?.title}
+                          className="object-cover w-full h-full rounded-t-2xl"
+                          loading="lazy"
+                        />
+                      )}
+                    </div>
+                    <div className="flex flex-col flex-1 p-6">
+                      <h3
+                        className={`text-lg font-bold mb-3 leading-tight ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {service?.title}
+                      </h3>
+                      <p
+                        className={`mb-4 flex-grow text-sm leading-relaxed ${
+                          isDarkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                      >
+                        {service?.description}
+                      </p>
+                      
+                      {/* Bouton d'action avec animation */}
+                      <div className="mt-auto">
+                        {isAuthenticated ? (
+                          <button
+                            className={`flex items-center justify-center w-full py-2 px-4 rounded-lg transition-all duration-300 ${
+                              isDarkMode
+                                ? "bg-green-600 hover:bg-green-700 text-white"
+                                : "bg-green-500 hover:bg-green-600 text-white"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Évite le déclenchement du onClick du parent
+                              handleServiceClick();
+                            }}
+                          >
+                            <span>Accéder au service</span>
+                            <ArrowRightIcon className="ml-2 h-4 w-4" />
+                          </button>
+                        ) : (
+                          <motion.button
+                            className={`flex items-center justify-center w-full py-2 px-4 rounded-lg ${
+                              isDarkMode
+                                ? "bg-green-600 hover:bg-green-700 text-white"
+                                : "bg-green-500 hover:bg-green-600 text-white"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Évite le déclenchement du onClick du parent
+                              handleServiceClick();
+                            }}
+                            animate={{
+                              y: [0, -5, 0],
+                              boxShadow: [
+                                "0 0 0 rgba(34, 197, 94, 0)",
+                                "0 4px 12px rgba(34, 197, 94, 0.5)",
+                                "0 0 0 rgba(34, 197, 94, 0)"
+                              ]
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              repeatType: "loop",
+                              ease: "easeInOut"
+                            }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <span>Se connecter pour accéder</span>
+                            <motion.div
+                              animate={{ x: [0, 5, 0] }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Infinity,
+                                repeatType: "loop",
+                                ease: "easeInOut"
+                              }}
+                            >
+                              <ArrowRightIcon className="ml-2 h-4 w-4" />
+                            </motion.div>
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+            
+            {/* Boutons de navigation personnalisés pour mobile */}
+            <div className="flex justify-center items-center mt-6 gap-4">
+              <button
+                className="swiper-button-prev-custom p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 shadow-lg"
+                onClick={() => {
+                  if (swiperRef.current) {
+                    swiperRef.current.autoplay.stop();
+                    swiperRef.current.slidePrev();
+                    setTimeout(() => {
+                      if (!isPaused && swiperRef.current) {
+                        swiperRef.current.autoplay.start();
+                      }
+                    }, 1000);
+                  }
+                }}
+              >
+                <ChevronLeftIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              </button>
+              
+              <div className="flex gap-2">
+                {services?.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all duration-200 mobile-dot ${
+                      index === 0 ? 'bg-green-500 w-6' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                    onClick={() => {
+                      if (swiperRef.current) {
+                        swiperRef.current.autoplay.stop();
+                        swiperRef.current.slideTo(index);
+                        // Mettre à jour manuellement les indicateurs
+                        const dots = document.querySelectorAll('.mobile-dot');
+                        dots.forEach((dot, dotIndex) => {
+                          if (dotIndex === index) {
+                            dot.className = 'w-6 h-2 rounded-full bg-green-500 transition-all duration-200 mobile-dot';
+                          } else {
+                            dot.className = 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 transition-all duration-200 mobile-dot';
+                          }
+                        });
+                        setTimeout(() => {
+                          if (!isPaused && swiperRef.current) {
+                            swiperRef.current.autoplay.start();
+                          }
+                        }, 1000);
+                      }
+                    }}
+                  />
+                ))}
               </div>
-            </motion.div>
-          ))}
+              
+              <button
+                className="swiper-button-next-custom p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 shadow-lg"
+                onClick={() => {
+                  if (swiperRef.current) {
+                    swiperRef.current.autoplay.stop();
+                    swiperRef.current.slideNext();
+                    setTimeout(() => {
+                      if (!isPaused && swiperRef.current) {
+                        swiperRef.current.autoplay.start();
+                      }
+                    }, 1000);
+                  }
+                }}
+              >
+                <ChevronRightIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              </button>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useTheme } from "../../contexts/ThemeContext";
 import { Tab } from "@headlessui/react";
 import {
   CheckCircleIcon,
@@ -23,6 +24,7 @@ function classNames(...classes) {
 }
 
 export default function AdvertisementValidation() {
+  const { isDarkMode } = useTheme();
   const [allItems, setAllItems] = useState({
     advertisements: [],
     jobOffers: [],
@@ -357,12 +359,7 @@ export default function AdvertisementValidation() {
       await axios.post(endpoint);
 
       // Mettre à jour la liste des items
-      setAllItems((prev) => ({
-        ...prev,
-        [stateKey]: prev[stateKey].map((item) =>
-          item.id === id ? { ...item, statut: "approuvé" } : item
-        ),
-      }));
+      fetchData();  
     } catch (error) {
       console.error("Erreur lors de l'approbation:", error);
     }
@@ -401,12 +398,7 @@ export default function AdvertisementValidation() {
       await axios.patch(endpoint, { etat: newEtat });
 
       // Mettre à jour la liste des items
-      setAllItems((prev) => ({
-        ...prev,
-        [stateKey]: prev[stateKey].map((item) =>
-          item.id === id ? { ...item, etat: newEtat } : item
-        ),
-      }));
+      fetchData();
     } catch (error) {
       console.error("Erreur lors du changement d'état:", error);
     }
@@ -446,14 +438,7 @@ export default function AdvertisementValidation() {
       await axios.patch(endpoint, { statut: "en_attente" });
 
       // Mettre à jour la liste des items
-      setAllItems((prev) => ({
-        ...prev,
-        [stateKey]: prev[stateKey].map((item) =>
-          item.id === id
-            ? { ...item, statut: "en_attente", raison_rejet: null }
-            : item
-        ),
-      }));
+      fetchData();
     } catch (error) {
       console.error("Erreur lors de l'annulation du rejet:", error);
     }
@@ -504,7 +489,7 @@ export default function AdvertisementValidation() {
       // Mettre à jour la liste des items
       setAllItems((prev) => ({
         ...prev,
-        [stateKey]: prev[stateKey].filter((item) => item.id !== id),
+        [stateKey]: Array.isArray(prev[stateKey]) ? prev[stateKey].filter((item) => item.id !== id) : [],
       }));
 
       toast.success("Publication supprimée avec succès");
@@ -814,6 +799,9 @@ export default function AdvertisementValidation() {
           {items.map((item) => (
             <div
               key={item.id}
+              style = {{
+                backgroundColor : isDarkMode ? '#293545ff':'#ffffff'
+              }}
               className={`shadow-sm hover:shadow-md transition-all duration-200 rounded-xl p-5 border-l-4 ${
                 type === "socialEvent" && item.needs_attention
                   ? "border-l-red-500 dark:border-l-red-500"
@@ -821,8 +809,7 @@ export default function AdvertisementValidation() {
                       "border",
                       "border-l"
                     )
-              } ${
-                isDarkMode ? "bg-[#293545ff]" : "bg-white"
+                }
               }`}
             >
               <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -971,10 +958,7 @@ export default function AdvertisementValidation() {
     );
   };
 
-  // Obtenir le thème sombre/clair du système
-  const isDarkMode =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Le thème est maintenant géré par le ThemeContext via useTheme()
 
   // Gérer l'approbation d'une publication depuis le modal
   const handleModalApprove = async (id) => {
@@ -1018,9 +1002,9 @@ export default function AdvertisementValidation() {
       // Mettre à jour la liste des items
       setAllItems((prev) => ({
         ...prev,
-        [stateKey]: prev[stateKey].map((item) =>
+        [stateKey]: Array.isArray(prev[stateKey]) ? prev[stateKey].map((item) =>
           item.id === id ? { ...item, statut: "rejeté" } : item
-        ),
+        ) : [],
       }));
 
       closePreviewModal();
@@ -1065,11 +1049,11 @@ export default function AdvertisementValidation() {
       await axios.patch(endpoint, { statut: "en_attente" });
 
       // Mettre à jour la liste des items en attente
-      setPendingItems((prev) => ({
+      setAllItems((prev) => ({
         ...prev,
-        [stateKey]: prev[stateKey].map((item) =>
-          item.id === id ? { ...item, statut: "en_attente" } : item
-        ),
+        [stateKey]: Array.isArray(prev[stateKey]) ? prev[stateKey].map((item) =>
+          item.id === id ? { ...item, statut: "approuvé" } : item
+        ) : [],
       }));
 
       closePreviewModal();

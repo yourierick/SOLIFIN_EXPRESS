@@ -1355,23 +1355,6 @@ export default function MyPacks() {
                         </Typography>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                           <Typography
-                            variant="h5"
-                            sx={{ 
-                              color: isPackExpired(
-                                userPack.expiry_date,
-                                userPack.status
-                              )
-                                ? "#ef4444"
-                                : isPackExpiringSoon(userPack.expiry_date)
-                                ? "#f59e0b"
-                                : isDarkMode ? "#60a5fa" : "#3b82f6",
-                              fontWeight: 800,
-                              fontSize: "1.5rem",
-                            }}
-                          >
-                            ${userPack.pack.price}
-                          </Typography>
-                          <Typography
                             variant="body2"
                             sx={{ 
                               color: isDarkMode ? "#94a3b8" : "#64748b",
