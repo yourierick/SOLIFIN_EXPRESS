@@ -73,6 +73,7 @@ import {
   TicketIcon,
   ShieldCheckIcon,
   SpeakerWaveIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 
@@ -148,6 +149,12 @@ const navigationItems = [
     href: "/admin/broadcast-messages",
     icon: SpeakerWaveIcon,
     permission: "manage-broadcast-messages",
+  },
+  {
+    name: "Tableau de suivi",
+    href: "/admin/suivi",
+    icon: MagnifyingGlassIcon,
+    permission: null,
   },
   {
     name: "FAQ",

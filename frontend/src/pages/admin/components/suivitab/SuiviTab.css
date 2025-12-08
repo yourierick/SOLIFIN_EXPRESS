@@ -1,0 +1,88 @@
+.suivi-tab-container {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.suivi-tab-header {
+  margin-bottom: 30px;
+}
+
+.suivi-tab-header h1 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.tab-menu {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+.tab-button {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px 8px 0 0;
+  position: relative;
+}
+
+.tab-button:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.tab-button.active {
+  color: #007bff;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-bottom: 1px solid #ffffff;
+  margin-bottom: -1px;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #007bff;
+}
+
+.tab-content {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  min-height: 400px;
+}
+
+@media (max-width: 768px) {
+  .suivi-tab-container {
+    padding: 15px;
+  }
+  
+  .tab-menu {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .tab-button {
+    border-radius: 8px;
+    margin-bottom: 0;
+  }
+  
+  .tab-button.active {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 0;
+  }
+}

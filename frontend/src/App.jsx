@@ -55,6 +55,7 @@ const PromptLoginOrSubscribePage = lazy(() =>
 
 // Pages administrateur - Chargées de manière différée
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const SuiviDashboard = lazy(() => import("./pages/admin/components/suivitab/SuiviTab"))
 const UsersManagement = lazy(() => import("./pages/admin/UsersManagement"));
 const UserDetails = lazy(() => import("./pages/admin/UserDetails"));
 const Wallets = lazy(() => import("./pages/admin/Wallets"));
@@ -292,10 +293,6 @@ function App() {
                       </Suspense>
                     }
                   />
-                  {/* <Route
-              path="withdrawal-requests"
-              element={<Suspense fallback={<LoadingSpinner />}><WithdrawalRequests /></Suspense>}
-            /> */}
                   <Route
                     path="content-management"
                     element={
@@ -328,8 +325,7 @@ function App() {
                       </Suspense>
                     }
                   />
-                  {/* <Route path="administrators" element={<Suspense fallback={<LoadingSpinner />}><AdminManagement /></Suspense>} /> */}
-                  {/* <Route path="testimonials" element={<Suspense fallback={<LoadingSpinner />}><TestimonialManagement /></Suspense>} /> */}
+                  <Route path="suivi" element={<Suspense fallback={<LoadingSpinner />}><SuiviDashboard /></Suspense>} />
                   <Route
                     path="faqs"
                     element={
@@ -338,7 +334,6 @@ function App() {
                       </Suspense>
                     }
                   />
-                  {/* <Route path="formations" element={<Suspense fallback={<LoadingSpinner />}><FormationManagement /></Suspense>} /> */}
                   <Route
                     path="cadeaux"
                     element={
