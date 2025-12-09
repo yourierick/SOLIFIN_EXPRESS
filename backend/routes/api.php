@@ -740,5 +740,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'getPacks']);
         //Récupère les statistiques avancées des user-packs
         Route::get('/user-packs-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacksStatistics']);
+        //Récupère les statistiques des wallets
+        Route::get('/wallet-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletStatistics']);
+        //Récupère les transactions des wallets avec filtres
+        Route::get('/wallet-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletTransactions']);
     });
 });

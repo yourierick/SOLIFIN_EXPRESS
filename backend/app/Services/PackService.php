@@ -171,6 +171,7 @@ class PackService
 
         $user->wallet->transactions()->create([
             "wallet_id" => $user->wallet->id,
+            "mouvment" => 'out',
             "type" => "purchase",
             "amount" => $paymentData['amount'],
             "currency" => $paymentData['currency'],

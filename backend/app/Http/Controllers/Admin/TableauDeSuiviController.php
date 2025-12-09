@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\UserJetonEsengo;
 use App\Models\WithdrawalRequest;
+use App\Models\WalletTransaction;
 use App\Models\UserPack;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -410,5 +411,121 @@ class TableauDeSuiviController extends Controller
             default:
                 return $now->startOfMonth();
         }
+    }
+    
+    /**
+     * Obtenir les statistiques des wallets pour le suivi des soldes abonnés
+     */
+    public function walletStatistics(Request $request)
+    {
+        $period = $request->get('period', 'month');
+        $currency = $request->get('currency', 'USD');
+        
+        // Calculer la date de début selon la période
+        $startDate = $this->getStartDate($period);
+        
+        // Statistiques des soldes totaux selon la devise
+        if ($currency === 'CDF') {
+            $totalBalance = Wallet::sum('balance_cdf');
+        } else {
+            $totalBalance = Wallet::sum('balance_usd');
+        }
+        
+        // Statistiques des transactions par mouvement pour la période et la devise
+        $transactionStats = WalletTransaction::where('created_at', '>=', $startDate)
+            ->where('currency', $currency)
+            ->selectRaw('
+                mouvment,
+                SUM(amount) as total_amount
+            ')
+            ->groupBy('mouvment')
+            ->get()
+            ->keyBy('mouvment');
+        
+        // Calculer les totaux entrés/sortis selon la devise
+        $totalIn = $transactionStats->get('in')?->total_amount ?? 0;
+        $totalOut = $transactionStats->get('out')?->total_amount ?? 0;
+        
+        return response()->json([
+            'total_balance' => $totalBalance,
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
+            'currency' => $currency,
+        ]);
+    }
+    
+    /**
+     * Obtenir les transactions des wallets avec filtres
+     */
+    public function walletTransactions(Request $request)
+    {
+        $query = WalletTransaction::with(['wallet.user']);
+        
+        // Filtre par devise
+        $currency = $request->get('currency', 'USD');
+        $query->where('currency', $currency);
+        
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        
+        // Filtre par recherche (nom d'utilisateur ou référence)
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                // Recherche par nom d'utilisateur
+                $q->whereHas('wallet.user', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                // Recherche par référence de transaction
+                ->orWhere('reference', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        // Filtre par type de transaction
+        if ($request->has('type') && !empty($request->type)) {
+            $query->where('type', $request->type);
+        }
+        
+        // Filtre par type de mouvement
+        if ($request->has('movement') && !empty($request->movement)) {
+            $query->where('mouvment', $request->movement);
+        }
+        
+        // Filtre par statut
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+        
+        // Filtre par période de dates
+        if ($request->has('date_start') && !empty($request->date_start)) {
+            $query->whereDate('created_at', '>=', $request->date_start);
+        }
+        
+        if ($request->has('date_end') && !empty($request->date_end)) {
+            $query->whereDate('created_at', '<=', $request->date_end);
+        }
+        
+        // Tri par date décroissante
+        $query->orderBy('created_at', 'desc');
+        
+        // Pagination
+        $perPage = $request->get('per_page', 25);
+        $page = $request->get('page', 1);
+        
+        $transactions = $query->paginate($perPage, ['*'], 'page', $page);
+        
+        return response()->json([
+            'data' => $transactions->getCollection(),
+            'total' => $transactions->total(),
+            'per_page' => $transactions->perPage(),
+            'current_page' => $transactions->currentPage(),
+            'last_page' => $transactions->lastPage(),
+            'currency' => $currency,
+        ]);
     }
 }

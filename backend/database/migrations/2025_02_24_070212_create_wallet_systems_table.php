@@ -39,6 +39,7 @@ return new class extends Migration
         Schema::create('wallet_system_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('wallet_system_id')->constrained()->onDelete('cascade');
+            $table->string('reference')->unique()->nullable();
             $table->enum('mouvment', ['in', 'out']);
             $table->enum('type', ['pack_sale', 'boost_sale', 'renew_pack_sale', 'digital_product_sale', 'withdrawal', 'commission de retrait', 'commission de parrainage', 'commission de transfert', 'virtual_sale', 'transfer']);
             $table->decimal('amount', 10, 2);
