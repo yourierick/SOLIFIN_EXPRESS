@@ -744,5 +744,18 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/wallet-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletStatistics']);
         //Récupère les transactions des wallets avec filtres
         Route::get('/wallet-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletTransactions']);
+        
+        // Routes pour les jetons Esengo
+        Route::get('/jetons-esengo/stats', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonsEsengoStats']);
+        Route::get('/jetons-esengo', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonsEsengo']);
+        Route::get('/jetons-esengo/{jeton}/history', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonEsengoHistory']);
+        
+        // Routes pour les tickets gagnants
+        Route::get('/tickets-gagnants/stats', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'ticketsGagnantsStats']);
+        Route::get('/tickets-gagnants', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'ticketsGagnants']);
+        
+        // Routes d'exportation
+        Route::get('/jetons-esengo/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportJetonsEsengo']);
+        Route::get('/tickets-gagnants/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportTicketsGagnants']);
     });
 });

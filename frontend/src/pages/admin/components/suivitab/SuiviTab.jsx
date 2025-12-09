@@ -481,8 +481,8 @@ const SuiviTab = () => {
 
             {/* Contenu dynamique selon la sélection */}
             {subscriptionView === 'abonnement-gestion' && <SuiviAbonnementGestion period={period} />}
-            {subscriptionView === 'soldes-abonnes' && <SuiviSoldesAbonnes />}
-            {subscriptionView === 'jetons-esengo' && <SuiviJetonsEsengo />}
+            {subscriptionView === 'soldes-abonnes' && <SuiviSoldesAbonnes period={period} />}
+            {subscriptionView === 'jetons-esengo' && <SuiviJetonsEsengo period={period} setPeriod={setPeriod} />}
             {subscriptionView === 'retraits' && <SuiviRetraits />}
           </Box>
         );

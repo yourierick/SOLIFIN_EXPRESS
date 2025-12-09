@@ -25,6 +25,10 @@ import {
   Search as SearchIcon,
   CalendarToday as CalendarIcon,
   Check as CheckIcon,
+  LocalActivity as TicketIcon,
+  Schedule as ScheduleIcon,
+  EventAvailable as AvailableIcon,
+  EventBusy as BusyIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -56,7 +60,7 @@ const CustomTextField = React.forwardRef((props, ref) => {
 
 CustomTextField.displayName = 'CustomTextField';
 
-const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
+const SuiviJetonsEsengoFilters = ({ filters, onFiltersChange, period }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -174,7 +178,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                 fontWeight={600}
                 sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}
               >
-                Filtres avancés
+                Filtres des jetons
               </Typography>
               {hasActiveFilters && (
                 <Typography variant="caption" color="primary">
@@ -233,7 +237,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Box sx={{ position: 'relative', mr: 2 }}>
-                  <FilterIcon sx={{ 
+                  <TicketIcon sx={{ 
                     fontSize: { xs: 20, sm: 24 },
                     color: 'primary.main',
                     transition: 'transform 0.3s ease',
@@ -254,7 +258,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    Filtres avancés
+                    Filtres des jetons Esengo
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
                     Affinez votre recherche
@@ -308,7 +312,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                   <TextField
                     fullWidth
                     size={isMobile ? 'small' : 'medium'}
-                    placeholder="Nom ou code parrain"
+                    placeholder="Nom utilisateur ou code"
                     value={filters.search || ''}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     InputProps={{
@@ -411,7 +415,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                 </Box>
               </Grid>
 
-              {/* Statut */}
+              {/* Statut d'utilisation */}
               <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ mb: 2 }}>
                   <Typography 
@@ -437,7 +441,80 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                         mr: 1,
                         animation: 'pulse 2s infinite'
                       }} />
-                      Statut
+                      Statut d'utilisation
+                    </Box>
+                  </Typography>
+                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                    <Select
+                      value={filters.is_used || ''}
+                      onChange={(e) => handleFilterChange('is_used', e.target.value)}
+                      displayEmpty
+                      sx={{ 
+                        borderRadius: { xs: 1.5, md: 2 },
+                        bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                          borderColor: theme.palette.primary.main,
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        },
+                        '&.Mui-focused': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
+                          borderColor: theme.palette.primary.main,
+                          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                        },
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Tous les statuts</em>
+                      </MenuItem>
+                      <MenuItem value="true">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+                          Utilisé
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="false">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main' }} />
+                          Non utilisé
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Grid>
+
+              {/* Statut du jeton */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    fontWeight={600} 
+                    sx={{ 
+                      mb: 1, 
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }}
+                  >
+                    <Box sx={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center',
+                      mr: 1
+                    }}>
+                      <Box sx={{ 
+                        width: 2, 
+                        height: 2, 
+                        bgcolor: 'error.main',
+                        borderRadius: '50%',
+                        mr: 1,
+                        animation: 'pulse 2s infinite'
+                      }} />
+                      Statut du jeton
                     </Box>
                   </Typography>
                   <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
@@ -467,101 +544,16 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                       <MenuItem value="">
                         <em>Tous les statuts</em>
                       </MenuItem>
-                      <MenuItem value="active">
+                      <MenuItem value="valid">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
-                          Actif
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="inactive">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main' }} />
-                          Inactif
+                          <BusyIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                          Valide
                         </Box>
                       </MenuItem>
                       <MenuItem value="expired">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main' }} />
+                          <ScheduleIcon sx={{ fontSize: 16, color: 'warning.main' }} />
                           Expiré
-                        </Box>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Grid>
-
-              {/* Statut de paiement */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ mb: 2 }}>
-                  <Typography 
-                    variant="caption" 
-                    fontWeight={600} 
-                    sx={{ 
-                      mb: 1, 
-                      display: 'block',
-                      color: 'text.secondary',
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                    }}
-                  >
-                    <Box sx={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center',
-                      mr: 1
-                    }}>
-                      <Box sx={{ 
-                        width: 2, 
-                        height: 2, 
-                        bgcolor: 'error.main',
-                        borderRadius: '50%',
-                        mr: 1,
-                        animation: 'pulse 2s infinite'
-                      }} />
-                      Paiement
-                    </Box>
-                  </Typography>
-                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                    <Select
-                      value={filters.payment_status || ''}
-                      onChange={(e) => handleFilterChange('payment_status', e.target.value)}
-                      displayEmpty
-                      sx={{ 
-                        borderRadius: { xs: 1.5, md: 2 },
-                        bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                          borderColor: theme.palette.primary.main,
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        },
-                        '&.Mui-focused': {
-                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
-                          borderColor: theme.palette.primary.main,
-                          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
-                        },
-                      }}
-                    >
-                      <MenuItem value="">
-                        <em>Tous les paiements</em>
-                      </MenuItem>
-                      <MenuItem value="completed">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
-                          Complété
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="pending">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main' }} />
-                          En attente
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="failed">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main' }} />
-                          Échoué
                         </Box>
                       </MenuItem>
                     </Select>
@@ -604,7 +596,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                     }}
                   >
                     <Grid container spacing={{ xs: 2, sm: 3 }}>
-                      {/* Période d'achat */}
+                      {/* Période d'expiration */}
                       <Grid item xs={12} sm={6}>
                         <Box sx={{ mb: { xs: 2, sm: 0 } }}>
                           <Typography 
@@ -630,15 +622,15 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                                 mr: 1,
                                 animation: 'pulse 2s infinite'
                               }} />
-                              Période d'achat
+                              Période d'expiration
                             </Box>
                           </Typography>
                           <Grid container spacing={{ xs: 2, sm: 2 }}>
                             <Grid item xs={12} sm={6}>
                               <DatePicker
                                 label="Date de début"
-                                value={filters.purchase_date_start || null}
-                                onChange={(value) => handleFilterChange('purchase_date_start', value)}
+                                value={filters.expiry_date_start || null}
+                                onChange={(value) => handleFilterChange('expiry_date_start', value)}
                                 enableAccessibleFieldDOMStructure={false}
                                 slots={{
                                   textField: CustomTextField,
@@ -648,8 +640,8 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                             <Grid item xs={12} sm={6}>
                               <DatePicker
                                 label="Date de fin"
-                                value={filters.purchase_date_end || null}
-                                onChange={(value) => handleFilterChange('purchase_date_end', value)}
+                                value={filters.expiry_date_end || null}
+                                onChange={(value) => handleFilterChange('expiry_date_end', value)}
                                 enableAccessibleFieldDOMStructure={false}
                                 slots={{
                                   textField: CustomTextField,
@@ -660,7 +652,7 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                         </Box>
                       </Grid>
 
-                      {/* Période d'expiration */}
+                      {/* Période d'utilisation */}
                       <Grid item xs={12} sm={6}>
                         <Box>
                           <Typography 
@@ -686,15 +678,15 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                                 mr: 1,
                                 animation: 'pulse 2s infinite'
                               }} />
-                              Période d'expiration
+                              Période d'utilisation
                             </Box>
                           </Typography>
                           <Grid container spacing={{ xs: 2, sm: 2 }}>
                             <Grid item xs={12} sm={6}>
                               <DatePicker
                                 label="Date de début"
-                                value={filters.expiry_date_start || null}
-                                onChange={(value) => handleFilterChange('expiry_date_start', value)}
+                                value={filters.usage_date_start || null}
+                                onChange={(value) => handleFilterChange('usage_date_start', value)}
                                 enableAccessibleFieldDOMStructure={false}
                                 slots={{
                                   textField: CustomTextField,
@@ -704,8 +696,8 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                             <Grid item xs={12} sm={6}>
                               <DatePicker
                                 label="Date de fin"
-                                value={filters.expiry_date_end || null}
-                                onChange={(value) => handleFilterChange('expiry_date_end', value)}
+                                value={filters.usage_date_end || null}
+                                onChange={(value) => handleFilterChange('usage_date_end', value)}
                                 enableAccessibleFieldDOMStructure={false}
                                 slots={{
                                   textField: CustomTextField,
@@ -774,115 +766,37 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
                         ? 'linear-gradient(135deg, rgba(75, 85, 99, 0.9) 0%, rgba(107, 114, 128, 0.9) 100%)' 
                         : 'linear-gradient(135deg, rgba(229, 231, 235, 0.9) 0%, rgba(209, 213, 219, 0.9) 100%)',
                       transform: 'translateY(-2px) scale(1.02)',
-                      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+                      boxShadow: isDarkMode 
+                        ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+                        : '0 8px 25px rgba(0, 0, 0, 0.1)',
                     },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ClearIcon sx={{ fontSize: 16 }} />
-                    Réinitialiser
-                  </Box>
+                  Réinitialiser
                 </Button>
                 <Button
                   onClick={() => setExpanded(false)}
-                  variant="contained"
                   sx={{
                     px: { xs: 3, sm: 4 },
                     py: { xs: 1.5, sm: 2 },
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     borderRadius: { xs: 1.5, md: 2 },
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    color: '#ffffff',
+                    border: 'none',
+                    backdropFilter: 'blur(10px)',
                     transition: 'all 0.3s ease',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
                       transform: 'translateY(-2px) scale(1.02)',
-                      boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4)',
+                      boxShadow: `0 8px 25px ${theme.palette.primary.main}40`,
                     },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckIcon sx={{ fontSize: 16 }} />
-                    Appliquer
-                  </Box>
+                  Appliquer les filtres
                 </Button>
               </Box>
             </Box>
-
-            {/* Filtres actifs */}
-            {hasActiveFilters && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                  Filtres actifs:
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                  {filters.search && (
-                    <Chip
-                      label={`Recherche: ${filters.search}`}
-                      onDelete={() => handleFilterChange('search', '')}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                  {filters.pack_id && (
-                    <Chip
-                      label={`Pack: ${packs.find(p => p.id === filters.pack_id)?.name || filters.pack_id}`}
-                      onDelete={() => handleFilterChange('pack_id', '')}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                  {filters.status && (
-                    <Chip
-                      label={`Statut: ${filters.status}`}
-                      onDelete={() => handleFilterChange('status', '')}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                  {filters.payment_status && (
-                    <Chip
-                      label={`Paiement: ${filters.payment_status}`}
-                      onDelete={() => handleFilterChange('payment_status', '')}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                  {(filters.purchase_date_start || filters.purchase_date_end) && (
-                    <Chip
-                      label={`Achat: ${filters.purchase_date_start ? formatDateDisplay(filters.purchase_date_start) : '...'} - ${filters.purchase_date_end ? formatDateDisplay(filters.purchase_date_end) : '...'}`}
-                      onDelete={() => {
-                        const newFilters = { ...filters };
-                        delete newFilters.purchase_date_start;
-                        delete newFilters.purchase_date_end;
-                        onFiltersChange(newFilters);
-                      }}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                  {(filters.expiry_date_start || filters.expiry_date_end) && (
-                    <Chip
-                      label={`Expiration: ${filters.expiry_date_start ? formatDateDisplay(filters.expiry_date_start) : '...'} - ${filters.expiry_date_end ? formatDateDisplay(filters.expiry_date_end) : '...'}`}
-                      onDelete={() => {
-                        const newFilters = { ...filters };
-                        delete newFilters.expiry_date_start;
-                        delete newFilters.expiry_date_end;
-                        onFiltersChange(newFilters);
-                      }}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  )}
-                </Stack>
-              </Box>
-            )}
           </Box>
         </Collapse>
       </Paper>
@@ -890,4 +804,4 @@ const UserPacksFilters = ({ filters, onFiltersChange, period }) => {
   );
 };
 
-export default UserPacksFilters;
+export default SuiviJetonsEsengoFilters;

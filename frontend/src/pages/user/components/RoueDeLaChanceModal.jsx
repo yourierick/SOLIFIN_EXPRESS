@@ -19,11 +19,7 @@ import Notification from "../../../components/Notification";
 
 /**
  * Modal pour la roue de la chance (utilisation des jetons Esengo)
- * @param {Object} props - Les propriétés du composant
- * @param {boolean} props.open - Si le modal est ouvert
- * @param {Function} props.onClose - Fonction appelée à la fermeture du modal
- * @param {Object} props.jeton - Le jeton Esengo à utiliser
- * @param {Function} props.onResult - Fonction appelée avec le résultat (ticket gagné)
+ * Version corrigée avec roue correctement dessinée et calcul simplifié
  */
 const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
   const { isDarkMode } = useTheme();
@@ -32,9 +28,8 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
   const [error, setError] = useState(null);
   const [cadeaux, setCadeaux] = useState([]);
   const [result, setResult] = useState(null);
+  const [rotation, setRotation] = useState(0);
   const wheelRef = useRef(null);
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
 
   // Couleurs pour les segments de la roue
   const colors = [
@@ -52,22 +47,16 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
     if (open) {
       fetchCadeaux();
       setResult(null);
+      setRotation(0);
     }
   }, [open]);
 
-  useEffect(() => {
-    if (open && cadeaux.length > 0 && canvasRef.current) {
-      drawWheel();
-    }
-  }, [cadeaux, open, isDarkMode]);
-
-  // Récupérer la liste des cadeaux disponibles liés au pack du jeton
+  // Récupérer la liste des cadeaux disponibles
   const fetchCadeaux = async () => {
     if (!jeton || !jeton.pack_id) {
       setError("Impossible de récupérer les cadeaux: pack du jeton non défini");
       Notification.error({
-        message:
-          "Impossible de récupérer les cadeaux: pack du jeton non défini",
+        message: "Impossible de récupérer les cadeaux: pack du jeton non défini",
       });
       return;
     }
@@ -75,7 +64,6 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
     setLoading(true);
     setError(null);
     try {
-      // Appel à l'API pour récupérer les cadeaux liés au pack du jeton
       const response = await axios.get(
         `/api/user/finances/jetons-esengo/packs/${jeton.pack_id}/cadeaux`
       );
@@ -89,109 +77,34 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
       }
     } catch (err) {
       console.error("Erreur lors de la récupération des cadeaux:", err);
-
       Notification.error({
         message: "Erreur lors de la récupération des cadeaux",
       });
-
       setError("Impossible de récupérer les cadeaux du serveur.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Dessiner la roue
-  const drawWheel = (rotationAngle = 0) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 10;
-
-    // Effacer le canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Sauvegarder le contexte avant rotation
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(rotationAngle);
-
-    // Dessiner les segments de la roue
-    const totalSlices = cadeaux.length;
-    const arc = (2 * Math.PI) / totalSlices;
-
-    cadeaux.forEach((cadeau, i) => {
-      const angle = i * arc;
-      const colorIndex = i % colors.length;
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, angle, angle + arc);
-      ctx.lineTo(0, 0);
-      ctx.closePath();
-
-      ctx.fillStyle = colors[colorIndex];
-      ctx.fill();
-      ctx.stroke();
-
-      // Ajouter le nom du cadeau
-      ctx.save();
-      ctx.rotate(angle + arc / 2);
-      ctx.textAlign = "right";
-      ctx.font = "normal 12px poppins";
-
-      // Positionner le texte encore plus loin du centre (95% du rayon)
-      const textRadius = radius * 0.95;
-
-      // Ajouter un contour noir au texte
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 3;
-      ctx.lineJoin = "round";
-      ctx.strokeText(cadeau.nom, textRadius, 5);
-
-      // Remplir le texte en blanc
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(cadeau.nom, textRadius, 5);
-
-      // Ajouter une ombre au texte pour améliorer la lisibilité
-      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-      ctx.shadowBlur = 3;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
-      ctx.restore();
-    });
-
-    // Dessiner le centre de la roue
-    ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, 2 * Math.PI);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fill();
-    ctx.stroke();
-
-    // Restaurer le contexte (annuler la rotation)
-    ctx.restore();
-
-    // Flèche de la roue désactivée
-    // ctx.beginPath();
-    // ctx.moveTo(centerX + radius + 10, centerY);
-    // ctx.lineTo(centerX + radius - 10, centerY - 15);
-    // ctx.lineTo(centerX + radius - 10, centerY + 15);
-    // ctx.closePath();
-    // ctx.fillStyle = "#FF0000";
-    // ctx.fill();
+  // Calculer l'angle pour un index donné (pointeur en haut)
+  const calculateAngle = (index) => {
+    if (cadeaux.length === 0) return 0;
+    const segmentAngle = 360 / cadeaux.length;
+    // Le pointeur est en haut, donc on ajuste l'angle
+    // Le segment 0 commence en haut, donc on le centre sous le pointeur
+    return index * segmentAngle + (segmentAngle / 2);
   };
 
   // Faire tourner la roue
   const spinWheel = async () => {
-    if (spinning || !jeton) return;
+    if (spinning || !jeton || cadeaux.length === 0) return;
 
     setSpinning(true);
     setError(null);
 
     let backendTicket = null;
 
-    // 1. D'abord, demander au backend de déterminer le cadeau gagné
+    // 1. Appeler le backend pour déterminer le cadeau gagnant
     try {
       // Appel à l'API pour utiliser le jeton et obtenir un cadeau
       const response = await axios.post(
@@ -209,100 +122,57 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
         return;
       }
     } catch (err) {
-      console.error("Erreur lors de l'utilisation du jeton:", err);
+      console.error("Erreur détaillée lors de l'utilisation du jeton:", err);
+      console.error("Response data:", err.response?.data);
+      console.error("Response status:", err.response?.status);
+      console.error("Response headers:", err.response?.headers);
+      
       setSpinning(false);
-      setError("Erreur de connexion au serveur");
+      setError(err.response?.data?.message || "Erreur de connexion au serveur");
       return;
     }
 
-    // 2. Ensuite, animer la roue pour un effet visuel
-    if (cadeaux.length === 0) {
+    // Calculer l'angle de rotation final
+    const winningIndex = cadeaux.findIndex(c => c.id === backendTicket.cadeau?.id);
+    
+    if (winningIndex === -1) {
       setSpinning(false);
-      setError("Aucun cadeau disponible pour ce pack");
+      setError("Cadeau gagné non trouvé dans la liste des cadeaux disponibles");
       return;
     }
 
-    // Choisir un segment aléatoire pour l'animation (différent du résultat réel)
-    const randomIndex = Math.floor(Math.random() * cadeaux.length);
-    const totalSlices = cadeaux.length;
-    const arc = (2 * Math.PI) / totalSlices;
-    const targetAngle = randomIndex * arc + 10 * Math.PI; // Plusieurs tours + segment aléatoire
+    const targetAngle = calculateAngle(winningIndex);
+    const spins = 5; // Nombre de tours complets
+    const finalRotation = spins * 360 + (360 - targetAngle); // Rotation inverse pour que le cadeau s'arrête sous le pointeur
 
-    // Animation de la roue
-    let startTime = null;
-    const animationDuration = 5000; // 5 secondes
+    // Animer la rotation
+    setRotation(finalRotation);
 
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / animationDuration, 1);
-
-      // Fonction d'easing pour ralentir progressivement
-      const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-      const currentAngle = targetAngle * easeOut(progress);
-
-      drawWheel(currentAngle);
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        // Animation terminée, afficher le vrai résultat
-        setSpinning(false);
-        setResult(backendTicket);
-
-        // Appeler le callback avec le résultat
-        if (onResult && typeof onResult === "function") {
-          onResult(backendTicket);
-        }
+    // Afficher le résultat après l'animation
+    setTimeout(() => {
+      setSpinning(false);
+      setResult(backendTicket);
+      if (onResult && typeof onResult === "function") {
+        onResult(backendTicket);
       }
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-  };
-
-  // Fonction appelée à la fin de l'animation
-  const handleAnimationComplete = (ticket) => {
-    setSpinning(false);
-    setResult(ticket);
-
-    // Appeler le callback avec le résultat
-    if (onResult && typeof onResult === "function") {
-      onResult(ticket);
-    }
-  };
-
-  // Nettoyer l'animation lors de la fermeture du modal
-  const handleClose = () => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-    onClose();
+    }, 4000);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Non disponible";
-
     try {
-      // Si la date est déjà au format français avec heure (JJ/MM/AAAA HH:MM:SS)
       if (typeof dateString === "string" && dateString.includes("/")) {
-        // Extraire seulement la partie date (JJ/MM/AAAA)
         const dateParts = dateString.split(" ");
         if (dateParts.length > 0) {
-          return dateParts[0]; // Retourne seulement la partie date
+          return dateParts[0];
         }
         return dateString;
       }
-
-      // Essayer de créer une date valide
       const date = new Date(dateString);
-
-      // Vérifier si la date est valide
       if (isNaN(date.getTime())) {
         console.error("Date invalide:", dateString);
         return "Format de date invalide";
       }
-
-      // Formater la date en français sans l'heure
       return date.toLocaleDateString("fr-FR", {
         year: "numeric",
         month: "numeric",
@@ -318,15 +188,15 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay avec effet de flou */}
+      {/* Overlay */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300"
-        onClick={!spinning ? handleClose : undefined}
+        onClick={!spinning ? onClose : undefined}
       />
 
       {/* Conteneur du modal */}
       <div
-        className={`relative w-full max-w-lg max-h-[90vh] flex flex-col z-10 m-4 overflow-hidden transition-all duration-300 transform`}
+        className={`relative w-full max-w-2xl max-h-[90vh] flex flex-col z-10 m-4 overflow-hidden transition-all duration-300 transform`}
         style={{
           background: isDarkMode 
             ? "linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.95))"
@@ -339,44 +209,53 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
             : "0 25px 50px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
         }}
       >
-        {/* En-tête moderne */}
+        {/* Header */}
         <div
-          className="relative px-6 py-5 border-b"
+          className="relative px-8 py-6 border-b"
           style={{
             background: isDarkMode 
-              ? "linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05))"
-              : "linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(139, 92, 246, 0.02))",
-            borderColor: isDarkMode ? "rgba(148, 163, 184, 0.1)" : "rgba(203, 213, 225, 0.5)",
+              ? "linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(124, 58, 237, 0.06))"
+              : "linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(139, 92, 246, 0.03))",
+            borderColor: isDarkMode ? "rgba(148, 163, 184, 0.12)" : "rgba(203, 213, 225, 0.6)",
           }}
         >
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-bold flex items-center" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+            <div className="flex items-center space-x-4">
               <div 
-                className="p-2.5 rounded-xl mr-3 transition-all duration-300 hover:scale-110"
+                className="p-3 rounded-2xl transition-all duration-300 hover:scale-105 hover:rotate-12 shadow-lg"
                 style={{
-                  background: `linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1))`,
+                  background: `linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(124, 58, 237, 0.15))`,
+                  boxShadow: "0 4px 15px rgba(139, 92, 246, 0.2)",
                 }}
               >
-                <SparklesIcon className="h-5 w-5" style={{ color: "#8b5cf6" }} />
+                <SparklesIcon className="h-6 w-6" style={{ color: "#8b5cf6" }} />
               </div>
-              Roue de la Chance
-            </h3>
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-bold leading-tight" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+                  Roue de la Chance
+                </h3>
+                <p className="text-sm mt-1" style={{ color: isDarkMode ? "#a5b4fc" : "#6366f1" }}>
+                  Tentez de gagner un cadeau avec votre jeton
+                </p>
+              </div>
+            </div>
+            
             <button
-              onClick={!spinning ? handleClose : undefined}
-              className="p-2.5 rounded-xl transition-all duration-300 hover:scale-110"
+              onClick={!spinning ? onClose : undefined}
+              className="p-3 rounded-2xl transition-all duration-300 hover:scale-105 hover:bg-opacity-20 shadow-md"
               style={{
-                background: isDarkMode ? "rgba(148, 163, 184, 0.1)" : "rgba(100, 116, 139, 0.08)",
-                border: `1px solid ${isDarkMode ? "rgba(148, 163, 184, 0.15)" : "rgba(100, 116, 139, 0.1)"}`,
+                background: isDarkMode ? "rgba(148, 163, 184, 0.12)" : "rgba(100, 116, 139, 0.1)",
+                border: `1px solid ${isDarkMode ? "rgba(148, 163, 184, 0.18)" : "rgba(100, 116, 139, 0.15)"}`,
               }}
               disabled={spinning}
               aria-label="Fermer"
             >
-              <XMarkIcon className="h-5 w-5" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }} />
+              <XMarkIcon className="h-6 w-6" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }} />
             </button>
           </div>
         </div>
 
-        <div className="px-6 py-4 flex-1 overflow-y-auto" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+        <div className={`px-6 py-4 flex-1 ${spinning ? 'overflow-hidden' : 'overflow-y-auto'}`} style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
           {loading ? (
             <div className="flex flex-col justify-center items-center h-64">
               <div 
@@ -408,44 +287,67 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
             </div>
           ) : (
             <div className="overflow-y-auto">
-              {jeton && (
+              {cadeaux.length === 0 && !loading && !error && (
+                <div className="flex flex-col justify-center items-center h-64">
+                  <GiftIcon className="h-12 w-12 mb-4" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }} />
+                  <p style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                    Aucun cadeau disponible pour ce pack
+                  </p>
+                </div>
+              )}
+              
+              {cadeaux.length > 0 && (
+                <>
+                  {/* Informations du jeton */}
+                  {jeton && (
                 <div
-                  className="mb-6 p-5 rounded-xl border"
+                  className="mb-8 p-6 rounded-2xl border shadow-sm"
                   style={{
                     background: isDarkMode 
-                      ? "linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(51, 65, 85, 0.4))"
-                      : "linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.6))",
-                    borderColor: isDarkMode ? "rgba(148, 163, 184, 0.15)" : "rgba(203, 213, 225, 0.5)",
+                      ? "linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(51, 65, 85, 0.5))"
+                      : "linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.7))",
+                    borderColor: isDarkMode ? "rgba(148, 163, 184, 0.18)" : "rgba(203, 213, 225, 0.6)",
                   }}
                 >
-                  <div className="flex items-center mb-3">
-                    <div 
-                      className="p-2 rounded-xl mr-3"
-                      style={{
-                        background: `linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1))`,
-                      }}
-                    >
-                      <GiftIcon className="h-5 w-5" style={{ color: "#8b5cf6" }} />
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className="p-3 rounded-2xl shadow-md transition-all duration-300 hover:scale-105"
+                        style={{
+                          background: `linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(124, 58, 237, 0.15))`,
+                          boxShadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
+                        }}
+                      >
+                        <GiftIcon className="h-6 w-6" style={{ color: "#8b5cf6" }} />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-xl" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+                          Informations du jeton
+                        </h4>
+                        <p className="text-sm mt-1" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
+                          Détails de votre jeton Esengo
+                        </p>
+                      </div>
                     </div>
-                    <h4 className="font-semibold text-lg" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
-                      Informations du jeton
-                    </h4>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wider" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
-                        Code unique
-                      </p>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#8b5cf6" }}></div>
+                        <p className="text-sm font-medium uppercase tracking-wide" style={{ color: isDarkMode ? "#a5b4fc" : "#6366f1" }}>
+                          Code unique
+                        </p>
+                      </div>
                       <div 
-                        className="font-mono font-medium text-sm p-3 rounded-xl border"
+                        className="font-mono font-semibold text-base p-4 rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-md"
                         style={{
                           background: isDarkMode 
-                            ? "linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8))"
-                            : "linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9))",
-                          borderColor: isDarkMode ? "rgba(148, 163, 184, 0.2)" : "rgba(203, 213, 225, 0.5)",
+                            ? "linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))"
+                            : "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95))",
+                          borderColor: isDarkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)",
                           color: isDarkMode ? "#fff" : "#1a202c",
-                          letterSpacing: "0.05em",
+                          letterSpacing: "0.08em",
                         }}
                       >
                         {jeton.code_unique}
@@ -453,76 +355,232 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
                     </div>
 
                     {jeton.date_expiration && (
-                      <div className="space-y-2">
-                        <p className="text-xs uppercase tracking-wider" style={{ color: isDarkMode ? "#94a3b8" : "#64748b" }}>
-                          Expire le
-                        </p>
-                        <p className="font-medium flex items-center" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
-                          <ClockIcon className="h-4 w-4 mr-2" style={{ color: "#f59e0b" }} />
-                          {formatDate(jeton.date_expiration)}
-                        </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#f59e0b" }}></div>
+                          <p className="text-sm font-medium uppercase tracking-wide" style={{ color: isDarkMode ? "#fbbf24" : "#d97706" }}>
+                            Date d'expiration
+                          </p>
+                        </div>
+                        <div 
+                          className="p-4 rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-md"
+                          style={{
+                            background: isDarkMode 
+                              ? "linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))"
+                              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95))",
+                            borderColor: isDarkMode ? "rgba(245, 158, 11, 0.3)" : "rgba(245, 158, 11, 0.2)",
+                          }}
+                        >
+                          <div className="flex items-center">
+                            <ClockIcon className="h-5 w-5 mr-3 flex-shrink-0" style={{ color: "#f59e0b" }} />
+                            <p className="font-semibold text-base" style={{ color: isDarkMode ? "#fff" : "#1a202c" }}>
+                              {formatDate(jeton.date_expiration)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
 
                   <div 
-                    className="mt-4 p-3 rounded-xl border flex items-center"
+                    className="mt-6 p-4 rounded-2xl border flex items-center shadow-sm transition-all duration-300 hover:shadow-md"
                     style={{
                       background: isDarkMode 
-                        ? "linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05))"
-                        : "linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(139, 92, 246, 0.02))",
-                      borderColor: isDarkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(124, 58, 237, 0.15)",
+                        ? "linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(124, 58, 237, 0.06))"
+                        : "linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(139, 92, 246, 0.03))",
+                      borderColor: isDarkMode ? "rgba(139, 92, 246, 0.25)" : "rgba(124, 58, 237, 0.2)",
                     }}
                   >
-                    <SparklesIcon className="h-5 w-5 mr-2 flex-shrink-0" style={{ color: "#8b5cf6" }} />
-                    <p className="text-sm" style={{ color: isDarkMode ? "#c4b5fd" : "#6d28d9" }}>
-                      Cliquez sur "Tourner la roue" pour tenter votre chance et gagner un cadeau !
-                    </p>
+                    <div 
+                      className="p-2 rounded-xl mr-4 flex-shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.1))`,
+                      }}
+                    >
+                      <SparklesIcon className="h-6 w-6" style={{ color: "#8b5cf6" }} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-base mb-1" style={{ color: isDarkMode ? "#c4b5fd" : "#6d28d9" }}>
+                        Prêt à tenter votre chance ?
+                      </p>
+                      <p className="text-sm" style={{ color: isDarkMode ? "#a5b4fc" : "#8b5cf6" }}>
+                        Cliquez sur "Tourner la roue" pour gagner un cadeau !
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-center my-6" ref={wheelRef}>
-                <div className="relative">
+              {/* Roue de la chance */}
+              <div className="flex justify-center my-8">
+                <div className="relative" style={{ width: "340px", height: "340px" }}>
+                  {/* Pointeur - positionné au-dessus de la roue */}
                   <div 
-                    className="relative rounded-full shadow-2xl overflow-hidden"
-                    style={{
-                      background: isDarkMode 
-                        ? "linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.9))"
-                        : "linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
-                      border: `4px solid ${isDarkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(124, 58, 237, 0.2)"}`,
-                      backdropFilter: "blur(10px)",
+                    className="absolute z-30"
+                    style={{ 
+                      top: "-20px", 
+                      left: "50%", 
+                      transform: "translateX(-50%)",
+                      filter: "drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5))"
                     }}
                   >
-                    <canvas
-                      ref={canvasRef}
-                      width="300"
-                      height="300"
-                      className={`rounded-full ${spinning ? "animate-pulse" : ""}`}
-                      style={{
-                        filter: spinning ? "brightness(1.1)" : "brightness(1)",
-                        transition: "filter 0.3s ease",
-                      }}
-                    ></canvas>
-                  </div>
-
-                  {/* Indicateur de position modernisé */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div 
-                      className="relative"
-                      style={{
-                        filter: "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))",
-                      }}
-                    >
-                      <div className="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[24px] border-l-transparent border-r-transparent" 
-                           style={{ borderTopColor: "#ef4444" }}></div>
-                      <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[12px] border-r-[12px] border-t-[18px] border-l-transparent border-r-transparent" 
+                    <div className="relative">
+                      {/* Pointeur extérieur rouge */}
+                      <div className="w-0 h-0 border-l-[24px] border-r-[24px] border-t-[36px] border-l-transparent border-r-transparent" 
+                           style={{ borderTopColor: "#dc2626" }}></div>
+                      {/* Pointeur intérieur blanc */}
+                      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[18px] border-r-[18px] border-t-[28px] border-l-transparent border-r-transparent" 
                            style={{ borderTopColor: "#ffffff" }}></div>
+                      {/* Centre du pointeur */}
+                      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent" 
+                           style={{ borderTopColor: "#dc2626" }}></div>
                     </div>
                   </div>
+
+                  {/* Conteneur de la roue avec effet de profondeur */}
+                  <div className="absolute inset-0 rounded-full" style={{
+                    background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 50%)",
+                    filter: "blur(1px)",
+                    zIndex: 1
+                  }}></div>
+
+                  {/* Roue SVG */}
+                  <div 
+                    className="relative rounded-full overflow-hidden shadow-2xl"
+                    style={{
+                      background: isDarkMode 
+                        ? "linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))"
+                        : "linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
+                      border: `6px solid ${isDarkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(124, 58, 237, 0.3)"}`,
+                      boxShadow: isDarkMode 
+                        ? "0 20px 40px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1)"
+                        : "0 20px 40px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.9)",
+                      transition: `transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)`,
+                      transform: `rotate(${rotation}deg)`,
+                      zIndex: 2
+                    }}
+                  >
+                    <svg width="340" height="340" viewBox="0 0 340 340">
+                      {/* Définition des dégradés */}
+                      <defs>
+                        {colors.map((color, index) => (
+                          <linearGradient key={`gradient-${index}`} id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor={color} stopOpacity="0.9" />
+                            <stop offset="100%" stopColor={color} stopOpacity="1" />
+                          </linearGradient>
+                        ))}
+                        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                          <feOffset dx="0" dy="2" result="offsetblur"/>
+                          <feFlood floodColor="#000000" floodOpacity="0.3"/>
+                          <feComposite in2="offsetblur" operator="in"/>
+                          <feMerge>
+                            <feMergeNode/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      
+                      {cadeaux.length > 0 && cadeaux.map((cadeau, index) => {
+                        const segmentAngle = 360 / cadeaux.length;
+                        const angle = segmentAngle * index;
+                        const nextAngle = segmentAngle * (index + 1);
+                        const startAngle = (angle - 90) * (Math.PI / 180);
+                        const endAngle = (nextAngle - 90) * (Math.PI / 180);
+                        const largeArcFlag = nextAngle - angle > 180 ? 1 : 0;
+                        
+                        const x1 = 170 + 150 * Math.cos(startAngle);
+                        const y1 = 170 + 150 * Math.sin(startAngle);
+                        const x2 = 170 + 150 * Math.cos(endAngle);
+                        const y2 = 170 + 150 * Math.sin(endAngle);
+                        
+                        const textAngle = angle - 90 + segmentAngle / 2;
+                        const textRadius = 110;
+                        const textX = 170 + textRadius * Math.cos(textAngle * Math.PI / 180);
+                        const textY = 170 + textRadius * Math.sin(textAngle * Math.PI / 180);
+                        
+                        return (
+                          <g key={index}>
+                            {/* Segment principal */}
+                            <path
+                              d={`M 170 170 L ${x1} ${y1} A 150 150 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                              fill={`url(#gradient-${index})`}
+                              stroke="white"
+                              strokeWidth="3"
+                              filter="url(#shadow)"
+                            />
+                            
+                            {/* Bordure intérieure pour effet de profondeur */}
+                            <path
+                              d={`M 170 170 L ${x1} ${y1} A 150 150 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                              fill="none"
+                              stroke="rgba(255,255,255,0.2)"
+                              strokeWidth="1"
+                            />
+                            
+                            {/* Texte avec ombre */}
+                            <text
+                              x={textX}
+                              y={textY}
+                              fill="white"
+                              fontSize="15"
+                              fontWeight="bold"
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              transform={`rotate(${textAngle}, ${textX}, ${textY})`}
+                              style={{ 
+                                textShadow: "0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.4)",
+                                filter: "url(#shadow)"
+                              }}
+                            >
+                              {cadeau.nom.length > 15 ? cadeau.nom.substring(0, 15) + "..." : cadeau.nom}
+                            </text>
+                          </g>
+                        );
+                      })}
+                      
+                      {/* Cercle central amélioré */}
+                      <circle
+                        cx="170"
+                        cy="170"
+                        r="35"
+                        fill={isDarkMode ? "rgba(30, 41, 59, 0.95)" : "rgba(255, 255, 255, 0.98)"}
+                        stroke={isDarkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(124, 58, 237, 0.3)"}
+                        strokeWidth="4"
+                        filter="url(#shadow)"
+                      />
+                      <circle
+                        cx="170"
+                        cy="170"
+                        r="30"
+                        fill="none"
+                        stroke={isDarkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(124, 58, 237, 0.1)"}
+                        strokeWidth="1"
+                      />
+                      <text
+                        x="170"
+                        y="170"
+                        fill={isDarkMode ? "#8b5cf6" : "#7c3aed"}
+                        fontSize="18"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{ textShadow: "0 0 4px rgba(139, 92, 246, 0.3)" }}
+                      >
+                        SPIN
+                      </text>
+                    </svg>
+                  </div>
+
+                  {/* Effet de brillance */}
+                  <div className="absolute inset-0 rounded-full pointer-events-none" style={{
+                    background: "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), transparent 40%)",
+                    zIndex: 3
+                  }}></div>
                 </div>
               </div>
 
+              {/* Résultat */}
               {result && (
                 <div 
                   className="mt-6 p-6 rounded-2xl shadow-lg border relative overflow-hidden"
@@ -533,7 +591,6 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
                     borderColor: isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(134, 239, 172, 0.4)",
                   }}
                 >
-                  {/* Effet de brillance */}
                   <div 
                     className="absolute inset-0 opacity-50"
                     style={{
@@ -652,10 +709,13 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
                   </div>
                 </div>
               )}
+                </>
+              )}
             </div>
           )}
         </div>
 
+        {/* Bouton d'action */}
         <div
           className="px-6 py-5 flex justify-center border-t"
           style={{
@@ -709,7 +769,6 @@ const RoueDeLaChanceModal = ({ open, onClose, jeton, onResult }) => {
               )}
             </span>
             
-            {/* Effet de brillance au hover */}
             <div 
               className="absolute inset-0 opacity-0 group-hover/btn:opacity-20 transition-opacity duration-300 pointer-events-none"
               style={{

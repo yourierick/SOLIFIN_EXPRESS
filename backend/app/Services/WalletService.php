@@ -18,6 +18,8 @@ class WalletService
      * @param int $userId
      * @return Wallet
      */
+
+    
     public function createUserWallet($userId)
     {
         return Wallet::create([

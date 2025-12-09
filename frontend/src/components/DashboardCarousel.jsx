@@ -45,8 +45,6 @@ export default function DashboardCarousel() {
 
         // Utiliser le nouvel endpoint unifié pour le carrousel
         const response = await axios.get("/api/dashboard/carousel");
-
-        console.log(response)
         if (response.data.success) {
           // Transformer les publicités en format carousel
           const publicites = response.data.publicites.map((pub) => ({

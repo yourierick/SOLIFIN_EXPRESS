@@ -31,7 +31,7 @@ import axios from 'axios';
 import UserPacksFilters from './UserPacksFilters';
 import ExportToExcel from './ExportToExcel';
 
-const SuiviAbonnementTable = ({ period, filters, onFiltersChange }) => {
+const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -169,6 +169,7 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange }) => {
           currentPage={page}
           rowsPerPage={rowsPerPage}
           total={total}
+          currency={currency}
         />
       </Stack>
       

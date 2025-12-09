@@ -145,55 +145,42 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
               <Grid item xs={12} sm={6}>
                 <Card
                   sx={{
-                    p: { xs: 3, sm: 4 },
-                    borderRadius: { xs: 2, md: 3 },
-                    background: isDarkMode 
-                      ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)' 
-                      : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    p: { xs: 2, sm: 3 },
+                    borderRadius: 2,
+                    bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: isDarkMode 
-                      ? '0 4px 20px rgba(0, 0, 0, 0.3)' 
-                      : '0 4px 20px rgba(0, 0, 0, 0.08)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: isDarkMode 
-                        ? '0 8px 30px rgba(0, 0, 0, 0.4)' 
-                        : '0 8px 30px rgba(0, 0, 0, 0.12)',
-                    },
+                    boxShadow: 'none',
                   }}
                 >
                   <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
-                        width: { xs: 48, sm: 56 },
-                        height: { xs: 48, sm: 56 },
-                        borderRadius: { xs: 1.5, md: 2 },
+                        width: 40,
+                        height: 40,
+                        borderRadius: 1,
                         bgcolor: 'primary.main',
                         color: 'white',
+                        mr: 2,
                       }}>
-                        <UsersIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
+                        <UsersIcon sx={{ fontSize: 20 }} />
                       </Box>
+                      <Typography 
+                        variant="h4" 
+                        fontWeight={600}
+                        sx={{ 
+                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                        }}
+                      >
+                        {formatNumber(statistics.total)}
+                      </Typography>
                     </Box>
                     <Typography 
-                      variant="h2" 
-                      fontWeight={700}
+                      variant="body2" 
                       sx={{ 
-                        fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        mb: 1,
-                      }}
-                    >
-                      {formatNumber(statistics.total)}
-                    </Typography>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        color: isDarkMode ? '#d1d5db' : '#4b5563',
-                        fontWeight: 500,
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
                       }}
                     >
                       Abonnements totaux
@@ -205,64 +192,42 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
               <Grid item xs={12} sm={6}>
                 <Card
                   sx={{
-                    p: { xs: 3, sm: 4 },
-                    borderRadius: { xs: 2, md: 3 },
-                    background: isDarkMode 
-                      ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)' 
-                      : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    p: { xs: 2, sm: 3 },
+                    borderRadius: 2,
+                    bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: isDarkMode 
-                      ? '0 4px 20px rgba(0, 0, 0, 0.3)' 
-                      : '0 4px 20px rgba(0, 0, 0, 0.08)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: isDarkMode 
-                        ? '0 8px 30px rgba(0, 0, 0, 0.4)' 
-                        : '0 8px 30px rgba(0, 0, 0, 0.12)',
-                    },
+                    boxShadow: 'none',
                   }}
                 >
                   <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
-                        width: { xs: 48, sm: 56 },
-                        height: { xs: 48, sm: 56 },
-                        borderRadius: { xs: 1.5, md: 2 },
+                        width: 40,
+                        height: 40,
+                        borderRadius: 1,
                         bgcolor: 'success.main',
                         color: 'white',
+                        mr: 2,
                       }}>
-                        <TrendingUpIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
+                        <TrendingUpIcon sx={{ fontSize: 20 }} />
                       </Box>
-                      <Chip
-                        label={`${statistics.total > 0 ? Math.round((statistics.active / statistics.total) * 100) : 0}%`}
-                        size="small"
-                        color="success"
+                      <Typography 
+                        variant="h4" 
+                        fontWeight={600}
                         sx={{ 
-                          fontWeight: 600,
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
                         }}
-                      />
+                      >
+                        {formatNumber(statistics.active)}
+                      </Typography>
                     </Box>
                     <Typography 
-                      variant="h2" 
-                      fontWeight={700}
+                      variant="body2" 
                       sx={{ 
-                        fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        mb: 1,
-                      }}
-                    >
-                      {formatNumber(statistics.active)}
-                    </Typography>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        color: isDarkMode ? '#d1d5db' : '#4b5563',
-                        fontWeight: 500,
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
                       }}
                     >
                       Abonnements actifs

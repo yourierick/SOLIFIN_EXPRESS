@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\UserJetonEsengo;
+use App\Models\UserJetonEsengoHistory;
+use App\Models\TicketGagnant;
 use App\Models\WithdrawalRequest;
 use App\Models\WalletTransaction;
 use App\Models\UserPack;
@@ -527,5 +529,473 @@ class TableauDeSuiviController extends Controller
             'last_page' => $transactions->lastPage(),
             'currency' => $currency,
         ]);
+    }
+
+    /**
+     * Récupère les statistiques des jetons Esengo
+     */
+    public function jetonsEsengoStats(Request $request)
+    {
+        $query = UserJetonEsengo::query();
+
+        // Filtre par période
+        $period = $request->get('period', 'month');
+        $startDate = $this->getStartDate($period);
+        $endDate = Carbon::now();
+        $query->whereBetween('created_at', [$startDate, $endDate]);
+
+        // Recherche par utilisateur ou code unique
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($subQuery) use ($search) {
+                $subQuery->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('code_unique', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filtre par pack
+        if ($request->has('pack_id') && !empty($request->pack_id)) {
+            $query->where('pack_id', $request->pack_id);
+        }
+
+        // Filtre par statut d'utilisation (is_used)
+        if ($request->has('is_used') && !empty($request->is_used)) {
+            $query->where('is_used', $request->is_used === 'true');
+        }
+
+        // Filtre par statut calculé
+        if ($request->has('status') && !empty($request->status)) {
+            switch ($request->status) {
+                case 'valid':
+                    $query->where(function($q) {
+                        $q->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', Carbon::now());
+                    });
+                    break;
+                case 'expired':
+                    $query->where('date_expiration', '<', Carbon::now());
+                    break;
+            }
+        }
+
+        // Filtres par période d'expiration
+        if ($request->has('expiry_date_start') && !empty($request->expiry_date_start)) {
+            $query->whereDate('date_expiration', '>=', $request->expiry_date_start);
+        }
+        
+        if ($request->has('expiry_date_end') && !empty($request->expiry_date_end)) {
+            $query->whereDate('date_expiration', '<=', $request->expiry_date_end);
+        }
+
+        // Filtres par période d'utilisation
+        if ($request->has('usage_date_start') && !empty($request->usage_date_start)) {
+            $query->whereDate('date_utilisation', '>=', $request->usage_date_start);
+        }
+        
+        if ($request->has('usage_date_end') && !empty($request->usage_date_end)) {
+            $query->whereDate('date_utilisation', '<=', $request->usage_date_end);
+        }
+
+        // Cloner la requête de base pour les statistiques
+        $baseQuery = clone $query;
+
+        // Statistiques des jetons
+        $stats = [
+            'attribues' => $baseQuery->count(),
+            'utilises' => (clone $query)->where('is_used', true)->count(),
+            'non_utilises' => (clone $query)->where('is_used', false)
+                ->where(function($query) {
+                    $query->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', Carbon::now());
+                })
+                ->count(),
+            'expires' => (clone $query)->where('date_expiration', '<', Carbon::now())->count(),
+        ];
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Récupère la liste des jetons Esengo avec pagination et filtres
+     */
+    public function jetonsEsengo(Request $request)
+    {
+        $query = UserJetonEsengo::with(['user', 'pack']);
+
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+
+        // Recherche par utilisateur ou code unique
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($subQuery) use ($search) {
+                $subQuery->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('code_unique', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filtre par pack
+        if ($request->has('pack_id') && !empty($request->pack_id)) {
+            $query->where('pack_id', $request->pack_id);
+        }
+
+        // Filtre par statut d'utilisation (is_used)
+        if ($request->has('is_used') && !empty($request->is_used)) {
+            $query->where('is_used', $request->is_used === 'true');
+        }
+
+        // Filtre par statut calculé
+        if ($request->has('status') && !empty($request->status)) {
+            switch ($request->status) {
+                case 'valid':
+                    $query->where(function($q) {
+                        $q->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', Carbon::now());
+                    });
+                    break;
+                case 'expired':
+                    $query->where('date_expiration', '<', Carbon::now());
+                    break;
+            }
+        }
+
+        // Filtres par période d'expiration
+        if ($request->has('expiry_date_start') && !empty($request->expiry_date_start)) {
+            $query->whereDate('date_expiration', '>=', $request->expiry_date_start);
+        }
+        
+        if ($request->has('expiry_date_end') && !empty($request->expiry_date_end)) {
+            $query->whereDate('date_expiration', '<=', $request->expiry_date_end);
+        }
+
+        // Filtres par période d'utilisation
+        if ($request->has('usage_date_start') && !empty($request->usage_date_start)) {
+            $query->whereDate('date_utilisation', '>=', $request->usage_date_start);
+        }
+        
+        if ($request->has('usage_date_end') && !empty($request->usage_date_end)) {
+            $query->whereDate('date_utilisation', '<=', $request->usage_date_end);
+        }
+
+        // Tri par date décroissante
+        $query->orderBy('created_at', 'desc');
+
+        // Pagination
+        $perPage = $request->get('per_page', 25);
+        $page = $request->get('page', 1);
+
+        $jetons = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Ajouter le statut calculé pour chaque jeton
+        $jetons->getCollection()->transform(function ($jeton) {
+            $jeton->isExpired = $jeton->isExpired();
+            return $jeton;
+        });
+
+        return response()->json([
+            'data' => $jetons->getCollection(),
+            'total' => $jetons->total(),
+            'per_page' => $jetons->perPage(),
+            'current_page' => $jetons->currentPage(),
+            'last_page' => $jetons->lastPage(),
+        ]);
+    }
+
+    /**
+     * Récupère l'historique d'un jeton Esengo spécifique
+     */
+    public function jetonEsengoHistory(Request $request, $jetonId)
+    {
+        $jeton = UserJetonEsengo::findOrFail($jetonId);
+        
+        $history = UserJetonEsengoHistory::with(['user', 'cadeau', 'jeton'])
+            ->where('jeton_id', $jetonId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($history);
+    }
+
+    /**
+     * Récupère les statistiques des tickets gagnants
+     */
+    public function ticketsGagnantsStats(Request $request)
+    {
+        $query = TicketGagnant::query();
+
+        // Filtre par période
+        $period = $request->get('period', 'month');
+        $startDate = $this->getStartDate($period);
+        $endDate = Carbon::now();
+        $query->whereBetween('created_at', [$startDate, $endDate]);
+
+        // Recherche multi-champs
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($subQuery) use ($search) {
+                $subQuery->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('code_jeton', 'LIKE', "%{$search}%")
+                ->orWhere('code_verification', 'LIKE', "%{$search}%")
+                ->orWhereHas('cadeau', function($cadeauQuery) use ($search) {
+                    $cadeauQuery->where('nom', 'LIKE', "%{$search}%");
+                })
+                ->orWhereHas('admin', function($adminQuery) use ($search) {
+                    $adminQuery->where('name', 'LIKE', "%{$search}%");
+                });
+            });
+        }
+
+        // Filtre par statut
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('consomme', $request->status);
+        }
+
+        // Filtres par période d'expiration
+        if ($request->has('expiry_date_start') && !empty($request->expiry_date_start)) {
+            $query->whereDate('date_expiration', '>=', $request->expiry_date_start);
+        }
+        
+        if ($request->has('expiry_date_end') && !empty($request->expiry_date_end)) {
+            $query->whereDate('date_expiration', '<=', $request->expiry_date_end);
+        }
+
+        // Filtres par période de consommation
+        if ($request->has('consumption_date_start') && !empty($request->consumption_date_start)) {
+            $query->whereDate('date_consommation', '>=', $request->consumption_date_start);
+        }
+        
+        if ($request->has('consumption_date_end') && !empty($request->consumption_date_end)) {
+            $query->whereDate('date_consommation', '<=', $request->consumption_date_end);
+        }
+
+        // Cloner la requête de base pour les statistiques
+        $baseQuery = clone $query;
+
+        // Statistiques des tickets
+        $stats = [
+            'attribues' => $baseQuery->count(),
+            'consommes' => (clone $query)->where('consomme', TicketGagnant::CONSOMME)->count(),
+            'programmes' => (clone $query)->where('consomme', TicketGagnant::PROGRAMME)->count(),
+            'expires' => (clone $query)->where('consomme', TicketGagnant::EXPIRE)->count(),
+            'non_consommes' => (clone $query)->where('consomme', TicketGagnant::NON_CONSOMME)->count(),
+        ];
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Récupère la liste des tickets gagnants avec pagination et filtres
+     */
+    public function ticketsGagnants(Request $request)
+    {
+        $query = TicketGagnant::with(['user', 'cadeau', 'admin']);
+
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+
+        // Recherche multi-champs
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($subQuery) use ($search) {
+                $subQuery->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('code_jeton', 'LIKE', "%{$search}%")
+                ->orWhere('code_verification', 'LIKE', "%{$search}%")
+                ->orWhereHas('cadeau', function($cadeauQuery) use ($search) {
+                    $cadeauQuery->where('nom', 'LIKE', "%{$search}%");
+                })
+                ->orWhereHas('admin', function($adminQuery) use ($search) {
+                    $adminQuery->where('name', 'LIKE', "%{$search}%");
+                });
+            });
+        }
+
+        // Filtre par statut
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('consomme', $request->status);
+        }
+
+        // Filtres par période d'expiration
+        if ($request->has('expiry_date_start') && !empty($request->expiry_date_start)) {
+            $query->whereDate('date_expiration', '>=', $request->expiry_date_start);
+        }
+        
+        if ($request->has('expiry_date_end') && !empty($request->expiry_date_end)) {
+            $query->whereDate('date_expiration', '<=', $request->expiry_date_end);
+        }
+
+        // Filtres par période de consommation
+        if ($request->has('consumption_date_start') && !empty($request->consumption_date_start)) {
+            $query->whereDate('date_consommation', '>=', $request->consumption_date_start);
+        }
+        
+        if ($request->has('consumption_date_end') && !empty($request->consumption_date_end)) {
+            $query->whereDate('date_consommation', '<=', $request->consumption_date_end);
+        }
+
+        // Tri par date décroissante
+        $query->orderBy('created_at', 'desc');
+
+        // Pagination
+        $perPage = $request->get('per_page', 25);
+        $page = $request->get('page', 1);
+
+        $tickets = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $tickets->getCollection(),
+            'total' => $tickets->total(),
+            'per_page' => $tickets->perPage(),
+            'current_page' => $tickets->currentPage(),
+            'last_page' => $tickets->lastPage(),
+        ]);
+    }
+
+    /**
+     * Exporter les jetons esengo
+     */
+    public function exportJetonsEsengo(Request $request)
+    {
+        $query = UserJetonEsengo::with(['user', 'pack']);
+
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+
+        // Appliquer les mêmes filtres que la méthode jetonsEsengo
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($subQuery) use ($search) {
+                $subQuery->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('code_unique', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->has('pack_id') && !empty($request->pack_id)) {
+            $query->where('pack_id', $request->pack_id);
+        }
+
+        if ($request->has('is_used') && !empty($request->is_used)) {
+            $query->where('is_used', $request->is_used === 'true');
+        }
+
+        if ($request->has('status') && !empty($request->status)) {
+            switch ($request->status) {
+                case 'valid':
+                    $query->where(function($q) {
+                        $q->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', Carbon::now());
+                    });
+                    break;
+                case 'expired':
+                    $query->where('date_expiration', '<', Carbon::now());
+                    break;
+            }
+        }
+
+        if ($request->has('expiry_date_start') && !empty($request->expiry_date_start)) {
+            $query->whereDate('date_expiration', '>=', $request->expiry_date_start);
+        }
+        
+        if ($request->has('expiry_date_end') && !empty($request->expiry_date_end)) {
+            $query->whereDate('date_expiration', '<=', $request->expiry_date_end);
+        }
+
+        if ($request->has('usage_date_start') && !empty($request->usage_date_start)) {
+            $query->whereDate('date_utilisation', '>=', $request->usage_date_start);
+        }
+        
+        if ($request->has('usage_date_end') && !empty($request->usage_date_end)) {
+            $query->whereDate('date_utilisation', '<=', $request->usage_date_end);
+        }
+
+        // Pour l'export, ne pas paginer
+        $jetons = $query->get();
+
+        // Ajouter le statut calculé
+        $jetons->transform(function ($jeton) {
+            $jeton->isExpired = $jeton->isExpired();
+            return $jeton;
+        });
+
+        return response()->json($jetons);
+    }
+
+    /**
+     * Exporter les tickets gagnants
+     */
+    public function exportTicketsGagnants(Request $request)
+    {
+        $query = TicketGagnant::with(['user', 'cadeau', 'admin']);
+
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+
+        // Appliquer les mêmes filtres que la méthode ticketsGagnants
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($subQuery) use ($search) {
+                $subQuery->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('code_jeton', 'LIKE', "%{$search}%")
+                ->orWhere('code_verification', 'LIKE', "%{$search}%")
+                ->orWhereHas('cadeau', function($cadeauQuery) use ($search) {
+                    $cadeauQuery->where('nom', 'LIKE', "%{$search}%");
+                })
+                ->orWhereHas('admin', function($adminQuery) use ($search) {
+                    $adminQuery->where('name', 'LIKE', "%{$search}%");
+                });
+            });
+        }
+
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('consomme', $request->status);
+        }
+
+        if ($request->has('expiry_date_start') && !empty($request->expiry_date_start)) {
+            $query->whereDate('date_expiration', '>=', $request->expiry_date_start);
+        }
+        
+        if ($request->has('expiry_date_end') && !empty($request->expiry_date_end)) {
+            $query->whereDate('date_expiration', '<=', $request->expiry_date_end);
+        }
+
+        if ($request->has('consumption_date_start') && !empty($request->consumption_date_start)) {
+            $query->whereDate('date_consommation', '>=', $request->consumption_date_start);
+        }
+        
+        if ($request->has('consumption_date_end') && !empty($request->consumption_date_end)) {
+            $query->whereDate('date_consommation', '<=', $request->consumption_date_end);
+        }
+
+        // Pour l'export, ne pas paginer
+        $tickets = $query->get();
+
+        return response()->json($tickets);
     }
 }
