@@ -729,4 +729,16 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
             Route::post('/assign-to-user', [\App\Http\Controllers\RoleController::class, 'assignRoleToUser']);
         });
     });
+
+    //Routes pour le tableau de suivi
+    Route::prefix('/tableau-de-suivi')->group(function () {
+        //Récupère les statistiques globales
+        Route::get('/suivi-abonnement', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'suiviAbonnement']);
+        //Récupère les abonnements de manière plus détaillées
+        Route::get('/user-packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacks']);
+        //Récupère les packs actifs pour les filtres
+        Route::get('/packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'getPacks']);
+        //Récupère les statistiques avancées des user-packs
+        Route::get('/user-packs-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacksStatistics']);
+    });
 });

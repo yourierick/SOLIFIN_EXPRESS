@@ -27,6 +27,9 @@ import {
   SuiviJetonsEsengo,
   SuiviRetraits,
 } from './suivi-types';
+import SuiviAbonnement from './SuiviAbonnement';
+import PeriodFilter from './PeriodFilter';
+import { useCurrency } from "../../../../contexts/CurrencyContext";
 
 const SuiviTab = () => {
   const theme = useTheme();
@@ -36,6 +39,8 @@ const SuiviTab = () => {
   const [subscriptionView, setSubscriptionView] = useState('abonnement-gestion');
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const [period, setPeriod] = useState('month');
+  const { selectedCurrency, isCDFEnabled, toggleCurrency } = useCurrency();
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -74,29 +79,29 @@ const SuiviTab = () => {
       case 0:
         return (
           <Box>
-            {/* Menu hamburger pour le suivi d'abonnement */}
+            {/* Statistiques globales en haut */}
+            <SuiviAbonnement 
+              period={period} 
+              setPeriod={setPeriod} 
+              selectedCurrency={selectedCurrency}
+              isCDFEnabled={isCDFEnabled}
+              toggleCurrency={toggleCurrency}
+            />
+            
+            {/* Menu hamburger pour le suivi d'abonnement - responsive */}
             <Paper
               sx={{
-                p: { xs: 2, sm: 3 },
-                mb: { xs: 3, sm: 4 },
-                borderRadius: 3,
+                p: { xs: 1.5, sm: 2, md: 3 },
+                mb: { xs: 2, sm: 3, md: 4 },
+                borderRadius: { xs: 2, md: 3 },
                 bgcolor: isDarkMode
-                  ? "rgba(31, 41, 55, 0.5)"
+                  ? "#1f2937"
                   : "rgba(249, 250, 251, 0.8)",
                 backdropFilter: "blur(20px)",
                 border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                 boxShadow: "none",
                 position: 'relative',
                 overflow: 'hidden',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: 4,
-                  height: '100%',
-                  background: 'linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)',
-                },
               }}
             >
               <Box 
@@ -105,6 +110,8 @@ const SuiviTab = () => {
                   alignItems: 'center', 
                   justifyContent: 'space-between',
                   cursor: 'pointer',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: { xs: 1.5, sm: 0 },
                   '&:hover': {
                     '& .menu-left-section': {
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.03)',
@@ -118,10 +125,11 @@ const SuiviTab = () => {
                   sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: 2,
-                    p: 1,
-                    borderRadius: 2,
+                    gap: { xs: 1.5, sm: 2 },
+                    p: { xs: 1, sm: 1 },
+                    borderRadius: { xs: 1.5, md: 2 },
                     transition: 'background-color 0.3s ease',
+                    width: { xs: '100%', sm: 'auto' },
                   }}
                 >
                   <IconButton
@@ -132,6 +140,7 @@ const SuiviTab = () => {
                     sx={{
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
                       color: theme.palette.primary.main,
+                      p: { xs: 1, sm: 1.5 },
                       '&:hover': {
                         bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)',
                       },
@@ -141,50 +150,77 @@ const SuiviTab = () => {
                       },
                     }}
                   >
-                    <MenuIcon />
+                    <MenuIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                   </IconButton>
                   
-                  <Box>
-                    <Typography variant="body1" fontWeight={600} color="text.primary">
-                      Menu de suivi
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography 
+                      variant="body1" 
+                      fontWeight={600} 
+                      color="text.primary"
+                      sx={{ 
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        lineHeight: { xs: 1.3, sm: 1.2 }
+                      }}
+                    >
+                      {isMobile ? 'Menu suivi' : 'Menu de suivi détaillé'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Choisissez une option
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: { xs: 'none', sm: 'block' },
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                      }}
+                    >
+                      Accédez aux fonctionnalités spécifiques
                     </Typography>
                   </Box>
                 </Box>
                 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  width: { xs: '100%', sm: 'auto' },
+                  justifyContent: { xs: 'space-between', sm: 'flex-start' }
+                }}>
                   <Box
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
-                      px: 2,
-                      py: 1,
-                      borderRadius: 2,
+                      px: { xs: 1.5, sm: 2 },
+                      py: { xs: 0.75, sm: 1 },
+                      borderRadius: { xs: 1.5, md: 2 },
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
                       border: `1px solid ${isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'}`,
+                      minWidth: 0,
+                      flex: 1,
                     }}
                   >
-                    {subscriptionView === 'abonnement-gestion' && <AccountIcon sx={{ fontSize: 16, mr: 1, color: 'primary.main' }} />}
-                    {subscriptionView === 'soldes-abonnes' && <WalletIcon sx={{ fontSize: 16, mr: 1, color: 'success.main' }} />}
-                    {subscriptionView === 'jetons-esengo' && <TokenIcon sx={{ fontSize: 16, mr: 1, color: 'warning.main' }} />}
-                    {subscriptionView === 'retraits' && <WithdrawalIcon sx={{ fontSize: 16, mr: 1, color: 'error.main' }} />}
+                    {subscriptionView === 'abonnement-gestion' && <AccountIcon sx={{ fontSize: { xs: 14, sm: 16 }, mr: 1, color: 'primary.main' }} />}
+                    {subscriptionView === 'soldes-abonnes' && <WalletIcon sx={{ fontSize: { xs: 14, sm: 16 }, mr: 1, color: 'success.main' }} />}
+                    {subscriptionView === 'jetons-esengo' && <TokenIcon sx={{ fontSize: { xs: 14, sm: 16 }, mr: 1, color: 'warning.main' }} />}
+                    {subscriptionView === 'retraits' && <WithdrawalIcon sx={{ fontSize: { xs: 14, sm: 16 }, mr: 1, color: 'error.main' }} />}
                     <Typography 
                       variant="body2" 
                       fontWeight={500}
                       sx={{ 
                         color: theme.palette.primary.main,
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {getCurrentLabel()}
+                      {isMobile ? getCurrentLabel().replace('Suivi ', '').replace('des ', '').replace('et gestion des comptes', '') : getCurrentLabel()}
                     </Typography>
                   </Box>
                   <Typography 
                     variant="caption" 
                     sx={{ 
                       color: 'text.secondary',
-                      display: { xs: 'none', sm: 'block' },
+                      display: { xs: 'none', md: 'block' },
                     }}
                   >
                     Actif
@@ -198,22 +234,22 @@ const SuiviTab = () => {
                 onClose={handleMenuClose}
                 PaperProps={{
                   sx: {
-                    borderRadius: 2,
-                    minWidth: 320,
-                    maxWidth: 400,
-                    bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: { xs: 1.5, md: 2 },
+                    minWidth: { xs: 280, sm: 320, md: 400 },
+                    maxWidth: { xs: '90vw', sm: 400, md: 400 },
+                    bgcolor: isDarkMode ? '#1f2937' : 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(20px)',
                     border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                     boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
-                    mt: 1,
+                    mt: { xs: 0.5, sm: 1 },
                     '&::before': {
                       content: '""',
                       position: 'absolute',
-                      top: -8,
-                      left: 24,
-                      width: 16,
-                      height: 16,
-                      bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                      top: { xs: -4, sm: -8 },
+                      left: { xs: 16, sm: 24 },
+                      width: { xs: 12, sm: 16 },
+                      height: { xs: 12, sm: 16 },
+                      bgcolor: isDarkMode ? '#1f2937' : 'rgba(255, 255, 255, 0.95)',
                       transform: 'rotate(45deg)',
                       borderLeft: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                       borderTop: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
@@ -223,12 +259,21 @@ const SuiviTab = () => {
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
               >
-                <Box sx={{ p: 2, borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}` }}>
-                  <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-                    Options de suivi
+                <Box sx={{ p: { xs: 1.5, sm: 2 }, borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}` }}>
+                  <Typography 
+                    variant="subtitle2" 
+                    fontWeight={600} 
+                    color="text.primary"
+                    sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                  >
+                    Options de suivi détaillé
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Sélectionnez le type de suivi à afficher
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary"
+                    sx={{ display: { xs: 'none', sm: 'block' } }}
+                  >
+                    Sélectionnez une vue pour afficher les détails
                   </Typography>
                 </Box>
                 
@@ -265,10 +310,10 @@ const SuiviTab = () => {
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" fontWeight={600}>
-                        Suivi d'abonnement
+                        Gestion des abonnements
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Gestion complète des comptes et abonnements
+                        Tableaux détaillés des comptes et abonnements
                       </Typography>
                     </Box>
                     {subscriptionView === 'abonnement-gestion' && (
@@ -318,7 +363,7 @@ const SuiviTab = () => {
                         Soldes abonnés
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Consultation et suivi des soldes utilisateurs
+                        Consultation et gestion des soldes utilisateurs
                       </Typography>
                     </Box>
                     {subscriptionView === 'soldes-abonnes' && (
@@ -418,7 +463,7 @@ const SuiviTab = () => {
                         Retraits
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Suivi et validation des demandes de retrait
+                        Validation et suivi des demandes de retrait
                       </Typography>
                     </Box>
                     {subscriptionView === 'retraits' && (
@@ -435,7 +480,7 @@ const SuiviTab = () => {
             </Paper>
 
             {/* Contenu dynamique selon la sélection */}
-            {subscriptionView === 'abonnement-gestion' && <SuiviAbonnementGestion />}
+            {subscriptionView === 'abonnement-gestion' && <SuiviAbonnementGestion period={period} />}
             {subscriptionView === 'soldes-abonnes' && <SuiviSoldesAbonnes />}
             {subscriptionView === 'jetons-esengo' && <SuiviJetonsEsengo />}
             {subscriptionView === 'retraits' && <SuiviRetraits />}
@@ -458,32 +503,59 @@ const SuiviTab = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 } }}>
-      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-        <Typography
-          variant={isMobile ? "h5" : "h4"}
-          component="h1"
-          fontWeight={700}
-          sx={{
-            background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            mb: 1,
-          }}
-        >
-          Tableau de Suivi Administrateur
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Gérez les abonnements et suivez les finances de la plateforme
-        </Typography>
+    <Container maxWidth="xl" sx={{ py: { xs: 1, sm: 2, md: 3 } }}>
+      <Box sx={{ 
+        mb: { xs: 2, sm: 3, md: 4 }, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'flex-start', md: 'flex-start' },
+        flexDirection: { xs: 'column', sm: 'column', md: 'row' },
+        gap: { xs: 2, sm: 2, md: 0 }
+      }}>
+        <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' } }}>
+          <Typography
+            variant={isMobile ? "h6" : "h5"}
+            component="h1"
+            fontWeight={700}
+            sx={{
+              background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
+              lineHeight: { xs: 1.3, sm: 1.2 },
+            }}
+          >
+            {isMobile ? 'Suivi Admin' : 'Tableau de Suivi Administrateur'}
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ 
+              display: { xs: 'none', sm: 'block' },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
+          >
+            Gérez les abonnements et suivez les finances de la plateforme
+          </Typography>
+        </Box>
+        
+        {/* PeriodFilter global - responsive */}
+        <Box sx={{ 
+          width: { xs: '100%', sm: 'auto', md: 'auto' },
+          display: 'flex',
+          justifyContent: { xs: 'flex-end', sm: 'flex-end', md: 'flex-end' }
+        }}>
+          <PeriodFilter period={period} setPeriod={setPeriod} />
+        </Box>
       </Box>
 
       <Paper
         sx={{
           borderRadius: 3,
           bgcolor: isDarkMode
-            ? "rgba(31, 41, 55, 0.5)"
+            ? "#1f2937"
             : "rgba(249, 250, 251, 0.8)",
           backdropFilter: "blur(20px)",
           border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
@@ -494,7 +566,7 @@ const SuiviTab = () => {
         <Box
           sx={{
             borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-            bgcolor: isDarkMode ? "rgba(31, 41, 55, 0.8)" : "rgba(255, 255, 255, 0.9)",
+            bgcolor: isDarkMode ? "#1f2937" : "rgba(255, 255, 255, 0.9)",
           }}
         >
           <Tabs
@@ -503,6 +575,7 @@ const SuiviTab = () => {
             variant={isMobile ? "scrollable" : "standard"}
             scrollButtons={isMobile ? "auto" : false}
             allowScrollButtonsMobile
+            centered={false}
             sx={{
               minHeight: 64,
               '& .MuiTab-root': {

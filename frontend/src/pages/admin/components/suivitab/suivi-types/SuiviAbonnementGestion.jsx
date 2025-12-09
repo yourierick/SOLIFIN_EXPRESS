@@ -1,19 +1,21 @@
-import React from 'react';
-import {
-  Box,
-  Typography,
-} from '@mui/material';
+import React, { useState } from 'react';
+import SuiviAbonnementTabs from './SuiviAbonnementComponents/SuiviAbonnementTabs';
 
-const SuiviAbonnementGestion = () => {
+const SuiviAbonnementGestion = ({ period }) => {
+  // États pour les filtres
+  const [filters, setFilters] = useState({});
+
+  // Gestionnaire des filtres
+  const handleFiltersChange = (newFilters) => {
+    setFilters(newFilters);
+  };
+
   return (
-    <Box sx={{ textAlign: 'center', py: 8 }}>
-      <Typography variant="h6" color="text.secondary" gutterBottom>
-        Suivi d'abonnement et gestion des comptes
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Contenu à implémenter
-      </Typography>
-    </Box>
+    <SuiviAbonnementTabs 
+      period={period}
+      filters={filters}
+      onFiltersChange={handleFiltersChange}
+    />
   );
 };
 

@@ -1,375 +1,656 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
   Grid,
-  Paper,
   Card,
   CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
+  Typography,
   CircularProgress,
   useTheme,
   useMediaQuery,
-  alpha,
 } from '@mui/material';
 import {
   People as PeopleIcon,
-  TrendingUp as TrendingUpIcon,
-  AttachMoney as MoneyIcon,
-  FilterList as FilterListIcon,
-  Refresh as RefreshIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon,
+  AccountBalanceWallet as WalletIcon,
+  MonetizationOn as TokenIcon,
+  MoneyOff as WithdrawalIcon,
+  CardMembership as SubscriptionIcon,
 } from '@mui/icons-material';
+import axios from 'axios';
 
-const SuiviAbonnement = () => {
+const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, toggleCurrency }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    status: 'all',
-    period: 'all'
+  const [statistics, setStatistics] = useState({
+    users: {
+      active: 0,
+      inactive: 0,
+      trial: 0,
+      total: 0,
+    },
+    wallets: {
+      total_balance_usd: 0,
+      total_balance_cdf: 0,
+    },
+    jetons: {
+      total_unused: 0,
+      total_used: 0,
+    },
+    withdrawals: {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      failed: 0,
+      total: 0,
+    },
+    subscriptions: {
+      active: 0,
+      inactive: 0,
+      expired: 0,
+      total: 0,
+    },
   });
 
   useEffect(() => {
-    fetchSubscriptions();
-  }, []);
+    fetchStatistics();
+  }, [period, selectedCurrency, isCDFEnabled]);
 
-  const fetchSubscriptions = async () => {
+  const fetchStatistics = async () => {
     setLoading(true);
     try {
-      setTimeout(() => {
-        setSubscriptions([
-          {
-            id: 1,
-            client: 'Jean Dupont',
-            email: 'jean.dupont@email.com',
-            plan: 'Premium',
-            status: 'active',
-            startDate: '2024-01-15',
-            endDate: '2024-12-15',
-            price: 29.99
-          },
-          {
-            id: 2,
-            client: 'Marie Martin',
-            email: 'marie.martin@email.com',
-            plan: 'Basic',
-            status: 'expired',
-            startDate: '2023-06-01',
-            endDate: '2024-05-31',
-            price: 9.99
-          },
-          {
-            id: 3,
-            client: 'Pierre Durand',
-            email: 'pierre.durand@email.com',
-            plan: 'Premium',
-            status: 'active',
-            startDate: '2024-03-10',
-            endDate: '2025-03-10',
-            price: 29.99
-          }
-        ]);
-        setLoading(false);
-      }, 1000);
+      const response = await axios.get(`/api/admin/tableau-de-suivi/suivi-abonnement?period=${period}&currency=${selectedCurrency}`);
+      setStatistics(response.data);
     } catch (error) {
-      console.error('Erreur lors de la récupération des abonnements:', error);
+      console.error('Erreur lors de la récupération des statistiques:', error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const getStatusChip = (status) => {
-    const statusConfig = {
-      active: { color: 'success', label: 'Actif' },
-      expired: { color: 'error', label: 'Expiré' }
-    };
-    const config = statusConfig[status] || statusConfig.expired;
-    return (
-      <Chip
-        size="small"
-        label={config.label}
-        color={config.color}
-        variant="outlined"
-        sx={{ fontWeight: 500 }}
-      />
-    );
-  };
-
-  const formatAmount = (amount) => {
+  const formatAmount = (amount, currency = null) => {
+    const displayCurrency = currency || selectedCurrency;
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'EUR'
+      currency: displayCurrency === 'CDF' ? 'CDF' : 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
-
-  const filteredSubscriptions = subscriptions.filter(sub => {
-    if (filters.status !== 'all' && sub.status !== filters.status) return false;
-    if (filters.period !== 'all') {
-      const subYear = new Date(sub.startDate).getFullYear();
-      const currentYear = new Date().getFullYear();
-      if (filters.period === 'current' && subYear !== currentYear) return false;
-      if (filters.period === 'previous' && subYear === currentYear) return false;
-    }
-    return true;
-  });
-
-  const totalRevenue = filteredSubscriptions
-    .filter(sub => sub.status === 'active')
-    .reduce((sum, sub) => sum + sub.price, 0);
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress size={40} />
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      {/* Cartes de statistiques */}
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
-        <Grid item xs={12} sm={6} md={4}>
+      {/* Cartes de statistiques globales - Design Finances.jsx */}
+      
+      {/* Première ligne : Solde Total seul occupe toute la largeur */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
+        <Grid item xs={12}>
           <Card
             sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              borderRadius: 3,
-              transition: 'transform 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 12px 24px rgba(102, 126, 234, 0.3)'
-              }
+              height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
+              "&:hover": {
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
+              },
+              "@keyframes gradient": {
+                "0%": { backgroundPosition: "0% 50%" },
+                "50%": { backgroundPosition: "100% 50%" },
+                "100%": { backgroundPosition: "0% 50%" },
+              },
             }}
           >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PeopleIcon sx={{ fontSize: 28, opacity: 0.9 }} />
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Solde Total Des Comptes Utilisateurs
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>
+                      Total Gagné: {formatAmount(
+                        selectedCurrency === 'CDF' && isCDFEnabled 
+                          ? statistics.wallets.total_earned_cdf 
+                          : statistics.wallets.total_earned_usd, 
+                        selectedCurrency
+                      )}
+                    </Box>
+                    {' • '}
+                    <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>
+                      Total Retiré: {formatAmount(
+                        selectedCurrency === 'CDF' && isCDFEnabled 
+                          ? statistics.wallets.total_withdrawn_cdf 
+                          : statistics.wallets.total_withdrawn_usd, 
+                        selectedCurrency
+                      )}
+                    </Box>
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                    color: "white",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
+                  }}
+                >
+                  <WalletIcon sx={{ fontSize: "1rem" }} />
+                </Box>
               </Box>
-              <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
-                {filteredSubscriptions.length}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Total Abonnés
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-              color: 'white',
-              borderRadius: 3,
-              transition: 'transform 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 12px 24px rgba(40, 167, 69, 0.3)'
-              }
-            }}
-          >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TrendingUpIcon sx={{ fontSize: 28, opacity: 0.9 }} />
-              </Box>
-              <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
-                {filteredSubscriptions.filter(sub => sub.status === 'active').length}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Abonnés Actifs
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #007bff 0%, #6610f2 100%)',
-              color: 'white',
-              borderRadius: 3,
-              transition: 'transform 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 12px 24px rgba(0, 123, 255, 0.3)'
-              }
-            }}
-          >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <MoneyIcon sx={{ fontSize: 28, opacity: 0.9 }} />
-              </Box>
-              <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
-                {formatAmount(totalRevenue)}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Revenu Mensuel
+              <Typography
+                variant="h3"
+                component="div"
+                sx={{
+                  fontSize: { xs: "1.5rem", sm: "2rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {formatAmount(
+                  selectedCurrency === 'CDF' && isCDFEnabled 
+                    ? statistics.wallets.total_balance_cdf 
+                    : statistics.wallets.total_balance_usd, 
+                  selectedCurrency
+                )}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Filtres */}
-      <Paper
-        sx={{
-          p: { xs: 2, sm: 3 },
-          mb: { xs: 3, sm: 4 },
-          borderRadius: 3,
-          bgcolor: isDarkMode
-            ? "rgba(31, 41, 55, 0.5)"
-            : "rgba(249, 250, 251, 0.8)",
-          backdropFilter: "blur(20px)",
-          border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-          boxShadow: "none",
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <FilterListIcon sx={{ mr: 1, color: 'primary.main' }} />
-          <Typography variant="subtitle1" fontWeight={600}>
-            Filtres
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
-          <Button
-            variant="text"
-            startIcon={<RefreshIcon />}
-            onClick={() => setFilters({ status: 'all', period: 'all' })}
-            size="small"
-            color="inherit"
+      {/* Deuxième ligne : 4 autres cartes */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
+        {/* Statistique des utilisateurs */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
+              "&:hover": {
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
+              },
+            }}
           >
-            Réinitialiser
-          </Button>
-        </Box>
-
-        <Grid container spacing={{ xs: 2, sm: 3 }}>
-          <Grid item xs={12} sm={6} md={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Statut</InputLabel>
-              <Select
-                value={filters.status}
-                label="Statut"
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 3,
+                }}
               >
-                <MenuItem value="all">Tous</MenuItem>
-                <MenuItem value="active">Actifs</MenuItem>
-                <MenuItem value="expired">Expirés</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Période</InputLabel>
-              <Select
-                value={filters.period}
-                label="Période"
-                onChange={(e) => setFilters({ ...filters, period: e.target.value })}
-              >
-                <MenuItem value="all">Toutes</MenuItem>
-                <MenuItem value="current">Année en cours</MenuItem>
-                <MenuItem value="previous">Années précédentes</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Tableau des abonnements */}
-      <Paper
-        sx={{
-          borderRadius: 3,
-          bgcolor: isDarkMode
-            ? "rgba(31, 41, 55, 0.5)"
-            : "rgba(249, 250, 251, 0.8)",
-          backdropFilter: "blur(20px)",
-          border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-          boxShadow: "none",
-          overflow: 'hidden',
-        }}
-      >
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress size={40} />
-          </Box>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Client</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Plan</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Statut</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Date de début</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Date de fin</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Prix</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 0.9)' }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredSubscriptions.map((sub) => (
-                  <TableRow
-                    key={sub.id}
+                <Box>
+                  <Typography
+                    variant="body2"
                     sx={{
-                      '&:hover': {
-                        bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)'
-                      }
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
                     }}
                   >
-                    <TableCell>{sub.id}</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>{sub.client}</TableCell>
-                    <TableCell>{sub.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={sub.plan}
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{getStatusChip(sub.status)}</TableCell>
-                    <TableCell>{formatDate(sub.startDate)}</TableCell>
-                    <TableCell>{formatDate(sub.endDate)}</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      {formatAmount(sub.price)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        startIcon={<ViewIcon />}
-                        variant="outlined"
-                        sx={{ mr: 1 }}
-                      >
-                        Voir
-                      </Button>
-                      <Button
-                        size="small"
-                        startIcon={<EditIcon />}
-                        variant="contained"
-                        color="primary"
-                      >
-                        Modifier
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
+                    Utilisateurs
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Actifs: {statistics.users.active.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>Inactifs: {statistics.users.inactive.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#6366f1', fontWeight: 600 }}>Essais: {statistics.users.trial.toLocaleString()}</Box>
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "white",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
+                  }}
+                >
+                  <PeopleIcon sx={{ fontSize: "1rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h3"
+                component="div"
+                sx={{
+                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {statistics.users.total.toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Statistique des jetons */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #f59e0b 0%, #d97706 50%, #f59e0b 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
+              "&:hover": {
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
+              },
+            }}
+          >
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Jetons Esengo
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Disponibles: {statistics.jetons.total_unused.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>Utilisés: {statistics.jetons.total_used.toLocaleString()}</Box>
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                    color: "white",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
+                  }}
+                >
+                  <TokenIcon sx={{ fontSize: "1rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h3"
+                component="div"
+                sx={{
+                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {(statistics.jetons.total_unused + statistics.jetons.total_used).toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Statistique des retraits */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
+              "&:hover": {
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
+              },
+            }}
+          >
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Retraits
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Approuvés: {statistics.withdrawals.approved.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>En attente: {statistics.withdrawals.pending.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#ef4444', fontWeight: 600 }}>Rejetés: {statistics.withdrawals.rejected.toLocaleString()}</Box>
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "white",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
+                  }}
+                >
+                  <WithdrawalIcon sx={{ fontSize: "1rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h3"
+                component="div"
+                sx={{
+                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {statistics.withdrawals.total.toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Statistique des abonnements */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              height: "100%",
+              background: isDarkMode ? "#1e293b" : "#ffffff",
+              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: "16px",
+              position: "relative",
+              overflow: "hidden",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "3px",
+                background: "linear-gradient(90deg, #6366f1 0%, #4f46e5 50%, #6366f1 100%)",
+                backgroundSize: "200% 100%",
+                animation: "gradient 3s ease infinite",
+              },
+              "&:hover": {
+                transform: "translateY(-4px)",
+                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
+                background: isDarkMode ? "#1f2937" : "#f8fafc",
+              },
+            }}
+          >
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1,
+                    }}
+                  >
+                    Abonnements
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkMode ? "#64748b" : "#94a3b8",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Actifs: {statistics.subscriptions.active.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>Inactifs: {statistics.subscriptions.inactive.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#ef4444', fontWeight: 600 }}>Expirés: {statistics.subscriptions.expired.toLocaleString()}</Box>
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    color: "white",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "12px",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      inset: "-2px",
+                      borderRadius: "12px",
+                      padding: "2px",
+                      background: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "xor",
+                      opacity: 0.3,
+                    },
+                  }}
+                >
+                  <SubscriptionIcon sx={{ fontSize: "1rem" }} />
+                </Box>
+              </Box>
+              <Typography
+                variant="h3"
+                component="div"
+                sx={{
+                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                  fontWeight: 500,
+                  color: isDarkMode ? "#ffffff" : "#0f172a",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {statistics.subscriptions.total.toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
