@@ -483,7 +483,7 @@ const SuiviTab = () => {
             {subscriptionView === 'abonnement-gestion' && <SuiviAbonnementGestion period={period} />}
             {subscriptionView === 'soldes-abonnes' && <SuiviSoldesAbonnes period={period} />}
             {subscriptionView === 'jetons-esengo' && <SuiviJetonsEsengo period={period} setPeriod={setPeriod} />}
-            {subscriptionView === 'retraits' && <SuiviRetraits />}
+            {subscriptionView === 'retraits' && <SuiviRetraits period={period} />}
           </Box>
         );
       case 1:

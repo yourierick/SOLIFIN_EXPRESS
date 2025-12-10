@@ -757,5 +757,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         // Routes d'exportation
         Route::get('/jetons-esengo/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportJetonsEsengo']);
         Route::get('/tickets-gagnants/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportTicketsGagnants']);
+        
+        // Routes pour les retraits
+        Route::get('/retraits/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraitsStatistics']);
+        Route::get('/retraits', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraits']);
+        Route::get('/retraits/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportRetraits']);
     });
 });

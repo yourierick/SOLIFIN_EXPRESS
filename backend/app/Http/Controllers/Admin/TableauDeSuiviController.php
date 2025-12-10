@@ -998,4 +998,199 @@ class TableauDeSuiviController extends Controller
 
         return response()->json($tickets);
     }
+
+    /**
+     * Récupère les statistiques des retraits
+     */
+    public function retraitsStatistics(Request $request)
+    {
+        $period = $request->get('period');
+        $currency = $request->get('currency', 'USD');
+        
+        $query = WithdrawalRequest::query();
+        
+        // Filtre par période
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+        
+        // Filtre par devise
+        $query->where('currency', $currency);
+        
+        // Statistiques générales
+        $total = $query->count();
+        $totalAmount = $query->sum('amount');
+        
+        // Statuts de paiement
+        $paid = $query->clone()->where('payment_status', 'paid')->count();
+        $paidAmount = $query->clone()->where('payment_status', 'paid')->sum('amount');
+        
+        $pending = $query->clone()->where('payment_status', 'pending')->count();
+        $pendingAmount = $query->clone()->where('payment_status', 'pending')->sum('amount');
+        
+        $rejected = $query->clone()->whereIn('payment_status', ['rejected', 'cancelled'])->count();
+        $rejectedAmount = $query->clone()->whereIn('payment_status', ['rejected', 'cancelled'])->sum('amount');
+        
+        return response()->json([
+            'total' => $total,
+            'total_amount' => $totalAmount,
+            'paid' => $paid,
+            'paid_amount' => $paidAmount,
+            'pending' => $pending,
+            'pending_amount' => $pendingAmount,
+            'rejected' => $rejected,
+            'rejected_amount' => $rejectedAmount,
+        ]);
+    }
+
+    /**
+     * Récupère la liste des retraits avec pagination et filtres
+     */
+    public function retraits(Request $request)
+    {
+        $query = WithdrawalRequest::with(['user', 'processor']);
+
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+
+        // Filtre par devise
+        if ($request->has('currency')) {
+            $query->where('currency', $request->get('currency'));
+        }
+
+        // Filtre par statut
+        if ($request->has('status') && !empty($request->get('status'))) {
+            $query->where('status', $request->get('status'));
+        }
+
+        // Filtre par statut de paiement
+        if ($request->has('payment_status') && !empty($request->get('payment_status'))) {
+            $query->where('payment_status', $request->get('payment_status'));
+        }
+
+        // Filtre par méthode de paiement
+        if ($request->has('payment_method') && !empty($request->get('payment_method'))) {
+            $query->where('payment_method', $request->get('payment_method'));
+        }
+
+        // Filtre par recherche utilisateur (nom ou email)
+        if ($request->has('user_search') && !empty($request->get('user_search'))) {
+            $searchTerm = $request->get('user_search');
+            $query->whereHas('user', function($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', '%' . $searchTerm . '%')
+                  ->orWhere('email', 'LIKE', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Filtres par date
+        if ($request->has('created_date_start') && !empty($request->created_date_start)) {
+            $query->whereDate('created_at', '>=', $request->created_date_start);
+        }
+        
+        if ($request->has('created_date_end') && !empty($request->created_date_end)) {
+            $query->whereDate('created_at', '<=', $request->created_date_end);
+        }
+
+        if ($request->has('paid_date_start') && !empty($request->paid_date_start)) {
+            $query->whereDate('paid_at', '>=', $request->paid_date_start);
+        }
+        
+        if ($request->has('paid_date_end') && !empty($request->paid_date_end)) {
+            $query->whereDate('paid_at', '<=', $request->paid_date_end);
+        }
+
+        if ($request->has('refund_date_start') && !empty($request->refund_date_start)) {
+            $query->whereDate('refund_at', '>=', $request->refund_date_start);
+        }
+        
+        if ($request->has('refund_date_end') && !empty($request->refund_date_end)) {
+            $query->whereDate('refund_at', '<=', $request->refund_date_end);
+        }
+
+        // Pagination
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 25);
+        
+        $retraits = $query->orderBy('created_at', 'desc')
+                          ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json($retraits);
+    }
+
+    /**
+     * Export des retraits
+     */
+    public function exportRetraits(Request $request)
+    {
+        $query = WithdrawalRequest::with(['user', 'processor']);
+
+        // Filtre par période
+        $period = $request->get('period');
+        if ($period) {
+            $startDate = $this->getStartDate($period);
+            $query->whereBetween('created_at', [$startDate, Carbon::now()]);
+        }
+
+        // Filtre par devise
+        if ($request->has('currency')) {
+            $query->where('currency', $request->get('currency'));
+        }
+
+        // Appliquer les mêmes filtres que la méthode principale
+        if ($request->has('status') && !empty($request->get('status'))) {
+            $query->where('status', $request->get('status'));
+        }
+
+        if ($request->has('payment_status') && !empty($request->get('payment_status'))) {
+            $query->where('payment_status', $request->get('payment_status'));
+        }
+
+        if ($request->has('payment_method') && !empty($request->get('payment_method'))) {
+            $query->where('payment_method', $request->get('payment_method'));
+        }
+
+        // Filtre par recherche utilisateur (nom ou email)
+        if ($request->has('user_search') && !empty($request->get('user_search'))) {
+            $searchTerm = $request->get('user_search');
+            $query->whereHas('user', function($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', '%' . $searchTerm . '%')
+                  ->orWhere('email', 'LIKE', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Filtres par date
+        if ($request->has('created_date_start') && !empty($request->created_date_start)) {
+            $query->whereDate('created_at', '>=', $request->created_date_start);
+        }
+        
+        if ($request->has('created_date_end') && !empty($request->created_date_end)) {
+            $query->whereDate('created_at', '<=', $request->created_date_end);
+        }
+
+        if ($request->has('paid_date_start') && !empty($request->paid_date_start)) {
+            $query->whereDate('paid_at', '>=', $request->paid_date_start);
+        }
+        
+        if ($request->has('paid_date_end') && !empty($request->paid_date_end)) {
+            $query->whereDate('paid_at', '<=', $request->paid_date_end);
+        }
+
+        if ($request->has('refund_date_start') && !empty($request->refund_date_start)) {
+            $query->whereDate('refund_at', '>=', $request->refund_date_start);
+        }
+        
+        if ($request->has('refund_date_end') && !empty($request->refund_date_end)) {
+            $query->whereDate('refund_at', '<=', $request->refund_date_end);
+        }
+
+        // Pour l'export, ne pas paginer
+        $retraits = $query->get();
+
+        return response()->json($retraits);
+    }
 }
