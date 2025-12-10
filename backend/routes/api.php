@@ -217,7 +217,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/userwallet/balance', [WalletUserController::class, 'getWalletBalance']);
     Route::get('/userwallet/purchase-fee', [WalletUserController::class, 'getPurchaseFeePercentage']);
     Route::post('/userwallet/purchase-virtual', [WalletUserController::class, 'purchaseVirtual']);
+    Route::get('/userwallet/export', [WalletUserController::class, 'exportTransactions']);
     
+
     // Déconnexion
     Route::middleware('auth:sanctum')->post('/logout', [LoginController::class, 'logout']);
 
@@ -512,6 +514,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/withdrawal/requests', [WithdrawalController::class, 'getRequests']);
         Route::post('/withdrawal/requests/{id}/approve', [WithdrawalController::class, 'approve']);
         Route::post('/withdrawal/requests/{id}/reject', [WithdrawalController::class, 'reject']);
+        
+        // Routes d'exportation
+        Route::get('/withdrawal/export-pending', [WithdrawalController::class, 'exportPendingWithdrawals']);
+        Route::get('/withdrawal/export-all', [WithdrawalController::class, 'exportAllWithdrawals']);
     });
 
     
@@ -528,6 +534,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::middleware('permission:manage-wallets')->group(function () {
         // Routes pour la gestion des wallets
         Route::get('/wallets/data', [WalletController::class, 'getWalletData']);
+        Route::get('/wallets/export-admin', [WalletController::class, 'exportAdminTransactions']);
+        Route::get('/wallets/export-system', [WalletController::class, 'exportSystemTransactions']);
         Route::post('/admin/wallets/withdraw', [WalletController::class, 'withdraw']);
     });
 
@@ -653,6 +661,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::middleware('permission:view-finances', 'permission:manage-wallets')->group(function () {
         // Routes pour la gestion des finances
         Route::get('/finances', [\App\Http\Controllers\Admin\FinanceController::class, 'index']);
+        Route::get('/finances/export', [\App\Http\Controllers\Admin\FinanceController::class, 'exportFinanceTransactions']);
         Route::get('/finances/stats-by-type', [\App\Http\Controllers\Admin\FinanceController::class, 'getStatsByType']);
         Route::get('/finances/stats-by-period', [\App\Http\Controllers\Admin\FinanceController::class, 'getStatsByPeriod']);
         Route::get('/finances/transaction-types', [\App\Http\Controllers\Admin\FinanceController::class, 'getTransactionTypes']);
@@ -762,5 +771,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/retraits/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraitsStatistics']);
         Route::get('/retraits', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraits']);
         Route::get('/retraits/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportRetraits']);
+        
+        // Routes pour le suivi financier des transactions
+        Route::get('/financial-transactions/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'financialTransactionsStatistics']);
+        Route::get('/financial-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'financialTransactions']);
+        Route::get('/financial-transactions/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportFinancialTransactions']);
     });
 });

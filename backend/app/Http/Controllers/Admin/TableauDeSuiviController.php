@@ -11,6 +11,7 @@ use App\Models\UserJetonEsengoHistory;
 use App\Models\TicketGagnant;
 use App\Models\WithdrawalRequest;
 use App\Models\WalletTransaction;
+use App\Models\WalletSystemTransaction;
 use App\Models\UserPack;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1192,5 +1193,332 @@ class TableauDeSuiviController extends Controller
         $retraits = $query->get();
 
         return response()->json($retraits);
+    }
+
+    /**
+     * Statistiques des transactions financières par type et période
+     */
+    public function financialTransactionsStatistics(Request $request)
+    {
+        $period = $request->get('period', 'month');
+        $currency = $request->get('currency', 'USD');
+        $type = $request->get('type', 'all');
+        $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
+        
+        // Nouveaux filtres
+        $mouvment = $request->get('mouvment');
+        $search = $request->get('search');
+        $packId = $request->get('pack_id');
+        $dateStart = $request->get('date_start');
+        $dateEnd = $request->get('date_end');
+        
+        // Définir les dates de début et fin selon la période
+        $startDate = $this->getStartDate($period);
+        $endDate = Carbon::now();
+
+        // Construire la query de base avec filtrage par devise
+        $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('currency', $currency);
+        
+        // Filtrer par type si spécifié
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+        
+        // Filtre par statut (par défaut 'completed')
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+        
+        // Filtre par mouvement (entrée/sortie)
+        if ($mouvment) {
+            $query->where('mouvment', $mouvment);
+        }
+        
+        // Filtre par recherche (référence)
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'LIKE', "%{$search}%")
+                  ->orWhere('id', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        // Filtre par pack (dans les métadonnées)
+        if ($packId) {
+            $query->where(function($q) use ($packId) {
+                // Essayer plusieurs formats pour Pack_ID
+                $q->whereJsonContains('metadata->Pack_ID', (string)$packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', $packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', (int)$packId)
+                  // Aussi vérifier si pack_id existe comme clé alternative
+                  ->orWhereJsonContains('metadata->pack_id', (string)$packId)
+                  ->orWhereJsonContains('metadata->pack_id', $packId)
+                  ->orWhereJsonContains('metadata->pack_id', (int)$packId);
+            });
+        }
+        
+        // Filtre par date personnalisée
+        if ($dateStart) {
+            $query->whereDate('created_at', '>=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $query->whereDate('created_at', '<=', $dateEnd);
+        }
+
+        // Statistiques de base
+        $totalTransactions = $query->count();
+        $totalAmount = $query->sum('amount');
+        
+        // Statistiques par mouvement (in/out)
+        $creditTransactions = $query->where('mouvment', 'in')->count();
+        $debitTransactions = $query->where('mouvment', 'out')->count();
+        $creditAmount = $query->where('mouvment', 'in')->sum('amount');
+        $debitAmount = abs($query->where('mouvment', 'out')->sum('amount'));
+        
+        // Statistiques par statut
+        $statusStats = $query->selectRaw('status, COUNT(*) as count, SUM(amount) as total_amount')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        return response()->json([
+            'total_transactions' => $totalTransactions,
+            'total_amount' => $totalAmount,
+            'credit_transactions' => $creditTransactions,
+            'debit_transactions' => $debitTransactions,
+            'credit_amount' => $creditAmount,
+            'debit_amount' => $debitAmount,
+            'net_amount' => $creditAmount - $debitAmount,
+            'status_breakdown' => $statusStats,
+            'period' => $period,
+            'currency' => $currency,
+            'type' => $type,
+            'status' => $status, // ✅ AJOUTÉ
+        ]);
+    }
+
+    /**
+     * Liste des transactions financières avec filtres
+     */
+    public function financialTransactions(Request $request)
+    {
+        $period = $request->get('period', 'month');
+        $currency = $request->get('currency', 'USD');
+        $type = $request->get('type', 'all');
+        $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 15);
+        
+        // Nouveaux filtres
+        $mouvment = $request->get('mouvment');
+        $search = $request->get('search');
+        $packId = $request->get('pack_id');
+        $dateStart = $request->get('date_start');
+        $dateEnd = $request->get('date_end');
+        
+        // Définir les dates de début et fin selon la période
+        $startDate = $this->getStartDate($period);
+        $endDate = Carbon::now();
+
+        // Construire la query de base avec filtrage par devise
+        $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('currency', $currency);
+        
+        // Appliquer les filtres
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+        
+        // Filtre par statut (par défaut 'completed')
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // Recherche par référence
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where('reference', 'LIKE', '%' . $searchTerm . '%');
+        }
+        
+        // Filtre par mouvement (entrée/sortie)
+        if ($mouvment) {
+            $query->where('mouvment', $mouvment);
+        }
+        
+        // Filtre par pack (dans les métadonnées)
+        if ($packId) {
+            $query->where(function($q) use ($packId) {
+                // Essayer plusieurs formats pour Pack_ID
+                $q->whereJsonContains('metadata->Pack_ID', (string)$packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', $packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', (int)$packId)
+                  // Aussi vérifier si pack_id existe comme clé alternative
+                  ->orWhereJsonContains('metadata->pack_id', (string)$packId)
+                  ->orWhereJsonContains('metadata->pack_id', $packId)
+                  ->orWhereJsonContains('metadata->pack_id', (int)$packId);
+            });
+        }
+        
+        // Filtre par date personnalisée
+        if ($dateStart) {
+            $query->whereDate('created_at', '>=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $query->whereDate('created_at', '<=', $dateEnd);
+        }
+
+        // Tri
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination
+        $transactions = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $transactions->items(),
+            'pagination' => [
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage(),
+                'per_page' => $transactions->perPage(),
+                'total' => $transactions->total(),
+                'from' => $transactions->firstItem(),
+                'to' => $transactions->lastItem(),
+            ]
+        ]);
+    }
+
+    /**
+     * Export des transactions financières vers Excel
+     */
+    public function exportFinancialTransactions(Request $request)
+    {
+        $period = $request->get('period', 'month');
+        $currency = $request->get('currency', 'USD');
+        $type = $request->get('type', 'all');
+        $status = $request->get('status', 'completed');
+        $exportType = $request->get('export_type', 'filtered');
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 15);
+        
+        // Nouveaux filtres
+        $mouvment = $request->get('mouvment');
+        $search = $request->get('search');
+        $packId = $request->get('pack_id');
+        $dateStart = $request->get('date_start');
+        $dateEnd = $request->get('date_end');
+        
+        // Définir les dates de début et fin selon la période
+        $startDate = $this->getStartDate($period);
+        $endDate = Carbon::now();
+
+        // Construire la query de base avec filtrage par devise
+        $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('currency', $currency);
+        
+        // Appliquer les filtres
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+        
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // Recherche par référence
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where('reference', 'LIKE', '%' . $searchTerm . '%');
+        }
+        
+        // Filtre par mouvement (entrée/sortie)
+        if ($mouvment) {
+            $query->where('mouvment', $mouvment);
+        }
+        
+        // Filtre par pack (dans les métadonnées)
+        if ($packId) {
+            $query->where(function($q) use ($packId) {
+                // Essayer plusieurs formats pour Pack_ID
+                $q->whereJsonContains('metadata->Pack_ID', (string)$packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', $packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', (int)$packId)
+                  // Aussi vérifier si pack_id existe comme clé alternative
+                  ->orWhereJsonContains('metadata->pack_id', (string)$packId)
+                  ->orWhereJsonContains('metadata->pack_id', $packId)
+                  ->orWhereJsonContains('metadata->pack_id', (int)$packId);
+            });
+        }
+        
+        // Filtre par date personnalisée
+        if ($dateStart) {
+            $query->whereDate('created_at', '>=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $query->whereDate('created_at', '<=', $dateEnd);
+        }
+
+        // Appliquer la pagination selon le type d'export
+        if ($exportType === 'current_page') {
+            $query->offset(($page - 1) * $perPage)->limit($perPage);
+        } elseif ($exportType === 'filtered') {
+            // Pour l'export filtré, limiter à un nombre raisonnable pour éviter les timeouts
+            $query->limit(10000);
+        }
+        // Pour 'all', on ne limite pas (attention aux performances)
+
+        // Trier par date de création
+        $transactions = $query->orderBy('created_at', 'desc')->get();
+
+        // Préparer les données pour l'export (sans la ligne d'en-tête)
+        $exportData = [];
+
+        foreach ($transactions as $transaction) {
+            $metadata = '';
+            if ($transaction->metadata) {
+                $metadataArray = [];
+                foreach ($transaction->metadata as $key => $value) {
+                    if (is_array($value)) {
+                        $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+                    }
+                    $metadataArray[] = "$key: $value";
+                }
+                $metadata = implode("\n", $metadataArray);
+            }
+
+            $exportData[] = [
+                'reference' => $transaction->reference ?? 'TRX-' . $transaction->id,
+                'type' => $transaction->type ?? '-',
+                'mouvment' => $transaction->mouvment === 'in' ? 'Entrée' : ($transaction->mouvment === 'out' ? 'Sortie' : $transaction->mouvment),
+                'amount' => $transaction->amount,
+                'currency' => $transaction->currency,
+                'status' => $this->getStatusLabel($transaction->status),
+                'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
+                'metadata' => $metadata
+            ];
+        }
+
+        return response()->json([
+            'data' => $exportData,
+            'filename' => 'transactions-financieres-' . $exportType . '-' . date('Y-m-d-H-i-s') . '.xlsx'
+        ]);
+    }
+
+    /**
+     * Obtenir le libellé du statut
+     */
+    private function getStatusLabel($status)
+    {
+        $labels = [
+            'completed' => 'Complétée',
+            'pending' => 'En attente',
+            'failed' => 'Échouée',
+            'cancelled' => 'Annulée',
+        ];
+        
+        return $labels[$status] ?? $status;
     }
 }

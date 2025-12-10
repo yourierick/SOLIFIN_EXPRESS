@@ -156,6 +156,7 @@ class SerdiPayController extends Controller
                 'amount' => $withdrawal->payment_details['montant_a_retirer'],
                 'type' => 'withdrawal',
                 'status' => self::STATUS_PENDING,
+                'mouvment' => 'out',
                 'metadata' => [
                     'user' => $withdrawal->user->name,
                     'withdrawal_id' => $withdrawal->id,

@@ -191,18 +191,26 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
         <TableContainer sx={{ 
           maxHeight: { xs: '60vh', sm: '70vh', md: 'none' },
           '&::-webkit-scrollbar': {
-            width: '6px',
-            height: '6px',
+            width: '3px',
+            height: '4px',
           },
           '&::-webkit-scrollbar-track': {
             background: isDarkMode ? '#1f2937' : '#f1f5f9',
+            borderRadius: '4px',
           },
           '&::-webkit-scrollbar-thumb': {
             background: isDarkMode ? '#4b5563' : '#cbd5e1',
-            borderRadius: '3px',
+            borderRadius: '4px',
+            '&:hover': {
+              background: isDarkMode ? '#6b7280' : '#94a3b8',
+            },
           },
         }}>
-          <Table stickyHeader>
+          <Table
+            sx={{
+              background: isDarkMode ? '#1f2937' : '#fff'
+            }}
+          stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell 
@@ -348,8 +356,8 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
                         backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.08)' : 'rgba(59, 130, 246, 0.04)',
                       },
                       backgroundColor: index % 2 === 0 
-                        ? (isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.5)')
-                        : 'transparent',
+                        ? (isDarkMode ? 'rgba(31, 41, 55, 0.3)' : 'rgba(249, 250, 251, 0.5)')
+                        : (isDarkMode ? 'rgba(31, 41, 55, 0.1)' : 'transparent'),
                       borderBottom: `1px solid ${isDarkMode ? '#374151' : '#f1f5f9'}`,
                     }}
                   >
@@ -505,7 +513,7 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
             '& .MuiTablePagination-toolbar': {
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
             },
-            backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+            background: isDarkMode ? '#1f2937' : '#fff',
             '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
             },

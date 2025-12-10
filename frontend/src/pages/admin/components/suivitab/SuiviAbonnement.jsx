@@ -6,8 +6,8 @@ import {
   CardContent,
   Typography,
   CircularProgress,
-  useTheme,
   useMediaQuery,
+  useTheme as useMuiTheme,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -17,11 +17,12 @@ import {
   CardMembership as SubscriptionIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { useTheme } from "../../../../contexts/ThemeContext";
 
 const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, toggleCurrency }) => {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isDarkMode } = useTheme();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState({
     users: {
@@ -98,32 +99,19 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
           <Card
             sx={{
               height: "100%",
-              background: isDarkMode ? "#1e293b" : "#ffffff",
-              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
-              borderRadius: "16px",
-              position: "relative",
-              overflow: "hidden",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                backgroundSize: "200% 100%",
-                animation: "gradient 3s ease infinite",
-              },
+              background: isDarkMode ? "#1f2937" : "#ffffff",
+              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+              borderRadius: { xs: 2, md: 3 },
+              borderLeft: "4px solid #3B82F6",
+              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.3s ease",
               "&:hover": {
-                transform: "translateY(-4px)",
-                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
-                background: isDarkMode ? "#1f2937" : "#f8fafc",
-              },
-              "@keyframes gradient": {
-                "0%": { backgroundPosition: "0% 50%" },
-                "50%": { backgroundPosition: "100% 50%" },
-                "100%": { backgroundPosition: "0% 50%" },
-              },
+                transform: "translateY(-2px) scale(1.02)",
+                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+              }
+            }}
+            style={{
+              
             }}
           >
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -232,7 +220,7 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
           <Card
             sx={{
               height: "100%",
-              background: isDarkMode ? "#1e293b" : "#ffffff",
+              background: isDarkMode ? "#1f2937" : "#ffffff",
               border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
               borderRadius: "16px",
               position: "relative",
@@ -338,28 +326,16 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
           <Card
             sx={{
               height: "100%",
-              background: isDarkMode ? "#1e293b" : "#ffffff",
-              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
-              borderRadius: "16px",
-              position: "relative",
-              overflow: "hidden",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #f59e0b 0%, #d97706 50%, #f59e0b 100%)",
-                backgroundSize: "200% 100%",
-                animation: "gradient 3s ease infinite",
-              },
+              background: isDarkMode ? "#1f2937" : "#ffffff",
+              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+              borderRadius: { xs: 2, md: 3 },
+              borderLeft: "4px solid #F59E0B",
+              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.3s ease",
               "&:hover": {
-                transform: "translateY(-4px)",
-                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
-                background: isDarkMode ? "#1f2937" : "#f8fafc",
-              },
+                transform: "translateY(-2px) scale(1.02)",
+                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+              }
             }}
           >
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -444,28 +420,16 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
           <Card
             sx={{
               height: "100%",
-              background: isDarkMode ? "#1e293b" : "#ffffff",
-              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
-              borderRadius: "16px",
-              position: "relative",
-              overflow: "hidden",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%)",
-                backgroundSize: "200% 100%",
-                animation: "gradient 3s ease infinite",
-              },
+              background: isDarkMode ? "#1f2937" : "#ffffff",
+              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+              borderRadius: { xs: 2, md: 3 },
+              borderLeft: "4px solid #EF4444",
+              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.3s ease",
               "&:hover": {
-                transform: "translateY(-4px)",
-                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
-                background: isDarkMode ? "#1f2937" : "#f8fafc",
-              },
+                transform: "translateY(-2px) scale(1.02)",
+                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+              }
             }}
           >
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -550,28 +514,16 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
           <Card
             sx={{
               height: "100%",
-              background: isDarkMode ? "#1e293b" : "#ffffff",
-              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
-              borderRadius: "16px",
-              position: "relative",
-              overflow: "hidden",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #6366f1 0%, #4f46e5 50%, #6366f1 100%)",
-                backgroundSize: "200% 100%",
-                animation: "gradient 3s ease infinite",
-              },
+              background: isDarkMode ? "#1f2937" : "#ffffff",
+              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+              borderRadius: { xs: 2, md: 3 },
+              borderLeft: "4px solid #8B5CF6",
+              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.3s ease",
               "&:hover": {
-                transform: "translateY(-4px)",
-                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
-                background: isDarkMode ? "#1f2937" : "#f8fafc",
-              },
+                transform: "translateY(-2px) scale(1.02)",
+                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+              }
             }}
           >
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>

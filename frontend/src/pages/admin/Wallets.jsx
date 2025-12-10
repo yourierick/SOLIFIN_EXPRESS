@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useCurrency } from "../../contexts/CurrencyContext";
 import axios from "axios";
 import Notification from "../../components/Notification";
 import WithdrawalForm from "../../components/WithdrawalForm";
 import FundsTransferModal from "../../components/FundsTransferModal";
+import TransactionsTable from "./components/TransactionsTable";
+import WalletExportButtons from "./components/WalletExportButtons";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createPortal } from "react-dom";
@@ -170,11 +172,14 @@ const formatDate = (dateString) => {
   }
 };
 
+
 export default function Wallets() {
   const { isDarkMode } = useTheme();
   const { selectedCurrency, isCDFEnabled } = useCurrency();
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState({
@@ -189,12 +194,12 @@ export default function Wallets() {
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
   const [selectedWalletForWithdrawal, setSelectedWalletForWithdrawal] =
     useState(null);
-  
+
   // États pour la pagination Material-UI
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalTransactions, setTotalTransactions] = useState(0);
-  
+
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState("system"); // 'system' ou 'admin'
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -202,6 +207,7 @@ export default function Wallets() {
   const exportMenuRef = useRef(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Styles CSS pour l'ascenseur personnalisé
   const scrollbarStyles = {
@@ -279,25 +285,36 @@ export default function Wallets() {
   }, []);
 
   useEffect(() => {
-    fetchWalletData();
+    fetchWalletData(true); // Premier chargement avec loading initial
   }, []);
+
+  // Effet pour le debounce de la recherche (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
 
   // Effet pour recharger les données lorsque les filtres changent
   useEffect(() => {
     setPage(0);
-    fetchWalletData();
-  }, [searchTerm, statusFilter, typeFilter, dateFilter, activeTab]);
+    fetchWalletData(false); // Pas de loading global pour les filtres
+  }, [debouncedSearchTerm, statusFilter, typeFilter, dateFilter, activeTab]);
 
   // Effet pour recharger les données lorsque la pagination change
   useEffect(() => {
-    fetchWalletData();
+    fetchWalletData(false);
   }, [page, rowsPerPage]);
 
   // Effet pour recharger les données lorsque la devise change
   useEffect(() => {
     if (selectedCurrency) {
       setPage(0); // Réinitialiser la page au changement de devise
-      fetchWalletData();
+      fetchWalletData(false);
     }
   }, [selectedCurrency]);
 
@@ -323,16 +340,20 @@ export default function Wallets() {
     };
   }, [showExportMenu]);
 
-  const fetchWalletData = async () => {
+  const fetchWalletData = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setInitialLoading(true);
+      } else {
+        setTableLoading(true);
+      }
       const params = new URLSearchParams({
         page: page + 1, // Material-UI uses 0-based indexing
         per_page: rowsPerPage,
         currency: selectedCurrency,
         status: statusFilter || 'all',
         type: typeFilter || 'all',
-        search: searchTerm || '',
+        search: debouncedSearchTerm || '',
         start_date: dateFilter.startDate || '',
         end_date: dateFilter.endDate || '',
       });
@@ -344,25 +365,24 @@ export default function Wallets() {
         setUser(response.data.adminWallet.user);
         setAdminTransactions(response.data.adminwallettransactions || []);
         setSystemTransactions(response.data.systemwallettransactions || []);
-        
+
         // Utiliser le total correct selon l'onglet actif
-        const totalForActiveTab = activeTab === 'admin' 
-          ? response.data.totalAdminTransactions 
+        const totalForActiveTab = activeTab === 'admin'
+          ? response.data.totalAdminTransactions
           : response.data.totalSystemTransactions;
         setTotalTransactions(totalForActiveTab || 0);
       }
     } catch (error) {
       Notification.error("Erreur lors du chargement des données");
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setInitialLoading(false);
+      } else {
+        setTableLoading(false);
+      }
     }
   };
 
-  const handleRefresh = () => {
-    fetchWalletData();
-  };
-
-  // Gestionnaires de pagination Material-UI
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -372,9 +392,13 @@ export default function Wallets() {
     setPage(0);
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
+  const handleRefresh = () => {
+    fetchWalletData(false);
   };
+
+  const handleSearch = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   const handleStatusFilter = (e) => {
     setStatusFilter(e.target.value);
@@ -426,28 +450,113 @@ export default function Wallets() {
 
   // La fonction fetchTransferFees a été supprimée car elle est maintenant gérée par le composant FundsTransferModal
 
-  const exportToExcel = (exportAll = false) => {
-    // Fermer le menu d'exportation
-    setShowExportMenu(false);
+  // Fonctions d'exportation
+  const fetchAllAdminTransactionsForExport = async () => {
+    try {
+      const params = {
+        currency: selectedCurrency,
+        status: statusFilter || 'all',
+        type: typeFilter || 'all',
+        search: debouncedSearchTerm || '',
+        start_date: dateFilter.startDate || '',
+        end_date: dateFilter.endDate || '',
+      };
 
-    // Déterminer quelles transactions exporter selon l'onglet actif
-    const transactions =
-      activeTab === "admin"
-        ? adminTransactions || []
-        : systemTransactions || [];
+      const response = await axios.get(`/api/admin/wallets/export-admin?${params}`);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Erreur lors de la récupération des données admin');
+      }
 
-    // Afficher un message si l'export concerne beaucoup de données
-    if (exportAll && filteredTransactions.length > 100) {
-      toast.info(
-        `Préparation de l'export de ${filteredTransactions.length} transactions...`
-      );
+      return response.data.transactions;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de toutes les données admin:', error);
+      throw error;
     }
+  };
 
-    // Déterminer quelles données exporter (filtrées ou toutes)
-    const dataToExport = exportAll ? filteredTransactions : currentTransactions;
+  const fetchAllSystemTransactionsForExport = async () => {
+    try {
+      const params = {
+        currency: selectedCurrency,
+        status: statusFilter || 'all',
+        type: typeFilter || 'all',
+        search: debouncedSearchTerm || '',
+        start_date: dateFilter.startDate || '',
+        end_date: dateFilter.endDate || '',
+      };
 
-    // Formater les données pour l'export
-    const formattedData = dataToExport.map((transaction) => {
+      const response = await axios.get(`/api/admin/wallets/export-system?${params}`);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Erreur lors de la récupération des données système');
+      }
+
+      return response.data.transactions;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de toutes les données système:', error);
+      throw error;
+    }
+  };
+
+  const exportTransactionsFiltered = async () => {
+    setExportLoading(true);
+    try {
+      const data = activeTab === 'admin' 
+        ? await fetchAllAdminTransactionsForExport()
+        : await fetchAllSystemTransactionsForExport();
+      
+      // Formater les données pour l'export Excel
+      return data.map((transaction) => {
+        // Formater les métadonnées pour une meilleure lisibilité
+        let formattedMetadata = "";
+        if (transaction.metadata) {
+          try {
+            // Si les métadonnées sont déjà un objet
+            if (typeof transaction.metadata === "object") {
+              // Parcourir les propriétés et les formater
+              Object.entries(transaction.metadata).forEach(([key, value]) => {
+                // Traduire les clés en français
+                let frenchKey = key;
+                if (key === "withdrawal_request_id")
+                  frenchKey = "demande_retrait_id";
+
+                formattedMetadata += `${frenchKey}: ${value}, `;
+              });
+            } else {
+              // Si les métadonnées sont une chaîne JSON
+              const metadataObj = JSON.parse(transaction.metadata);
+              Object.entries(metadataObj).forEach(([key, value]) => {
+                formattedMetadata += `${key}: ${value}, `;
+              });
+            }
+          } catch (error) {
+            formattedMetadata = String(transaction.metadata);
+          }
+        }
+
+        return {
+          ID: transaction.id,
+          Type: transaction.type,
+          Référence: transaction.reference || 'N/A',
+          Montant: transaction.amount,
+          Statut: transaction.status,
+          Détails: formattedMetadata,
+          Date: formatDate(transaction.created_at),
+        };
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'export des transactions filtrées:', error);
+      toast.error(error.message || 'Erreur lors de l\'export');
+      return [];
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportTransactionsCurrentPage = () => {
+    // Transformer les données actuelles pour l'export
+    return currentTransactions.map((transaction) => {
       // Formater les métadonnées pour une meilleure lisibilité
       let formattedMetadata = "";
       if (transaction.metadata) {
@@ -478,50 +587,84 @@ export default function Wallets() {
       return {
         ID: transaction.id,
         Type: transaction.type,
+        Référence: transaction.reference || 'N/A',
         Montant: transaction.amount,
         Statut: transaction.status,
         Détails: formattedMetadata,
         Date: formatDate(transaction.created_at),
       };
     });
+  };
 
-    // Créer un classeur Excel
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+  const exportTransactionsAll = async () => {
+    setExportLoading(true);
+    try {
+      // Appeler l'API sans filtres pour obtenir toutes les données selon l'onglet
+      const params = {
+        currency: selectedCurrency,
+        status: 'all',
+        type: 'all',
+        search: '',
+        start_date: '',
+        end_date: '',
+      };
 
-    // Ajuster la largeur des colonnes
-    const columnsWidth = [
-      { wch: 10 }, // ID
-      { wch: 15 }, // Type
-      { wch: 15 }, // Montant
-      { wch: 15 }, // Statut
-      { wch: 50 }, // Détails
-      { wch: 15 }, // Date
-    ];
-    worksheet["!cols"] = columnsWidth;
+      const endpoint = activeTab === 'admin' 
+        ? '/api/admin/wallets/export-admin'
+        : '/api/admin/wallets/export-system';
 
-    // Générer le fichier Excel
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-    const data = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
+      const response = await axios.get(`${endpoint}?${params}`);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Erreur lors de la récupération des données');
+      }
 
-    // Nom du fichier avec date
-    const fileName = `transactions_${
-      activeTab === "admin" ? "admin" : "system"
-    }_${new Date().toISOString().split("T")[0]}.xlsx`;
+      // Formater les données pour l'export Excel
+      return response.data.transactions.map((transaction) => {
+        // Formater les métadonnées pour une meilleure lisibilité
+        let formattedMetadata = "";
+        if (transaction.metadata) {
+          try {
+            // Si les métadonnées sont déjà un objet
+            if (typeof transaction.metadata === "object") {
+              // Parcourir les propriétés et les formater
+              Object.entries(transaction.metadata).forEach(([key, value]) => {
+                // Traduire les clés en français
+                let frenchKey = key;
+                if (key === "withdrawal_request_id")
+                  frenchKey = "demande_retrait_id";
 
-    // Télécharger le fichier
-    saveAs(data, fileName);
+                formattedMetadata += `${frenchKey}: ${value}, `;
+              });
+            } else {
+              // Si les métadonnées sont une chaîne JSON
+              const metadataObj = JSON.parse(transaction.metadata);
+              Object.entries(metadataObj).forEach(([key, value]) => {
+                formattedMetadata += `${key}: ${value}, `;
+              });
+            }
+          } catch (error) {
+            formattedMetadata = String(transaction.metadata);
+          }
+        }
 
-    // Notification de succès
-    toast.success(
-      `Export Excel réussi : ${dataToExport.length} transactions exportées`
-    );
+        return {
+          ID: transaction.id,
+          Type: transaction.type,
+          Référence: transaction.reference || 'N/A',
+          Montant: transaction.amount,
+          Statut: transaction.status,
+          Détails: formattedMetadata,
+          Date: formatDate(transaction.created_at),
+        };
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'export de toutes les transactions:', error);
+      toast.error(error.message || 'Erreur lors de l\'export');
+      return [];
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const handleClickOutside = (event) => {
@@ -539,8 +682,11 @@ export default function Wallets() {
 
   // Utiliser directement les transactions du backend (déjà paginées et filtrées)
   const currentTransactions = transactions;
+  
+  // Pour l'export, utiliser toutes les transactions filtrées (simulation)
+  const filteredTransactions = transactions;
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -587,7 +733,7 @@ export default function Wallets() {
           >
             <ArrowPathIcon
               className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                loading ? "animate-spin" : ""
+                tableLoading ? "animate-spin" : ""
               } ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}
             />
           </motion.button>
@@ -1052,35 +1198,35 @@ export default function Wallets() {
                   )}
                 </button>
 
-                <button
-                  onClick={() => exportToExcel(false)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 ${
-                    isDarkMode
-                      ? "bg-green-900/30 text-green-400 hover:bg-green-900/50 border border-green-700/50"
-                      : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                  }`}
-                  title="Exporter la page actuelle"
-                >
-                  <FaFileExcel className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline text-sm font-medium">
-                    Page actuelle
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => exportToExcel(true)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 ${
-                    isDarkMode
-                      ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 border border-blue-700/50"
-                      : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-                  }`}
-                  title="Exporter toutes les transactions filtrées"
-                >
-                  <DocumentArrowDownIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline text-sm font-medium">
-                    Tout exporter
-                  </span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {activeTab === "admin" ? (
+                    <WalletExportButtons
+                      data={currentTransactions}
+                      filteredData={currentTransactions}
+                      currentPageData={exportTransactionsCurrentPage()}
+                      fileName="transactions_admin"
+                      isLoading={exportLoading}
+                      sheetName="Transactions Admin"
+                      buttonColor="primary"
+                      onExportFiltered={exportTransactionsFiltered}
+                      onExportCurrentPage={exportTransactionsCurrentPage}
+                      onExportAll={exportTransactionsAll}
+                    />
+                  ) : (
+                    <WalletExportButtons
+                      data={currentTransactions}
+                      filteredData={currentTransactions}
+                      currentPageData={exportTransactionsCurrentPage()}
+                      fileName="transactions_system"
+                      isLoading={exportLoading}
+                      sheetName="Transactions System"
+                      buttonColor="secondary"
+                      onExportFiltered={exportTransactionsFiltered}
+                      onExportCurrentPage={exportTransactionsCurrentPage}
+                      onExportAll={exportTransactionsAll}
+                    />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1215,278 +1361,21 @@ export default function Wallets() {
             )}
           </div>
 
-          {/* Tableau des transactions Material-UI */}
-          <div className="mt-4">
-            {currentTransactions.length > 0 ? (
-              <Paper
-                sx={{
-                  width: "100%",
-                  overflow: "hidden",
-                  backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                  boxShadow: isDarkMode
-                    ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
-                    : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-              >
-                <TableContainer>
-                  <Table>
-                    <TableHead
-                      sx={{
-                        backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
-                      }}
-                    >
-                      <TableRow>
-                        <TableCell
-                          sx={{
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            color: isDarkMode ? "#9ca3af" : "#6b7280",
-                            borderBottom: `1px solid ${
-                              isDarkMode ? "#4b5563" : "#e5e7eb"
-                            }`,
-                          }}
-                        >
-                          Type
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            color: isDarkMode ? "#9ca3af" : "#6b7280",
-                            borderBottom: `1px solid ${
-                              isDarkMode ? "#4b5563" : "#e5e7eb"
-                            }`,
-                          }}
-                        >
-                          Montant
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            color: isDarkMode ? "#9ca3af" : "#6b7280",
-                            borderBottom: `1px solid ${
-                              isDarkMode ? "#4b5563" : "#e5e7eb"
-                            }`,
-                          }}
-                        >
-                          Statut
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            color: isDarkMode ? "#9ca3af" : "#6b7280",
-                            borderBottom: `1px solid ${
-                              isDarkMode ? "#4b5563" : "#e5e7eb"
-                            }`,
-                          }}
-                        >
-                          Date
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {currentTransactions.map((transaction) => (
-                        <TableRow
-                          key={transaction.id}
-                          onClick={() => handleTransactionClick(transaction)}
-                          sx={{
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
-                            "&:hover": {
-                              backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
-                            },
-                            borderBottom: `1px solid ${
-                              isDarkMode ? "#4b5563" : "#e5e7eb"
-                            }`,
-                          }}
-                        >
-                          <TableCell
-                            sx={{
-                              fontSize: "0.875rem",
-                              color: isDarkMode ? "#ffffff" : "#111827",
-                              py: 2,
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <div
-                                className={`p-2 rounded-full ${
-                                  transaction.type === "withdrawal"
-                                    ? "bg-red-100 dark:bg-red-900"
-                                    : transaction.type === "reception"
-                                    ? "bg-green-100 dark:bg-green-900"
-                                    : transaction.type === "transfer"
-                                    ? "bg-blue-100 dark:bg-blue-900"
-                                    : transaction.type === "remboursement"
-                                    ? "bg-orange-100 dark:bg-orange-900"
-                                    : transaction.type === "commission de retrait"
-                                    ? "bg-yellow-100 dark:bg-yellow-900"
-                                    : transaction.type === "commission de transfert"
-                                    ? "bg-yellow-100 dark:bg-yellow-900"
-                                    : transaction.type ===
-                                      "commission de parrainage"
-                                    ? "bg-yellow-100 dark:bg-yellow-900"
-                                    : transaction.type === "digital_product_sale"
-                                    ? "bg-green-100 dark:bg-green-800"
-                                    : transaction.type === "pack_sale"
-                                    ? "bg-green-100 dark:bg-green-800"
-                                    : transaction.type === "boost_sale"
-                                    ? "bg-green-100 dark:bg-green-800"
-                                    : transaction.type === "renew_pack_sale"
-                                    ? "bg-green-100 dark:bg-green-800"
-                                    : transaction.type === "virtual_sale"
-                                    ? "bg-green-100 dark:bg-green-800"
-                                    : "bg-gray-100 dark:bg-gray-700"
-                                }`}
-                              >
-                                {transaction.type === "withdrawal" ? (
-                                  <ArrowDownTrayIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
-                                ) : transaction.type === "reception" ? (
-                                  <BanknotesIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                ) : transaction.type === "transfer" ? (
-                                  <FaExchangeAlt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                ) : (
-                                  <CurrencyDollarIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                                )}
-                              </div>
-                              <div className="ml-4">
-                                <div
-                                  className={`text-sm font-medium ${
-                                    isDarkMode ? "text-white" : "text-gray-900"
-                                  }`}
-                                >
-                                  {transaction.type === "withdrawal"
-                                    ? "Retrait"
-                                    : transaction.type === "transfer"
-                                    ? "Transfert des fonds"
-                                    : transaction.type === "reception"
-                                    ? "Dépot des fonds"
-                                    : transaction.type ===
-                                      "commission de parrainage"
-                                    ? "Commission de parrainage"
-                                    : transaction.type === "commission de retrait"
-                                    ? "Commission de retrait"
-                                    : transaction.type === "commission de transfert"
-                                    ? "Commission de transfert"
-                                    : transaction.type === "pack_sale"
-                                    ? "Vente de pack"
-                                    : transaction.type === "renew_pack_sale"
-                                    ? "Rénouvellement de pack"
-                                    : transaction.type === "boost_sale"
-                                    ? "Boost de publication"
-                                    : transaction.type === "virtual_sale"
-                                    ? "Vente de virtuel"
-                                    : transaction.type === "digital_product_sale"
-                                    ? "Vente de produit numérique"
-                                    : transaction.type}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontSize: "0.875rem",
-                              color:
-                                transaction.mouvment === "out"
-                                  ? isDarkMode ? "#f87171" : "#dc2626"
-                                  : isDarkMode ? "#34d399" : "#16a34a",
-                              py: 2,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {transaction.mouvment === "out" ? "-" : "+"}
-                            {transaction.amount}{" "}
-                            {transaction.currency === "USD" ? "$" : "FC"}
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontSize: "0.875rem",
-                              py: 2,
-                            }}
-                          >
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTransactionStatusColor(
-                                transaction.status
-                              )}`}
-                            >
-                              {transaction.status === "completed"
-                                ? "complété"
-                                : transaction.status === "pending"
-                                ? "en attente"
-                                : transaction.status === "failed"
-                                ? "échoué"
-                                : transaction.status}
-                            </span>
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontSize: "0.875rem",
-                              color: isDarkMode ? "#d1d5db" : "#6b7280",
-                              py: 2,
-                            }}
-                          >
-                            {formatDate(transaction.created_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                
-                {/* Pagination Material-UI */}
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 50, 100]}
-                  component="div"
-                  count={totalTransactions}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  labelRowsPerPage="Lignes par page:"
-                  labelDisplayedRows={({ from, to, count }) =>
-                    `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-                  }
-                  sx={{
-                    backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                    borderTop: `1px solid ${
-                      isDarkMode ? "#4b5563" : "#e5e7eb"
-                    }`,
-                    "& .MuiTablePagination-toolbar": {
-                      color: isDarkMode ? "#d1d5db" : "#374151",
-                    },
-                    "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                      {
-                        color: isDarkMode ? "#d1d5db" : "#374151",
-                      },
-                    "& .MuiIconButton-root": {
-                      color: isDarkMode ? "#d1d5db" : "#374151",
-                    },
-                  }}
-                />
-              </Paper>
-            ) : (
-              <Alert
-                severity="info"
-                sx={{
-                  mb: 2,
-                  backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                  color: isDarkMode ? "#d1d5db" : "#374151",
-                  "& .MuiAlert-icon": {
-                    color: isDarkMode ? "#60a5fa" : "#3b82f6",
-                  },
-                }}
-              >
-                {transactions.length === 0
-                  ? "Aucune transaction n'a été trouvée"
-                  : "Aucune transaction ne correspond aux filtres sélectionnés"}
-              </Alert>
-            )}
-          </div>
+          {/* Tableau des transactions */}
+          <TransactionsTable
+            transactions={currentTransactions}
+            totalTransactions={totalTransactions}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            isDarkMode={isDarkMode}
+            loading={tableLoading}
+            onTransactionClick={handleTransactionClick}
+            activeTab={activeTab}
+            getTransactionStatusColor={getTransactionStatusColor}
+            formatDate={formatDate}
+          />
         </div>
       </div>
 

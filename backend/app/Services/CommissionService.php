@@ -126,7 +126,7 @@ class CommissionService
                     "Nom du pack" => $commission->pack->name,
                     "bénéficiaire" => $commission->sponsor_user->name,
                     "Opération" => "Commission de parrainage",
-                    "Montant" => $commission->amount . $commission->currency === "USD" ? '$':'FC', 
+                    "Montant" => $commission->amount .' '. $commission->currency === "USD" ? '$':'FC', 
                     "Durée" => $duration_months
                 ]
             ]);

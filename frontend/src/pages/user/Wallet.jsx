@@ -5,6 +5,8 @@ import axios from "axios";
 import WithdrawalForm from "../../components/WithdrawalForm";
 import VirtualPurchaseForm from "../../components/VirtualPurchaseForm";
 import FundsTransferModal from "../../components/FundsTransferModal";
+import TransactionsTable from "./components/TransactionsTable";
+import WalletExportButtons from "./components/WalletExportButtons";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createPortal } from "react-dom";
@@ -23,14 +25,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { FaFilter, FaTimes, FaExchangeAlt, FaFileExcel } from "react-icons/fa";
 import {
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
   Alert,
-  TablePagination,
 } from "@mui/material";
 
 const getStatusColor = (status, isDarkMode) => {
@@ -103,8 +98,28 @@ const formatDate = (dateString) => {
 export default function Wallets() {
   const { isDarkMode } = useTheme();
   const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
-  const [loading, setLoading] = useState(true);
+
+  // Ignorer les erreurs d'extensions navigateur (content_script.js)
+  useEffect(() => {
+    const handleError = (event) => {
+      // Ignorer les erreurs de content scripts d'extensions
+      if (event.filename && event.filename.includes('content_script.js')) {
+        event.preventDefault();
+        console.warn('Erreur d\'extension ignorée:', event.message);
+        return true;
+      }
+      return false;
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [user, setUser] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
@@ -131,6 +146,7 @@ export default function Wallets() {
   const [selectedPackInfo, setSelectedPackInfo] = useState(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const exportMenuRef = useRef(null);
 
   // Styles CSS pour l'ascenseur personnalisé
@@ -210,15 +226,34 @@ export default function Wallets() {
 
   useEffect(() => {
     fetchWalletData();
+    fetchTransactions(true); // Premier chargement avec loading initial
   }, [selectedCurrency]);
 
+  // Effet pour le debounce de la recherche (500ms)
   useEffect(() => {
-    fetchTransactions();
-  }, [currentPage, rowsPerPage, searchQuery, statusFilter, typeFilter, dateFilter, selectedCurrency]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  // Effet pour recharger les données lorsque les filtres changent (sauf recherche)
+  useEffect(() => {
+    setCurrentPage(0);
+    fetchTransactions(false); // Pas de loading global pour les filtres
+  }, [debouncedSearchQuery, statusFilter, typeFilter, dateFilter, selectedCurrency]);
+
+  // Effet pour recharger les données lorsque la pagination change
+  useEffect(() => {
+    fetchTransactions(false);
+  }, [currentPage, rowsPerPage]);
 
   const fetchWalletData = async () => {
     try {
-      setLoading(true);
+      setInitialLoading(true);
       const response = await axios.get("/api/userwallet/data");
       if (response.data.success) {
         setuserWallet(response.data.userWallet);
@@ -235,13 +270,18 @@ export default function Wallets() {
     } catch (error) {
       console.error("Erreur lors de la récupération des données du portefeuille:", error);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
   };
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setInitialLoading(true);
+      } else {
+        setTableLoading(true);
+      }
+      setError(null);
       const params = {};
 
       // Pagination backend
@@ -252,7 +292,7 @@ export default function Wallets() {
       params.currency = selectedCurrency;
 
       // Ajouter les filtres de recherche
-      if (searchQuery) params.search = searchQuery;
+      if (debouncedSearchQuery) params.search = debouncedSearchQuery;
       if (statusFilter !== "all") params.status = statusFilter;
       if (typeFilter !== "all") params.type = typeFilter;
       if (dateFilter.startDate) params.date_from = dateFilter.startDate;
@@ -267,17 +307,23 @@ export default function Wallets() {
         );
       } else {
         console.error("Erreur lors du chargement des transactions:", response.data.message);
+        setError(response.data.message || "Erreur lors du chargement des transactions");
       }
     } catch (error) {
       console.error("Erreur lors du chargement des transactions:", error);
+      setError("Erreur lors du chargement des transactions");
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setInitialLoading(false);
+      } else {
+        setTableLoading(false);
+      }
     }
   };
 
   const handleRefresh = () => {
     fetchWalletData();
-    fetchTransactions();
+    fetchTransactions(false);
   };
 
   const handleSearch = (e) => {
@@ -298,6 +344,117 @@ export default function Wallets() {
   const handleDateFilter = (field) => (e) => {
     setDateFilter((prev) => ({ ...prev, [field]: e.target.value }));
     setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
+  };
+
+  // Fonctions d'exportation
+  const exportCurrentPage = async () => {
+    try {
+      setExportLoading(true);
+      
+      // Préparer les données de la page actuelle
+      const currentPageData = transactions.map(transaction => ({
+        Référence: transaction.reference || '',
+        Type: transaction.type || '',
+        Mouvement: transaction.mouvment === 'in' ? 'Entrée' : 'Sortie',
+        Montant: `${transaction.amount} ${selectedCurrency}`,
+        Statut: transaction.status || '',
+        Date: formatDate(transaction.created_at),
+        'Méthode de paiement': transaction.metadata?.['Méthode de paiement'] || '-',
+      }));
+
+      // Créer le fichier Excel
+      const ws = XLSX.utils.json_to_sheet(currentPageData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions Page Actuelle');
+      
+      // Télécharger le fichier
+      const fileName = `transactions_wallet_page_${currentPage + 1}_${selectedCurrency}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success('Export de la page actuelle réussi !');
+    } catch (error) {
+      console.error('Erreur lors de l\'export de la page actuelle:', error);
+      toast.error('Erreur lors de l\'export de la page actuelle');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportFiltered = async () => {
+    try {
+      setExportLoading(true);
+      
+      // Récupérer toutes les données filtrées depuis l'API
+      const params = {
+        currency: selectedCurrency,
+        export: 'all', // Indiquer au backend de retourner toutes les données filtrées
+      };
+      
+      // Ajouter les filtres actifs
+      if (debouncedSearchQuery) params.search = debouncedSearchQuery;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (typeFilter !== 'all') params.type = typeFilter;
+      if (dateFilter.startDate) params.date_from = dateFilter.startDate;
+      if (dateFilter.endDate) params.date_to = dateFilter.endDate;
+
+      // Appeler l'API d'export
+      const response = await axios.get('/api/userwallet/export', { 
+        params,
+        responseType: 'blob'
+      });
+
+      // Créer un URL pour le blob et télécharger
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `transactions_wallet_filtrees_${selectedCurrency}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Export des données filtrées réussi !');
+    } catch (error) {
+      console.error('Erreur lors de l\'export des données filtrées:', error);
+      toast.error('Erreur lors de l\'export des données filtrées');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportAll = async () => {
+    try {
+      setExportLoading(true);
+      
+      // Récupérer toutes les transactions de l'utilisateur
+      const params = {
+        currency: selectedCurrency,
+        export: 'all',
+      };
+
+      // Appeler l'API d'export
+      const response = await axios.get('/api/userwallet/export', { 
+        params,
+        responseType: 'blob'
+      });
+
+      // Créer un URL pour le blob et télécharger
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `transactions_wallet_complet_${selectedCurrency}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Export de toutes les transactions réussi !');
+    } catch (error) {
+      console.error('Erreur lors de l\'export complet:', error);
+      toast.error('Erreur lors de l\'export complet');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   // Gestionnaires pour la pagination Material-UI
@@ -654,7 +811,7 @@ export default function Wallets() {
     };
   }, [showExportMenu]);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -683,7 +840,7 @@ export default function Wallets() {
           }`}
         >
           <ArrowPathIcon
-            className={`h-4 w-4 sm:h-5 sm:w-5 ${loading ? "animate-spin" : ""}`}
+            className={`h-4 w-4 sm:h-5 sm:w-5 ${(initialLoading || tableLoading) ? "animate-spin" : ""}`}
           />
         </motion.button>
       </motion.div>
@@ -933,74 +1090,170 @@ export default function Wallets() {
                     <FaFilter className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
-
-                <div className="relative group">
+                
+                {/* Bouton d'exportation moderne */}
+                <div className="relative">
                   <button
-                    className={`flex items-center p-1.5 sm:p-2 rounded-lg transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "text-gray-300 hover:bg-gray-700"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                    title="Options d'exportation Excel"
                     onClick={() => setShowExportMenu(!showExportMenu)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 ${
+                      exportLoading
+                        ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                        : isDarkMode
+                        ? 'bg-green-600/10 border-green-500/30 text-green-400 hover:bg-green-600/20 hover:border-green-500/50'
+                        : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300'
+                    }`}
+                    disabled={exportLoading}
+                    title="Exporter les transactions"
                   >
-                    <FaFileExcel className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 ml-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      ></path>
+                    {exportLoading ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    )}
+                    <span className="text-sm font-medium hidden sm:inline">
+                      {exportLoading ? 'Export...' : 'Exporter'}
+                    </span>
+                    <svg className={`w-3 h-3 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
 
-                  {showExportMenu && (
-                    <div
-                      className={`absolute right-0 mt-2 w-64 rounded-md shadow-lg ${
-                        isDarkMode ? "bg-gray-800" : "bg-white"
-                      } ring-1 ring-black ring-opacity-5 z-10`}
-                      ref={exportMenuRef}
-                    >
-                      <div
-                        className="py-1"
-                        role="menu"
-                        aria-orientation="vertical"
-                      >
+                  {/* Menu déroulant d'exportation */}
+                  {showExportMenu && !exportLoading && (
+                    <div className={`absolute right-0 mt-2 w-72 rounded-lg shadow-xl border ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-700' 
+                        : 'bg-white border-gray-200'
+                    } z-50 overflow-hidden`}
+                         ref={exportMenuRef}>
+                      <div className="p-2">
+                        <div className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          Options d'exportation
+                        </div>
+                        
                         <button
-                          onClick={() => exportToExcel(false)}
-                          className={`flex items-center w-full text-left px-4 py-2 text-sm ${
-                            isDarkMode
-                              ? "text-gray-300 hover:bg-gray-700"
-                              : "text-gray-700 hover:bg-gray-100"
+                          onClick={() => {
+                            exportCurrentPage();
+                            setShowExportMenu(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                            isDarkMode 
+                              ? 'hover:bg-gray-700 text-gray-300' 
+                              : 'hover:bg-gray-50 text-gray-700'
                           }`}
-                          role="menuitem"
                         >
-                          <FaFileExcel className="w-4 h-4 mr-2" />
-                          Exporter la page actuelle
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8m5-4h.01M12 12h.01M12 16h.01M9 12h.01M9 16h.01" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">Page actuelle</div>
+                            <div className={`text-xs ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              Exporter les {rowsPerPage} transactions affichées
+                            </div>
+                          </div>
                         </button>
+
                         <button
-                          onClick={() => exportToExcel(true)}
-                          className={`flex items-center w-full text-left px-4 py-2 text-sm ${
-                            isDarkMode
-                              ? "text-gray-300 hover:bg-gray-700"
-                              : "text-gray-700 hover:bg-gray-100"
+                          onClick={() => {
+                            exportFiltered();
+                            setShowExportMenu(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                            isDarkMode 
+                              ? 'hover:bg-gray-700 text-gray-300' 
+                              : 'hover:bg-gray-50 text-gray-700'
                           }`}
-                          role="menuitem"
                         >
-                          <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                          Exporter toutes les transactions filtrées
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            isDarkMode ? 'bg-green-600/20 text-green-400' : 'bg-green-100 text-green-600'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">Données filtrées</div>
+                            <div className={`text-xs ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              Exporter avec les filtres actifs
+                            </div>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            exportAll();
+                            setShowExportMenu(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                            isDarkMode 
+                              ? 'hover:bg-gray-700 text-gray-300' 
+                              : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            isDarkMode ? 'bg-purple-600/20 text-purple-400' : 'bg-purple-100 text-purple-600'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">Toutes les données</div>
+                            <div className={`text-xs ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              Exporter tout l'historique
+                            </div>
+                          </div>
                         </button>
                       </div>
                     </div>
                   )}
                 </div>
+               </div>
+            </div>
+
+            {/* Champ de recherche */}
+            <div className="mb-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Rechercher par référence"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full px-4 py-2 pl-10 rounded-lg border ${
+                    isDarkMode
+                      ? "bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500"
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors`}
+                />
+                <svg
+                  className={`absolute left-3 top-2.5 w-5 h-5 ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
               </div>
             </div>
 
@@ -1109,205 +1362,28 @@ export default function Wallets() {
             )}
           </div>
 
-          <div className="mt-4">
-            {transactions.length > 0 ? (
-              <TableContainer
-                sx={{
-                  boxShadow: isDarkMode
-                    ? "none"
-                    : "0 2px 10px rgba(0, 0, 0, 0.05)",
-                  borderRadius: { xs: 1.5, sm: 2 },
-                  overflow: "auto",
-                  maxWidth: "100%",
-                  "&::-webkit-scrollbar": {
-                    height: { xs: 4, sm: 6 },
-                    width: { xs: 4, sm: 6 },
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: isDarkMode
-                      ? "rgba(55, 65, 81, 0.4)"
-                      : "rgba(0, 0, 0, 0.06)",
-                    borderRadius: { xs: 2, sm: 3 },
-                  },
-                  "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: isDarkMode
-                      ? "rgba(156, 163, 175, 0.6)"
-                      : "rgba(156, 163, 175, 0.4)",
-                    borderRadius: { xs: 2, sm: 3 },
-                    "&:hover": {
-                      backgroundColor: isDarkMode
-                        ? "rgba(156, 163, 175, 0.8)"
-                        : "rgba(156, 163, 175, 0.6)",
-                    },
-                  },
-                }}
-              >
-                <Table 
-                  size="small" 
-                  sx={{ 
-                    minWidth: { xs: "800px", sm: "900px" },
-                    tableLayout: "fixed"
-                  }}
-                >
-                  <TableHead>
-                    <TableRow
-                      sx={{
-                        bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
-                        "& th": {
-                          fontWeight: "bold",
-                          color: isDarkMode ? "#fff" : "#334155",
-                          fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                          padding: { xs: "8px 10px", sm: "12px 16px" },
-                          borderBottom: isDarkMode
-                            ? "1px solid #374151"
-                            : "2px solid #e2e8f0",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          whiteSpace: "nowrap",
-                        },
-                      }}
-                    >
-                      <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Type</TableCell>
-                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
-                      <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
-                      <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Date</TableCell>
-                      <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Méthode de paiement</TableCell>
-                    </TableRow>
-                  </TableHead>
-                <TableBody>
-                    {transactions.map((transaction) => (
-                      <TableRow
-                        key={transaction.id}
-                        sx={{
-                          "&:hover": {
-                            bgcolor: isDarkMode ? "#374151" : "#f8fafc",
-                          },
-                          borderBottom: `1px solid ${
-                            isDarkMode ? "#374151" : "#e2e8f0"
-                          }`,
-                          "& td": {
-                            padding: { xs: "6px 10px", sm: "10px 16px" },
-                            color: isDarkMode ? "#fff" : "#475569",
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            cursor: "pointer",
-                          },
-                        }}
-                        onClick={() => handleTransactionClick(transaction)}
-                      >
-                        <TableCell>
-                          {transaction.mouvment === "withdrawal"
-                            ? "Retrait"
-                            : transaction.type === "purchase"
-                            ? "Achat"
-                            : transaction.type === "virtual_purchase"
-                            ? "Virtuels"
-                            : transaction.type === "reception"
-                            ? "Réception des fonds"
-                            : transaction.type === "transfer"
-                            ? "Transfert des fonds"
-                            : transaction.type === "remboursement"
-                            ? "Remboursement"
-                            : transaction.type === "digital_product_sale"
-                            ? "Vente de produit numérique"
-                            : transaction.type === "commission de parrainage"
-                            ? "Commission de parrainage"
-                            : transaction.type === "commission de transfert"
-                            ? "Commission de transfert"
-                            : transaction.type === "commission de retrait"
-                            ? "Commission de retrait"
-                            : transaction.type}
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-medium" 
-                          style={{
-                            color: transaction.mouvment === "in" ? "black" : "red"
-                          }}>
-                            {transaction.mouvment === "in" ? "+" : "-"}{selectedCurrency === "USD"
-                              ? `${parseFloat(transaction.amount).toFixed(2)} $`
-                              : `${parseFloat(transaction.amount).toFixed(2)} FC`}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTransactionStatusColor(
-                              transaction.status
-                            )}`}
-                          >
-                            {transaction.status === "pending"
-                              ? "en attente"
-                              : transaction.status === "completed"
-                              ? "completé"
-                              : transaction.status === "failed"
-                              ? "failed"
-                              : transaction.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(transaction.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          {transaction.metadata["Méthode de paiement"] || "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {transactions.length === 0
-                  ? `Aucune transaction ${selectedCurrency} n'a été trouvée`
-                  : "Aucune transaction ne correspond aux filtres sélectionnés"}
-              </Alert>
-            )}
+          {/* En-tête avec bouton d'exportation */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+              Transactions {selectedCurrency}
+            </h3>
           </div>
 
-          {/* Pagination Material-UI */}
-          <TablePagination
-            component="div"
-            count={totalTransactions}
-            page={currentPage}
-            onPageChange={handleChangePage}
+          {/* Tableau des transactions avec composant séparé */}
+          <TransactionsTable
+            transactions={transactions}
+            loading={tableLoading}
+            error={error}
+            totalTransactions={totalTransactions}
+            currentPage={currentPage}
             rowsPerPage={rowsPerPage}
+            onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage="Lignes par page:"
-            labelDisplayedRows={({ from, to, count }) =>
-              `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-            }
-            sx={{
-              color: isDarkMode ? "#fff" : "#475569",
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              "& .MuiTablePagination-toolbar": {
-                minHeight: { xs: "40px", sm: "52px" },
-                padding: { xs: "8px", sm: "16px" },
-              },
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              },
-              "& .MuiTablePagination-selectIcon": {
-                color: isDarkMode ? "#fff" : "#475569",
-              },
-              "& .MuiTablePagination-select": {
-                backgroundColor: isDarkMode ? "#1f2937" : "#f8fafc",
-                borderRadius: 1,
-                padding: "4px 8px",
-                border: isDarkMode
-                  ? "1px solid #374151"
-                  : "1px solid #e2e8f0",
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              },
-              "& .MuiTablePagination-actions button": {
-                color: isDarkMode ? "#fff" : "#475569",
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                "&:hover": {
-                  backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
-                },
-              },
-            }}
+            onTransactionClick={handleTransactionClick}
+            selectedCurrency={selectedCurrency}
+            isDarkMode={isDarkMode}
+            formatDate={formatDate}
+            getTransactionStatusColor={getTransactionStatusColor}
           />
         </div>
       </div>

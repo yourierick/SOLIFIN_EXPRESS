@@ -2938,6 +2938,7 @@ export default function UserDetails({ userId }) {
                           >
                             <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
                             <TableCell sx={{ width: { xs: "200px", sm: "220px" } }}>Type</TableCell>
+                            <TableCell sx={{ width: { xs: "200px", sm: "220px" } }}>Référence</TableCell>
                             <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
                             {isCDFEnabled && <TableCell sx={{ width: { xs: "80px", sm: "100px" } }}>Devise</TableCell>}
                             <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
@@ -3098,6 +3099,11 @@ export default function UserDetails({ userId }) {
                                     })()}`,
                                   }}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
+                                  {transaction.reference || 'N/A'}
+                                </Typography>
                               </TableCell>
                               <TableCell>
                                 <Typography

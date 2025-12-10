@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import axios from "../../utils/axios";
+import FinanceExportButtons from "../../components/FinanceExportButtons";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -64,6 +65,14 @@ import {
   MonetizationOn as MonetizationOnIcon,
   Payment as PaymentIcon,
   SwapHoriz as SwapHorizIcon,
+  ShoppingCart as ShoppingCartIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon,
+  RocketLaunch as RocketLaunchIcon,
+  Devices as DevicesIcon,
+  CloudDownload as CloudDownloadIcon,
+  ArrowForward as ArrowForwardIcon,
+  ArrowBack as ArrowBackIcon,
+  Receipt as ReceiptIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -109,6 +118,9 @@ const Finances = () => {
     packId: "",
     searchTerm: "",
   });
+
+  // États pour l'exportation
+  const [exportLoading, setExportLoading] = useState(false);
 
   // États pour les onglets
   const [activeTab, setActiveTab] = useState(0);
@@ -391,58 +403,140 @@ const Finances = () => {
     }
   };
 
-  // Fonction pour exporter les transactions au format Excel
-  const exportTransactionsToExcel = () => {
-    // Préparation des données pour l'export
-    const dataToExport = transactions.map((transaction) => ({
-      ID: transaction.id,
-      Type:
-        transaction.type === "sales"
-          ? "vente"
-          : transaction.type === "virtual_sale"
-          ? "vente de virtuels"
-          : transaction.type === "transfer"
-          ? "transfert des fonds"
-          : transaction.type === "withdrawal"
-          ? "retrait des fonds"
-          : transaction.type === "reception"
-          ? "dépôt des fonds"
-          : transaction.type,
-      Montant: `${transaction.amount} ${transaction.currency}`,
-      Statut:
-        transaction.status === "completed"
-          ? "complété"
-          : transaction.status === "pending"
-          ? "en attente"
-          : transaction.status === "failed"
-          ? "échoué"
-          : transaction.status,
-      Date: formatDate(transaction.created_at),
-      "Date de création": format(
-        new Date(transaction.created_at),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-      "Date de mise à jour": format(
-        new Date(transaction.updated_at),
-        "yyyy-MM-dd HH:mm:ss"
-      ),
-    }));
+  // Fonctions d'exportation pour les finances
+  const fetchFinanceTransactionsForExport = async () => {
+    try {
+      const params = {};
 
-    // Création d'une feuille de calcul
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      if (filters.type) params.type = filters.type;
+      if (filters.status) params.status = filters.status;
+      if (filters.startDate) params.date_from = filters.startDate;
+      if (filters.endDate) params.date_to = filters.endDate;
+      if (filters.userId) params.user_id = filters.userId;
+      if (filters.packId) params.pack_id = filters.packId;
+      if (filters.searchTerm) params.search = filters.searchTerm;
 
-    // Création d'un classeur
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+      // Filtrer par devise si CDF est activé
+      if (isCDFEnabled) {
+        params.currency = selectedCurrency;
+      } else {
+        params.currency = "USD";
+      }
 
-    // Génération du nom de fichier avec date
-    const fileName = `transactions_${format(
-      new Date(),
-      "yyyy-MM-dd_HH-mm"
-    )}.xlsx`;
+      const response = await axios.get("/api/admin/finances/export", { params });
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des transactions pour export:', error);
+      throw error;
+    }
+  };
 
-    // Téléchargement du fichier
-    XLSX.writeFile(workbook, fileName);
+  const exportFinanceToExcel = (data, filename) => {
+    try {
+      // Préparer les données pour l'export
+      const exportData = data.map((transaction) => ({
+        'ID': transaction.id,
+        'Type': 
+          transaction.type === "sales" ? "vente" :
+          transaction.type === "virtual_sale" ? "vente de virtuels" :
+          transaction.type === "transfer" ? "transfert des fonds" :
+          transaction.type === "withdrawal" ? "retrait des fonds" :
+          transaction.type === "reception" ? "dépôt des fonds" :
+          transaction.type === "pack_sale" ? "Achat de pack" :
+          transaction.type === "renew_pack_sale" ? "Rénouvellement de pack" :
+          transaction.type === "boost_sale" ? "Boost de publication" :
+          transaction.type === "digital_product_sale" ? "Vente de produit numérique" :
+          transaction.type === "commission de parrainage" ? "Commission de parrainage" :
+          transaction.type === "commission de retrait" ? "Commission de retrait" :
+          transaction.type === "commission de transfert" ? "Commission de transfert" :
+          transaction.type,
+        'Montant': transaction.amount,
+        'Devise': transaction.currency,
+        'Statut': 
+          transaction.status === "completed" ? "complété" :
+          transaction.status === "pending" ? "en attente" :
+          transaction.status === "failed" ? "échoué" :
+          transaction.status,
+        'Date de transaction': format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
+        'Date de mise à jour': format(new Date(transaction.updated_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
+        'Utilisateur ID': transaction.user_id || '',
+        'Pack ID': transaction.pack_id || '',
+        'Référence': transaction.reference || '',
+        'Description': transaction.description || '',
+      }));
+
+      // Créer le workbook et la worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions Financières');
+
+      // Ajuster la largeur des colonnes
+      const colWidths = [
+        { wch: 8 },  // ID
+        { wch: 25 }, // Type
+        { wch: 12 }, // Montant
+        { wch: 8 },  // Devise
+        { wch: 12 }, // Statut
+        { wch: 20 }, // Date de transaction
+        { wch: 20 }, // Date de mise à jour
+        { wch: 15 }, // Utilisateur ID
+        { wch: 10 }, // Pack ID
+        { wch: 20 }, // Référence
+        { wch: 30 }, // Description
+      ];
+      ws['!cols'] = colWidths;
+
+      // Télécharger le fichier
+      XLSX.writeFile(wb, `${filename}_${format(new Date(), 'dd-MM-yyyy_HH-mm', { locale: fr })}.xlsx`);
+      
+      // Afficher un message de succès
+      if (window.toast) {
+        window.toast.success('Exportation réussie !');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'exportation:', error);
+      if (window.toast) {
+        window.toast.error('Erreur lors de l\'exportation');
+      }
+    }
+  };
+
+  const exportCurrentPage = async () => {
+    setExportLoading(true);
+    try {
+      const filename = 'transactions_page_actuelle';
+      exportFinanceToExcel(transactions, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'exportation de la page actuelle');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportFiltered = async () => {
+    setExportLoading(true);
+    try {
+      const filteredData = await fetchFinanceTransactionsForExport();
+      const filename = 'transactions_filtrees';
+      exportFinanceToExcel(filteredData, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'exportation des données filtrées');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportAll = async () => {
+    setExportLoading(true);
+    try {
+      const allData = await fetchFinanceTransactionsForExport();
+      const filename = 'toutes_transactions';
+      exportFinanceToExcel(allData, filename);
+    } catch (error) {
+      console.error('Erreur lors de l\'exportation de toutes les données');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   // Fonction pour exporter les statistiques par type au format Excel
@@ -1071,9 +1165,9 @@ const Finances = () => {
           <Tab
             icon={<WalletIcon fontSize="small" />}
             iconPosition="start"
-            label="Portefeuilles"
+            label="Stats globales par type"
             disabled={
-              !userPermissions.includes("manage-wallets") &&
+              !userPermissions.includes("view-transactions") &&
               !userPermissions.includes("super-admin")
             }
           />
@@ -1156,15 +1250,16 @@ const Finances = () => {
                       >
                         <RefreshIcon />
                       </IconButton>
-                      <IconButton
-                        onClick={exportTransactionsToExcel}
-                        color="default"
-                        size="small"
-                        title="Exporter vers Excel"
-                        sx={{ ml: 1 }}
-                      >
-                        <FileDownloadIcon />
-                      </IconButton>
+                      <FinanceExportButtons
+                        onExportCurrentPage={exportCurrentPage}
+                        onExportFiltered={exportFiltered}
+                        onExportAll={exportAll}
+                        loading={exportLoading}
+                        disabled={loading}
+                        currentPageCount={transactions.length}
+                        filteredCount={totalTransactions}
+                        totalCount={totalTransactions}
+                      />
                     </Box>
                   </Box>
 
@@ -1703,16 +1798,75 @@ const Finances = () => {
 
         {/* Statistiques par type */}
         {activeTab === 1 && (
-          <Box sx={{ p: 2 }}>
-            {/* Message informatif si CDF désactivé */}
+          <Box sx={{ p: isMobile ? 2 : 3 }}>
+            {/* Header avec titre et actions - Optimisé mobile */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: isMobile ? 'flex-start' : 'center', 
+              mb: isMobile ? 2 : 3,
+              pb: isMobile ? 1.5 : 2,
+              borderBottom: `2px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 2 : 0
+            }}>
+              <Box sx={{ width: '100%' }}>
+                <Typography variant={isMobile ? "h6" : "h5"} sx={{ 
+                  fontWeight: 'bold', 
+                  color: isDarkMode ? '#fff' : '#111827',
+                  mb: 1,
+                  fontSize: isMobile ? '1.25rem' : '1.5rem'
+                }}>
+                  📊 Statistiques globales par type
+                </Typography>
+                <Typography variant="body2" sx={{ 
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                  fontSize: isMobile ? '0.8rem' : '0.875rem'
+                }}>
+                  Analyse détaillée des transactions par catégorie
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 1,
+                width: isMobile ? '100%' : 'auto',
+                justifyContent: isMobile ? 'flex-end' : 'flex-start'
+              }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<FileDownloadIcon />}
+                  onClick={exportStatsToExcel}
+                  size={isMobile ? "small" : "medium"}
+                  fullWidth={isMobile}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    borderColor: isDarkMode ? '#3b82f6' : '#2563eb',
+                    color: isDarkMode ? '#60a5fa' : '#2563eb',
+                    '&:hover': {
+                      backgroundColor: isDarkMode ? '#3b82f6' : '#2563eb',
+                      color: 'white',
+                      borderColor: isDarkMode ? '#3b82f6' : '#2563eb',
+                    },
+                    fontSize: isMobile ? '0.8rem' : '0.875rem',
+                    py: isMobile ? 1 : 1.5
+                  }}
+                >
+                  {isMobile ? 'Exporter' : 'Exporter Excel'}
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Message informatif si CDF désactivé - Optimisé mobile */}
             {!isCDFEnabled && (
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: isMobile ? 2 : 3 }}>
                 <Alert
                   severity="info"
                   sx={{
                     borderRadius: 2,
                     "& .MuiAlert-message": {
-                      fontSize: "0.875rem",
+                      fontSize: isMobile ? "0.8rem" : "0.875rem",
                     },
                   }}
                 >
@@ -1721,186 +1875,541 @@ const Finances = () => {
                 </Alert>
               </Box>
             )}
+
             {statsByType.length === 0 ? (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Aucune statistique disponible
-              </Alert>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: isMobile ? 250 : 300,
+                bgcolor: isDarkMode ? '#1f2937' : '#f9fafb',
+                borderRadius: 2,
+                border: `2px dashed ${isDarkMode ? '#4b5563' : '#d1d5db'}`,
+                p: isMobile ? 2 : 3
+              }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant={isMobile ? "body1" : "h6"} sx={{ 
+                    color: isDarkMode ? '#9ca3af' : '#6b7280',
+                    mb: 1,
+                    fontSize: isMobile ? '1rem' : '1.25rem'
+                  }}>
+                    📭 Aucune statistique disponible
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: isDarkMode ? '#6b7280' : '#9ca3af',
+                    fontSize: isMobile ? '0.8rem' : '0.875rem'
+                  }}>
+                    Les données apparaîtront ici une fois les transactions enregistrées
+                  </Typography>
+                </Box>
+              </Box>
             ) : (
               <>
-                <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}
-                >
-                  <IconButton
-                    onClick={exportStatsToExcel}
-                    color="default"
-                    size="small"
-                    title="Exporter vers Excel"
-                    sx={{ ml: 1 }}
-                  >
-                    <FileDownloadIcon />
-                  </IconButton>
-                </Box>
-                <TableContainer
-                  sx={{
-                    boxShadow: isDarkMode
-                      ? "none"
-                      : "0 2px 10px rgba(0, 0, 0, 0.05)",
-                    borderRadius: 2,
-                    overflow: "hidden",
-                  }}
-                >
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow
-                        sx={{
-                          bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
-                          "& th": {
-                            fontWeight: "bold",
-                            color: isDarkMode ? "#fff" : "#334155",
-                            fontSize: "0.85rem",
-                            padding: "12px 16px",
-                            borderBottom: isDarkMode
-                              ? "1px solid #374151"
-                              : "2px solid #e2e8f0",
-                          },
-                        }}
-                      >
-                        <TableCell>Type</TableCell>
-                        <TableCell>Nombre</TableCell>
-                        <TableCell>Montant total</TableCell>
-                        {isCDFEnabled && <TableCell>Devise</TableCell>}
-                        <TableCell>Première transaction</TableCell>
-                        <TableCell>Dernière transaction</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {statsByType.map((stat) => (
-                        <TableRow
+                {/* Tableau amélioré - Optimisé pour mobile */}
+                <Card sx={{
+                  borderRadius: isMobile ? 2 : 3,
+                  boxShadow: isDarkMode 
+                    ? '0 4px 20px rgba(0, 0, 0, 0.3)' 
+                    : '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  bgcolor: isDarkMode ? '#1f2937' : '#ffffff'
+                }}>
+                  <Box sx={{ 
+                    bgcolor: isDarkMode ? '#111827' : '#f8fafc',
+                    px: isMobile ? 2 : 3,
+                    py: isMobile ? 1.5 : 2,
+                    borderBottom: `1px solid ${isDarkMode ? '#374151' : '#e2e8f0'}`
+                  }}>
+                    <Typography variant={isMobile ? "h6" : "h6"} sx={{ 
+                      fontWeight: 'bold', 
+                      color: isDarkMode ? '#fff' : '#1e293b',
+                      fontSize: isMobile ? '1rem' : '1.125rem'
+                    }}>
+                      📋 Détail des transactions par type
+                    </Typography>
+                  </Box>
+                  
+                  {/* Version mobile optimisée */}
+                  {isMobile ? (
+                    <Box sx={{ p: 2 }}>
+                      {statsByType.map((stat, index) => (
+                        <Card 
                           key={stat.type}
                           sx={{
-                            "&:hover": {
-                              bgcolor: isDarkMode ? "#374151" : "#f8fafc",
-                            },
-                            borderBottom: `1px solid ${
-                              isDarkMode ? "#374151" : "#e2e8f0"
-                            }`,
-                            "& td": {
-                              padding: "10px 16px",
-                              color: isDarkMode ? "#fff" : "#475569",
-                            },
-                            bgcolor: isDarkMode ? "#1d2432" : "#fff",
+                            mb: 2,
+                            bgcolor: isDarkMode ? '#374151' : '#f8fafc',
+                            border: `1px solid ${isDarkMode ? '#4b5563' : '#e2e8f0'}`,
+                            borderRadius: 2,
+                            '&:last-child': { mb: 0 }
                           }}
                         >
-                          <TableCell>
-                            <Chip
-                              label={
-                                stat.type === "withdrawal"
-                                  ? "retrait"
-                                  : stat.type === "pack_sale"
-                                  ? "Achat de pack"
-                                  : stat.type === "renew_pack_sale"
-                                  ? "Rénouvellement de pack"
-                                  : stat.type === "boost_sale"
-                                  ? "Boost de publication"
-                                  : stat.type === "virtual_sale"
-                                  ? "Vente de virtuel"
-                                  : stat.type === "digital_product_sale"
-                                  ? "Vente de produits numériques"
-                                  : stat.type === "transfer"
-                                  ? "Transfert des fonds"
-                                  : stat.type === "reception"
-                                  ? "Réception des fonds"
-                                  : stat.type === "commission de parrainage"
-                                  ? "Commission de parrainage"
-                                  : stat.type === "commission de retrait"
-                                  ? "Commission de retrait"
-                                  : stat.type === "commission de transfert"
-                                  ? "Commission de transfert"
-                                  : stat.type
-                              }
-                              size="small"
-                              sx={{
-                                bgcolor: (() => {
+                          <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                            {/* Header type */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <Box sx={{ mr: 1.5 }}>
+                                {(() => {
                                   switch (stat.type) {
                                     case "withdrawal":
-                                      return isDarkMode ? "#4b5563" : "#e5e7eb";
+                                      return <MoneyOffIcon sx={{ color: '#ef4444', fontSize: 18 }} />;
                                     case "commission de parrainage":
-                                      return isDarkMode ? "#065f46" : "#d1fae5";
+                                      return <TrendingUpIcon sx={{ color: '#10b981', fontSize: 18 }} />;
                                     case "commission de retrait":
-                                      return isDarkMode ? "#1e40af" : "#dbeafe";
+                                      return <AccountBalanceWalletIcon sx={{ color: '#3b82f6', fontSize: 18 }} />;
                                     case "commission de transfert":
-                                      return isDarkMode ? "#9f1239" : "#fee2e2";
-                                    case "digital_product_sale":
-                                      return isDarkMode ? "#92400e" : "#fef3c7";
+                                      return <SwapHorizIcon sx={{ color: '#8b5cf6', fontSize: 18 }} />;
                                     case "pack_sale":
-                                      return isDarkMode ? "#064e3b" : "#d1fae5";
-                                    case "boost_sale":
-                                      return isDarkMode ? "#064e3b" : "#d1fae5";
                                     case "renew_pack_sale":
-                                      return isDarkMode ? "#064e3b" : "#d1fae5";
-                                    case "transfer":
-                                      return isDarkMode ? "#4b5563" : "#e5e7eb";
+                                      return <ShoppingCartIcon sx={{ color: '#10b981', fontSize: 18 }} />;
+                                    case "boost_sale":
+                                      return <RocketLaunchIcon sx={{ color: '#f59e0b', fontSize: 18 }} />;
                                     case "virtual_sale":
-                                      return isDarkMode ? "#064e3b" : "#d1fae5";
+                                      return <DevicesIcon sx={{ color: '#06b6d4', fontSize: 18 }} />;
+                                    case "digital_product_sale":
+                                      return <CloudDownloadIcon sx={{ color: '#ec4899', fontSize: 18 }} />;
+                                    case "transfer":
+                                      return <ArrowForwardIcon sx={{ color: '#6b7280', fontSize: 18 }} />;
+                                    case "reception":
+                                      return <ArrowBackIcon sx={{ color: '#6b7280', fontSize: 18 }} />;
                                     default:
-                                      return isDarkMode ? "#1f2937" : "#f3f4f6";
+                                      return <ReceiptIcon sx={{ color: '#9ca3af', fontSize: 18 }} />;
                                   }
-                                })(),
-                                color: isDarkMode ? "#fff" : "#111",
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>{stat.count}</TableCell>
-                          <TableCell
-                            sx={{
-                              color:
-                                stat.type === "withdrawal"
-                                  ? "error.main"
-                                  : "success.main",
-                              fontWeight: "bold",
-                            }}
-                          >
-                            {formatAmount(stat.total_amount, selectedCurrency)}
-                          </TableCell>
-                          {isCDFEnabled && (
-                            <TableCell>
-                              <Chip
-                                label={selectedCurrency}
-                                size="small"
-                                sx={{
-                                  bgcolor:
-                                    selectedCurrency === "USD"
-                                      ? isDarkMode
-                                        ? "rgba(59, 130, 246, 0.2)"
-                                        : "rgba(59, 130, 246, 0.1)"
-                                      : isDarkMode
-                                      ? "rgba(16, 185, 129, 0.2)"
-                                      : "rgba(16, 185, 129, 0.1)",
-                                  color:
-                                    selectedCurrency === "USD"
-                                      ? isDarkMode
-                                        ? "#60a5fa"
-                                        : "#2563eb"
-                                      : isDarkMode
-                                      ? "#34d399"
-                                      : "#059669",
-                                  fontWeight: "bold",
-                                  fontSize: "0.75rem",
-                                }}
-                              />
-                            </TableCell>
-                          )}
-                          <TableCell>
-                            {formatDate(stat.first_transaction)}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(stat.last_transaction)}
-                          </TableCell>
-                        </TableRow>
+                                })()}
+                              </Box>
+                              <Box sx={{ flex: 1 }}>
+                                <Chip
+                                  label={
+                                    stat.type === "withdrawal"
+                                      ? "Retrait"
+                                      : stat.type === "pack_sale"
+                                      ? "Achat de pack"
+                                      : stat.type === "renew_pack_sale"
+                                      ? "Rénouvellement"
+                                      : stat.type === "boost_sale"
+                                      ? "Boost"
+                                      : stat.type === "virtual_sale"
+                                      ? "Vente virtuel"
+                                      : stat.type === "digital_product_sale"
+                                      ? "Produits numériques"
+                                      : stat.type === "transfer"
+                                      ? "Transfert"
+                                      : stat.type === "reception"
+                                      ? "Réception"
+                                      : stat.type === "commission de parrainage"
+                                      ? "Commission parrainage"
+                                      : stat.type === "commission de retrait"
+                                      ? "Commission retrait"
+                                      : stat.type === "commission de transfert"
+                                      ? "Commission transfert"
+                                      : stat.type
+                                  }
+                                  size="small"
+                                  sx={{
+                                    bgcolor: (() => {
+                                      switch (stat.type) {
+                                        case "withdrawal":
+                                          return isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)";
+                                        case "commission de parrainage":
+                                          return isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)";
+                                        case "commission de retrait":
+                                          return isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)";
+                                        case "commission de transfert":
+                                          return isDarkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)";
+                                        case "digital_product_sale":
+                                          return isDarkMode ? "rgba(236, 72, 153, 0.2)" : "rgba(236, 72, 153, 0.1)";
+                                        case "pack_sale":
+                                        case "renew_pack_sale":
+                                          return isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)";
+                                        case "boost_sale":
+                                          return isDarkMode ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 158, 11, 0.1)";
+                                        case "virtual_sale":
+                                          return isDarkMode ? "rgba(6, 182, 212, 0.2)" : "rgba(6, 182, 212, 0.1)";
+                                        case "transfer":
+                                        case "reception":
+                                          return isDarkMode ? "rgba(107, 114, 128, 0.2)" : "rgba(107, 114, 128, 0.1)";
+                                        default:
+                                          return isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(156, 163, 175, 0.1)";
+                                      }
+                                    })(),
+                                    color: (() => {
+                                      switch (stat.type) {
+                                        case "withdrawal":
+                                          return isDarkMode ? "#f87171" : "#dc2626";
+                                        case "commission de parrainage":
+                                          return isDarkMode ? "#34d399" : "#059669";
+                                        case "commission de retrait":
+                                          return isDarkMode ? "#60a5fa" : "#2563eb";
+                                        case "commission de transfert":
+                                          return isDarkMode ? "#a78bfa" : "#7c3aed";
+                                        case "digital_product_sale":
+                                          return isDarkMode ? "#f472b6" : "#db2777";
+                                        case "pack_sale":
+                                        case "renew_pack_sale":
+                                          return isDarkMode ? "#34d399" : "#059669";
+                                        case "boost_sale":
+                                          return isDarkMode ? "#fbbf24" : "#d97706";
+                                        case "virtual_sale":
+                                          return isDarkMode ? "#22d3ee" : "#0891b2";
+                                        case "transfer":
+                                        case "reception":
+                                          return isDarkMode ? "#9ca3af" : "#6b7280";
+                                        default:
+                                          return isDarkMode ? "#d1d5db" : "#9ca3af";
+                                      }
+                                    })(),
+                                    fontWeight: 'bold',
+                                    fontSize: '0.7rem',
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+
+                            {/* Stats principales */}
+                            <Grid container spacing={2} sx={{ mb: 2 }}>
+                              <Grid item xs={6}>
+                                <Typography variant="body2" sx={{ 
+                                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                                  fontSize: '0.75rem',
+                                  mb: 0.5
+                                }}>
+                                  Nombre
+                                </Typography>
+                                <Typography variant="h6" sx={{ 
+                                  fontWeight: 'bold',
+                                  color: isDarkMode ? '#e5e7eb' : '#374151',
+                                  fontSize: '1.1rem'
+                                }}>
+                                  {stat.count}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Typography variant="body2" sx={{ 
+                                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                                  fontSize: '0.75rem',
+                                  mb: 0.5
+                                }}>
+                                  Montant total
+                                </Typography>
+                                <Typography variant="h6" sx={{
+                                  color: stat.type === "withdrawal" 
+                                    ? "#ef4444" 
+                                    : "#10b981",
+                                  fontWeight: 'bold',
+                                  fontSize: '1.1rem',
+                                }}>
+                                  {formatAmount(stat.total_amount, selectedCurrency)}
+                                </Typography>
+                              </Grid>
+                            </Grid>
+
+                            {/* Devise et dates */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              {isCDFEnabled && (
+                                <Chip
+                                  label={selectedCurrency}
+                                  size="small"
+                                  sx={{
+                                    bgcolor:
+                                      selectedCurrency === "USD"
+                                        ? isDarkMode
+                                          ? "rgba(59, 130, 246, 0.2)"
+                                          : "rgba(59, 130, 246, 0.1)"
+                                        : isDarkMode
+                                        ? "rgba(16, 185, 129, 0.2)"
+                                        : "rgba(16, 185, 129, 0.1)",
+                                    color:
+                                      selectedCurrency === "USD"
+                                        ? isDarkMode
+                                          ? "#60a5fa"
+                                          : "#2563eb"
+                                        : isDarkMode
+                                        ? "#34d399"
+                                        : "#059669",
+                                    fontWeight: "bold",
+                                    fontSize: "0.7rem",
+                                  }}
+                                />
+                              )}
+                              <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="caption" sx={{ 
+                                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                                  fontSize: '0.7rem',
+                                  display: 'block'
+                                }}>
+                                  {formatDate(stat.first_transaction)}
+                                </Typography>
+                                <Typography variant="caption" sx={{ 
+                                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                                  fontSize: '0.7rem'
+                                }}>
+                                  → {formatDate(stat.last_transaction)}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
                       ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    </Box>
+                  ) : (
+                    /* Version desktop */
+                    <TableContainer>
+                      <Table>
+                        <TableHead>
+                          <TableRow sx={{
+                            bgcolor: isDarkMode ? '#111827' : '#f1f5f9',
+                          }}>
+                            <TableCell sx={{ 
+                              fontWeight: 'bold', 
+                              color: isDarkMode ? '#e5e7eb' : '#475569',
+                              fontSize: '0.875rem',
+                              py: 2
+                            }}>
+                              Type de transaction
+                            </TableCell>
+                            <TableCell align="center" sx={{ 
+                              fontWeight: 'bold', 
+                              color: isDarkMode ? '#e5e7eb' : '#475569',
+                              fontSize: '0.875rem',
+                              py: 2
+                            }}>
+                              Nombre
+                            </TableCell>
+                            <TableCell align="right" sx={{ 
+                              fontWeight: 'bold', 
+                              color: isDarkMode ? '#e5e7eb' : '#475569',
+                              fontSize: '0.875rem',
+                              py: 2
+                            }}>
+                              Montant total
+                            </TableCell>
+                            {isCDFEnabled && (
+                              <TableCell align="center" sx={{ 
+                                fontWeight: 'bold', 
+                                color: isDarkMode ? '#e5e7eb' : '#475569',
+                                fontSize: '0.875rem',
+                                py: 2
+                              }}>
+                                Devise
+                              </TableCell>
+                            )}
+                            <TableCell sx={{ 
+                              fontWeight: 'bold', 
+                              color: isDarkMode ? '#e5e7eb' : '#475569',
+                              fontSize: '0.875rem',
+                              py: 2
+                            }}>
+                              Première transaction
+                            </TableCell>
+                            <TableCell sx={{ 
+                              fontWeight: 'bold', 
+                              color: isDarkMode ? '#e5e7eb' : '#475569',
+                              fontSize: '0.875rem',
+                              py: 2
+                            }}>
+                              Dernière transaction
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {statsByType.map((stat, index) => (
+                            <TableRow
+                              key={stat.type}
+                              sx={{
+                                "&:hover": {
+                                  bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                                },
+                                borderBottom: `1px solid ${
+                                  isDarkMode ? "#374151" : "#f1f5f9"
+                                }`,
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <TableCell sx={{ py: 2 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Box sx={{ mr: 2 }}>
+                                    {(() => {
+                                      switch (stat.type) {
+                                        case "withdrawal":
+                                          return <MoneyOffIcon sx={{ color: '#ef4444', fontSize: 20 }} />;
+                                        case "commission de parrainage":
+                                          return <TrendingUpIcon sx={{ color: '#10b981', fontSize: 20 }} />;
+                                        case "commission de retrait":
+                                          return <AccountBalanceWalletIcon sx={{ color: '#3b82f6', fontSize: 20 }} />;
+                                        case "commission de transfert":
+                                          return <SwapHorizIcon sx={{ color: '#8b5cf6', fontSize: 20 }} />;
+                                        case "pack_sale":
+                                        case "renew_pack_sale":
+                                          return <ShoppingCartIcon sx={{ color: '#10b981', fontSize: 20 }} />;
+                                        case "boost_sale":
+                                          return <RocketLaunchIcon sx={{ color: '#f59e0b', fontSize: 20 }} />;
+                                        case "virtual_sale":
+                                          return <DevicesIcon sx={{ color: '#06b6d4', fontSize: 20 }} />;
+                                        case "digital_product_sale":
+                                          return <CloudDownloadIcon sx={{ color: '#ec4899', fontSize: 20 }} />;
+                                        case "transfer":
+                                          return <ArrowForwardIcon sx={{ color: '#6b7280', fontSize: 20 }} />;
+                                        case "reception":
+                                          return <ArrowBackIcon sx={{ color: '#6b7280', fontSize: 20 }} />;
+                                        default:
+                                          return <ReceiptIcon sx={{ color: '#9ca3af', fontSize: 20 }} />;
+                                      }
+                                    })()}
+                                  </Box>
+                                  <Chip
+                                    label={
+                                      stat.type === "withdrawal"
+                                        ? "Retrait"
+                                        : stat.type === "pack_sale"
+                                        ? "Achat de pack"
+                                        : stat.type === "renew_pack_sale"
+                                        ? "Rénouvellement de pack"
+                                        : stat.type === "boost_sale"
+                                        ? "Boost de publication"
+                                        : stat.type === "virtual_sale"
+                                        ? "Vente de virtuel"
+                                        : stat.type === "digital_product_sale"
+                                        ? "Vente de produits numériques"
+                                        : stat.type === "transfer"
+                                        ? "Transfert des fonds"
+                                        : stat.type === "reception"
+                                        ? "Réception des fonds"
+                                        : stat.type === "commission de parrainage"
+                                        ? "Commission de parrainage"
+                                        : stat.type === "commission de retrait"
+                                        ? "Commission de retrait"
+                                        : stat.type === "commission de transfert"
+                                        ? "Commission de transfert"
+                                        : stat.type
+                                    }
+                                    size="small"
+                                    sx={{
+                                      bgcolor: (() => {
+                                        switch (stat.type) {
+                                          case "withdrawal":
+                                            return isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)";
+                                          case "commission de parrainage":
+                                            return isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)";
+                                          case "commission de retrait":
+                                            return isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)";
+                                          case "commission de transfert":
+                                            return isDarkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)";
+                                          case "digital_product_sale":
+                                            return isDarkMode ? "rgba(236, 72, 153, 0.2)" : "rgba(236, 72, 153, 0.1)";
+                                          case "pack_sale":
+                                          case "renew_pack_sale":
+                                            return isDarkMode ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)";
+                                          case "boost_sale":
+                                            return isDarkMode ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 158, 11, 0.1)";
+                                          case "virtual_sale":
+                                            return isDarkMode ? "rgba(6, 182, 212, 0.2)" : "rgba(6, 182, 212, 0.1)";
+                                          case "transfer":
+                                          case "reception":
+                                            return isDarkMode ? "rgba(107, 114, 128, 0.2)" : "rgba(107, 114, 128, 0.1)";
+                                          default:
+                                            return isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(156, 163, 175, 0.1)";
+                                        }
+                                      })(),
+                                      color: (() => {
+                                        switch (stat.type) {
+                                          case "withdrawal":
+                                            return isDarkMode ? "#f87171" : "#dc2626";
+                                          case "commission de parrainage":
+                                            return isDarkMode ? "#34d399" : "#059669";
+                                          case "commission de retrait":
+                                            return isDarkMode ? "#60a5fa" : "#2563eb";
+                                          case "commission de transfert":
+                                            return isDarkMode ? "#a78bfa" : "#7c3aed";
+                                          case "digital_product_sale":
+                                            return isDarkMode ? "#f472b6" : "#db2777";
+                                          case "pack_sale":
+                                          case "renew_pack_sale":
+                                            return isDarkMode ? "#34d399" : "#059669";
+                                          case "boost_sale":
+                                            return isDarkMode ? "#fbbf24" : "#d97706";
+                                          case "virtual_sale":
+                                            return isDarkMode ? "#22d3ee" : "#0891b2";
+                                          case "transfer":
+                                          case "reception":
+                                            return isDarkMode ? "#9ca3af" : "#6b7280";
+                                          default:
+                                            return isDarkMode ? "#d1d5db" : "#9ca3af";
+                                        }
+                                      })(),
+                                      fontWeight: 'bold',
+                                      fontSize: '0.75rem',
+                                    }}
+                                  />
+                                </Box>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography variant="body1" sx={{ 
+                                  fontWeight: 'bold',
+                                  color: isDarkMode ? '#e5e7eb' : '#374151'
+                                }}>
+                                  {stat.count}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body1" sx={{
+                                  color: stat.type === "withdrawal" 
+                                    ? "#ef4444" 
+                                    : "#10b981",
+                                  fontWeight: 'bold',
+                                  fontSize: '1rem',
+                                }}>
+                                  {formatAmount(stat.total_amount, selectedCurrency)}
+                                </Typography>
+                              </TableCell>
+                              {isCDFEnabled && (
+                                <TableCell align="center">
+                                  <Chip
+                                    label={selectedCurrency}
+                                    size="small"
+                                    sx={{
+                                      bgcolor:
+                                        selectedCurrency === "USD"
+                                          ? isDarkMode
+                                            ? "rgba(59, 130, 246, 0.2)"
+                                            : "rgba(59, 130, 246, 0.1)"
+                                          : isDarkMode
+                                          ? "rgba(16, 185, 129, 0.2)"
+                                          : "rgba(16, 185, 129, 0.1)",
+                                      color:
+                                        selectedCurrency === "USD"
+                                          ? isDarkMode
+                                            ? "#60a5fa"
+                                            : "#2563eb"
+                                          : isDarkMode
+                                          ? "#34d399"
+                                          : "#059669",
+                                      fontWeight: "bold",
+                                      fontSize: "0.75rem",
+                                    }}
+                                  />
+                                </TableCell>
+                              )}
+                              <TableCell>
+                                <Typography variant="body2" sx={{ 
+                                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                                  fontSize: '0.875rem'
+                                }}>
+                                  {formatDate(stat.first_transaction)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ 
+                                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                                  fontSize: '0.875rem'
+                                }}>
+                                  {formatDate(stat.last_transaction)}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </Card>
               </>
             )}
           </Box>

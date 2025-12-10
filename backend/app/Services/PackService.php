@@ -158,6 +158,7 @@ class PackService
 
         $metadata = [
             "Opération" => $operationType === 'purchase' ? "Achat d'un nouveau pack" : "Renouvellement de pack",
+            "Pack_ID" => $pack->id,
             "Nom du pack" => $pack->name,
             "Durée de souscription" => $paymentData['duration_months'] . " mois",
             "Type de paiement" => $paymentData['payment_type'],

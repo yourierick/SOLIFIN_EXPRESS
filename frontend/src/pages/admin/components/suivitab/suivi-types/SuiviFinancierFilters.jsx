@@ -8,12 +8,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Chip,
   IconButton,
   Collapse,
   useTheme,
   useMediaQuery,
   Grid,
   Button,
+  Stack,
+  Menu,
 } from '@mui/material';
 import {
   FilterList as FilterIcon,
@@ -22,16 +25,16 @@ import {
   Clear as ClearIcon,
   Search as SearchIcon,
   CalendarToday as CalendarIcon,
-  LocalActivity as TicketIcon,
-  CheckCircle as CheckIcon,
-  EventAvailable as AvailableIcon,
-  EventBusy as BusyIcon,
-  Schedule as ScheduleIcon,
+  Check as CheckIcon,
+  ArrowUpward as InIcon,
+  ArrowDownward as OutIcon,
+  FileDownload as ExportIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { fr } from 'date-fns/locale';
+import axios from 'axios';
 
 // Composant TextField avec forwardRef pour MUI X DatePicker
 const CustomTextField = React.forwardRef((props, ref) => {
@@ -57,11 +60,27 @@ const CustomTextField = React.forwardRef((props, ref) => {
 
 CustomTextField.displayName = 'CustomTextField';
 
-const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
+const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [expanded, setExpanded] = useState(false);
+  const [packs, setPacks] = useState([]);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Charger les packs actifs
+  useEffect(() => {
+    const fetchPacks = async () => {
+      try {
+        const response = await axios.get('/api/admin/tableau-de-suivi/packs');
+        setPacks(response.data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des packs:', error);
+      }
+    };
+    fetchPacks();
+  }, []);
 
   // Gérer le changement des filtres
   const handleFilterChange = (field, value) => {
@@ -77,6 +96,20 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
     
     // Appeler la fonction de changement avec les nouveaux filtres
     onFiltersChange(newFilters);
+  };
+
+  // Fonction pour formater l'affichage des dates
+  const formatDateDisplay = (date) => {
+    if (!date) return '';
+    if (typeof date === 'string') return date;
+    if (date instanceof Date) {
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    }
+    return '';
   };
 
   // Réinitialiser tous les filtres
@@ -102,13 +135,59 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
 
   const hasActiveFilters = getActiveFiltersCount() > 0;
 
+  // Gérer le menu d'export
+  const handleExportMenuOpen = (event) => {
+    setExportMenuAnchor(event.currentTarget);
+  };
+
+  const handleExportMenuClose = () => {
+    setExportMenuAnchor(null);
+  };
+
+  // Fonctions d'export
+  const handleExportFiltered = async () => {
+    setIsExporting(true);
+    handleExportMenuClose();
+    try {
+      await onExport('filtered');
+    } catch (error) {
+      console.error('Erreur lors de l\'export des données filtrées:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCurrentPage = async () => {
+    setIsExporting(true);
+    handleExportMenuClose();
+    try {
+      await onExport('current_page');
+    } catch (error) {
+      console.error('Erreur lors de l\'export de la page actuelle:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportAll = async () => {
+    setIsExporting(true);
+    handleExportMenuClose();
+    try {
+      await onExport('all');
+    } catch (error) {
+      console.error('Erreur lors de l\'export de toutes les données:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
       <Paper
         sx={{
           p: { xs: 2, sm: 3 },
           mb: { xs: 2, sm: 3 },
-          mt: { xs: 3, sm: 3 },
+          mt: { xs:3, sm:3 },
           borderRadius: { xs: 2, md: 3 },
           background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
           backdropFilter: 'blur(20px)',
@@ -147,7 +226,7 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                 fontWeight={600}
                 sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}
               >
-                Filtres des tickets
+                Filtres avancés
               </Typography>
               {hasActiveFilters && (
                 <Typography variant="caption" color="primary">
@@ -182,7 +261,7 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
           </Box>
         </Box>
 
-        {/* Contenu des filtres */}
+        {/* Contenu des filtres - Design moderne */}
         <Collapse in={expanded}>
           <Box
             sx={{
@@ -206,7 +285,7 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Box sx={{ position: 'relative', mr: 2 }}>
-                  <TicketIcon sx={{ 
+                  <FilterIcon sx={{ 
                     fontSize: { xs: 20, sm: 24 },
                     color: 'primary.main',
                     transition: 'transform 0.3s ease',
@@ -227,7 +306,7 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    Filtres des tickets gagnants
+                    Filtres avancés
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
                     Affinez votre recherche
@@ -249,8 +328,8 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
             </Box>
 
             <Grid container spacing={{ xs: 2, sm: 3 }}>
-              {/* Recherche */}
-              <Grid item xs={12} sm={6} md={4}>
+              {/* Recherche par référence */}
+              <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ mb: 2 }}>
                   <Typography 
                     variant="caption" 
@@ -275,13 +354,13 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                         mr: 1,
                         animation: 'pulse 2s infinite'
                       }} />
-                      Recherche
+                      Référence
                     </Box>
                   </Typography>
                   <TextField
                     fullWidth
                     size={isMobile ? 'small' : 'medium'}
-                    placeholder="Nom, code jeton, code vérif, cadeau, distributeur"
+                    placeholder="Référence de transaction"
                     value={filters.search || ''}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     InputProps={{
@@ -311,8 +390,8 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                 </Box>
               </Grid>
 
-              {/* Statut */}
-              <Grid item xs={12} sm={6} md={4}>
+              {/* Mouvement */}
+              <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ mb: 2 }}>
                   <Typography 
                     variant="caption" 
@@ -333,6 +412,79 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                         width: 2, 
                         height: 2, 
                         bgcolor: 'success.main',
+                        borderRadius: '50%',
+                        mr: 1,
+                        animation: 'pulse 2s infinite'
+                      }} />
+                      Mouvement
+                    </Box>
+                  </Typography>
+                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                    <Select
+                      value={filters.mouvment || ''}
+                      onChange={(e) => handleFilterChange('mouvment', e.target.value)}
+                      displayEmpty
+                      sx={{ 
+                        borderRadius: { xs: 1.5, md: 2 },
+                        bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                          borderColor: theme.palette.primary.main,
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        },
+                        '&.Mui-focused': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
+                          borderColor: theme.palette.primary.main,
+                          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                        },
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Tous les mouvements</em>
+                      </MenuItem>
+                      <MenuItem value="in">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <InIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                          Entrée (in)
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="out">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <OutIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                          Sortie (out)
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Grid>
+
+              {/* Statut */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    fontWeight={600} 
+                    sx={{ 
+                      mb: 1, 
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }}
+                  >
+                    <Box sx={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center',
+                      mr: 1
+                    }}>
+                      <Box sx={{ 
+                        width: 2, 
+                        height: 2, 
+                        bgcolor: 'warning.main',
                         borderRadius: '50%',
                         mr: 1,
                         animation: 'pulse 2s infinite'
@@ -367,28 +519,28 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                       <MenuItem value="">
                         <em>Tous les statuts</em>
                       </MenuItem>
-                      <MenuItem value="consommé">
+                      <MenuItem value="completed">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <CheckIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                          Consommé
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+                          Complétée
                         </Box>
                       </MenuItem>
-                      <MenuItem value="programmé">
+                      <MenuItem value="pending">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <ScheduleIcon sx={{ fontSize: 16, color: 'info.main' }} />
-                          Programmé
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main' }} />
+                          En attente
                         </Box>
                       </MenuItem>
-                      <MenuItem value="expiré">
+                      <MenuItem value="failed">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <BusyIcon sx={{ fontSize: 16, color: 'error.main' }} />
-                          Expiré
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main' }} />
+                          Échouée
                         </Box>
                       </MenuItem>
-                      <MenuItem value="non consommé">
+                      <MenuItem value="cancelled">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <AvailableIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-                          Non consommé
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'default.main' }} />
+                          Annulée
                         </Box>
                       </MenuItem>
                     </Select>
@@ -396,7 +548,80 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                 </Box>
               </Grid>
 
-              {/* Dates - conteneur groupé */}
+              {/* Pack */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    fontWeight={600} 
+                    sx={{ 
+                      mb: 1, 
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }}
+                  >
+                    <Box sx={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center',
+                      mr: 1
+                    }}>
+                      <Box sx={{ 
+                        width: 2, 
+                        height: 2, 
+                        bgcolor: 'info.main',
+                        borderRadius: '50%',
+                        mr: 1,
+                        animation: 'pulse 2s infinite'
+                      }} />
+                      Pack
+                    </Box>
+                  </Typography>
+                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                    <Select
+                      value={filters.pack_id || ''}
+                      onChange={(e) => handleFilterChange('pack_id', e.target.value)}
+                      displayEmpty
+                      sx={{ 
+                        borderRadius: { xs: 1.5, md: 2 },
+                        bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                          borderColor: theme.palette.primary.main,
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        },
+                        '&.Mui-focused': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
+                          borderColor: theme.palette.primary.main,
+                          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                        },
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Tous les packs</em>
+                      </MenuItem>
+                      {packs.map((pack) => (
+                        <MenuItem key={pack.id} value={pack.id}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {pack.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {pack.categorie} • {pack.abonnement}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Grid>
+
+              {/* Filtre de date */}
               <Grid item xs={12}>
                 <Box sx={{ mb: 2 }}>
                   <Typography 
@@ -418,7 +643,7 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                         color: 'info.main',
                         mr: 1
                       }} />
-                      Périodes
+                      Période de transaction
                     </Box>
                   </Typography>
                   <Box
@@ -431,116 +656,27 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                     }}
                   >
                     <Grid container spacing={{ xs: 2, sm: 3 }}>
-                      {/* Période d'expiration */}
                       <Grid item xs={12} sm={6}>
-                        <Box sx={{ mb: { xs: 2, sm: 0 } }}>
-                          <Typography 
-                            variant="caption" 
-                            fontWeight={600} 
-                            sx={{ 
-                              mb: 1, 
-                              display: 'block',
-                              color: 'text.secondary',
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                            }}
-                          >
-                            <Box sx={{ 
-                              display: 'inline-flex', 
-                              alignItems: 'center',
-                              mr: 1
-                            }}>
-                              <Box sx={{ 
-                                width: 2, 
-                                height: 2, 
-                                bgcolor: 'warning.main',
-                                borderRadius: '50%',
-                                mr: 1,
-                                animation: 'pulse 2s infinite'
-                              }} />
-                              Période d'expiration
-                            </Box>
-                          </Typography>
-                          <Grid container spacing={{ xs: 2, sm: 2 }}>
-                            <Grid item xs={12} sm={6}>
-                              <DatePicker
-                                label="Date de début"
-                                value={filters.expiry_date_start || null}
-                                onChange={(value) => handleFilterChange('expiry_date_start', value)}
-                                enableAccessibleFieldDOMStructure={false}
-                                slots={{
-                                  textField: CustomTextField,
-                                }}
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                              <DatePicker
-                                label="Date de fin"
-                                value={filters.expiry_date_end || null}
-                                onChange={(value) => handleFilterChange('expiry_date_end', value)}
-                                enableAccessibleFieldDOMStructure={false}
-                                slots={{
-                                  textField: CustomTextField,
-                                }}
-                              />
-                            </Grid>
-                          </Grid>
-                        </Box>
+                        <DatePicker
+                          label="Date de début"
+                          value={filters.date_start || null}
+                          onChange={(value) => handleFilterChange('date_start', value)}
+                          enableAccessibleFieldDOMStructure={false}
+                          slots={{
+                            textField: CustomTextField,
+                          }}
+                        />
                       </Grid>
-
-                      {/* Période de consommation */}
                       <Grid item xs={12} sm={6}>
-                        <Box>
-                          <Typography 
-                            variant="caption" 
-                            fontWeight={600} 
-                            sx={{ 
-                              mb: 1, 
-                              display: 'block',
-                              color: 'text.secondary',
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                            }}
-                          >
-                            <Box sx={{ 
-                              display: 'inline-flex', 
-                              alignItems: 'center',
-                              mr: 1
-                            }}>
-                              <Box sx={{ 
-                                width: 2, 
-                                height: 2, 
-                                bgcolor: 'success.main',
-                                borderRadius: '50%',
-                                mr: 1,
-                                animation: 'pulse 2s infinite'
-                              }} />
-                              Période de consommation
-                            </Box>
-                          </Typography>
-                          <Grid container spacing={{ xs: 2, sm: 2 }}>
-                            <Grid item xs={12} sm={6}>
-                              <DatePicker
-                                label="Date de début"
-                                value={filters.consumption_date_start || null}
-                                onChange={(value) => handleFilterChange('consumption_date_start', value)}
-                                enableAccessibleFieldDOMStructure={false}
-                                slots={{
-                                  textField: CustomTextField,
-                                }}
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                              <DatePicker
-                                label="Date de fin"
-                                value={filters.consumption_date_end || null}
-                                onChange={(value) => handleFilterChange('consumption_date_end', value)}
-                                enableAccessibleFieldDOMStructure={false}
-                                slots={{
-                                  textField: CustomTextField,
-                                }}
-                              />
-                            </Grid>
-                          </Grid>
-                        </Box>
+                        <DatePicker
+                          label="Date de fin"
+                          value={filters.date_end || null}
+                          onChange={(value) => handleFilterChange('date_end', value)}
+                          enableAccessibleFieldDOMStructure={false}
+                          slots={{
+                            textField: CustomTextField,
+                          }}
+                        />
                       </Grid>
                     </Grid>
                   </Box>
@@ -601,42 +737,107 @@ const SuiviTicketsGagnantsFilters = ({ filters, onFiltersChange, period }) => {
                         ? 'linear-gradient(135deg, rgba(75, 85, 99, 0.9) 0%, rgba(107, 114, 128, 0.9) 100%)' 
                         : 'linear-gradient(135deg, rgba(229, 231, 235, 0.9) 0%, rgba(209, 213, 219, 0.9) 100%)',
                       transform: 'translateY(-2px) scale(1.02)',
-                      boxShadow: isDarkMode 
-                        ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
-                        : '0 8px 25px rgba(0, 0, 0, 0.1)',
+                      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
                     },
                   }}
                 >
                   Réinitialiser
-                </Button>
-                <Button
-                  onClick={() => setExpanded(false)}
-                  sx={{
-                    px: { xs: 3, sm: 4 },
-                    py: { xs: 1.5, sm: 2 },
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    borderRadius: { xs: 1.5, md: 2 },
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                    color: '#ffffff',
-                    border: 'none',
-                    backdropFilter: 'blur(10px)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                      transform: 'translateY(-2px) scale(1.02)',
-                      boxShadow: `0 8px 25px ${theme.palette.primary.main}40`,
-                    },
-                  }}
-                >
-                  Appliquer les filtres
                 </Button>
               </Box>
             </Box>
           </Box>
         </Collapse>
       </Paper>
+
+      {/* Menu d'export */}
+      <Menu
+        anchorEl={exportMenuAnchor}
+        open={Boolean(exportMenuAnchor)}
+        onClose={handleExportMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 200,
+            borderRadius: { xs: 1.5, md: 2 },
+            border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
+            bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
+            boxShadow: isDarkMode 
+              ? '0 10px 40px rgba(0, 0, 0, 0.3)' 
+              : '0 10px 40px rgba(0, 0, 0, 0.1)',
+          }
+        }}
+      >
+        <MenuItem 
+          onClick={handleExportFiltered}
+          sx={{
+            py: 1.5,
+            px: 2,
+            '&:hover': {
+              bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+            }
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ExportIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box>
+              <Typography variant="body2" fontWeight={500}>
+                Exporter les données filtrées
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Exporter uniquement les résultats actuels
+              </Typography>
+            </Box>
+          </Box>
+        </MenuItem>
+        
+        <MenuItem 
+          onClick={handleExportCurrentPage}
+          sx={{
+            py: 1.5,
+            px: 2,
+            '&:hover': {
+              bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+            }
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ExportIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            <Box>
+              <Typography variant="body2" fontWeight={500}>
+                Exporter la page actuelle
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Exporter les données de cette page
+              </Typography>
+            </Box>
+          </Box>
+        </MenuItem>
+        
+        <MenuItem 
+          onClick={handleExportAll}
+          sx={{
+            py: 1.5,
+            px: 2,
+            '&:hover': {
+              bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+            }
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ExportIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+            <Box>
+              <Typography variant="body2" fontWeight={500}>
+                Exporter toutes les données
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Exporter l'ensemble des transactions
+              </Typography>
+            </Box>
+          </Box>
+        </MenuItem>
+      </Menu>
     </LocalizationProvider>
   );
 };
 
-export default SuiviTicketsGagnantsFilters;
+export default SuiviFinancierFilters;

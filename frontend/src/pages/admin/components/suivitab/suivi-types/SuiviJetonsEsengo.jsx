@@ -12,7 +12,7 @@ import {
   TablePagination,
   CircularProgress,
   Chip,
-  useTheme,
+  useTheme as useMuiTheme,
   useMediaQuery,
   IconButton,
   Tooltip,
@@ -41,6 +41,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 import PeriodFilter from '../PeriodFilter';
 import SuiviJetonsEsengoFilters from './SuiviJetonComponents/SuiviJetonsEsengoFilters';
 import SuiviTicketsGagnantsFilters from './SuiviJetonComponents/SuiviTicketsGagnantsFilters';
@@ -48,9 +49,9 @@ import SkeletonStatsCard from './SuiviJetonComponents/SkeletonStatsCard';
 import ExportButtons from './SuiviJetonComponents/ExportButtons';
 
 const SuiviJetonsEsengo = ({ period, setPeriod }) => {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isDarkMode } = useTheme();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   
   // États pour les onglets
   const [activeTab, setActiveTab] = useState(0);
@@ -569,19 +570,16 @@ const SuiviJetonsEsengo = ({ period, setPeriod }) => {
   const StatsCard = ({ title, value, color, icon }) => (
     <Card
       sx={{
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.9), rgba(17, 24, 39, 0.9))' 
-          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(249, 250, 251, 0.9))',
-        backdropFilter: 'blur(10px)',
-        border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
-        borderRadius: 2,
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: isDarkMode 
-            ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
-            : '0 8px 32px rgba(0, 0, 0, 0.1)',
-        },
+        background: isDarkMode ? "#1f2937" : "#ffffff",
+        border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+        borderRadius: { xs: 2, md: 3 },
+        borderLeft: `4px solid ${color}`,
+        boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-2px) scale(1.02)",
+          boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+        }
       }}
     >
       <CardContent sx={{ p: 3 }}>
@@ -619,7 +617,7 @@ const SuiviJetonsEsengo = ({ period, setPeriod }) => {
       <Paper
         sx={{
           mb: 3,
-          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+          background: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(10px)',
           border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
         }}
@@ -713,7 +711,7 @@ const SuiviJetonsEsengo = ({ period, setPeriod }) => {
             sx={{
               p: { xs: 2, sm: 3 },
               borderRadius: { xs: 2, md: 3 },
-              bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+              background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
               backdropFilter: 'blur(20px)',
               border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
             }}
@@ -923,7 +921,7 @@ const SuiviJetonsEsengo = ({ period, setPeriod }) => {
             sx={{
               p: { xs: 2, sm: 3 },
               borderRadius: { xs: 2, md: 3 },
-              bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+              background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
               backdropFilter: 'blur(20px)',
               border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
             }}
@@ -1060,13 +1058,13 @@ const SuiviJetonsEsengo = ({ period, setPeriod }) => {
         BackdropComponent={Backdrop}
         BackdropProps={{
           sx: {
-            bgcolor: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.5)',
+            background: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.5)',
             backdropFilter: 'blur(8px)',
           },
         }}
         PaperProps={{
           sx: {
-            bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            background: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px)',
             border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
             borderRadius: 3,

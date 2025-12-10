@@ -88,14 +88,16 @@ class WalletController extends Controller
                     $query->where('id', 'like', '%' . $search . '%')
                           ->orWhere('type', 'like', '%' . $search . '%')
                           ->orWhere('status', 'like', '%' . $search . '%')
-                          ->orWhere('amount', 'like', '%' . $search . '%');
+                          ->orWhere('amount', 'like', '%' . $search . '%')
+                          ->orWhere('reference', 'like', '%' . $search . '%');
                 });
                 
                 $adminTransactionsQuery->where(function($query) use ($search) {
                     $query->where('id', 'like', '%' . $search . '%')
                           ->orWhere('type', 'like', '%' . $search . '%')
                           ->orWhere('status', 'like', '%' . $search . '%')
-                          ->orWhere('amount', 'like', '%' . $search . '%');
+                          ->orWhere('amount', 'like', '%' . $search . '%')
+                          ->orWhere('reference', 'like', '%' . $search . '%');
                 });
             }
 
@@ -121,6 +123,7 @@ class WalletController extends Controller
                     return [
                         'id' => $transaction->id,
                         'amount' => number_format($transaction->amount, 2),
+                        'reference' => $transaction->reference,
                         'mouvment' => $transaction->mouvment,
                         'currency' => $transaction->currency,
                         'type' => $transaction->type,
@@ -138,6 +141,7 @@ class WalletController extends Controller
                     return [
                         'id' => $transaction->id,
                         'amount' => $transaction->amount,
+                        'reference' => $transaction->reference,
                         'mouvment' => $transaction->mouvment,
                         'currency' => $transaction->currency,
                         'type' => $transaction->type,
@@ -176,6 +180,205 @@ class WalletController extends Controller
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des données',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Exporter toutes les transactions du portefeuille admin
+     */
+    public function exportAdminTransactions(Request $request)
+    {
+        try {
+            // Récupérer les paramètres de filtrage
+            $currency = $request->input('currency', 'USD');
+            $status = $request->input('status', 'all');
+            $type = $request->input('type', 'all');
+            $search = $request->input('search', '');
+            $startDate = $request->input('start_date', '');
+            $endDate = $request->input('end_date', '');
+
+            // Récupérer l'utilisateur administrateur et son portefeuille
+            $admin = auth()->user();
+            $adminWallet = Wallet::where('user_id', $admin->id)->first();
+
+            if (!$adminWallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille administrateur non trouvé'
+                ], 404);
+            }
+
+            // Construire la requête pour les transactions admin
+            $query = WalletTransaction::with(['wallet.user'])
+                ->where('wallet_id', $adminWallet->id)
+                ->where('currency', $currency);
+
+            // Appliquer les filtres
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+
+            if ($type !== 'all') {
+                $query->where('type', $type);
+            }
+
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', '%' . $search . '%')
+                      ->orWhere('type', 'like', '%' . $search . '%')
+                      ->orWhere('status', 'like', '%' . $search . '%')
+                      ->orWhere('amount', 'like', '%' . $search . '%')
+                      ->orWhere('reference', 'like', '%' . $search . '%');
+                });
+            }
+
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+
+            // Récupérer TOUTES les transactions (sans pagination)
+            $transactions = $query->orderBy('created_at', 'desc')->get();
+
+            // Formater les transactions
+            $formattedTransactions = $transactions->map(function ($transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'amount' => $transaction->amount,
+                    'reference' => $transaction->reference,
+                    'mouvment' => $transaction->mouvment,
+                    'currency' => $transaction->currency,
+                    'type' => $transaction->type,
+                    'status' => $transaction->status,
+                    'metadata' => $transaction->metadata,
+                    'created_at' => $transaction->created_at->format('d/m/Y H:i:s')
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'transactions' => $formattedTransactions,
+                'total' => $formattedTransactions->count(),
+                'currency' => $currency,
+                'wallet_type' => 'admin',
+                'filters' => [
+                    'status' => $status,
+                    'type' => $type,
+                    'search' => $search,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error($e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'export des transactions admin: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Exporter toutes les transactions du portefeuille système
+     */
+    public function exportSystemTransactions(Request $request)
+    {
+        try {
+            // Récupérer les paramètres de filtrage
+            $currency = $request->input('currency', 'USD');
+            $status = $request->input('status', 'all');
+            $type = $request->input('type', 'all');
+            $search = $request->input('search', '');
+            $startDate = $request->input('start_date', '');
+            $endDate = $request->input('end_date', '');
+
+            // Récupérer le portefeuille système
+            $systemWallet = WalletSystem::first();
+
+            if (!$systemWallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille système non trouvé'
+                ], 404);
+            }
+
+            // Construire la requête pour les transactions système
+            $query = WalletSystemTransaction::with(['walletSystem'])
+                ->where('wallet_system_id', $systemWallet->id)
+                ->where('currency', $currency);
+
+            // Appliquer les filtres
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+
+            if ($type !== 'all') {
+                $query->where('type', $type);
+            }
+
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', '%' . $search . '%')
+                      ->orWhere('type', 'like', '%' . $search . '%')
+                      ->orWhere('status', 'like', '%' . $search . '%')
+                      ->orWhere('amount', 'like', '%' . $search . '%')
+                      ->orWhere('reference', 'like', '%' . $search . '%');
+                });
+            }
+
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+
+            // Récupérer TOUTES les transactions (sans pagination)
+            $transactions = $query->orderBy('created_at', 'desc')->get();
+
+            // Formater les transactions
+            $formattedTransactions = $transactions->map(function ($transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'amount' => number_format($transaction->amount, 2),
+                    'reference' => $transaction->reference,
+                    'mouvment' => $transaction->mouvment,
+                    'currency' => $transaction->currency,
+                    'type' => $transaction->type,
+                    'status' => $transaction->status,
+                    'metadata' => $transaction->metadata,
+                    'created_at' => $transaction->created_at->format('d/m/Y H:i:s')
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'transactions' => $formattedTransactions,
+                'total' => $formattedTransactions->count(),
+                'currency' => $currency,
+                'wallet_type' => 'system',
+                'filters' => [
+                    'status' => $status,
+                    'type' => $type,
+                    'search' => $search,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error($e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'export des transactions système: ' . $e->getMessage()
             ], 500);
         }
     }

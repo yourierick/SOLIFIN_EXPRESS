@@ -59,6 +59,7 @@ class WalletUserController extends Controller
                     $q->where('type', 'LIKE', "%{$searchTerm}%")
                       ->orWhere('status', 'LIKE', "%{$searchTerm}%")
                       ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('reference', 'LIKE', "%{$searchTerm}%")
                       ->orWhereJsonContains('metadata', $searchTerm);
                 });
             }
@@ -93,6 +94,7 @@ class WalletUserController extends Controller
                 return [
                     'id' => $transaction->id,
                     'amount' => (float) $transaction->amount, // Envoyer comme nombre pour le frontend
+                    'reference' => $transaction->reference,
                     'mouvment' => $transaction->mouvment,
                     'type' => $transaction->type,
                     'status' => $transaction->status,
@@ -559,5 +561,170 @@ class WalletUserController extends Controller
                 'message' => 'Une erreur est survenue lors du traitement de votre achat'
             ], 500);
         }
+    }
+
+    /**
+     * Exporter les transactions du wallet utilisateur en Excel
+     */
+    public function exportTransactions(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $walletservice = new \App\Services\WalletService();
+            
+            // Récupérer le wallet de l'utilisateur connecté
+            $userWallet = Wallet::where('user_id', Auth::id())->first();
+            $userWallet ?? $userWallet = $walletservice->createUserWallet(Auth::id());
+
+            // Construire la requête de base pour les transactions
+            $query = WalletTransaction::with('wallet')
+                ->where('wallet_id', $userWallet->id)
+                ->orderBy('created_at', 'desc');
+
+            // Filtrer par devise si spécifié
+            if ($request->has('currency') && in_array($request->currency, ['USD', 'CDF'])) {
+                $query->where('currency', $request->currency);
+            }
+
+            // Appliquer les filtres de recherche
+            if ($request->has('search') && !empty($request->search)) {
+                $searchTerm = $request->search;
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('type', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('status', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('reference', 'LIKE', "%{$searchTerm}%")
+                      ->orWhereJsonContains('metadata', $searchTerm);
+                });
+            }
+
+            // Filtrer par statut
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Filtrer par type
+            if ($request->has('type') && $request->type !== 'all') {
+                $query->where('type', $request->type);
+            }
+
+            // Filtrer par plage de dates
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // Récupérer toutes les transactions pour l'export
+            $transactions = $query->get();
+
+            // Préparer les données pour l'export
+            $exportData = [];
+            foreach ($transactions as $transaction) {
+                // Vérifier si metadata est déjà un array ou une string JSON
+                $metadata = $transaction->metadata;
+                if (is_string($metadata)) {
+                    $metadata = json_decode($metadata, true) ?? [];
+                } elseif (!is_array($metadata)) {
+                    $metadata = [];
+                }
+                
+                $exportData[] = [
+                    'Référence' => $transaction->reference ?? '',
+                    'Type' => $this->getTransactionTypeLabel($transaction->type),
+                    'Mouvement' => $transaction->mouvment === 'in' ? 'Entrée' : 'Sortie',
+                    'Montant' => number_format($transaction->amount, 2) . ' ' . $transaction->currency,
+                    'Statut' => $this->getTransactionStatusLabel($transaction->status),
+                    'Date' => \Carbon\Carbon::parse($transaction->created_at)->format('d/m/Y H:i:s'),
+                    'Méthode de paiement' => $metadata['Méthode de paiement'] ?? '-',
+                    'Description' => $metadata['Description'] ?? '-',
+                    'Opération' => $metadata['Opération'] ?? '-',
+                ];
+            }
+
+            // Créer le fichier CSV
+            $filename = 'transactions_wallet_' . $user->name . '_' . date('Y-m-d_H-i-s') . '.csv';
+            
+            // Headers pour le CSV
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+                'Pragma' => 'public',
+            ];
+
+            $callback = function () use ($exportData) {
+                $file = fopen('php://output', 'w');
+                
+                // Ajouter le BOM pour l'encodage UTF-8 (Excel le reconnaîtra correctement)
+                fwrite($file, "\xEF\xBB\xBF");
+                
+                // En-têtes
+                if (!empty($exportData)) {
+                    fputcsv($file, array_keys($exportData[0]), ';');
+                }
+                
+                // Données
+                foreach ($exportData as $row) {
+                    // Assurer que toutes les valeurs sont des strings pour éviter les erreurs
+                    $row = array_map(function($value) {
+                        return is_string($value) ? $value : (string) $value;
+                    }, $row);
+                    fputcsv($file, $row, ';');
+                }
+                
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'export des transactions: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de l\'export des transactions'
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtenir le libellé du type de transaction
+     */
+    private function getTransactionTypeLabel($type)
+    {
+        $labels = [
+            'withdrawal' => 'Retrait',
+            'purchase' => 'Achat',
+            'virtual_purchase' => 'Virtuels',
+            'reception' => 'Réception des fonds',
+            'transfer' => 'Transfert des fonds',
+            'remboursement' => 'Remboursement',
+            'digital_product_sale' => 'Vente de produit numérique',
+            'commission de parrainage' => 'Commission de parrainage',
+            'commission de transfert' => 'Commission de transfert',
+            'commission de retrait' => 'Commission de retrait',
+            'virtual_sale' => 'Vente des virtuels',
+        ];
+
+        return $labels[$type] ?? $type;
+    }
+
+    /**
+     * Obtenir le libellé du statut de transaction
+     */
+    private function getTransactionStatusLabel($status)
+    {
+        $labels = [
+            'pending' => 'En attente',
+            'completed' => 'Complété',
+            'failed' => 'Échoué',
+        ];
+
+        return $labels[$status] ?? $status;
     }
 } 

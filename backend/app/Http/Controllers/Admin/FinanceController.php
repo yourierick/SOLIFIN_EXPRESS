@@ -715,4 +715,75 @@ class FinanceController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Exporter les transactions financières
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function exportFinanceTransactions(Request $request)
+    {
+        try {
+            $query = WalletSystemTransaction::query()
+                ->with(['walletSystem'])
+                ->orderBy('created_at', 'desc');
+
+            // Appliquer les mêmes filtres que la fonction index
+            if ($request->has('type') && !empty($request->type)) {
+                $query->where('type', $request->type);
+            }
+
+            if ($request->has('status') && !empty($request->status)) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            if ($request->has('currency') && !empty($request->currency)) {
+                $query->where('currency', $request->currency);
+            }
+
+            if ($request->has('user_id') && !empty($request->user_id)) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('pack_id') && !empty($request->pack_id)) {
+                $query->where('pack_id', $request->pack_id);
+            }
+
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('reference', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhereHas('user', function($subQuery) use ($search) {
+                          $subQuery->where('name', 'like', "%{$search}%")
+                                  ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Récupérer toutes les transactions correspondantes
+            $transactions = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $transactions,
+                'count' => $transactions->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'exportation des transactions financières: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

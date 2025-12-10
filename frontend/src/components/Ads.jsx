@@ -247,48 +247,7 @@ export default function Ads() {
                   ))}
                 </div>
 
-                {/* Top decorative animated line */}
-                <div className="h-1 w-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600">
-                  <motion.div
-                    className="h-full w-full"
-                    animate={{
-                      backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                    style={{
-                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
-                      backgroundSize: "200% 100%",
-                    }}
-                  />
-                </div>
-
                 <div className="relative z-10 p-8">
-                  {/* Header avec badges */}
-                  <div className="flex justify-between items-start mb-6">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring" }}
-                      className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
-                    >
-                      Publicité
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: 0.3, type: "spring" }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold shadow-lg"
-                    >
-                      <SparklesIcon className="w-3 h-3" />
-                      NOUVEAU
-                    </motion.div>
-                  </div>
-
                   {/* Media container */}
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
@@ -327,7 +286,7 @@ export default function Ads() {
                                   setShowVideo(true);
                                   pauseAutoScroll();
                                 }}
-                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full w-16 h-16 flex items-center justify-center cursor-pointer z-10 shadow-2xl"
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-900/80 text-white rounded-full w-16 h-16 flex items-center justify-center cursor-pointer z-10 shadow-2xl hover:bg-gray-900 transition-colors"
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                               >

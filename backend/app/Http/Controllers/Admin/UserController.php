@@ -154,7 +154,7 @@ class UserController extends BaseController
                         $q->where('id', 'like', "%{$search}%")
                           ->orWhere('type', 'like', "%{$search}%")
                           ->orWhere('status', 'like', "%{$search}%")
-                          ->orWhere('metadata', 'like', "%{$search}%");
+                          ->orWhere('reference', 'like', "%{$search}%");
                     });
                 }
                 // Pagination
@@ -174,6 +174,7 @@ class UserController extends BaseController
                         'id' => $transaction->id,
                         'amount' => $transaction->amount,
                         'currency' => $transaction->currency,
+                        'reference' => $transaction->reference,
                         'type' => $transaction->type,
                         'mouvment' => $transaction->mouvment,
                         'type_raw' => $transaction->type, // Pour le filtrage

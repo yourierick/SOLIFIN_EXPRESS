@@ -1027,4 +1027,154 @@ class WithdrawalController extends Controller
             ], 500);
         }
     }
+    
+    /**
+     * Exporter les demandes de retrait en attente
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function exportPendingWithdrawals(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $currency = $request->input('currency', 'USD');
+            $paymentMethod = $request->input('payment_method');
+            $initiatedBy = $request->input('initiated_by');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $search = $request->input('search');
+            
+            // Construire la requête de base pour les demandes en attente
+            $query = WithdrawalRequest::with(['user' => function($query) {
+                $query->select('id', 'name', 'email', 'phone');
+            }])
+            ->where('status', self::STATUS_PENDING)
+            ->where('currency', $currency);
+            
+            // Appliquer les filtres
+            if ($paymentMethod) {
+                $query->where('payment_method', $paymentMethod);
+            }
+            
+            if ($initiatedBy) {
+                if ($initiatedBy === 'self') {
+                    $query->where('user_id', $user->id);
+                } elseif ($initiatedBy === 'others') {
+                    $query->where('user_id', '!=', $user->id);
+                }
+            }
+            
+            if ($startDate) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            
+            if ($endDate) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+            
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($subQuery) use ($search) {
+                        $subQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%");
+                    });
+                });
+            }
+            
+            // Récupérer toutes les demandes correspondantes
+            $withdrawals = $query->orderBy('created_at', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $withdrawals,
+                'count' => $withdrawals->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'exportation des demandes en attente', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'exportation des demandes en attente',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Exporter toutes les demandes de retrait
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function exportAllWithdrawals(Request $request)
+    {
+        try {
+            $currency = $request->input('currency', 'USD');
+            $status = $request->input('status');
+            $paymentMethod = $request->input('payment_method');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $search = $request->input('search');
+            
+            // Construire la requête de base pour toutes les demandes
+            $query = WithdrawalRequest::with(['user' => function($query) {
+                $query->select('id', 'name', 'email', 'phone');
+            }])
+            ->where('currency', $currency);
+            
+            // Appliquer les filtres
+            if ($status) {
+                $query->where('status', $status);
+            }
+            
+            if ($paymentMethod) {
+                $query->where('payment_method', $paymentMethod);
+            }
+            
+            if ($startDate) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            
+            if ($endDate) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+            
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($subQuery) use ($search) {
+                        $subQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%");
+                    });
+                });
+            }
+            
+            // Récupérer toutes les demandes correspondantes
+            $withdrawals = $query->orderBy('created_at', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $withdrawals,
+                'count' => $withdrawals->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'exportation de toutes les demandes de retrait', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'exportation de toutes les demandes de retrait',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

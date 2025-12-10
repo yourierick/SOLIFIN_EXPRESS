@@ -418,7 +418,7 @@ const Users = () => {
   }
 
   return (
-    <div className="p-3 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="mb-4 sm:mb-6 max-w-4xl">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg sm:text-xl font-semibold flex items-center text-gray-900 dark:text-white">
@@ -493,7 +493,7 @@ const Users = () => {
         </div>
 
         {showFilters && (
-          <div className="mt-3 p-3 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-300 ease-in-out animate__animated animate__fadeIn animate__faster">
+          <div className="mt-3 mb-4 p-3 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-300 ease-in-out animate__animated animate__fadeIn animate__faster">
             <div className="flex flex-wrap gap-3 items-start">
               <div className="w-full">
                 <TextField

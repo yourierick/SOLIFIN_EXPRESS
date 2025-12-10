@@ -942,7 +942,7 @@ const FormationManagement = () => {
               `${from}-${to} de ${count !== -1 ? count : `plus de ${to}`}`
             }
             sx={{
-              backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
+              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
               borderTop: "1px solid",
               borderTopColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
               "& .MuiTablePagination-toolbar": {

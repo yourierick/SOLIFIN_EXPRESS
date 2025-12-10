@@ -147,7 +147,7 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
                   sx={{
                     p: { xs: 2, sm: 3 },
                     borderRadius: 2,
-                    bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
+                    background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
                     boxShadow: 'none',
                   }}
@@ -194,7 +194,7 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
                   sx={{
                     p: { xs: 2, sm: 3 },
                     borderRadius: 2,
-                    bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
+                    background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
                     boxShadow: 'none',
                   }}
@@ -270,7 +270,7 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
                     sx={{
                       p: { xs: 2, sm: 3 },
                       borderRadius: { xs: 2, md: 3 },
-                      bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+                      background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
                       backdropFilter: 'blur(20px)',
                       border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
                     }}
@@ -320,7 +320,7 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
                     sx={{
                       p: { xs: 2, sm: 3 },
                       borderRadius: { xs: 2, md: 3 },
-                      bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+                      background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
                       backdropFilter: 'blur(20px)',
                       border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
                     }}
@@ -356,7 +356,7 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
                     sx={{
                       p: { xs: 2, sm: 3 },
                       borderRadius: { xs: 2, md: 3 },
-                      bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+                      background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
                       backdropFilter: 'blur(20px)',
                       border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
                     }}
@@ -395,7 +395,7 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
                     sx={{
                       p: { xs: 2, sm: 3 },
                       borderRadius: { xs: 2, md: 3 },
-                      bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+                      background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
                       backdropFilter: 'blur(20px)',
                       border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
                     }}

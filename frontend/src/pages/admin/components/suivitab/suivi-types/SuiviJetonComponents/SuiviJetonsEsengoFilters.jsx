@@ -141,7 +141,7 @@ const SuiviJetonsEsengoFilters = ({ filters, onFiltersChange, period }) => {
           mb: { xs: 2, sm: 3 },
           mt: { xs:3, sm:3 },
           borderRadius: { xs: 2, md: 3 },
-          bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+          background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
           backdropFilter: 'blur(20px)',
           border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
           boxShadow: 'none',

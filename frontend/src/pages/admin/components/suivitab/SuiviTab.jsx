@@ -6,7 +6,7 @@ import {
   Paper,
   Tabs,
   Tab,
-  useTheme,
+  useTheme as useMuiTheme,
   useMediaQuery,
   alpha,
   Menu,
@@ -28,13 +28,15 @@ import {
   SuiviRetraits,
 } from './suivi-types';
 import SuiviAbonnement from './SuiviAbonnement';
+import SuiviFinancier from './SuiviFinancier';
 import PeriodFilter from './PeriodFilter';
 import { useCurrency } from "../../../../contexts/CurrencyContext";
+import { useTheme } from "../../../../contexts/ThemeContext";
 
 const SuiviTab = () => {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isDarkMode } = useTheme();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   const [activeTab, setActiveTab] = useState(0);
   const [subscriptionView, setSubscriptionView] = useState('abonnement-gestion');
   const [anchorEl, setAnchorEl] = useState(null);
@@ -62,7 +64,7 @@ const SuiviTab = () => {
   const getCurrentLabel = () => {
     switch (subscriptionView) {
       case 'abonnement-gestion':
-        return 'Suivi d\'abonnement et gestion des comptes';
+        return 'Suivi d\'abonnement';
       case 'soldes-abonnes':
         return 'Suivi des soldes abonnés';
       case 'jetons-esengo':
@@ -80,7 +82,7 @@ const SuiviTab = () => {
         return (
           <Box>
             {/* Statistiques globales en haut */}
-            <SuiviAbonnement 
+            <SuiviAbonnement
               period={period} 
               setPeriod={setPeriod} 
               selectedCurrency={selectedCurrency}
@@ -94,9 +96,7 @@ const SuiviTab = () => {
                 p: { xs: 1.5, sm: 2, md: 3 },
                 mb: { xs: 2, sm: 3, md: 4 },
                 borderRadius: { xs: 2, md: 3 },
-                bgcolor: isDarkMode
-                  ? "#1f2937"
-                  : "rgba(249, 250, 251, 0.8)",
+                background: isDarkMode ? "#1f2937" : "#ffffff",
                 backdropFilter: "blur(20px)",
                 border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                 boxShadow: "none",
@@ -139,7 +139,7 @@ const SuiviTab = () => {
                     }}
                     sx={{
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
-                      color: theme.palette.primary.main,
+                      color: muiTheme.palette.primary.main,
                       p: { xs: 1, sm: 1.5 },
                       '&:hover': {
                         bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)',
@@ -206,14 +206,14 @@ const SuiviTab = () => {
                       variant="body2" 
                       fontWeight={500}
                       sx={{ 
-                        color: theme.palette.primary.main,
+                        color: muiTheme.palette.primary.main,
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {isMobile ? getCurrentLabel().replace('Suivi ', '').replace('des ', '').replace('et gestion des comptes', '') : getCurrentLabel()}
+                      {isMobile ? getCurrentLabel().replace('et gestion des comptes', '') : getCurrentLabel()}
                     </Typography>
                   </Box>
                   <Typography 
@@ -237,7 +237,7 @@ const SuiviTab = () => {
                     borderRadius: { xs: 1.5, md: 2 },
                     minWidth: { xs: 280, sm: 320, md: 400 },
                     maxWidth: { xs: '90vw', sm: 400, md: 400 },
-                    bgcolor: isDarkMode ? '#1f2937' : 'rgba(255, 255, 255, 0.95)',
+                    background: isDarkMode ? '#1f2937' : 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(20px)',
                     border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                     boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
@@ -291,7 +291,7 @@ const SuiviTab = () => {
                     },
                     '&.Mui-selected': {
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.12)',
-                      border: `1px solid ${theme.palette.primary.main}`,
+                      border: `1px solid ${muiTheme.palette.primary.main}`,
                     },
                   }}
                 >
@@ -341,7 +341,7 @@ const SuiviTab = () => {
                     },
                     '&.Mui-selected': {
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.12)',
-                      border: `1px solid ${theme.palette.primary.main}`,
+                      border: `1px solid ${muiTheme.palette.primary.main}`,
                     },
                   }}
                 >
@@ -391,7 +391,7 @@ const SuiviTab = () => {
                     },
                     '&.Mui-selected': {
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.12)',
-                      border: `1px solid ${theme.palette.primary.main}`,
+                      border: `1px solid ${muiTheme.palette.primary.main}`,
                     },
                   }}
                 >
@@ -441,7 +441,7 @@ const SuiviTab = () => {
                     },
                     '&.Mui-selected': {
                       bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.12)',
-                      border: `1px solid ${theme.palette.primary.main}`,
+                      border: `1px solid ${muiTheme.palette.primary.main}`,
                     },
                   }}
                 >
@@ -487,16 +487,7 @@ const SuiviTab = () => {
           </Box>
         );
       case 1:
-        return (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              Suivi financier
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Contenu à implémenter
-            </Typography>
-          </Box>
-        );
+        return <SuiviFinancier period={period} />;
       default:
         return null;
     }
@@ -589,7 +580,7 @@ const SuiviTab = () => {
                   bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
                 },
                 '&.Mui-selected': {
-                  color: theme.palette.primary.main,
+                  color: muiTheme.palette.primary.main,
                   bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
                 },
               },
@@ -620,7 +611,7 @@ const SuiviTab = () => {
         <Box
           sx={{
             p: { xs: 2, sm: 3 },
-            bgcolor: isDarkMode ? 'transparent' : 'transparent',
+            background: isDarkMode ? "#171f2b" : "transparent",
           }}
         >
           {renderContent()}

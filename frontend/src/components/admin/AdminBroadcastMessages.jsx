@@ -674,13 +674,17 @@ const AdminBroadcastMessages = () => {
             Ajouter
           </Button>
         </Box>
-        <TableContainer sx={{ maxHeight: 440 }}>
+        <TableContainer 
+          sx={{ 
+            maxHeight: 440,
+            background: isDarkMode ? "#1f2937" : "#fff" 
+          }}>
           <Table stickyHeader aria-label="sticky table">
             <TableHead>
               <TableRow>
                 <TableCell
                   sx={{
-                    bgcolor: isDarkMode ? "rgb(17, 24, 39)" : "#f9fafb",
+                    background: isDarkMode ? "#1f2937" : "#fff", 
                     color: isDarkMode ? "white" : "inherit",
                   }}
                 >
@@ -688,7 +692,7 @@ const AdminBroadcastMessages = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: isDarkMode ? "rgb(17, 24, 39)" : "#f9fafb",
+                    background: isDarkMode ? "#1f2937" : "#fff", 
                     color: isDarkMode ? "white" : "inherit",
                   }}
                 >
@@ -696,7 +700,7 @@ const AdminBroadcastMessages = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: isDarkMode ? "rgb(17, 24, 39)" : "#f9fafb",
+                    background: isDarkMode ? "#1f2937" : "#fff", 
                     color: isDarkMode ? "white" : "inherit",
                   }}
                 >
@@ -704,7 +708,7 @@ const AdminBroadcastMessages = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: isDarkMode ? "rgb(17, 24, 39)" : "#f9fafb",
+                    background: isDarkMode ? "#1f2937" : "#fff", 
                     color: isDarkMode ? "white" : "inherit",
                   }}
                 >
@@ -712,7 +716,7 @@ const AdminBroadcastMessages = () => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    bgcolor: isDarkMode ? "rgb(17, 24, 39)" : "#f9fafb",
+                    background: isDarkMode ? "#1f2937" : "#fff", 
                     color: isDarkMode ? "white" : "inherit",
                     width: "150px",
                   }}

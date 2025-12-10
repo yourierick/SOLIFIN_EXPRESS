@@ -2,10 +2,13 @@ import { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useCurrency } from "../contexts/CurrencyContext";
 import ConfirmationModal from "./ConfirmationModal";
+import WithdrawalExportButtons from "./WithdrawalExportButtons";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import * as XLSX from "xlsx";
 import {
   Dialog,
   DialogTitle,
@@ -142,6 +145,9 @@ const WithdrawalRequests = () => {
   // États pour les onglets
   const [activeTab, setActiveTab] = useState("pending"); // 'pending' ou 'all'
 
+  // États pour l'exportation
+  const [exportLoading, setExportLoading] = useState(false);
+
   // États pour l'onglet d'analyse complète
   const [allRequests, setAllRequests] = useState([]);
   const [allRequestsLoading, setAllRequestsLoading] = useState(false);
@@ -228,8 +234,6 @@ const WithdrawalRequests = () => {
       }
 
       const response = await axios.get(url);
-
-      console.log(`Pending withdrawal requests for ${selectedCurrency}:`, response.data);
 
       if (response.data.success) {
         // Vérifier si les données sont paginées
@@ -777,6 +781,168 @@ const WithdrawalRequests = () => {
       setCurrentPage((prev) => Math.max(prev - 1, 1));
     }
   };
+
+  // Fonctions d'exportation
+  const fetchPendingRequestsForExport = async () => {
+    try {
+      const response = await axios.get('/api/admin/withdrawal/export-pending', {
+        params: {
+          currency: selectedCurrency,
+          payment_method: pendingFilters.payment_method || undefined,
+          initiated_by: pendingFilters.initiated_by || undefined,
+          start_date: pendingFilters.start_date || undefined,
+          end_date: pendingFilters.end_date || undefined,
+          search: pendingFilters.search || undefined,
+        }
+      });
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des demandes en attente pour export:', error);
+      throw error;
+    }
+  };
+
+  const fetchAllRequestsForExport = async () => {
+    try {
+      const response = await axios.get('/api/admin/withdrawal/export-all', {
+        params: {
+          currency: selectedCurrency,
+          status: filters.status || undefined,
+          payment_method: filters.payment_method || undefined,
+          start_date: filters.start_date || undefined,
+          end_date: filters.end_date || undefined,
+          search: filters.search || undefined,
+        }
+      });
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération de toutes les demandes pour export:', error);
+      throw error;
+    }
+  };
+
+  const exportToExcel = (data, filename) => {
+    try {
+      // Préparer les données pour l'export
+      const exportData = data.map(request => ({
+        'ID': request.id,
+        'Utilisateur': request.user?.name || 'N/A',
+        'Email': request.user?.email || 'N/A',
+        'Montant': request.amount,
+        'Devise': request.currency,
+        'Méthode de paiement': request.payment_method,
+        'Statut': request.status === 'pending' ? 'En attente' : 
+                 request.status === 'approved' ? 'Approuvé' : 
+                 request.status === 'rejected' ? 'Rejeté' : 
+                 request.status === 'failed' ? 'Échoué' : request.status,
+        'Date de demande': format(new Date(request.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
+        'Date de traitement': request.processed_at ? 
+          format(new Date(request.processed_at), 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A',
+        'Notes': request.notes || '',
+        'Téléphone': request.user?.phone || 'N/A',
+      }));
+
+      // Créer le workbook et la worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Demandes de retrait');
+
+      // Ajuster la largeur des colonnes
+      const colWidths = [
+        { wch: 8 },  // ID
+        { wch: 20 }, // Utilisateur
+        { wch: 25 }, // Email
+        { wch: 12 }, // Montant
+        { wch: 8 },  // Devise
+        { wch: 18 }, // Méthode de paiement
+        { wch: 12 }, // Statut
+        { wch: 20 }, // Date de demande
+        { wch: 20 }, // Date de traitement
+        { wch: 30 }, // Notes
+        { wch: 15 }, // Téléphone
+      ];
+      ws['!cols'] = colWidths;
+
+      // Télécharger le fichier
+      XLSX.writeFile(wb, `${filename}_${format(new Date(), 'dd-MM-yyyy_HH-mm', { locale: fr })}.xlsx`);
+      
+      toast.success('Exportation réussie !');
+    } catch (error) {
+      console.error('Erreur lors de l\'exportation:', error);
+      toast.error('Erreur lors de l\'exportation');
+    }
+  };
+
+  const exportCurrentPage = async () => {
+    setExportLoading(true);
+    try {
+      let currentData = [];
+      
+      if (activeTab === "pending") {
+        currentData = allRequestsMeta ? requestsArray : 
+          filteredRequestsArray.slice((currentPage - 1) * requestsPerPage, currentPage * requestsPerPage);
+      } else {
+        currentData = allRequests.slice((page) * rowsPerPage, (page + 1) * rowsPerPage);
+      }
+      
+      const filename = activeTab === "pending" ? 
+        'demandes_en_attente_page_actuelle' : 
+        'demandes_retraits_page_actuelle';
+      
+      exportToExcel(currentData, filename);
+    } catch (error) {
+      toast.error('Erreur lors de l\'exportation de la page actuelle');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportFiltered = async () => {
+    setExportLoading(true);
+    try {
+      let filteredData = [];
+      
+      if (activeTab === "pending") {
+        filteredData = await fetchPendingRequestsForExport();
+      } else {
+        filteredData = await fetchAllRequestsForExport();
+      }
+      
+      const filename = activeTab === "pending" ? 
+        'demandes_en_attente_filtrees' : 
+        'demandes_retraits_filtrees';
+      
+      exportToExcel(filteredData, filename);
+    } catch (error) {
+      toast.error('Erreur lors de l\'exportation des données filtrées');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportAll = async () => {
+    setExportLoading(true);
+    try {
+      let allData = [];
+      
+      if (activeTab === "pending") {
+        allData = await fetchPendingRequestsForExport();
+      } else {
+        allData = await fetchAllRequestsForExport();
+      }
+      
+      const filename = activeTab === "pending" ? 
+        'toutes_demandes_en_attente' : 
+        'toutes_demandes_retraits';
+      
+      exportToExcel(allData, filename);
+    } catch (error) {
+      toast.error('Erreur lors de l\'exportation de toutes les données');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   // Rendu du composant
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 xl:p-8">
@@ -882,12 +1048,6 @@ const WithdrawalRequests = () => {
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-gray-800 to-transparent pointer-events-none sm:hidden z-10" />
         <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none sm:hidden z-10" />
       </div>
-      {/* Indicateur de chargement */}
-      {loading && activeTab === "pending" && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
-      )}
       {/* Contenu des onglets */}
       {activeTab === "pending" ? (
         // Onglet des demandes en attente
@@ -898,15 +1058,28 @@ const WithdrawalRequests = () => {
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                 Filtres
               </h4>
-              <button
-                onClick={() => setShowPendingFilters(!showPendingFilters)}
-                className="flex items-center text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 focus:outline-none"
-              >
-                <FunnelIcon className="h-5 w-5 mr-1" />
-                {showPendingFilters
-                  ? "Masquer les filtres"
-                  : "Afficher les filtres"}
-              </button>
+              <div className="flex items-center gap-3">
+                <WithdrawalExportButtons
+                  onExportCurrentPage={exportCurrentPage}
+                  onExportFiltered={exportFiltered}
+                  onExportAll={exportAll}
+                  loading={exportLoading}
+                  disabled={loading}
+                  currentPageCount={allRequestsMeta ? requestsArray.length : 
+                    filteredRequestsArray.slice((currentPage - 1) * requestsPerPage, currentPage * requestsPerPage).length}
+                  filteredCount={totalPendingRequests}
+                  totalCount={totalPendingRequests}
+                />
+                <button
+                  onClick={() => setShowPendingFilters(!showPendingFilters)}
+                  className="flex items-center text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 focus:outline-none"
+                >
+                  <FunnelIcon className="h-5 w-5 mr-1" />
+                  {showPendingFilters
+                    ? "Masquer les filtres"
+                    : "Afficher les filtres"}
+                </button>
+              </div>
             </div>
 
             {showPendingFilters && (
@@ -1022,6 +1195,12 @@ const WithdrawalRequests = () => {
             </div>
           </div>
 
+          {/* Indicateur de chargement */}
+          {loading && (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          )}
           {filteredRequestsArray.length === 0 ? (
             <div
               className={`text-center py-8 ${
@@ -1360,12 +1539,24 @@ const WithdrawalRequests = () => {
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                 Filtres
               </h4>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <FunnelIcon className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                <WithdrawalExportButtons
+                  onExportCurrentPage={exportCurrentPage}
+                  onExportFiltered={exportFiltered}
+                  onExportAll={exportAll}
+                  loading={exportLoading}
+                  disabled={allRequestsLoading}
+                  currentPageCount={allRequests.slice((page) * rowsPerPage, (page + 1) * rowsPerPage).length}
+                  filteredCount={totalAllRequests}
+                  totalCount={totalAllRequests}
+                />
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  <FunnelIcon className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {showFilters && (

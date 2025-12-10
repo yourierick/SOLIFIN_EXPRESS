@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
   Grid,
   Card,
   CardContent,
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TablePagination,
-  Paper,
-  TextField,
+  Typography,
+  CircularProgress,
+  useTheme as useMuiTheme,
+  useMediaQuery,
   FormControl,
   InputLabel,
   Select,
@@ -23,11 +17,18 @@ import {
   Stack,
   Button,
   Collapse,
-  useTheme,
-  useMediaQuery,
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  TextField,
+  Paper,
+  TableContainer,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TablePagination,
 } from '@mui/material';
 import {
   AccountBalanceWallet as WalletIcon,
@@ -47,12 +48,13 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { fr } from 'date-fns/locale';
 import axios from 'axios';
 import { useCurrency } from '../../../../../contexts/CurrencyContext';
+import { useTheme } from '../../../../../contexts/ThemeContext';
 import ExportToExcelTransactions from './SuiviSoldeComponents/ExportToExcelTransactions';
 
 // Composant TextField avec forwardRef pour MUI X DatePicker
 const CustomTextField = React.forwardRef((props, ref) => {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
+  const { isDarkMode } = useTheme();
+  const muiTheme = useMuiTheme();
   
   return (
     <TextField
@@ -63,7 +65,7 @@ const CustomTextField = React.forwardRef((props, ref) => {
           borderRadius: { xs: 1.5, md: 2 },
           bgcolor: isDarkMode ? '#1f2937' : 'rgba(255, 255, 255, 0.8)',
           '&:hover': {
-            borderColor: theme.palette.primary.main,
+            borderColor: muiTheme.palette.primary.main,
           },
         },
       }}
@@ -74,9 +76,9 @@ const CustomTextField = React.forwardRef((props, ref) => {
 CustomTextField.displayName = 'CustomTextField';
 
 const SuiviSoldesAbonnes = ({ period }) => {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isDarkMode } = useTheme();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   
   // Utiliser le hook useCurrency au lieu de useContext
   const { selectedCurrency, toggleCurrency, isCDFEnabled, setCurrency } = useCurrency();
@@ -209,7 +211,6 @@ const SuiviSoldesAbonnes = ({ period }) => {
       });
 
       const response = await axios.get(`/api/admin/tableau-de-suivi/wallet-transactions?${params}`);
-      console.log(response)
       setTransactions(response.data.data);
       setTotal(response.data.total);
     } catch (error) {
@@ -276,145 +277,241 @@ const SuiviSoldesAbonnes = ({ period }) => {
         {/* Cartes de statistiques */}
         <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 3 }}>
           {/* Carte Solde Total */}
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} md={4}>
             <Card
               sx={{
-                p: { xs: 2, sm: 3 },
-                borderRadius: 2,
-                bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
-                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                boxShadow: 'none',
+                height: "100%",
+                background: isDarkMode ? '#1f2937' : '#ffffff',
+                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                borderRadius: { xs: 2, md: 3 },
+                borderLeft: "4px solid #3B82F6",
+                boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  transform: "translateY(-2px) scale(1.02)",
+                  boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                }
               }}
             >
-              <CardContent sx={{ p: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                   <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    width: 40,
-                    height: 40,
-                    borderRadius: 1,
-                    bgcolor: 'primary.main',
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
                     color: 'white',
-                    mr: 2,
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
                   }}>
-                    <WalletIcon sx={{ fontSize: 20 }} />
+                    <WalletIcon sx={{ fontSize: 28 }} />
                   </Box>
-                  <Typography 
-                    variant="h5" 
-                    fontWeight={600}
-                    sx={{ 
-                      color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                    }}
-                  >
-                    {statistics ? formatAmount(statistics.total_balance) : formatAmount(0)}
-                  </Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={600}
+                      sx={{ 
+                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {statistics ? formatAmount(statistics.total_balance) : formatAmount(0)}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                      sx={{ 
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {selectedCurrency}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Typography 
-                  variant="body2" 
+                <Box 
+                  variant="body1" 
+                  fontWeight={600}
                   sx={{ 
-                    color: isDarkMode ? '#9ca3af' : '#6b7280',
+                    color: isDarkMode ? '#d1d5db' : '#374151',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: '1rem',
+                    lineHeight: 1.5,
                   }}
                 >
-                  Solde Total {selectedCurrency}
-                </Typography>
+                  <Box sx={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: '50%', 
+                    bgcolor: 'primary.main' 
+                  }} />
+                  Solde Total
+                </Box>
               </CardContent>
             </Card>
           </Grid>
 
           {/* Carte Total Entré */}
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
-                p: { xs: 2, sm: 3 },
-                borderRadius: 2,
-                bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
-                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                boxShadow: 'none',
+                height: "100%",
+                background: isDarkMode ? '#1f2937' : '#ffffff',
+                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                borderRadius: { xs: 2, md: 3 },
+                borderLeft: "4px solid #10B981",
+                boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  transform: "translateY(-2px) scale(1.02)",
+                  boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                }
               }}
             >
-              <CardContent sx={{ p: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                   <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    width: 40,
-                    height: 40,
-                    borderRadius: 1,
-                    bgcolor: 'success.main',
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                     color: 'white',
-                    mr: 2,
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
                   }}>
-                    <TrendingUpIcon sx={{ fontSize: 20 }} />
+                    <TrendingUpIcon sx={{ fontSize: 28 }} />
                   </Box>
-                  <Typography 
-                    variant="h5" 
-                    fontWeight={600}
-                    sx={{ 
-                      color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                    }}
-                  >
-                    {statistics ? formatAmount(statistics.total_in) : formatAmount(0)}
-                  </Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={600}
+                      sx={{ 
+                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {statistics ? formatAmount(statistics.total_in) : formatAmount(0)}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                      sx={{ 
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {selectedCurrency}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Typography 
-                  variant="body2" 
+                <Box 
+                  variant="body1" 
+                  fontWeight={600}
                   sx={{ 
-                    color: isDarkMode ? '#9ca3af' : '#6b7280',
+                    color: isDarkMode ? '#d1d5db' : '#374151',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: '1rem',
+                    lineHeight: 1.5,
                   }}
                 >
-                  Total Entré {selectedCurrency}
-                </Typography>
+                  <Box sx={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: '50%', 
+                    bgcolor: 'success.main' 
+                  }} />
+                  Total Entré
+                </Box>
               </CardContent>
             </Card>
           </Grid>
 
           {/* Carte Total Sorti */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
-                p: { xs: 2, sm: 3 },
-                borderRadius: 2,
-                bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
-                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                boxShadow: 'none',
+                height: "100%",
+                background: isDarkMode ? '#1f2937' : '#ffffff',
+                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                borderRadius: { xs: 2, md: 3 },
+                borderLeft: "4px solid #EF4444",
+                boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  transform: "translateY(-2px) scale(1.02)",
+                  boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                }
               }}
             >
-              <CardContent sx={{ p: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                   <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    width: 40,
-                    height: 40,
-                    borderRadius: 1,
-                    bgcolor: 'error.main',
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                     color: 'white',
-                    mr: 2,
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
                   }}>
-                    <TrendingDownIcon sx={{ fontSize: 20 }} />
+                    <TrendingDownIcon sx={{ fontSize: 28 }} />
                   </Box>
-                  <Typography 
-                    variant="h5" 
-                    fontWeight={600}
-                    sx={{ 
-                      color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                    }}
-                  >
-                    {statistics ? formatAmount(statistics.total_out) : formatAmount(0)}
-                  </Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={600}
+                      sx={{ 
+                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {statistics ? formatAmount(statistics.total_out) : formatAmount(0)}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                      sx={{ 
+                        color: isDarkMode ? '#9ca3af' : '#6b7280',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {selectedCurrency}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Typography 
-                  variant="body2" 
+                <Box 
+                  variant="body1" 
+                  fontWeight={600}
                   sx={{ 
-                    color: isDarkMode ? '#9ca3af' : '#6b7280',
+                    color: isDarkMode ? '#d1d5db' : '#374151',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: '1rem',
+                    lineHeight: 1.5,
                   }}
                 >
-                  Total Sorti {selectedCurrency}
-                </Typography>
+                  <Box sx={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: '50%', 
+                    bgcolor: 'error.main' 
+                  }} />
+                  Total Sorti
+                </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -425,7 +522,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
           sx={{
             p: { xs: 2, sm: 3 },
             borderRadius: { xs: 2, md: 3 },
-            bgcolor: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
+            background: isDarkMode ? '#1f2937' : 'rgba(249, 250, 251, 0.8)',
             backdropFilter: 'blur(20px)',
             border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
           }}
@@ -596,14 +693,14 @@ const SuiviSoldesAbonnes = ({ period }) => {
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                            borderColor: theme.palette.primary.main,
+                            borderColor: muiTheme.palette.primary.main,
                             transform: 'translateY(-1px)',
                             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                           },
                           '&.Mui-focused': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
-                            borderColor: theme.palette.primary.main,
-                            boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                            borderColor: muiTheme.palette.primary.main,
+                            boxShadow: `0 0 0 2px ${muiTheme.palette.primary.main}20`,
                           },
                         },
                       }}
@@ -653,14 +750,14 @@ const SuiviSoldesAbonnes = ({ period }) => {
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                            borderColor: theme.palette.primary.main,
+                            borderColor: muiTheme.palette.primary.main,
                             transform: 'translateY(-1px)',
                             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                           },
                           '&.Mui-focused': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
-                            borderColor: theme.palette.primary.main,
-                            boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                            borderColor: muiTheme.palette.primary.main,
+                            boxShadow: `0 0 0 2px ${muiTheme.palette.primary.main}20`,
                           },
                         }}
                       >
@@ -724,14 +821,14 @@ const SuiviSoldesAbonnes = ({ period }) => {
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                            borderColor: theme.palette.primary.main,
+                            borderColor: muiTheme.palette.primary.main,
                             transform: 'translateY(-1px)',
                             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                           },
                           '&.Mui-focused': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
-                            borderColor: theme.palette.primary.main,
-                            boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                            borderColor: muiTheme.palette.primary.main,
+                            boxShadow: `0 0 0 2px ${muiTheme.palette.primary.main}20`,
                           },
                         }}
                       >
@@ -787,14 +884,14 @@ const SuiviSoldesAbonnes = ({ period }) => {
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                            borderColor: theme.palette.primary.main,
+                            borderColor: muiTheme.palette.primary.main,
                             transform: 'translateY(-1px)',
                             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                           },
                           '&.Mui-focused': {
                             bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
-                            borderColor: theme.palette.primary.main,
-                            boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                            borderColor: muiTheme.palette.primary.main,
+                            boxShadow: `0 0 0 2px ${muiTheme.palette.primary.main}20`,
                           },
                         }}
                       >
