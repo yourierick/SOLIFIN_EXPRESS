@@ -362,11 +362,6 @@ class SerdiPayController extends Controller
      */
     public function initiatePayment(Request $request)
     {
-        // \Log::info($request->all());
-        // return response()->json([
-        //     'success' => false,
-        //     'message' => 'Achat de pack en test',
-        // ], 422);
         try {
             $validator = Validator::make($request->all(), [
                 'transaction_type' => 'required|string',
@@ -599,7 +594,7 @@ class SerdiPayController extends Controller
             }
 
             // Si la méthode de paiement est solifin-wallet, traiter directement l'achat
-            if ($validated['payment_method'] === 'orange-money') {
+            if ($validated['payment_method'] === 'solifin-wallet') {
                 $purchaseData = [
                     'user_id' => $user->id,
                     'pack_id' => $pack->id,

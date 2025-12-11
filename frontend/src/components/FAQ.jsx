@@ -421,7 +421,7 @@ export default function FAQ() {
           <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
             Vous ne trouvez pas la réponse que vous cherchez ?{" "}
             <a
-              href="mailto:solifin2024@yahoo.com"
+              href="mailto:solifin2025@yahoo.com"
               target="_blank"
               rel="noopener noreferrer"
               className={`font-medium ${
