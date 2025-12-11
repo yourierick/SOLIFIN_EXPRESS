@@ -9,7 +9,7 @@ const defaultFooterLinks = {
     { name: "Témoignages", href: "#testimonials" },
   ],
   support: [
-    { name: "Pourquoi nous choisir ?", href: "#features" },
+    { name: "Programme de fidelité SOLIFIN", href: "#features" },
     { name: "FAQ", href: "#faq" },
     { name: "Services", href: "#services" },
     { name: "Théorie de changement", href: "#theory-of-change" },

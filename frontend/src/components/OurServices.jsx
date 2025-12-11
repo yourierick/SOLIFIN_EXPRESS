@@ -83,20 +83,20 @@ export default function OurServices() {
   // Gérer le survol pour mettre en pause le défilement
   const handleMouseEnter = () => {
     setIsPaused(true);
-    if (desktopSwiperRef.current) {
+    if (desktopSwiperRef.current && desktopSwiperRef.current.autoplay) {
       desktopSwiperRef.current.autoplay.stop();
     }
-    if (swiperRef.current) {
+    if (swiperRef.current && swiperRef.current.autoplay) {
       swiperRef.current.autoplay.stop();
     }
   };
 
   const handleMouseLeave = () => {
     setIsPaused(false);
-    if (desktopSwiperRef.current) {
+    if (desktopSwiperRef.current && desktopSwiperRef.current.autoplay) {
       desktopSwiperRef.current.autoplay.start();
     }
-    if (swiperRef.current) {
+    if (swiperRef.current && swiperRef.current.autoplay) {
       swiperRef.current.autoplay.start();
     }
   };

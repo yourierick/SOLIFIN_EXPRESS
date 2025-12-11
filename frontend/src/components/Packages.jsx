@@ -120,7 +120,7 @@ export default function Packages() {
                   disableOnInteraction: false,
                   pauseOnMouseEnter: true,
                 }}
-                loop={true}
+                loop={packs.length > 4}
                 speed={800}
                 grabCursor={true}
                 className="w-full packages-carousel"
@@ -323,7 +323,7 @@ export default function Packages() {
                   delay: 4000,
                   disableOnInteraction: false,
                 }}
-                loop={true}
+                loop={packs.length > 1}
                 speed={800}
                 className="w-full"
               >

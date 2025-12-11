@@ -18,16 +18,19 @@ export default function Hero() {
     {
       title: (
         <>
-          Transformez Votre Avenir Financier
+          Trouver de nouveaux clients
           <br />
           <span
             className={isDarkMode ? "text-primary-400" : "text-primary-600"}
+            style={{
+              fontSize: "2.5rem",
+            }}
           >
-            avec SOLIFIN
+            Êtes-vous à la recherche de clientèle pour l’achat ou la location de vos produits et services ?
           </span>
         </>
       ),
-      text: "Rejoignez notre communauté grandissante et découvrez comment notre système de parrainage innovant peut multiplier vos revenus de manière exponentielle.",
+      text: "Développez votre activité en élargissant votre réseau et en touchant davantage d’acheteurs ou de locataires.",
       button1: "Commencer Maintenant",
       button2: "En Savoir Plus",
       background: "/img/hero-carousel/background_7.jpg",
@@ -35,16 +38,19 @@ export default function Hero() {
     {
       title: (
         <>
-          Découvrez Nos Offres Exclusives
+          Saisir des opportunités professionnelles
           <br />
           <span
             className={isDarkMode ? "text-primary-400" : "text-primary-600"}
+            style={{
+              fontSize: "2.5rem",
+            }}
           >
-            pour booster vos finances
+            Avez-vous besoin d’opportunités d’emplois, d’affaires, de partenariats ou de financement ?
           </span>
         </>
       ),
-      text: "Profitez de nos solutions personnalisées et d'un accompagnement sur-mesure pour atteindre vos objectifs financiers.",
+      text: "Explorez des possibilités d’emploi, d’affaires, de partenariats ou de financements pour booster votre carrière et vos projets.",
       button1: "Rejoindre Maintenant",
       button2: "Découvrir Plus",
       background: "/img/hero-carousel/background_2.jpg",
@@ -52,103 +58,73 @@ export default function Hero() {
     {
       title: (
         <>
-          Un Réseau Solidaire
+          Vendre vos connaissances et outils
           <br />
           <span
             className={isDarkMode ? "text-primary-400" : "text-primary-600"}
+            style={{
+              fontSize: "2.5rem",
+            }}
           >
-            pour une croissance partagée
+            Avez-vous des livres, formations, cours, logiciels ou applications à vendre en ligne ?
           </span>
         </>
       ),
-      text: "Bénéficiez de la force d'une communauté engagée et solidaire. Ensemble, nous bâtissons un avenir financier plus sûr et plus prospère pour tous nos membres.",
-      button1: "Rejoindre la Communauté",
-      button2: "Notre Vision",
-      background: "/img/hero-carousel/background_3.jpg",
-    },
-    {
-      title: (
-        <>
-          Passez à l'Action
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-          >
-            et réalisez vos ambitions
-          </span>
-        </>
-      ),
-      text: "Ne laissez pas passer votre chance : commencez dès aujourd'hui à transformer vos rêves en réalité grâce à nos outils et notre accompagnement personnalisé.",
-      button1: "Démarrer l'Aventure",
-      button2: "Contactez-Nous",
-      background: "/img/hero-carousel/background_4.jpg",
-    },
-    {
-      title: (
-        <>
-          Osez l'Innovation
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-          >
-            pour un futur différent
-          </span>
-        </>
-      ),
-      text: "Explorez de nouvelles opportunités financières grâce à nos solutions innovantes et à notre vision tournée vers l'avenir.",
-      button1: "Découvrir l'Innovation",
-      button2: "Nos Solutions",
-      background: "/img/hero-carousel/background_5.jpg",
-    },
-    {
-      title: (
-        <>
-          Sécurité & Confiance
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-          >
-            au cœur de votre expérience
-          </span>
-        </>
-      ),
-      text: "Votre tranquillité d'esprit est notre priorité : bénéficiez d'un environnement sécurisé et d'un accompagnement transparent à chaque étape.",
-      button1: "En Savoir Plus",
-      button2: "Notre Engagement",
+      text: "Transformez vos savoirs et créations en revenus grâce à la vente de livres, formations, cours ou applications en ligne.",
+      button1: "Vous inscrire maintenant!",
+      button2: "En savoir d'avantage",
       background: "/img/hero-carousel/background_6.jpg",
     },
     {
       title: (
         <>
-          Grandissez Ensemble
+          Rester connecté en continu
           <br />
           <span
             className={isDarkMode ? "text-primary-400" : "text-primary-600"}
           >
-            avec la force du collectif
+            Désirez-vous rester connecté avec vos proches 24h/24 ?
           </span>
         </>
       ),
-      text: "Rejoignez un réseau où chaque membre contribue à la réussite de tous. Ensemble, nous allons plus loin !",
-      button1: "Rejoindre le Mouvement",
-      button2: "Témoignages",
-      background: "/img/hero-carousel/background_7.jpg",
+      text: "Profitez des solutions qui vous permettent de garder le contact avec vos proches, où que vous soyez et à tout moment.",
+      button1: "Démarrer l'Aventure",
+      button2: "En savoir plus",
+      background: "/img/hero-carousel/background_9.jpg",
     },
     {
       title: (
         <>
-          Votre Potentiel, Notre Mission
+          Atteindre la liberté financière
           <br />
           <span
             className={isDarkMode ? "text-primary-400" : "text-primary-600"}
           >
-            libérez-vous
+            Souhaitez-vous en finir avec vos préoccupations financières ?
           </span>
         </>
       ),
-      text: "Nous croyons en votre potentiel. Laissez-nous vous accompagner pour révéler le meilleur de vous-même et atteindre vos objectifs les plus ambitieux.",
-      button1: "Commencer l'Aventure",
-      button2: "Nous Contacter",
+      text: "Découvrez des moyens efficaces pour réduire vos soucis financiers et construire une stabilité durable.",
+      button1: "Nous rejoindre!",
+      button2: "A propos de nous",
+      background: "/img/hero-carousel/background_4.jpg",
+    },
+    
+    {
+      title: (
+        <>
+          Bienvenu chez SOLIFIN!
+          <br />
+          <span
+            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
+          >
+            Solution Express Pour L’Indépendance Financière
+          </span>
+        </>
+      ),
+      text: "SOLIFIN, Votre Partenaire Fidèle Pour L’Indépendance Financière, Ensemble pour la liberté financière",
+      button1: "Vous lancez!",
+      button2: "A propos de nous",
       background: "/img/hero-carousel/background_8.jpg",
     },
   ];

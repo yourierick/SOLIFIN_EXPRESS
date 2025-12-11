@@ -27,7 +27,7 @@ const getIcon = (iconName) => {
   }
 };
 
-export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
+export default function FAQ() {
   const [faqs, setFaqs] = useState(null);
   const [categories, setCategories] = useState(null);
   const [activeIndex, setActiveIndex] = useState(null);
@@ -421,7 +421,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
           <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
             Vous ne trouvez pas la réponse que vous cherchez ?{" "}
             <a
-              href={whatsappUrl}
+              href="mailto:solifin2024@yahoo.com"
               target="_blank"
               rel="noopener noreferrer"
               className={`font-medium ${
@@ -430,7 +430,7 @@ export default function FAQ({ whatsappUrl = "https://wa.me/33600000000" }) {
                   : "text-primary-600 hover:text-primary-700"
               }`}
             >
-              Contactez-nous sur WhatsApp
+              Envoyez-nous un mail
             </a>
           </p>
         </motion.div>

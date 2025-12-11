@@ -130,14 +130,6 @@ export default function Homepage() {
           <AboutSolifin />
         </section>
         <SectionDivider />
-        <section id="theory-of-change">
-          <TheoryOfChange />
-        </section>
-        <SectionDivider />
-        <section id="features">
-          <Features />
-        </section>
-        <SectionDivider />
         <section id="services">
           <OurServices />
         </section>
@@ -148,6 +140,14 @@ export default function Homepage() {
         <SectionDivider />
         <section id="packages">
           <Packages />
+        </section>
+        <SectionDivider />
+        <section id="theory-of-change">
+          <TheoryOfChange />
+        </section>
+        <SectionDivider />
+        <section id="features">
+          <Features />
         </section>
         <SectionDivider />
         <section id="referral">

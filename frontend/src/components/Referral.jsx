@@ -3,6 +3,7 @@ import {
   UsersIcon,
   ArrowPathIcon,
   BanknotesIcon,
+  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import { Link as RouterLink } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
@@ -11,7 +12,7 @@ const steps = [
   {
     title: "Invitez vos Amis",
     description:
-      "Partagez votre code de parrainage unique avec vos amis, votre famille et vos collègues. Chaque personne qui s'inscrit avec votre code devient un membre de votre réseau direct.",
+      "Partagez votre code de parrainage unique du pack auquel vous avez souscrit avec vos amis, votre famille et vos collègues. Chaque personne qui s'inscrit avec votre code devient un membre de votre réseau direct.",
     icon: UsersIcon,
   },
   {
@@ -25,6 +26,12 @@ const steps = [
     description:
       "Recevez des commissions sur les abonnements et les transactions effectuées par les membres de votre réseau. Notre système multi-niveaux vous permet de gagner sur plusieurs générations de filleuls.",
     icon: BanknotesIcon,
+  },
+  {
+    title: "Retirez aisément vos commissions",
+    description:
+      "Retirez directement vos commissions gagnées à partir de mobile money (airtel money, orange money, M pesa, afrimoney,..) ,carte visa,…",
+    icon: CreditCardIcon,
   },
 ];
 
@@ -87,11 +94,11 @@ export default function Referral() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
         >
           {steps?.map((step, index) => (
             <motion.div
-              key={step.title}
+              key={`${step.title}-${index}`}
               variants={itemVariants}
               className="relative"
             >
@@ -125,7 +132,7 @@ export default function Referral() {
                 </p>
               </div>
               {index < steps?.length - 1 && (
-                <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
+                <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2">
                   <motion.div
                     animate={{
                       x: [0, 10, 0],

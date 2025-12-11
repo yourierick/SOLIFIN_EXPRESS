@@ -36,19 +36,19 @@ export default function AboutSolifin() {
       icon: <UserGroupIcon className="h-6 w-6" />,
       title: "Réseau Solidaire",
       description:
-        "Un programme basé sur le principe de marketing de réseau pour favoriser l'entraide et la croissance collective.",
+        "Un programme basé sur le principe de marketing digital dans la vente collective des services SOLIFIN.",
     },
     {
       icon: <CurrencyDollarIcon className="h-6 w-6" />,
       title: "Indépendance Financière",
       description:
-        "Libérer chaque personne de sa dépendance financière grâce à nos services et opportunités.",
+        "Libérer chaque personne abonnée de sa dépendance financière à travers le paiement des commissions générées sur la vente des services SOLIFIN.",
     },
     {
       icon: <BuildingLibraryIcon className="h-6 w-6" />,
       title: "Développement Socioéconomique",
       description:
-        "Améliorer les conditions de vie socioéconomiques des communautés par l'accès aux services essentiels.",
+        "Chaque abonné contribue à l’amélioration des conditions de vie socioéconomiques dans sa communauté à travers le parrainage de ses proches, la contribution aux actions de développement et/ou humanitaires de sa zone.",
     },
   ];
 
@@ -85,14 +85,14 @@ export default function AboutSolifin() {
           Découvrez notre mission et notre vision pour l'indépendance financière
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-16">
-          {/* Présentation principale */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-16">
+          {/* Présentation principale - occupe 2 colonnes sur grand écran */}
           <motion.div
             variants={itemVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className={`p-8 rounded-2xl transition-all duration-300 ${
+            className={`lg:col-span-2 p-8 rounded-2xl transition-all duration-300 ${
               isDarkMode
                 ? "bg-gray-800 shadow-lg hover:shadow-green-900/30 border border-gray-700"
                 : "bg-white shadow-lg hover:shadow-green-500/30 border border-gray-100"
@@ -129,11 +129,11 @@ export default function AboutSolifin() {
                   SOLUTION EXPRESS POUR L'INDEPENDANCE FINANCIERE (SOLIFIN)
                 </span>{" "}
                 est un programme en ligne de promotion du secteur
-                entrepreneurial offrant à la population locale multiple services
+                entrepreneurial offrant à la population multiple services
                 libérateurs sur le plan financier.
               </p>
 
-              <p style={{ textAlign: "justify" }}>
+              <p>
                 Lancé sur base de constats faits dans bien de sociétés où
                 l’accès aisé de la majeure partie de la population aux
                 différents services sociaux économiques de qualité(éducation,
@@ -143,33 +143,91 @@ export default function AboutSolifin() {
                 socioéconomique œuvrant réellement pour la promotion de
                 conditions vies socioéconomiques et financière de communautés.
               </p>
-              <div style={{ marginTop: "10px" }}>
-                <p>
-                  <span style={{ fontWeight: "bold" }}>Mission : </span> Créer
-                  une communauté où chacun peut atteindre l'indépendance
-                  financière grâce à un système de parrainage et d'entraide.
+              <div className="mt-6">
+                <h4 className={`font-bold text-lg mb-3 ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+                  MISSION
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                     SOLIFIN est un programme visant à garantir à toute personne son autonomie financière dans le contexte de promotion de paix et développement socioéconomique  de la population locale. Pour cela, Solifin offre quotidiennement à la population divers services et opportunités libérateurs sur le plan financier.
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6">
+                <h4 className={`font-bold text-lg mb-3 ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+                  VISION
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                     SOLIFIN est dédié à contribuer à une société où chaque personne est financièrement autonome et participe ainsi au processus de consolidation de la paix et de développement socioéconomique  de sa propre société.
+                  </div>
+                </div>
+              </div>
+              
+              {/* Valeurs */}
+              <div className="mt-6">
+                <h4 className={`font-bold text-lg mb-3 ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+                  VALEURS
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <span className="font-semibold">ACCESSIBILITE:</span> SOLIFIN s'engage à desservir ses abonnés même dans les zones les moins accessibles à travers la digitalisation de ses services, le partenariat local,..
+                  </div>
+                  <div>
+                    <span className="font-semibold">TRANSPARENCE :</span> les données financières sont partagées à temps réel à travers les comptes abonnés par Solifin et les opinions des abonnés sont prises en compte dans le processus de développement de services.
+                  </div>
+                  <div>
+                    <span className="font-semibold">CREDIBILITE :</span> SOLIFIN s'engage de fournir les services de qualité dans le strict respect de clauses convenues, et sa politique contre la fraude et la corruption.
+                  </div>
+                </div>
+              </div>
+              
+              {/* Principes */}
+              <div className="mt-6">
+                <h4 className={`font-bold text-lg mb-3 ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+                  PRINCIPES
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <span className="font-semibold">AUTONOMIE FINANCIERE:</span> la vision de SOLIFIN est de contribuer à la société où chaque personne est financièrement autonome et participe ainsi au processus de consolidation de la paix et de développement socioéconomique de sa propre société
+                  </div>
+                  <div>
+                    <span className="font-semibold">ABONNES D'ABORD :</span> les services Solifin sont prioritairement fournis à la satisfaction des abonnés à travers la prise en charge à temps réel de leur requêtes, leurs accompagnement/renforcement des capacités en divers modules dont éducation financière,...
+                  </div>
+                  <div>
+                    <span className="font-semibold">DIGITALISATION :</span>Solifin offre la solution numérique flexible par rapport aux besoins actuels des abonnés, un de facteur de croissance de taux d'inclusion numérique.
+                  </div>
+                  <div>
+                    <span className="font-semibold">TRAVAIL EN EQUIPE :</span>Solifin favorise le travail en équipe entre abonnés à travers son programme de fidélité afin d'atteindre le publique plus large dans le processus d'autonomisation de la population sur le plan financier et développement personnel
+                  </div>
+                </div>
+              </div>
+              
+              {/* Slogan/Devise */}
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className={`text-center font-bold text-lg ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+                  SLOGAN/DEVISE
+                </p>
+                <p className={`text-center italic font-medium mt-2 ${isDarkMode ? "text-gray-200" : "text-gray-700"}`}>
+                  "Ensemble pour la liberté financière"
                 </p>
               </div>
-              <div>
-                <p>
-                  <span style={{ fontWeight: "bold" }}>Vision : </span>
-                  Créer une communauté où chacun peut atteindre l'indépendance
-                  financière grâce à un système de parrainage et d'entraide
-                </p>
-              </div>
-              <p>Valeurs et principes</p>
             </div>
           </motion.div>
 
-          {/* Caractéristiques */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
-            {features?.map((feature, index) => (
+          {/* Caractéristiques - occupe 1 colonne sur grand écran */}
+          <div className="lg:col-span-1">
+            <h4 className={`font-bold text-lg mb-3 ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+              PRINCIPES DU PROGRAMME DE FIDELITE 
+            </h4>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              {features?.map((feature, index) => (
               <motion.div
                 key={index}
                 variants={itemVariants}
@@ -230,7 +288,8 @@ export default function AboutSolifin() {
                 entrepreneurs, les institutions et les ONG.
               </p>
             </motion.div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </motion.div>
     </div>

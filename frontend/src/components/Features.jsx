@@ -13,13 +13,13 @@ const features = [
   {
     name: "Gains Exponentiels",
     description:
-      "Profitez d’un système de rémunération innovant qui vous permet d’accumuler des commissions sur plusieurs niveaux de parrainage, maximisant ainsi vos revenus à chaque nouvelle adhésion dans votre réseau.",
+      "Profitez d’un système de rémunération innovant qui vous permet d’accumuler des commissions sur plusieurs niveaux de parrainage de vos filleuls (abonnés), maximisant ainsi vos revenus à chaque nouvelle adhésion dans votre réseau.",
     icon: CurrencyDollarIcon,
   },
   {
     name: "Communauté Solidaire",
     description:
-      "Rejoignez une communauté dynamique où l’entraide et le partage sont au cœur de nos valeurs. Ensemble, nous créons un réseau solide où chacun contribue à la réussite collective tout en atteignant ses propres objectifs.",
+      "Rejoignez une communauté dynamique d’abonnés où l’entraide et le partage sont au cœur de nos valeurs. Ensemble, nous créons un réseau solide où chacun contribue à la réussite collective tout en atteignant ses propres objectifs.",
     icon: UserGroupIcon,
   },
   {
@@ -37,7 +37,7 @@ const features = [
   {
     name: "Innovation Continue",
     description:
-      "Nous investissons constamment dans le développement de nouvelles fonctionnalités et l’amélioration de notre plateforme pour vous offrir les meilleurs outils de marketing de réseau, adaptés aux évolutions du marché.",
+      "Nous investissons constamment dans le développement de nouvelles fonctionnalités et l’amélioration de notre plateforme pour vous offrir les meilleures solutions numériques, adaptées aux évolutions du marché.",
     icon: RocketLaunchIcon,
   },
   {
@@ -89,13 +89,12 @@ export default function Features() {
               isDarkMode ? "text-white" : ""
             }`}
           >
-            Pourquoi Choisir{" "}
+            PROGRAMME DE FIDELITE{" "}
             <span
               className={isDarkMode ? "text-primary-400" : "text-primary-600"}
             >
               SOLIFIN
-            </span>{" "}
-            ?
+            </span>
           </h2>
           <p
             className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${
