@@ -268,21 +268,21 @@ const RoleManagement = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden mb-4 sm:mb-8">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-10 blur-xl"></div>
-        <div className="relative flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-0">
+        <div className="relative flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-0">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur-lg opacity-30"></div>
-              <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                <ShieldCheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="relative w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                <ShieldCheckIcon className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Gestion des rôles et permissions
               </h2>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-base text-gray-600 dark:text-gray-400 mt-1">
                 Administrez les rôles et les permissions des utilisateurs
               </p>
             </div>
@@ -316,16 +316,16 @@ const RoleManagement = () => {
       ) : (
         <>
           {/* Cards pour mobile */}
-          <div className="space-y-4 sm:hidden">
+          <div className="space-y-3 sm:hidden">
             {roles.map((role) => (
               <div
                 key={role.id}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                      <ShieldCheckIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <div className="w-7 h-7 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                      <ShieldCheckIcon className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -339,19 +339,19 @@ const RoleManagement = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEditRoleModal(role)}
-                      className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-300 transition-all duration-200"
+                      className="inline-flex items-center justify-center p-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-300 transition-all duration-200"
                     >
                       <PencilIcon className="h-3 w-3" />
                     </button>
                     <button
-                      onClick={() => openDeleteRoleModal(role)}
-                      className="inline-flex items-center justify-center p-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-300 transition-all duration-200"
+                      onClick={() => deleteRole(role.id)}
+                      className="inline-flex items-center justify-center p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-300 transition-all duration-200"
                     >
                       <TrashIcon className="h-3 w-3" />
                     </button>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="text-xs text-gray-600 dark:text-gray-400">
                     {role.description}
                   </div>
@@ -359,13 +359,13 @@ const RoleManagement = () => {
                     {role.permissions && role.permissions.slice(0, 3).map((permission, index) => (
                       <span
                         key={permission.id || index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100"
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100"
                       >
                         {permission.nom}
                       </span>
                     ))}
                     {role.permissions && role.permissions.length > 3 && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         +{role.permissions.length - 3}
                       </span>
                     )}

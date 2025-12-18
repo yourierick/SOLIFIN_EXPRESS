@@ -24,6 +24,11 @@ import {
   Modal,
   Backdrop,
   Fade,
+  Grow,
+  Avatar,
+  LinearProgress,
+  Divider,
+  Badge,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -43,6 +48,9 @@ import {
   ArrowDownward as OutIcon,
   Close as CloseIcon,
   FileDownload as ExportIcon,
+  Speed as SpeedIcon,
+  Timeline as TimelineIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import { useTheme } from '../../../../contexts/ThemeContext';

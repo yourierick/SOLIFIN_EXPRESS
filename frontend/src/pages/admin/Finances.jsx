@@ -73,6 +73,8 @@ import {
   ArrowForward as ArrowForwardIcon,
   ArrowBack as ArrowBackIcon,
   Receipt as ReceiptIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -125,12 +127,26 @@ const Finances = () => {
   // États pour les onglets
   const [activeTab, setActiveTab] = useState(0);
 
+  // État pour gérer le mode mobile et la pagination
+  const [isMobileMode, setIsMobileMode] = useState(false);
+  const [currentMobileTabIndex, setCurrentMobileTabIndex] = useState(0);
+
   // État pour les permissions
   const [userPermissions, setUserPermissions] = useState([]);
   const { user } = useAuth();
 
   // État pour l'animation des onglets
   const [tabHover, setTabHover] = useState(null);
+
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileMode(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // États pour le modal de détails de transaction
   const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -324,6 +340,86 @@ const Finances = () => {
   // Gestionnaire de changement d'onglet
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+    if (isMobileMode) {
+      setCurrentMobileTabIndex(newValue);
+    }
+  };
+
+  // Fonctions de navigation mobile
+  const goToPreviousTab = () => {
+    if (currentMobileTabIndex > 0) {
+      const newIndex = currentMobileTabIndex - 1;
+      setCurrentMobileTabIndex(newIndex);
+      setActiveTab(newIndex);
+    }
+  };
+
+  const goToNextTab = () => {
+    const maxTabIndex = 3; // 4 onglets (0-3)
+    if (currentMobileTabIndex < maxTabIndex) {
+      const newIndex = currentMobileTabIndex + 1;
+      setCurrentMobileTabIndex(newIndex);
+      setActiveTab(newIndex);
+    }
+  };
+
+  const goToTab = (index) => {
+    setCurrentMobileTabIndex(index);
+    setActiveTab(index);
+  };
+
+  // Configuration des onglets pour mobile
+  const getMobileTabConfig = (index) => {
+    const tabs = [
+      {
+        name: "Transactions",
+        icon: CreditCardIcon,
+        color: "blue"
+      },
+      {
+        name: "Stats globales",
+        icon: WalletIcon,
+        color: "green"
+      },
+      {
+        name: "Commissions",
+        icon: MonetizationOnIcon,
+        color: "purple"
+      },
+      {
+        name: "Retraits",
+        icon: PaymentIcon,
+        color: "orange"
+      }
+    ];
+    return tabs[index] || null;
+  };
+
+  // Vérifier si un onglet est disponible selon les permissions
+  const isTabAvailable = (index) => {
+    switch (index) {
+      case 0: // Transactions
+        return userPermissions.includes("view-transactions") || userPermissions.includes("super-admin");
+      case 1: // Stats globales
+        return userPermissions.includes("view-transactions") || userPermissions.includes("super-admin");
+      case 2: // Commissions
+        return userPermissions.includes("manage-commissions") || userPermissions.includes("super-admin");
+      case 3: // Demandes de retrait
+        return userPermissions.includes("manage-withdrawals") || userPermissions.includes("super-admin");
+      default:
+        return false;
+    }
+  };
+
+  // Obtenir les onglets disponibles pour la pagination mobile
+  const getAvailableTabs = () => {
+    const tabs = [];
+    for (let i = 0; i < 4; i++) {
+      if (isTabAvailable(i)) {
+        tabs.push(i);
+      }
+    }
+    return tabs;
   };
 
   // Gestionnaire de changement de page
@@ -1089,112 +1185,180 @@ const Finances = () => {
           },
         }}
       >
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
-          TabIndicatorProps={{
-            style: {
-              backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
-              height: "3px",
-              borderRadius: "3px 3px 0 0",
-            },
-          }}
-          sx={{
-            "& .MuiTabs-flexContainer": {
-              px: { xs: 2, sm: 3 },
-              py: 1,
-              justifyContent: "center",
-            },
-            "& .MuiTab-root": {
-              minHeight: { xs: 56, sm: 64 },
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              fontWeight: 600,
-              textTransform: "none",
-              fontSize: { xs: "0.875rem", sm: "0.95rem" },
-              px: { xs: 2.5, sm: 3.5 },
-              py: 1.5,
-              color: isDarkMode ? "#94a3b8" : "#64748b",
-              borderRadius: "12px",
-              mx: 0.5,
-              position: "relative",
-              "&:hover": {
-                color: isDarkMode ? "#60a5fa" : "#3b82f6",
-                background: isDarkMode 
-                  ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)" 
-                  : "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%)",
-                transform: "translateY(-1px)",
-              },
-              "&.Mui-selected": {
-                color: isDarkMode ? "#60a5fa" : "#2563eb",
-                background: isDarkMode 
-                  ? "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%)" 
-                  : "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)",
-                transform: "translateY(-1px)",
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  bottom: 0,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: "20px",
-                  height: "2px",
-                  background: isDarkMode ? "#3b82f6" : "#2563eb",
-                  borderRadius: "2px",
+        {!isMobileMode ? (
+            // Version Desktop - Tabs MUI originales
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              variant="scrollable"
+              scrollButtons="auto"
+              allowScrollButtonsMobile
+              TabIndicatorProps={{
+                style: {
+                  backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+                  height: "3px",
+                  borderRadius: "3px 3px 0 0",
                 },
-              },
-              "&.Mui-disabled": {
-                color: "text.disabled",
-                cursor: "not-allowed",
-                opacity: 0.5,
-              },
-            },
-          }}
-        >
-          <Tab
-            icon={<CreditCardIcon fontSize="small" />}
-            iconPosition="start"
-            label="Transactions"
-            disabled={
-              !userPermissions.includes("view-transactions") &&
-              !userPermissions.includes("super-admin")
-            }
-          />
-          <Tab
-            icon={<WalletIcon fontSize="small" />}
-            iconPosition="start"
-            label="Stats globales par type"
-            disabled={
-              !userPermissions.includes("view-transactions") &&
-              !userPermissions.includes("super-admin")
-            }
-          />
-          <Tab
-            icon={<MonetizationOnIcon fontSize="small" />}
-            iconPosition="start"
-            label="Commissions"
-            disabled={
-              !userPermissions.includes("manage-commissions") &&
-              !userPermissions.includes("super-admin")
-            }
-          />
-          <Tab
-            icon={<PaymentIcon fontSize="small" />}
-            iconPosition="start"
-            label="Demandes de retrait"
-            disabled={
-              !userPermissions.includes("manage-withdrawals") &&
-              !userPermissions.includes("super-admin")
-            }
-          />
-        </Tabs>
-      </Paper>
+              }}
+              sx={{
+                "& .MuiTabs-flexContainer": {
+                  px: { xs: 2, sm: 3 },
+                  py: 1,
+                  justifyContent: "center",
+                },
+                "& .MuiTab-root": {
+                  minHeight: { xs: 56, sm: 64 },
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  fontSize: { xs: "0.875rem", sm: "0.95rem" },
+                  px: { xs: 2.5, sm: 3.5 },
+                  py: 1.5,
+                  color: isDarkMode ? "#94a3b8" : "#64748b",
+                  borderRadius: "12px",
+                  mx: 0.5,
+                  position: "relative",
+                  "&:hover": {
+                    color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)" 
+                      : "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%)",
+                    transform: "translateY(-1px)",
+                  },
+                  "&.Mui-selected": {
+                    color: isDarkMode ? "#60a5fa" : "#2563eb",
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%)" 
+                      : "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)",
+                    transform: "translateY(-1px)",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      bottom: 0,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "30px",
+                      height: "3px",
+                      backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+                      borderRadius: "3px 3px 0 0",
+                    },
+                  },
+                  "&.Mui-disabled": {
+                    color: isDarkMode ? "#475569" : "#94a3b8",
+                    cursor: "not-allowed",
+                    opacity: 0.5,
+                  },
+                },
+              }}
+            >
+              <Tab
+                icon={<CreditCardIcon fontSize="small" />}
+                iconPosition="start"
+                label="Transactions"
+                disabled={
+                  !userPermissions.includes("view-transactions") &&
+                  !userPermissions.includes("super-admin")
+                }
+              />
+              <Tab
+                icon={<WalletIcon fontSize="small" />}
+                iconPosition="start"
+                label="Stats globales par type"
+                disabled={
+                  !userPermissions.includes("view-transactions") &&
+                  !userPermissions.includes("super-admin")
+                }
+              />
+              <Tab
+                icon={<MonetizationOnIcon fontSize="small" />}
+                iconPosition="start"
+                label="Commissions"
+                disabled={
+                  !userPermissions.includes("manage-commissions") &&
+                  !userPermissions.includes("super-admin")
+                }
+              />
+              <Tab
+                icon={<PaymentIcon fontSize="small" />}
+                iconPosition="start"
+                label="Demandes de retrait"
+                disabled={
+                  !userPermissions.includes("manage-withdrawals") &&
+                  !userPermissions.includes("super-admin")
+                }
+              />
+            </Tabs>
+          ) : (
+            // Version Mobile - Pagination
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4">
+              {/* Indicateurs de page */}
+              <div className="flex justify-center items-center gap-2 py-2 mb-3">
+                {getAvailableTabs().map((tabIndex, index) => (
+                  <button
+                    key={tabIndex}
+                    onClick={() => goToTab(tabIndex)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      tabIndex === currentMobileTabIndex
+                        ? 'w-8 bg-gradient-to-r from-blue-500 to-purple-500'
+                        : 'w-2 bg-gray-300 dark:bg-gray-600'
+                    }`}
+                    aria-label={`Aller à l'onglet ${index + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Onglet actuel */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <button
+                  onClick={goToPreviousTab}
+                  disabled={currentMobileTabIndex === 0 || !isTabAvailable(currentMobileTabIndex - 1)}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    currentMobileTabIndex === 0 || !isTabAvailable(currentMobileTabIndex - 1)
+                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  aria-label="Onglet précédent"
+                >
+                  <ChevronLeftIcon className="h-5 w-5" />
+                </button>
+
+                <div className="flex-1 mx-4">
+                  <div className="flex items-center justify-center gap-3">
+                    {isTabAvailable(currentMobileTabIndex) && getMobileTabConfig(currentMobileTabIndex) && (
+                      <>
+                        <div className={`relative text-${getMobileTabConfig(currentMobileTabIndex).color}-500`}>
+                          {React.createElement(getMobileTabConfig(currentMobileTabIndex).icon, { className: "h-5 w-5" })}
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {getMobileTabConfig(currentMobileTabIndex).name}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={goToNextTab}
+                  disabled={currentMobileTabIndex === 3 || !isTabAvailable(currentMobileTabIndex + 1)}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    currentMobileTabIndex === 3 || !isTabAvailable(currentMobileTabIndex + 1)
+                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  aria-label="Onglet suivant"
+                >
+                  <ChevronRightIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </Paper>
 
         {/* Contenu de l'onglet actif */}
         {activeTab === 0 && (
-          <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
+          <Box>
             {loading ? (
               <Box
                 sx={{
@@ -1798,7 +1962,7 @@ const Finances = () => {
 
         {/* Statistiques par type */}
         {activeTab === 1 && (
-          <Box sx={{ p: isMobile ? 2 : 3 }}>
+          <Box>
             {/* Header avec titre et actions - Optimisé mobile */}
             <Box sx={{ 
               display: 'flex', 
@@ -2416,7 +2580,7 @@ const Finances = () => {
         )}
 
         {activeTab === 2 && (
-          <Box p={3}>
+          <Box>
             {/* Composant Commissions */}
             <Suspense
               fallback={
@@ -2439,7 +2603,7 @@ const Finances = () => {
         )}
 
         {activeTab === 3 && (
-          <Box p={3}>
+          <Box>
             {/* Composant WithdrawalRequests */}
             <Suspense
               fallback={

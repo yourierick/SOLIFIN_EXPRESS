@@ -8,6 +8,11 @@ import {
   CircularProgress,
   useMediaQuery,
   useTheme as useMuiTheme,
+  Fade,
+  Grow,
+  Chip,
+  Avatar,
+  LinearProgress,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -15,6 +20,8 @@ import {
   MonetizationOn as TokenIcon,
   MoneyOff as WithdrawalIcon,
   CardMembership as SubscriptionIcon,
+  TrendingUp as TrendingUpIcon,
+  Speed as SpeedIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -104,17 +111,27 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               borderRadius: { xs: 2, md: 3 },
               borderLeft: "4px solid #3B82F6",
               boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s ease",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              position: 'relative',
+              overflow: 'hidden',
               "&:hover": {
-                transform: "translateY(-2px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                transform: "translateY(-4px) scale(1.02)",
+                boxShadow: isDarkMode ? "0 12px 40px rgba(0, 0, 0, 0.4)" : "0 12px 40px rgba(0, 0, 0, 0.15)",
+                borderLeftWidth: '6px',
+              },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '100px',
+                height: '100px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+                borderRadius: '0 0 0 100%',
               }
             }}
-            style={{
-              
-            }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 }, position: 'relative', zIndex: 1 }}>
               <Box
                 sx={{
                   display: "flex",
@@ -124,37 +141,51 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
                 }}
               >
                 <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: isDarkMode ? "#94a3b8" : "#64748b",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      mb: 1,
-                    }}
-                  >
-                    Solde Total Des Comptes Utilisateurs
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: isDarkMode ? "#94a3b8" : "#64748b",
+                        fontWeight: 600,
+                        fontSize: "0.875rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Solde Total Des Comptes
+                    </Typography>
+                    <Chip 
+                      icon={<TrendingUpIcon sx={{ fontSize: 12 }} />}
+                      label="Live" 
+                      size="small" 
+                      color="success" 
+                      variant="outlined"
+                      sx={{ height: 20, fontSize: '0.65rem' }}
+                    />
+                  </Box>
                   <Typography
                     variant="caption"
                     sx={{
                       color: isDarkMode ? "#64748b" : "#94a3b8",
                       fontSize: "0.75rem",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      flexWrap: 'wrap'
                     }}
                   >
-                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>
-                      Total Gagné: {formatAmount(
+                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <SpeedIcon sx={{ fontSize: 14 }} />
+                      Gagné: {formatAmount(
                         selectedCurrency === 'CDF' && isCDFEnabled 
                           ? statistics.wallets.total_earned_cdf 
                           : statistics.wallets.total_earned_usd, 
                         selectedCurrency
                       )}
                     </Box>
-                    {' • '}
-                    <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>
-                      Total Retiré: {formatAmount(
+                    <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <WithdrawalIcon sx={{ fontSize: 14 }} />
+                      Retiré: {formatAmount(
                         selectedCurrency === 'CDF' && isCDFEnabled 
                           ? statistics.wallets.total_withdrawn_cdf 
                           : statistics.wallets.total_withdrawn_usd, 
@@ -163,32 +194,16 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
                     </Box>
                   </Typography>
                 </Box>
-                <Box
+                <Avatar
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                     background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                    color: "white",
-                    width: 30,
-                    height: 30,
-                    borderRadius: "12px",
-                    position: "relative",
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      inset: "-2px",
-                      borderRadius: "12px",
-                      padding: "2px",
-                      background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
-                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      maskComposite: "xor",
-                      opacity: 0.3,
-                    },
+                    width: 40,
+                    height: 40,
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
                   }}
                 >
-                  <WalletIcon sx={{ fontSize: "1rem" }} />
-                </Box>
+                  <WalletIcon sx={{ fontSize: "1.2rem" }} />
+                </Avatar>
               </Box>
               <Typography
                 variant="h3"

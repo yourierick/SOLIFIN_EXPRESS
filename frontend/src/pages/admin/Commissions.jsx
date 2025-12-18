@@ -243,9 +243,6 @@ const Commissions = () => {
       
       const response = await axios.get("/api/admin/commissions/statistics", { params });
       if (response.data.success) {
-        // Les données sont dans response.data.data
-        console.log("Statistics data received:", response.data.data); // Debug
-        console.log("Commissions by status:", response.data.data.commissions_by_status); // Debug
         setStatistics(response.data.data);
       }
     } catch (error) {
@@ -2622,10 +2619,6 @@ const Commissions = () => {
                           Commissions par statut ({selectedCurrency})
                         </Typography>
                         <Box sx={{ height: 300, position: "relative" }}>
-                          {console.log("Chart data - commissions_by_status:", statistics.commissions_by_status)} {/* Debug */}
-                          {console.log("Chart data - completed:", statistics.commissions_by_status?.completed)} {/* Debug */}
-                          {console.log("Chart data - pending:", statistics.commissions_by_status?.pending)} {/* Debug */}
-                          {console.log("Chart data - failed:", statistics.commissions_by_status?.failed)} {/* Debug */}
                           {(!parseInt(statistics.commissions_by_status?.completed) && 
                             !parseInt(statistics.commissions_by_status?.pending) && 
                             !parseInt(statistics.commissions_by_status?.failed)) || 

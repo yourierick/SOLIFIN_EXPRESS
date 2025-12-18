@@ -25,6 +25,8 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   ArrowDownTrayIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -69,8 +71,25 @@ const CadeauxManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [tabHover, setTabHover] = useState(null);
 
+  // État pour gérer le mode mobile
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentMobileTabIndex, setCurrentMobileTabIndex] = useState(0);
+
   // État pour gérer les sous-onglets dans l'onglet "Gestion des cadeaux"
   const [activeSubTab, setActiveSubTab] = useState("liste"); // "liste" ou "historique"
+
+  // État pour gérer la visibilité des filtres des cadeaux
+  const [showGiftFilters, setShowGiftFilters] = useState(false);
+
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fonction pour déterminer les onglets disponibles en fonction des permissions
   const getAvailableTabs = () => {
@@ -99,7 +118,52 @@ const CadeauxManagement = () => {
 
     if (newValue >= 0 && newValue < availableTabs.length) {
       setActiveTab(newValue);
+      if (isMobile) {
+        setCurrentMobileTabIndex(newValue);
+      }
     }
+  };
+
+  // Fonctions de navigation mobile
+  const goToPreviousTab = () => {
+    const availableTabs = getAvailableTabs();
+    if (currentMobileTabIndex > 0) {
+      const newIndex = currentMobileTabIndex - 1;
+      setCurrentMobileTabIndex(newIndex);
+      setActiveTab(newIndex);
+    }
+  };
+
+  const goToNextTab = () => {
+    const availableTabs = getAvailableTabs();
+    if (currentMobileTabIndex < availableTabs.length - 1) {
+      const newIndex = currentMobileTabIndex + 1;
+      setCurrentMobileTabIndex(newIndex);
+      setActiveTab(newIndex);
+    }
+  };
+
+  const goToTab = (index) => {
+    setCurrentMobileTabIndex(index);
+    setActiveTab(index);
+  };
+
+  // Configuration des onglets pour mobile
+  const getMobileTabConfig = (tabType) => {
+    if (tabType === "tickets") {
+      return {
+        name: "Vérification des tickets",
+        icon: TicketIcon,
+        color: "blue"
+      };
+    } else if (tabType === "cadeaux") {
+      return {
+        name: "Gestion des cadeaux",
+        icon: GiftIcon,
+        color: "purple"
+      };
+    }
+    return null;
   };
 
   // États pour la gestion des cadeaux
@@ -889,112 +953,8 @@ const CadeauxManagement = () => {
         )
       )}
 
-      {activeTab === 1 && activeSubTab === "liste" && (
-        <div className="mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md mr-3">
-                <FunnelIcon className="h-5 w-5 text-white" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filtres de recherche</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {/* Champ de recherche */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="search"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
-                >
-                  Rechercher
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="search"
-                    id="search"
-                    className="block w-full pr-10 py-3 text-sm rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                    placeholder="Nom ou description..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Filtre par statut */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="filterActif"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
-                >
-                  Statut
-                </label>
-                <select
-                  id="filterActif"
-                  name="filterActif"
-                  className="block w-full py-3 text-sm rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                  value={filterActif}
-                  onChange={(e) => {
-                    setFilterActif(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="tous">Tous les statuts</option>
-                  <option value="actif">Actif</option>
-                  <option value="inactif">Inactif</option>
-                </select>
-              </div>
-
-              {/* Filtre par pack */}
-              <div className="sm:col-span-2 md:col-span-1 space-y-2">
-                <label
-                  htmlFor="filterPack"
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
-                >
-                  Pack
-                </label>
-                <select
-                  id="filterPack"
-                  name="filterPack"
-                  className="block w-full py-3 text-sm rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                  value={filterPack || ""}
-                  onChange={(e) => {
-                    setFilterPack(e.target.value || null);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">Tous les packs</option>
-                  {packs.map((pack) => (
-                    <option key={pack.id} value={pack.id}>
-                      {pack.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Onglets avec design moderne */}
-      {!loadingPermissions && (
+      {!loadingPermissions && !isMobile && (
         <Paper
           elevation={isDarkMode ? 3 : 4}
           sx={{
@@ -1097,6 +1057,194 @@ const CadeauxManagement = () => {
         </Paper>
       )}
 
+      {/* Version Mobile - Pagination */}
+      {isMobile && !loadingPermissions && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 mb-8">
+          {/* Indicateurs de page */}
+          <div className="flex justify-center items-center gap-2 py-2 mb-3">
+            {getAvailableTabs().map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToTab(index)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  index === currentMobileTabIndex
+                    ? 'w-8 bg-gradient-to-r from-blue-500 to-purple-500'
+                    : 'w-2 bg-gray-300 dark:bg-gray-600'
+                }`}
+                aria-label={`Aller à l'onglet ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Onglet actuel */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <button
+              onClick={goToPreviousTab}
+              disabled={currentMobileTabIndex === 0}
+              className={`p-2 rounded-lg transition-all duration-200 ${
+                currentMobileTabIndex === 0
+                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              aria-label="Onglet précédent"
+            >
+              <ChevronLeftIcon className="h-5 w-5" />
+            </button>
+
+            <div className="flex-1 mx-4">
+              <div className="flex items-center justify-center gap-3">
+                {getAvailableTabs()[currentMobileTabIndex] && (
+                  <>
+                    <div className={`relative text-${getMobileTabConfig(getAvailableTabs()[currentMobileTabIndex]).color}-500`}>
+                      {React.createElement(getMobileTabConfig(getAvailableTabs()[currentMobileTabIndex]).icon, { className: "h-5 w-5" })}
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-gray-900 dark:text-white text-sm">
+                        {getMobileTabConfig(getAvailableTabs()[currentMobileTabIndex]).name}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={goToNextTab}
+              disabled={currentMobileTabIndex === getAvailableTabs().length - 1}
+              className={`p-2 rounded-lg transition-all duration-200 ${
+                currentMobileTabIndex === getAvailableTabs().length - 1
+                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              aria-label="Onglet suivant"
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Filtres pour l'onglet Gestion des cadeaux (position 1) */}
+      {getAvailableTabs()[activeTab] === "cadeaux" && (
+        <div className="mb-8">
+          {/* Bouton pour afficher/masquer les filtres */}
+          <button
+            onClick={() => setShowGiftFilters(!showGiftFilters)}
+            className={`group relative inline-flex items-center px-4 py-2.5 border rounded-xl shadow-sm text-sm font-medium transition-all duration-300 transform hover:-translate-y-0.5 mb-4 ${
+              showGiftFilters
+                ? "border-primary-500 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-400 shadow-md ring-2 ring-primary-200 dark:ring-primary-700"
+                : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md"
+            }`}
+          >
+            <FunnelIcon className={`h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200 ${showGiftFilters ? 'text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'}`} />
+            <span className="font-medium">{showGiftFilters ? "Masquer les filtres" : "Afficher les filtres"}</span>
+          </button>
+
+          {/* Panneau de filtres */}
+          {showGiftFilters && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md mr-3">
+                  <FunnelIcon className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filtres de recherche</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Champ de recherche */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="search"
+                    className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    Rechercher
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="search"
+                      id="search"
+                      className="block w-full pr-10 py-3 text-sm rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      placeholder="Nom ou description..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtre par statut */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="filterActif"
+                    className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    Statut
+                  </label>
+                  <select
+                    id="filterActif"
+                    name="filterActif"
+                    className="block w-full py-3 text-sm rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    value={filterActif}
+                    onChange={(e) => {
+                      setFilterActif(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="tous">Tous les statuts</option>
+                    <option value="actif">Actif</option>
+                    <option value="inactif">Inactif</option>
+                  </select>
+                </div>
+
+                {/* Filtre par pack */}
+                <div className="sm:col-span-2 md:col-span-1 space-y-2">
+                  <label
+                    htmlFor="filterPack"
+                    className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    Pack
+                  </label>
+                  <select
+                    id="filterPack"
+                    name="filterPack"
+                    className="block w-full py-3 text-sm rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    value={filterPack || ""}
+                    onChange={(e) => {
+                      setFilterPack(e.target.value || null);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">Tous les packs</option>
+                    {packs.map((pack) => (
+                      <option key={pack.id} value={pack.id}>
+                        {pack.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Sous-onglets pour l'onglet Gestion des cadeaux */}
       {getAvailableTabs()[activeTab] === "cadeaux" && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 mb-8">
@@ -1121,7 +1269,7 @@ const CadeauxManagement = () => {
               }`}
             >
               <ClipboardDocumentListIcon className="h-5 w-5 mr-2" />
-              <span className="font-semibold">Historique des cadeaux</span>
+              <span className="font-semibold">Historique</span>
             </button>
           </div>
         </div>

@@ -13,6 +13,11 @@ import {
   MenuItem,
   Button,
   IconButton,
+  Fade,
+  Grow,
+  Chip,
+  Avatar,
+  Divider,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -20,6 +25,9 @@ import {
   Wallet as WalletIcon,
   MonetizationOn as TokenIcon,
   MoneyOff as WithdrawalIcon,
+  TrendingUp as TrendingUpIcon,
+  Assessment as AssessmentIcon,
+  Speed as SpeedIcon,
 } from '@mui/icons-material';
 import {
   SuiviAbonnementGestion,
@@ -509,26 +517,65 @@ const SuiviTab = () => {
             component="h1"
             fontWeight={700}
             sx={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%)",
               backgroundClip: "text",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               mb: { xs: 0.5, sm: 1 },
               fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' },
               lineHeight: { xs: 1.3, sm: 1.2 },
+              position: 'relative',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -2,
+                left: 0,
+                width: 60,
+                height: 3,
+                background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
+                borderRadius: 2,
+              }
             }}
           >
-            {isMobile ? 'Suivi Admin' : 'Tableau de Suivi Administrateur'}
+            Tableau de Suivi
           </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <Chip 
+              icon={<TrendingUpIcon sx={{ fontSize: 14 }} />}
+              label="Temps réel" 
+              size="small" 
+              color="primary" 
+              variant="outlined"
+              sx={{ 
+                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                height: 24,
+                '& .MuiChip-label': { fontWeight: 500 }
+              }}
+            />
+            <Chip 
+              icon={<AssessmentIcon sx={{ fontSize: 14 }} />}
+              label="Analytics" 
+              size="small" 
+              color="secondary" 
+              variant="outlined"
+              sx={{ 
+                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                height: 24,
+                '& .MuiChip-label': { fontWeight: 500 }
+              }}
+            />
+          </Box>
           <Typography 
             variant="body2" 
             color="text.secondary"
             sx={{ 
               display: { xs: 'none', sm: 'block' },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              opacity: 0.8,
+              fontWeight: 400
             }}
           >
-            Gérez les abonnements et suivez les finances de la plateforme
+            Suivi complet des abonnements, finances et performances de la plateforme
           </Typography>
         </Box>
         
@@ -550,14 +597,35 @@ const SuiviTab = () => {
             : "rgba(249, 250, 251, 0.8)",
           backdropFilter: "blur(20px)",
           border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-          boxShadow: "none",
+          boxShadow: isDarkMode 
+            ? "0 4px 20px rgba(0, 0, 0, 0.3)" 
+            : "0 4px 20px rgba(0, 0, 0, 0.08)",
           overflow: "hidden",
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            boxShadow: isDarkMode 
+              ? "0 8px 30px rgba(0, 0, 0, 0.4)" 
+              : "0 8px 30px rgba(0, 0, 0, 0.12)",
+          }
         }}
       >
         <Box
           sx={{
             borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-            bgcolor: isDarkMode ? "#1f2937" : "rgba(255, 255, 255, 0.9)",
+            bgcolor: isDarkMode ? "#1f2937" : "rgba(255, 255, 255, 0.95)",
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: isDarkMode 
+                ? 'linear-gradient(90deg, transparent, #3b82f6, transparent)'
+                : 'linear-gradient(90deg, transparent, #2563eb, transparent)',
+              opacity: 0.3,
+            }
           }}
         >
           <Tabs
@@ -575,19 +643,35 @@ const SuiviTab = () => {
                 fontSize: { xs: '0.875rem', sm: '1rem' },
                 minHeight: 64,
                 color: isDarkMode ? '#9ca3af' : '#6b7280',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
                 '&:hover': {
                   color: isDarkMode ? '#e5e7eb' : '#374151',
                   bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                  transform: 'translateY(-1px)',
                 },
                 '&.Mui-selected': {
                   color: muiTheme.palette.primary.main,
                   bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
+                  transform: 'translateY(-1px)',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '30px',
+                    height: '3px',
+                    background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
+                    borderRadius: '3px 3px 0 0',
+                  }
                 },
               },
               '& .MuiTabs-indicator': {
                 height: 3,
                 borderRadius: '3px 3px 0 0',
                 background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                display: 'none',
               },
             }}
           >
@@ -612,9 +696,15 @@ const SuiviTab = () => {
           sx={{
             p: { xs: 2, sm: 3 },
             background: isDarkMode ? "#171f2b" : "transparent",
+            minHeight: 400,
+            position: 'relative',
           }}
         >
-          {renderContent()}
+          <Fade in={true} timeout={300}>
+            <Box>
+              {renderContent()}
+            </Box>
+          </Fade>
         </Box>
       </Paper>
     </Container>

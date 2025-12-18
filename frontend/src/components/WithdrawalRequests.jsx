@@ -945,21 +945,21 @@ const WithdrawalRequests = () => {
 
   // Rendu du composant
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 xl:p-8">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-3 sm:p-4 md:p-6 xl:p-8">
       {/* En-tête */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+      <div className="mb-4 sm:mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
             Demandes de retrait
           </h3>
-          <span className="text-base font-normal text-gray-500 dark:text-gray-400">
+          <span className="text-sm sm:text-base font-normal text-gray-500 dark:text-gray-400">
             Gestion et analyse des demandes de retrait ({selectedCurrency})
           </span>
         </div>
       </div>
 
       {/* Onglets avec design moderne et ascenseur horizontal pour mobile */}
-      <div className="mb-6 relative">
+      <div className="mb-4 sm:mb-6 relative">
         {/* Conteneur avec ascenseur horizontal pour mobile */}
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
           <div className="min-w-max sm:min-w-0">
@@ -970,7 +970,7 @@ const WithdrawalRequests = () => {
                 <li className="relative">
                   <button
                     onClick={() => setActiveTab("pending")}
-                    className={`group relative px-6 py-4 text-center font-medium transition-all duration-200 whitespace-nowrap ${
+                    className={`group relative px-4 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all duration-200 whitespace-nowrap ${
                       activeTab === "pending"
                         ? "text-blue-600 dark:text-blue-400"
                         : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
@@ -1007,7 +1007,7 @@ const WithdrawalRequests = () => {
                 <li className="relative">
                   <button
                     onClick={() => setActiveTab("all")}
-                    className={`group relative px-6 py-4 text-center font-medium transition-all duration-200 whitespace-nowrap ${
+                    className={`group relative px-4 sm:px-6 py-3 sm:py-4 text-center font-medium transition-all duration-200 whitespace-nowrap ${
                       activeTab === "all"
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
@@ -1053,8 +1053,8 @@ const WithdrawalRequests = () => {
         // Onglet des demandes en attente
         <div>
           {/* Section des filtres pour les demandes en attente */}
-          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-            <div className="flex justify-between items-center mb-4">
+          <div className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                 Filtres
               </h4>
@@ -1083,9 +1083,9 @@ const WithdrawalRequests = () => {
             </div>
 
             {showPendingFilters && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Initié par
                   </label>
                   <select
@@ -1096,7 +1096,7 @@ const WithdrawalRequests = () => {
                         initiated_by: e.target.value,
                       })
                     }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     <option value="">Tous</option>
                     <option value="self">Par moi</option>
@@ -1105,7 +1105,7 @@ const WithdrawalRequests = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Méthode de paiement
                   </label>
                   <select
@@ -1116,7 +1116,7 @@ const WithdrawalRequests = () => {
                         payment_method: e.target.value,
                       })
                     }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     <option value="">Toutes</option>
                     <option value="visa">Visa</option>
@@ -1130,7 +1130,7 @@ const WithdrawalRequests = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Date de début
                   </label>
                   <input
@@ -1142,12 +1142,12 @@ const WithdrawalRequests = () => {
                         start_date: e.target.value,
                       })
                     }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Date de fin
                   </label>
                   <input
@@ -1159,7 +1159,7 @@ const WithdrawalRequests = () => {
                         end_date: e.target.value,
                       })
                     }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               </div>

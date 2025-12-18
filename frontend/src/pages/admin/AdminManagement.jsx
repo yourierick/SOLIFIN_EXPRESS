@@ -230,7 +230,7 @@ const AdminManagement = () => {
   };
 
   return (
-    <div className="p-4">
+    <div>
       {/* En-tête de la page */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold mb-2 flex items-center text-gray-900 dark:text-white">
