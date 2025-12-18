@@ -26,12 +26,38 @@ use App\Http\Controllers\WithdrawalController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\LivreurController;
 use App\Http\Controllers\PageController;
+use Illuminate\Support\Facades\Password;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Route pour vérifier l'authentification
+Route::get('/user', function (Request $request) {
+    $user = $request->user();
+    if (!$user) {
+        return;
+    }
+    $user->picture = $user?->getProfilePictureUrlAttribute();
+    
+    // Vérifier si c'est une vérification automatique d'authentification
+    // et non une activité utilisateur réelle
+    if ($request->query('check_only') === 'true' || $request->header('X-No-Activity-Update')) {
+        // Ne pas mettre à jour le timestamp de dernière activité de la session
+        // Cela permettra à la session d'expirer après la durée d'inactivité configurée
+        // même si des appels API automatiques sont effectués
+        //\Log::debug('Vérification d\'authentification sans mise à jour d\'activité pour l\'utilisateur ' . $user->id);
+    } else {
+        // Pour les requêtes normales, mettre à jour le timestamp de dernière activité
+        // Cela est géré automatiquement par Laravel, mais nous le journalisons pour débogage
+        //\Log::debug('Mise à jour du timestamp d\'activité pour l\'utilisateur ' . $user->id);
+    }
+    
+    return $user;
+});
 
 // Routes publiques (chargement des packs dans la page d'accueil)
 Route::get('/packs', [App\Http\Controllers\HomeController::class, 'index']);
@@ -96,6 +122,34 @@ Route::middleware('throttle:api')->group(function () {
         $request->user()->sendEmailVerificationNotification();
         return response()->json(['message' => 'Email de vérification envoyé']);
     })->middleware(['auth:sanctum', 'throttle:6,1']);
+
+    // Mettre la route de vérification d'email en dehors des groupes de middleware
+    Route::get('/email/verify/{id}/{hash}', function (Request $request, $id) {
+    $user = User::findOrFail($id);
+    
+    if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+        throw new \Illuminate\Auth\Access\AuthorizationException('Le lien de vérification est invalide');
+    }
+
+    if ($user->hasVerifiedEmail()) {
+        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?already_verified=1');
+    }
+
+    $user->markEmailAsVerified();
+    
+    \Log::info('Email vérifié pour l\'utilisateur ' . $user->email);
+    $redirectPath = $user->is_admin ? '/admin' : '/dashboard';
+    \Log::info('Redirection vers ' . env('FRONTEND_URL') . $redirectPath);
+    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?verified=1');
+    })->middleware(['throttle:6,1']);
+
+    // Route pour renvoyer l'email de vérification
+    Route::get('/resend-verification/{email}', function ($email) {
+        $user = \App\Models\User::where('email', $email)->firstOrFail();
+        $user->sendEmailVerificationNotification();
+        
+        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?verification=sent');
+    })->middleware(['throttle:6,1']);
 });
 
 // Routes publiques sensibles avec throttle:api
@@ -164,26 +218,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     // Route pour récupérer les permissions de l'utilisateur connecté
     Route::get('/user/permissions', [\App\Http\Controllers\PermissionController::class, 'getUserPermissions']);
-    // Route pour vérifier l'authentification
-    Route::get('/user', function (Request $request) {
-        $user = $request->user();
-        $user->picture = $user->getProfilePictureUrlAttribute();
-        
-        // Vérifier si c'est une vérification automatique d'authentification
-        // et non une activité utilisateur réelle
-        if ($request->query('check_only') === 'true' || $request->header('X-No-Activity-Update')) {
-            // Ne pas mettre à jour le timestamp de dernière activité de la session
-            // Cela permettra à la session d'expirer après la durée d'inactivité configurée
-            // même si des appels API automatiques sont effectués
-            //\Log::debug('Vérification d\'authentification sans mise à jour d\'activité pour l\'utilisateur ' . $user->id);
-        } else {
-            // Pour les requêtes normales, mettre à jour le timestamp de dernière activité
-            // Cela est géré automatiquement par Laravel, mais nous le journalisons pour débogage
-            //\Log::debug('Mise à jour du timestamp d\'activité pour l\'utilisateur ' . $user->id);
-        }
-        
-        return $user;
-    });
     
     // Route pour rafraîchir la session
     Route::post('/refresh-session', function (Request $request) {
@@ -658,7 +692,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         });
     });
     
-    Route::middleware('permission:view-finances', 'permission:manage-wallets')->group(function () {
+    Route::middleware('permission:view-finances')->group(function () {
         // Routes pour la gestion des finances
         Route::get('/finances', [\App\Http\Controllers\Admin\FinanceController::class, 'index']);
         Route::get('/finances/export', [\App\Http\Controllers\Admin\FinanceController::class, 'exportFinanceTransactions']);
@@ -740,41 +774,43 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     //Routes pour le tableau de suivi
-    Route::prefix('/tableau-de-suivi')->group(function () {
-        //Récupère les statistiques globales
-        Route::get('/suivi-abonnement', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'suiviAbonnement']);
-        //Récupère les abonnements de manière plus détaillées
-        Route::get('/user-packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacks']);
-        //Récupère les packs actifs pour les filtres
-        Route::get('/packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'getPacks']);
-        //Récupère les statistiques avancées des user-packs
-        Route::get('/user-packs-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacksStatistics']);
-        //Récupère les statistiques des wallets
-        Route::get('/wallet-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletStatistics']);
-        //Récupère les transactions des wallets avec filtres
-        Route::get('/wallet-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletTransactions']);
-        
-        // Routes pour les jetons Esengo
-        Route::get('/jetons-esengo/stats', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonsEsengoStats']);
-        Route::get('/jetons-esengo', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonsEsengo']);
-        Route::get('/jetons-esengo/{jeton}/history', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonEsengoHistory']);
-        
-        // Routes pour les tickets gagnants
-        Route::get('/tickets-gagnants/stats', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'ticketsGagnantsStats']);
-        Route::get('/tickets-gagnants', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'ticketsGagnants']);
-        
-        // Routes d'exportation
-        Route::get('/jetons-esengo/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportJetonsEsengo']);
-        Route::get('/tickets-gagnants/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportTicketsGagnants']);
-        
-        // Routes pour les retraits
-        Route::get('/retraits/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraitsStatistics']);
-        Route::get('/retraits', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraits']);
-        Route::get('/retraits/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportRetraits']);
-        
-        // Routes pour le suivi financier des transactions
-        Route::get('/financial-transactions/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'financialTransactionsStatistics']);
-        Route::get('/financial-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'financialTransactions']);
-        Route::get('/financial-transactions/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportFinancialTransactions']);
+    Route::middleware('permission:manage-monitoring-dashboard')->group(function () {
+        Route::prefix('/tableau-de-suivi')->group(function () {
+            //Récupère les statistiques globales
+            Route::get('/suivi-abonnement', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'suiviAbonnement']);
+            //Récupère les abonnements de manière plus détaillées
+            Route::get('/user-packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacks']);
+            //Récupère les packs actifs pour les filtres
+            Route::get('/packs', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'getPacks']);
+            //Récupère les statistiques avancées des user-packs
+            Route::get('/user-packs-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'userPacksStatistics']);
+            //Récupère les statistiques des wallets
+            Route::get('/wallet-statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletStatistics']);
+            //Récupère les transactions des wallets avec filtres
+            Route::get('/wallet-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'walletTransactions']);
+            
+            // Routes pour les jetons Esengo
+            Route::get('/jetons-esengo/stats', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonsEsengoStats']);
+            Route::get('/jetons-esengo', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonsEsengo']);
+            Route::get('/jetons-esengo/{jeton}/history', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'jetonEsengoHistory']);
+            
+            // Routes pour les tickets gagnants
+            Route::get('/tickets-gagnants/stats', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'ticketsGagnantsStats']);
+            Route::get('/tickets-gagnants', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'ticketsGagnants']);
+            
+            // Routes d'exportation
+            Route::get('/jetons-esengo/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportJetonsEsengo']);
+            Route::get('/tickets-gagnants/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportTicketsGagnants']);
+            
+            // Routes pour les retraits
+            Route::get('/retraits/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraitsStatistics']);
+            Route::get('/retraits', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'retraits']);
+            Route::get('/retraits/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportRetraits']);
+            
+            // Routes pour le suivi financier des transactions
+            Route::get('/financial-transactions/statistics', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'financialTransactionsStatistics']);
+            Route::get('/financial-transactions', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'financialTransactions']);
+            Route::get('/financial-transactions/export', [\App\Http\Controllers\Admin\TableauDeSuiviController::class, 'exportFinancialTransactions']);
+        });
     });
 });

@@ -384,7 +384,6 @@ export default function EditPack() {
                       name="cdf_price"
                       value={formData.cdf_price}
                       onChange={handleInputChange}
-                      required
                       min="0"
                       step="0.01"
                       className="block w-full rounded-lg border-gray-300 pl-10 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 sm:text-sm"

@@ -54,7 +54,7 @@ export default function AboutSolifin() {
 
   return (
     <div
-      className={`max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8 ${
+      className={`w-full px-4 py-16 sm:px-6 lg:px-8 ${
         isDarkMode
           ? ""
           : "bg-white shadow-lg hover:shadow-green-500/30 border border-gray-100"

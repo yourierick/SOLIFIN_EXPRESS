@@ -1,0 +1,31 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "SOLIFIN",
+  "alternateName": "Solution Express pour l'Indépendance Financière",
+  "url": "https://solifinexpress.com",
+  "logo": "https://solifinexpress.com/logo.png",
+  "description": "Plateforme de financement solidaire offrant des services libérateurs sur le plan financier",
+  "foundingDate": "2024",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "CD"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer service",
+    "availableLanguage": ["French"]
+  },
+  "sameAs": [
+    "https://www.facebook.com/solifinexpress",
+    "https://www.twitter.com/solifinexpress"
+  ],
+  "serviceType": "Financial Services",
+  "areaServed": "Democratic Republic of Congo",
+  "knowsAbout": [
+    "Microfinance",
+    "Financial Independence",
+    "Social Funding",
+    "Economic Development"
+  ]
+}

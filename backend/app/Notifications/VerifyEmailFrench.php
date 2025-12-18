@@ -30,7 +30,7 @@ class VerifyEmailFrench extends Notification
 
     protected function verificationUrl($notifiable)
     {
-        return URL::temporarySignedRoute(
+        $url = URL::temporarySignedRoute(
             'verification.verify',
             Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
             [
@@ -38,5 +38,8 @@ class VerifyEmailFrench extends Notification
                 'hash' => sha1($notifiable->getEmailForVerification()),
             ]
         );
+        
+        // Ajouter le préfixe /api pour correspondre aux routes API
+        return str_replace(url(''), url('') . '/api', $url);
     }
 } 

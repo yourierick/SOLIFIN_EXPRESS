@@ -67,8 +67,10 @@ class HomeController extends Controller
                 'facebook_url',
                 'twitter_url',
                 'instagram_url',
-                'linkedin_url',
+                'linkedIn_url',
                 'whatsapp_url',
+                'youtube_url',
+                'tiktok_url',
                 
                 // Photo du fondateur
                 'founder_photo',
@@ -100,7 +102,7 @@ class HomeController extends Controller
                 }
                 
                 // Catégoriser les paramètres
-                if (in_array($setting->key, ['facebook_url', 'twitter_url', 'instagram_url', 'linkedin_url', 'whatsapp_url'])) {
+                if (in_array($setting->key, ['facebook_url', 'twitter_url', 'instagram_url', 'linkedIn_url', 'whatsapp_url', 'youtube_url', 'tiktok_url'])) {
                     $organizedSettings['social'][$setting->key] = $setting->value;
                 } elseif ($setting->key == 'founder_photo') {
                     $organizedSettings['founder'][$setting->key] = $setting->value;

@@ -33,6 +33,9 @@ class SettingsController extends Controller
         'whatsapp_url',
         'twitter_url',
         'instagram_url',
+        'tiktok_url',
+        'youtube_url',
+        'linkedIn_url',
         
         // Documents légaux
         'terms_of_use',

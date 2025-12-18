@@ -72,12 +72,26 @@ export default function Referral() {
           className="text-center mb-16"
         >
           <h2
-            className={`heading-secondary mb-4 ${
-              isDarkMode ? "text-white" : ""
+            className={`text-3xl font-bold tracking-tight sm:text-5xl mb-6 ${
+              isDarkMode ? "text-white" : "text-gray-900"
             }`}
           >
-            Comment Fonctionne Notre{" "}
-            <span className="text-primary-600">Système de Parrainage</span>
+            Comment fonctionne notre{" "}
+            <span
+              className={`relative inline-block ${
+                isDarkMode ? "text-green-400" : "text-green-600"
+              }`}
+            >
+              Système de Parrainage
+              <motion.span
+                initial={{ width: "0%" }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
+                className={`absolute bottom-1 left-0 h-0.5 ${
+                  isDarkMode ? "bg-green-400/40" : "bg-green-600/40"
+                }`}
+              />
+            </span>
           </h2>
           <p
             className={`text-lg max-w-3xl mx-auto ${

@@ -452,7 +452,6 @@ const SuiviRetraits = ({ period }) => {
                       borderRadius: { xs: 2, md: 3 },
                       background: isDarkMode ? '#1f2937' : '#ffffff',
                       border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                      borderRadius: { xs: 2, md: 3 },
                       borderLeft: "4px solid #3B82F6",
                       boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                       transition: "all 0.3s ease",

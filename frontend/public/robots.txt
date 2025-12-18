@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /
+
+# Autoriser les fichiers importants
+Allow: /assets/
+Allow: /src/
+Allow: /images/
+
+# Interdire les fichiers système
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /env*
+Disallow: /*.json$
+
+# Autoriser les pages principales
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /about
+Allow: /contact
+Allow: /packs
+Allow: /faq
+
+# Sitemap
+Sitemap: https://solifinexpress.com/sitemap.xml
+
+# Crawl-delay (optionnel)
+Crawl-delay: 1

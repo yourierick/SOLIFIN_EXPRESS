@@ -66,3 +66,15 @@ Schedule::command('testimonials:process-prompts --batch=500 --expire')
     ->weeklyOn(0, '03:00') // 0 = Dimanche
     ->appendOutputTo(storage_path('logs/testimonial-prompts-weekly.log'))
     ->description('Vérification hebdomadaire approfondie des invitations à témoigner');
+
+// === TÂCHES SYSTÈME ===
+// Nettoyage du cache - quotidien à 03:30
+Schedule::command('cache:clear')
+    ->daily()
+    ->at('03:30')
+    ->description('Nettoie le cache quotidien');
+
+// Redémarrage du worker de file d'attente (toutes les heures)
+Schedule::command('queue:restart')
+    ->hourly()
+    ->description('Redémarre le worker de file d\'attente');

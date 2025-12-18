@@ -148,6 +148,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'nom' => 'Gérer le tableau de suivi',
+                'slug' => 'manage-monitoring-dashboard',
+                'description' => 'Gérer le tableau de suivi',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 

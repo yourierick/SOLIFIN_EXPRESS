@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import {
   PencilIcon,
@@ -476,190 +477,212 @@ const RoleManagement = () => {
       )}
 
       {/* Modal pour créer/modifier un rôle */}
-      {showRoleModal && (
-        <div
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
-            <div className="relative overflow-hidden mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-10"></div>
-              <div className="relative flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
-                  <ShieldCheckIcon className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {editingRole ? "Modifier le rôle" : "Créer un nouveau rôle"}
-                </h3>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Nom
-                </label>
-                <input
-                  type="text"
-                  name="nom"
-                  value={formData.nom}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                  placeholder="Nom du rôle"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Slug
-                </label>
-                <input
-                  type="text"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                  placeholder="slug-du-role"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                  placeholder="Description du rôle"
-                  rows="3"
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Permissions
-                </label>
-                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700">
-                  {permissions.map((permission) => (
-                    <div key={permission.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`permission-${permission.id}`}
-                        checked={formData.permissions.includes(permission.id)}
-                        onChange={() => handlePermissionChange(permission.id)}
-                        className="mr-2 w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded"
-                      />
-                      <label
-                        htmlFor={`permission-${permission.id}`}
-                        className="text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        {permission.nom}
-                      </label>
-                    </div>
-                  ))}
+      {showRoleModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 left-0 right-0 top-0 bottom-0 backdrop-blur-sm flex items-center justify-center z-[9999]"
+            style={{ 
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh'
+            }}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
+              <div className="relative overflow-hidden mb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-10"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                    <ShieldCheckIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    {editingRole ? "Modifier le rôle" : "Créer un nouveau rôle"}
+                  </h3>
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setShowRoleModal(false)}
-                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-all duration-200 transform hover:scale-105"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={saveRole}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg"
-              >
-                {editingRole ? "Mettre à jour" : "Créer"}
-              </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Nom
+                  </label>
+                  <input
+                    type="text"
+                    name="nom"
+                    value={formData.nom}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                    placeholder="Nom du rôle"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Slug
+                  </label>
+                  <input
+                    type="text"
+                    name="slug"
+                    value={formData.slug}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                    placeholder="slug-du-role"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                    placeholder="Description du rôle"
+                    rows="3"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Permissions
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700">
+                    {permissions.map((permission) => (
+                      <div key={permission.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`permission-${permission.id}`}
+                          checked={formData.permissions.includes(permission.id)}
+                          onChange={() => handlePermissionChange(permission.id)}
+                          className="mr-2 w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded"
+                        />
+                        <label
+                          htmlFor={`permission-${permission.id}`}
+                          className="text-sm text-gray-700 dark:text-gray-300"
+                        >
+                          {permission.nom}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowRoleModal(false)}
+                  className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-all duration-200 transform hover:scale-105"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={saveRole}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg"
+                >
+                  {editingRole ? "Mettre à jour" : "Créer"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Modal pour attribuer un rôle à un utilisateur */}
-      {showAssignModal && (
-        <div
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
-            <div className="relative overflow-hidden mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl opacity-10"></div>
-              <div className="relative flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
-                  <UserPlusIcon className="h-5 w-5 text-white" />
+      {showAssignModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 left-0 right-0 top-0 bottom-0 backdrop-blur-sm flex items-center justify-center z-[9999]"
+            style={{ 
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh'
+            }}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
+              <div className="relative overflow-hidden mb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl opacity-10"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
+                    <UserPlusIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Attribuer un rôle à un utilisateur
+                  </h3>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Attribuer un rôle à un utilisateur
-                </h3>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Utilisateur
-                </label>
-                <select
-                  value={selectedUser}
-                  onChange={handleUserChange}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Utilisateur
+                  </label>
+                  <select
+                    value={selectedUser}
+                    onChange={handleUserChange}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  >
+                    <option value="">Sélectionner un utilisateur</option>
+                    {users?.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                    Rôle
+                  </label>
+                  <select
+                    value={selectedRole}
+                    onChange={handleRoleChange}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  >
+                    <option value="">Sélectionner un rôle</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowAssignModal(false)}
+                  className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-all duration-200 transform hover:scale-105"
                 >
-                  <option value="">Sélectionner un utilisateur</option>
-                  {users?.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Rôle
-                </label>
-                <select
-                  value={selectedRole}
-                  onChange={handleRoleChange}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  Annuler
+                </button>
+                <button
+                  onClick={assignRoleToUser}
+                  disabled={!selectedUser || !selectedRole}
+                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg ${
+                    !selectedUser || !selectedRole
+                      ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed scale-100"
+                      : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  }`}
                 >
-                  <option value="">Sélectionner un rôle</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.nom}
-                    </option>
-                  ))}
-                </select>
+                  Attribuer
+                </button>
               </div>
             </div>
-
-            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setShowAssignModal(false)}
-                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 rounded-xl font-medium transition-all duration-200 transform hover:scale-105"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={assignRoleToUser}
-                disabled={!selectedUser || !selectedRole}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg ${
-                  !selectedUser || !selectedRole
-                    ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed scale-100"
-                    : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-                }`}
-              >
-                Attribuer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

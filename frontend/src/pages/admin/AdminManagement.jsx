@@ -707,55 +707,53 @@ const AdminManagement = () => {
 
       {/* Modal de détails */}
       {viewDetails && createPortal(
-        <div className="fixed inset-0 z-[9999] flex flex-col">
-          {/* Overlay qui couvre toute la page */}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Overlay avec effet de flou */}
           <div
-            className="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm"
+            className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60 backdrop-blur-md"
             onClick={closeDetails}
           />
           
-          {/* Contenu du modal centré */}
-          <div className="relative flex items-center justify-center min-h-screen p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate__animated animate__zoomIn animate__faster relative transform transition-all duration-300 ease-in-out">
-            {/* En-tête de la modale */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 text-white px-6 py-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold flex items-center">
-                  <ShieldCheckIcon className="h-6 w-6 mr-3 filter drop-shadow-md animate__animated animate__fadeIn" />
-                  <span className="animate__animated animate__fadeIn">
-                    Détails de l'administrateur
-                  </span>
-                </h3>
+          {/* Contenu du modal */}
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200/50 dark:border-gray-700/50 animate__animated animate__zoomIn animate__faster">
+            {/* En-tête amélioré */}
+            <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 dark:from-blue-700 dark:via-blue-800 dark:to-indigo-900 text-white px-6 py-6">
+              {/* Décoration d'arrière-plan */}
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/5"></div>
+              <div className="relative flex justify-between items-start">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                    <ShieldCheckIcon className="h-8 w-8 text-white drop-shadow-lg" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white drop-shadow-md">
+                      Profil Administrateur
+                    </h3>
+                    <p className="text-blue-100 text-sm mt-1">
+                      Informations détaillées
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={closeDetails}
-                  className="text-white hover:text-gray-200 transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-full p-1"
+                  className="p-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white/50"
                   aria-label="Fermer"
                 >
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                  <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
             </div>
 
-            {/* Corps de la modale */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              <div className="space-y-6">
-                {/* Photo de profil */}
-                <div className="flex justify-center mb-6">
+            {/* Corps de la modale avec design amélioré */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-800/50 dark:to-gray-800">
+              {/* Section profil avec photo */}
+              <div className="flex flex-col items-center mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="relative">
                   {selectedAdmin.picture ? (
                     <img
-                      className="h-28 w-28 rounded-full object-cover border-4 border-blue-200 dark:border-blue-700 shadow-lg transition-all duration-300 hover:scale-105 hover:border-blue-400 dark:hover:border-blue-500 animate__animated animate__fadeIn"
+                      className="h-32 w-32 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-xl transition-all duration-300 hover:scale-105"
                       src={selectedAdmin.picture}
                       alt={selectedAdmin.name}
                       onError={(e) => {
@@ -766,124 +764,143 @@ const AdminManagement = () => {
                       }}
                     />
                   ) : (
-                    <div className="h-28 w-28 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 flex items-center justify-center text-white text-2xl font-bold border-4 border-blue-200 dark:border-blue-700 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl animate__animated animate__fadeIn dark:animate-dark-pulse">
+                    <div className="h-32 w-32 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 flex items-center justify-center text-white text-3xl font-bold border-4 border-white dark:border-gray-700 shadow-xl transition-all duration-300 hover:scale-105">
                       {selectedAdmin.name.charAt(0).toUpperCase()}
                     </div>
                   )}
+                  {/* Badge de statut */}
+                  <div className={`absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-4 border-white dark:border-gray-800 flex items-center justify-center ${
+                    selectedAdmin.status === "active" 
+                      ? "bg-green-500" 
+                      : "bg-red-500"
+                  }`}>
+                    <span className="h-3 w-3 rounded-full bg-white"></span>
+                  </div>
                 </div>
-
-                {/* Email */}
-                <div
-                  className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md animate__animated animate__fadeIn dark:animate-glow"
-                  style={{ animationDelay: "150ms" }}
-                >
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Email
-                  </h4>
-                  <p className="text-base font-medium text-blue-600 dark:text-blue-400 break-all">
-                    {selectedAdmin.email}
+                <div className="mt-4 text-center">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {selectedAdmin.name}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    {selectedAdmin.role_relation?.nom || "Rôle non défini"}
                   </p>
                 </div>
+              </div>
 
-                {/* Rôle */}
-                <div
-                  className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md animate__animated animate__fadeIn dark:animate-glow"
-                  style={{ animationDelay: "200ms" }}
-                >
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Rôle
-                  </h4>
-                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800 shadow-sm">
-                    {selectedAdmin.role_relation?.nom || "Non défini"}
+              {/* Grid d'informations */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Email */}
+                <div className="bg-white dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white break-all mt-1">
+                        {selectedAdmin.email}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Statut */}
-                <div
-                  className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md animate__animated animate__fadeIn dark:animate-glow"
-                  style={{ animationDelay: "250ms" }}
-                >
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Statut
-                  </h4>
-                  <div
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border shadow-sm ${
-                      selectedAdmin.status === "active"
-                        ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800 ${isDarkMode ? 'dark:animate-dark-pulse' : ''}"
-                        : "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800 ${isDarkMode ? 'dark:animate-dark-pulse' : ''}"
-                    }`}
-                  >
-                    <span
-                      className={`h-2 w-2 rounded-full mr-2 ${
-                        selectedAdmin.status === "active"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                      }`}
-                    ></span>
-                    {selectedAdmin.status === "active" ? "Actif" : "Inactif"}
+                <div className="bg-white dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-start space-x-3">
+                    <div className={`p-2 rounded-lg ${
+                      selectedAdmin.status === "active" 
+                        ? "bg-green-100 dark:bg-green-900/30" 
+                        : "bg-red-100 dark:bg-red-900/30"
+                    }`}>
+                      <svg className={`h-5 w-5 ${
+                        selectedAdmin.status === "active" 
+                          ? "text-green-600 dark:text-green-400" 
+                          : "text-red-600 dark:text-red-400"
+                      }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Statut</p>
+                      <div className="flex items-center mt-1">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          selectedAdmin.status === "active"
+                            ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800"
+                            : "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800"
+                        }`}>
+                          {selectedAdmin.status === "active" ? "Actif" : "Inactif"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Téléphone */}
-                <div
-                  className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md animate__animated animate__fadeIn dark:animate-glow"
-                  style={{ animationDelay: "300ms" }}
-                >
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Téléphone
-                  </h4>
-                  <p className="text-base font-medium text-gray-800 dark:text-gray-200">
-                    {selectedAdmin.phone || (
-                      <span className="text-gray-500 dark:text-gray-400 text-sm italic">
-                        Non renseigné
-                      </span>
-                    )}
-                  </p>
+                <div className="bg-white dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                      <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Téléphone</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+                        {selectedAdmin.phone || (
+                          <span className="text-gray-500 dark:text-gray-400 italic">Non renseigné</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Adresse */}
-                <div
-                  className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md animate__animated animate__fadeIn dark:animate-glow"
-                  style={{ animationDelay: "350ms" }}
-                >
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Adresse
-                  </h4>
-                  <p className="text-base font-medium text-gray-800 dark:text-gray-200">
-                    {selectedAdmin.address || (
-                      <span className="text-gray-500 dark:text-gray-400 text-sm italic">
-                        Non renseignée
-                      </span>
-                    )}
-                  </p>
+                <div className="bg-white dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                      <svg className="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Adresse</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+                        {selectedAdmin.address || (
+                          <span className="text-gray-500 dark:text-gray-400 italic">Non renseignée</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Pied de la modale */}
-            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-              <button
-                onClick={closeDetails}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-lg hover:scale-105"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+            {/* Pied de la modale amélioré */}
+            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                ID: #{selectedAdmin.id}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={closeDetails}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                Fermer
-              </button>
+                  Fermer
+                </button>
+                <button
+                  onClick={closeDetails}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-lg"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Terminé
+                </button>
+              </div>
             </div>
-          </div>
           </div>
         </div>,
         document.body

@@ -154,7 +154,7 @@ const navigationItems = [
     name: "Tableau de suivi",
     href: "/admin/suivi",
     icon: MagnifyingGlassIcon,
-    permission: null,
+    permission: 'manage-monitoring-dashboard',
   },
   {
     name: "FAQ",

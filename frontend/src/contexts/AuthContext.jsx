@@ -52,31 +52,35 @@ import { useToast } from "./ToastContext";
 
 const AuthContext = createContext(null);
 
-// Routes publiques qui ne nécessitent pas d'authentification
-const PUBLIC_ROUTES = [
-  "/",
+// Catégories de routes selon votre logique
+const GUEST_ONLY_ROUTES = [
   "/login",
-  "/register",
+  "/register", 
   "/forgot-password",
   "/reset-password",
   "/verification-success",
   "/verification-error",
-  "/purchase-pack/:id",
+  "/interet"
 ];
 
-// Fonction pour vérifier si une route est publique, y compris les routes dynamiques comme reset-password avec token
-const isPublicRoute = (path) => {
+const ALWAYS_ACCESSIBLE = ["/"];
+
+// Fonction pour vérifier si une route est accessible uniquement aux non-connectés
+const isGuestOnlyRoute = (path) => {
   // Vérification exacte pour les routes statiques
-  if (PUBLIC_ROUTES.includes(path)) {
+  if (GUEST_ONLY_ROUTES.includes(path)) {
     return true;
   }
-
-  // Vérification pour reset-password avec token (format: /reset-password/[token])
+  // Vérification pour reset-password avec token
   if (path.startsWith("/reset-password/")) {
     return true;
   }
-
   return false;
+};
+
+// Fonction pour vérifier si une route est toujours accessible
+const isAlwaysAccessible = (path) => {
+  return ALWAYS_ACCESSIBLE.includes(path);
 };
 
 // Durée d'inactivité avant expiration de session (en millisecondes)
@@ -120,63 +124,54 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       setLoading(true);
       try {
-        // Vérifier si nous sommes sur la page d'inscription avec un code de parrainage
         const currentPath = window.location.pathname;
-        // Utiliser la nouvelle fonction isPublicRoute pour vérifier les routes dynamiques
-        const isPublicRoutePath = isPublicRoute(currentPath);
-
-        // Pour la page d'accueil, vérifier l'authentification mais ne pas rediriger
-        // Cela permet de récupérer l'état d'authentification tout en gardant la page accessible à tous
-
-        if (currentPath === "/") {
+        
+        // Vérifier l'authentification (sauf pour la page d'accueil)
+        let isAuthenticated = false;
+        if (!isAlwaysAccessible(currentPath)) {
+          isAuthenticated = await checkAuth();
+          isAuthenticatedRef.current = isAuthenticated;
+        } else if (isAlwaysAccessible(currentPath)) {
+          // Pour la page d'accueil, vérifier l'auth et mettre à jour l'état
           try {
-            await checkAuth();
+            isAuthenticated = await checkAuth();
+            isAuthenticatedRef.current = isAuthenticated;
+            // Si authentifié, l'état user est déjà mis à jour dans checkAuth()
+            // Si non authentifié, l'état user est déjà null (géré dans checkAuth)
           } catch (error) {
-            console.error(
-              "Erreur lors de la vérification d'authentification sur la page d'accueil:",
-              error
-            );
-          } finally {
-            setLoading(false);
+            // Ignorer les erreurs sur la page d'accueil
+            isAuthenticated = false;
+            isAuthenticatedRef.current = false;
+          }
+        }
+        
+        if (isAuthenticated) {
+          // Si connecté et sur route guest-only -> rediriger vers dashboard
+          // Mais PAS pour la page d'accueil (toujours accessible)
+          if (isGuestOnlyRoute(currentPath)) {
+            const isAdmin = user.is_admin === 1 || user.is_admin === true || user.role === "admin";
+            navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+            return;
+          }
+        } else if (!isAuthenticated) {
+          // Si non connecté et sur route protégée -> rediriger vers login
+          // Mais PAS pour les routes guest-only (elles sont accessibles aux non-connectés)
+          // Et JAMAIS pour la page d'accueil (toujours accessible sans redirection)
+          const shouldRedirectToLogin = !isGuestOnlyRoute(currentPath) && !isAlwaysAccessible(currentPath) && currentPath !== "/";
+          
+          if (shouldRedirectToLogin) {
+            navigate("/login", { replace: true });
             return;
           }
         }
-
-        // Pour les routes d'authentification (login, register, etc.), vérifier si l'utilisateur est déjà connecté
-        const authRoutes = [
-          "/login",
-          "/register",
-          "/forgot-password",
-          "/reset-password",
-          "/verification-success",
-          "/verification-error",
-        ];
-        const isAuthRoute =
-          authRoutes.includes(currentPath) ||
-          currentPath.startsWith("/reset-password/");
-
-        const isAuthenticated = await checkAuth();
-        isAuthenticatedRef.current = isAuthenticated;
-
-        // Si l'utilisateur n'est pas authentifié et tente d'accéder à une route non publique
-        if (!isAuthenticated && !isPublicRoutePath) {
-          // Rediriger vers la page de connexion
+      } catch (error) {
+        // En cas d'erreur, ne PAS rediriger automatiquement
+        // Laisser l'utilisateur accéder aux routes publiques/guest-only
+        // Seules les routes protégées devraient rediriger vers login
+        const currentPath = window.location.pathname;
+        if (!isGuestOnlyRoute(currentPath) && !isAlwaysAccessible(currentPath) && currentPath !== "/") {
           navigate("/login", { replace: true });
         }
-
-        // Si l'utilisateur est authentifié et qu'il est sur une route d'authentification
-        if (isAuthenticated && user) {
-          if (isAuthRoute) {
-            // Rediriger vers le dashboard approprié
-            const isAdmin =
-              user.is_admin === 1 ||
-              user.is_admin === true ||
-              user.role === "admin";
-            navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
-          }
-        }
-      } catch (error) {
-        console.log("Non authentifié");
       } finally {
         setLoading(false);
       }
@@ -318,12 +313,6 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const currentPath = window.location.pathname;
-      // Vérifier si le lien actuel est la page d'accueil
-      if (currentPath === "/") {
-        return true;
-      }
-
       // Ajouter un paramètre pour indiquer que c'est une vérification d'authentification
       // et non une activité utilisateur
       const response = await axios.get("/api/user?check_only=true", {
@@ -333,6 +322,7 @@ export const AuthProvider = ({ children }) => {
           "X-No-Activity-Update": "true",
         },
       });
+
       if (response.data) {
         setUser(response.data);
         isAuthenticatedRef.current = true;

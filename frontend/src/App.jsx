@@ -474,13 +474,16 @@ function App() {
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   const currentPath = window.location.pathname;
-  const authRoutes = [
+  
+  // Routes qui nécessitent une redirection si l'utilisateur est connecté
+  const guestOnlyRoutes = [
     "/login",
-    "/register",
+    "/register", 
     "/forgot-password",
     "/reset-password",
     "/verification-success",
     "/verification-error",
+    "/interet"
   ];
 
   // Attendre que la vérification de l'authentification soit terminée
@@ -497,14 +500,13 @@ const PublicRoute = ({ children }) => {
     return children;
   }
 
-  if (authRoutes.includes(currentPath)) {
-    if (user) {
-      const isAdmin =
-        user.is_admin === 1 || user.is_admin === true || user.role === "admin";
-      return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
-    }
-    return children;
+  // Si l'utilisateur est connecté et sur une route guest-only, rediriger vers dashboard
+  if (guestOnlyRoutes.includes(currentPath) && user) {
+    const isAdmin = user.is_admin === 1 || user.is_admin === true || user.role === "admin";
+    return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
   }
+
+  // Sinon, afficher le composant
   return children;
 };
 

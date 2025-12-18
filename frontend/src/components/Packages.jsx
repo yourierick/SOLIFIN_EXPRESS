@@ -131,7 +131,7 @@ export default function Packages() {
                     slidesPerView: 3,
                   },
                   1280: {
-                    slidesPerView: 4,
+                    slidesPerView: 3,
                   },
                 }}
               >

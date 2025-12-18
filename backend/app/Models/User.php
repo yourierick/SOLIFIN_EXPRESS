@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use App\Notifications\VerifyEmailFrench;
 use App\Models\Role;
 use App\Models\Permission;
+use App\Notifications\ResetPasswordFrench;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -505,5 +506,16 @@ class User extends Authenticatable implements MustVerifyEmail
         }
         
         return true;
+    }
+    
+    /**
+     * Envoyer la notification de réinitialisation de mot de passe personnalisée en français.
+     *
+     * @param string $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordFrench($token));
     }
 }

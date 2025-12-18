@@ -59,7 +59,7 @@ const TransactionFeeSettings = () => {
 
   // États pour la pagination
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
@@ -770,10 +770,10 @@ const TransactionFeeSettings = () => {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Gestion des frais de transaction
+                Gestion des moyens de paiement
               </h2>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-                Configurez les frais pour chaque moyen de paiement
+                Configurez les moyens de paiement
               </p>
             </div>
           </div>
@@ -783,7 +783,7 @@ const TransactionFeeSettings = () => {
             title="Ajouter un moyen de paiement"
           >
             <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-sm sm:text-base">Ajouter des frais</span>
+            <span className="text-sm sm:text-base">Ajouter un moyen de paiement</span>
           </button>
         </div>
       </div>
@@ -907,7 +907,7 @@ const TransactionFeeSettings = () => {
             title="Ajouter un moyen de paiement"
           >
             <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-sm sm:text-base">Ajouter des frais</span>
+            <span className="text-sm sm:text-base">Ajouter un moyen de paiement</span>
           </button>
         </div>
       </div>

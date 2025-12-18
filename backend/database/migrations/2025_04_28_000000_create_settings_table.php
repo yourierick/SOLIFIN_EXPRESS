@@ -107,6 +107,27 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'key' => 'youtube_url',
+                'value' => '',
+                'description' => 'Lien vers la chaîne youtube',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'tiktok_url',
+                'value' => '',
+                'description' => 'Lien vers le compte tiktok',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'linkedIn_url',
+                'value' => '',
+                'description' => 'Lien vers le compte linkedIn_url',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
             // Documents légaux
             [
                 'key' => 'terms_of_use',

@@ -117,6 +117,22 @@ const FIXED_SETTINGS = [
     isText: true,
   },
   {
+    key: "youtube_url",
+    label: "Lien youtube",
+    description: "URL de la chaîne youtube de l'entreprise",
+    placeholder: "https://youtube.com/votrechaine",
+    category: "social",
+    isText: true,
+  },
+  {
+    key: "tiktok_url",
+    label: "Lien tiktok",
+    description: "URL du compte tiktok de l'entreprise",
+    placeholder: "https://tiktok.com/votrechaine",
+    category: "social",
+    isText: true,
+  },
+  {
     key: "whatsapp_url",
     label: "Lien WhatsApp",
     description:
@@ -138,6 +154,14 @@ const FIXED_SETTINGS = [
     label: "Lien Instagram",
     description: "URL du compte Instagram de l'entreprise",
     placeholder: "https://instagram.com/votrecompte",
+    category: "social",
+    isText: true,
+  },
+  {
+    key: "linkedIn_url",
+    label: "Lien LinkedIn",
+    description: "URL du compte LinkedIn de l'entreprise",
+    placeholder: "https://linkedin.com/votrecompte",
     category: "social",
     isText: true,
   },
