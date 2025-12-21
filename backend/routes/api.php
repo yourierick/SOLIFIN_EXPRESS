@@ -303,7 +303,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Routes pour la gestion des pages et publications et files d'actualités
     Route::get('/my-page', [App\Http\Controllers\PageController::class, 'getMyPage']);
-    Route::get('/my-page/advertisements', [App\Http\Controllers\PageController::class, 'getAdvertisements']);
+    Route::get('/my-page/publications', [App\Http\Controllers\PageController::class, 'getAdvertisements']);
     Route::get('/my-page/job-offers', [App\Http\Controllers\PageController::class, 'getJobOffers']);
     Route::get('/my-page/business-opportunities', [App\Http\Controllers\PageController::class, 'getBusinessOpportunities']);
     Route::get('/my-page/digital-products', [App\Http\Controllers\PageController::class, 'getDigitalProducts']);
@@ -629,13 +629,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/digital-products/{id}/approve', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'approve']);
         Route::post('/digital-products/{id}/reject', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'reject']);
         // Routes pour les publicités
-        Route::get('/advertisements', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'index']);
-        Route::get('/advertisements/pending/count', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'pendingCount']);
-        Route::post('/advertisements/{id}/approve', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'approve']);
-        Route::post('/advertisements/{id}/reject', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'reject']);
-        Route::patch('/advertisements/{id}/status', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'updateStatus']);
-        Route::patch('/advertisements/{id}/etat', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'updateEtat']);
-        Route::delete('/advertisements/{id}', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'destroy']);
+        Route::get('/publications', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'index']);
+        Route::get('/publications/pending/count', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'pendingCount']);
+        Route::post('/publications/{id}/approve', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'approve']);
+        Route::post('/publications/{id}/reject', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'reject']);
+        Route::patch('/publications/{id}/status', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'updateStatus']);
+        Route::patch('/publications/{id}/etat', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'updateEtat']);
+        Route::delete('/publications/{id}', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'destroy']);
         
         // Routes pour les offres d'emploi
         Route::get('/job-offers', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'index']);

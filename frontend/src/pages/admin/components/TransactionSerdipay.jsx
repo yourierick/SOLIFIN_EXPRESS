@@ -25,6 +25,7 @@ import {
   CreditCardIcon,
   ClockIcon,
   EyeIcon,
+  XCircleIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   XMarkIcon,
@@ -297,6 +298,9 @@ const TransactionSerdipay = () => {
                 Référence
               </TableCell>
               <TableCell className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                Transaction ID
+              </TableCell>
+              <TableCell className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
                 Utilisateur
               </TableCell>
               <TableCell className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
@@ -338,7 +342,10 @@ const TransactionSerdipay = () => {
                   </div>
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {transaction.reference || 'Non défini'}
+                  {transaction.session_id || 'Non défini'}
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {transaction.transaction_id || 'Non défini'}
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {transaction.user.name || 'Non défini'}
@@ -878,6 +885,27 @@ const TransactionSerdipay = () => {
                           <div className="text-sm">
                             {getTransactionStatusBadge(selectedTransaction.status)}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Session et Transaction IDs */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className={`p-4 rounded-lg ${
+                          isDarkMode ? "bg-gray-800" : "bg-gray-50"
+                        }`}>
+                          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Session ID</h4>
+                          <p className="text-sm font-mono font-semibold text-gray-900 dark:text-white break-all">
+                            {selectedTransaction.session_id || 'Non défini'}
+                          </p>
+                        </div>
+                        
+                        <div className={`p-4 rounded-lg ${
+                          isDarkMode ? "bg-gray-800" : "bg-gray-50"
+                        }`}>
+                          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Transaction ID</h4>
+                          <p className="text-sm font-mono font-semibold text-gray-900 dark:text-white break-all">
+                            {selectedTransaction.transaction_id || 'Non défini'}
+                          </p>
                         </div>
                       </div>
 

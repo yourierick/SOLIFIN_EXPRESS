@@ -89,13 +89,13 @@ export default function Features() {
               isDarkMode ? "text-white" : "text-gray-900"
             }`}
           >
-            Programme de Fidélité{" "}
+            Avantages du{" "}
             <span
               className={`relative inline-block ${
                 isDarkMode ? "text-green-400" : "text-green-600"
               }`}
             >
-              SOLIFIN
+              programme
               <motion.span
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}

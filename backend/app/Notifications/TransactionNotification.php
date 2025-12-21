@@ -71,7 +71,7 @@ class TransactionNotification extends Notification implements ShouldQueue
                 case 'purchase_pack':
                     $packName = $this->transactionData->pack_name ?? 'Pack';
                     $mailMessage->line("Vous avez acheté le pack: {$packName}")
-                        ->line("Votre pack est maintenant actif et vous pouvez commencer à l'utiliser.");
+                        ->line("Votre pack est maintenant actif et opérationnel.");
                     break;
                 case 'renew_pack':
                     $packName = $this->transactionData->pack_name ?? 'Pack';

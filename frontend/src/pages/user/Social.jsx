@@ -22,6 +22,8 @@ import {
   EyeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Bars3Icon,
+  XMarkIcon as CloseIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { formatDistanceToNow } from "date-fns";
@@ -36,6 +38,11 @@ export default function Social() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
+  
+  // Détection de la taille d'écran pour optimisations mobile
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // État pour l'utilisateur courant
   const [currentUser, setCurrentUser] = useState(null);
@@ -93,6 +100,53 @@ export default function Social() {
     fetchReportReasons();
     fetchLikedStatuses();
   }, []);
+
+  // Effet pour détecter la taille d'écran et optimiser l'affichage
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
+      
+      // Fermer le menu mobile sur les grands écrans
+      if (width >= 768) {
+        setShowMobileMenu(false);
+      }
+    };
+
+    // Détecter la taille initiale
+    handleResize();
+    
+    // Ajouter l'écouteur d'événement avec débouncing pour les performances
+    let resizeTimer;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(handleResize, 150);
+    };
+    
+    window.addEventListener('resize', debouncedResize);
+    
+    // Nettoyer l'écouteur
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimer);
+    };
+  }, []);
+
+  // Optimisation des performances sur mobile
+  useEffect(() => {
+    if (isMobile) {
+      // Désactiver les animations complexes sur mobile
+      document.body.style.setProperty('--transition-duration', '0.2s');
+    } else {
+      // Réactiver les animations normales sur desktop
+      document.body.style.setProperty('--transition-duration', '0.3s');
+    }
+    
+    return () => {
+      document.body.style.removeProperty('--transition-duration');
+    };
+  }, [isMobile]);
 
   // Récupérer les statuts aimés par l'utilisateur
   const fetchLikedStatuses = async () => {
@@ -598,13 +652,15 @@ export default function Social() {
     <div
       className={`p-4 rounded-lg shadow-md ${
         isDarkMode ? "bg-gray-800" : "bg-white"
-      }`}
+      } ${isMobile ? "p-3" : "p-4"}`}
     >
-      <div className="flex justify-between items-center mb-4">
+      <div className={`flex justify-between items-center mb-4 ${
+        isMobile ? "mb-3" : "mb-4"
+      }`}>
         <h2
-          className={`text-lg font-medium ${
+          className={`font-medium ${
             isDarkMode ? "text-white" : "text-gray-900"
-          }`}
+          } ${isMobile ? "text-base" : "text-lg"}`}
         >
           Créer un nouveau statut
         </h2>
@@ -614,16 +670,18 @@ export default function Social() {
             setIsCreating(false);
             resetForm();
           }}
-          className="text-gray-400 hover:text-gray-500"
+          className={`text-gray-400 hover:text-gray-500 transition-colors ${
+            isMobile ? "p-1" : ""
+          }`}
         >
-          <XMarkIcon className="h-5 w-5" />
+          <XMarkIcon className={`${isMobile ? "h-6 w-6" : "h-5 w-5"}`} />
         </button>
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Prévisualisation du média */}
+        {/* Prévisualisation du média optimisée pour mobile */}
         {previewUrl && (
-          <div className="relative mb-4">
+          <div className={`relative mb-4 ${isMobile ? "mb-3" : "mb-4"}`}>
             <button
               type="button"
               onClick={() => {
@@ -638,51 +696,63 @@ export default function Social() {
                   videoInputRef.current.value = "";
                 }
               }}
-              className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 rounded-full p-1 text-white"
+              className={`absolute top-2 right-2 bg-gray-800 bg-opacity-70 rounded-full p-1 text-white z-10 ${
+                isMobile ? "top-3 right-3 p-2" : "top-2 right-2 p-1"
+              }`}
             >
-              <XMarkIcon className="h-5 w-5" />
+              <XMarkIcon className={`${isMobile ? "h-5 w-5" : "h-5 w-5"}`} />
             </button>
             {mediaType === "image" ? (
               <img
                 src={previewUrl}
                 alt="Prévisualisation"
-                className="w-full h-64 object-contain rounded-lg"
+                className={`w-full object-contain rounded-lg ${
+                  isMobile ? "h-48" : "h-64"
+                }`}
               />
             ) : mediaType === "video" ? (
               <video
                 src={previewUrl}
-                controls
-                className="w-full h-64 object-contain rounded-lg"
+                controls={isMobile ? false : true}
+                className={`w-full object-contain rounded-lg ${
+                  isMobile ? "h-48" : "h-64"
+                }`}
               />
             ) : null}
           </div>
         )}
 
-        {/* Champ de texte */}
-        <div className="mb-4">
+        {/* Champ de texte optimisé pour mobile */}
+        <div className={`mb-4 ${isMobile ? "mb-3" : "mb-4"}`}>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Que voulez-vous partager ?"
-            className={`w-full px-3 py-2 border rounded-lg ${
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 ${
               isDarkMode
                 ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                 : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-            } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-            rows={4}
+            } ${isMobile ? "text-base py-3" : "text-sm py-2"}`}
+            rows={isMobile ? 3 : 4}
           />
         </div>
 
         {/* Message d'erreur pour les fichiers */}
         {fileError && (
-          <div className="mb-4 text-sm text-red-600 dark:text-red-400">
+          <div className={`mb-4 text-sm text-red-600 dark:text-red-400 ${
+            isMobile ? "mb-3 text-xs" : "mb-4 text-sm"
+          }`}>
             {fileError}
           </div>
         )}
 
-        {/* Boutons d'action */}
-        <div className="flex justify-between">
-          <div className="flex space-x-2">
+        {/* Boutons d'action optimisés pour mobile */}
+        <div className={`flex justify-between ${
+          isMobile ? "flex-col gap-3" : "flex"
+        }`}>
+          <div className={`flex space-x-2 ${
+            isMobile ? "justify-center w-full" : "flex space-x-2"
+          }`}>
             <input
               type="file"
               ref={imageInputRef}
@@ -699,50 +769,70 @@ export default function Social() {
             />
             <button
               type="button"
-              onClick={() => imageInputRef.current.click()}
-              className={`inline-flex items-center p-2 rounded-full ${
+              onClick={() => imageInputRef.current?.click()}
+              className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
                 isDarkMode
-                  ? "bg-gray-700 hover:bg-gray-600"
-                  : "bg-gray-100 hover:bg-gray-200"
-              }`}
-              title="Ajouter une image"
+                  ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              } ${isMobile ? "px-4 py-3 text-sm active:scale-95" : "px-3 py-2 text-sm"}`}
             >
-              <PhotoIcon className="h-5 w-5 text-primary-600" />
+              <PhotoIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-4 w-4"}`} />
+              {isMobile ? "Photo" : "Image"}
             </button>
             <button
               type="button"
-              onClick={() => videoInputRef.current.click()}
-              className={`inline-flex items-center p-2 rounded-full ${
+              onClick={() => videoInputRef.current?.click()}
+              className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
                 isDarkMode
-                  ? "bg-gray-700 hover:bg-gray-600"
-                  : "bg-gray-100 hover:bg-gray-200"
-              }`}
-              title="Ajouter une vidéo (max 5 Mo)"
+                  ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              } ${isMobile ? "px-4 py-3 text-sm active:scale-95" : "px-3 py-2 text-sm"}`}
             >
-              <VideoCameraIcon className="h-5 w-5 text-primary-600" />
+              <VideoCameraIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-4 w-4"}`} />
+              {isMobile ? "Vidéo" : "Vidéo"}
             </button>
           </div>
-          <button
-            type="submit"
-            disabled={isSubmitting || (!selectedFile && !description)}
-            className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-              isSubmitting || (!selectedFile && !description)
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            {isSubmitting ? (
-              <>
-                <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
-                Envoi...
-              </>
-            ) : (
-              <>
-                <CheckIcon className="h-5 w-5 mr-2" />
-                Publier
-              </>
-            )}
-          </button>
+          <div className={`flex space-x-2 ${
+            isMobile ? "justify-center w-full space-x-3" : "flex space-x-2"
+          }`}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreating(false);
+                resetForm();
+              }}
+              className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              } ${isMobile ? "px-6 py-3 text-sm active:scale-95" : "px-4 py-2 text-sm"}`}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || (!description.trim() && !selectedFile)}
+              className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+                isSubmitting || (!description.trim() && !selectedFile)
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              } ${isMobile ? "px-6 py-3 text-sm active:scale-95" : "px-4 py-2 text-sm"}`}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 ${
+                    isMobile ? "h-5 w-5" : "h-4 w-4"
+                  }`}></div>
+                  Publication...
+                </>
+              ) : (
+                <>
+                  <CheckIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-4 w-4"}`} />
+                  Publier
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -1345,7 +1435,7 @@ export default function Social() {
                 togglePause();
               }}
               className="text-white hover:bg-gray-700 p-1 rounded-full transition-colors"
-            >
+              >
               {isPaused ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -1528,12 +1618,17 @@ export default function Social() {
 
   return (
     <>
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="flex justify-between items-center mb-6">
+      <div className={`container mx-auto px-4 py-6 ${
+        isMobile ? "px-3 py-4" : "px-4 py-6"
+      } max-w-4xl`}>
+        {/* En-tête optimisé pour mobile */}
+        <div className={`flex justify-between items-center mb-6 ${
+          isMobile ? "mb-4 flex-col gap-3" : "mb-6"
+        }`}>
           <p
-            className={`text-md font-bold ${
+            className={`font-bold ${
               isDarkMode ? "text-white" : "text-gray-900"
-            }`}
+            } ${isMobile ? "text-sm text-center" : "text-md"}`}
           >
             Un moment, une pensée, une photo. Racontez votre journée à votre
             manière.
@@ -1542,9 +1637,11 @@ export default function Social() {
             <button
               type="button"
               onClick={() => setIsCreating(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className={`inline-flex items-center border border-transparent rounded-md shadow-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+                isMobile ? "px-3 py-2 text-xs w-full justify-center active:scale-95" : "px-4 py-2 text-sm"
+              }`}
             >
-              <PlusIcon className="h-5 w-5 mr-2" />
+              <PlusIcon className={`mr-2 ${isMobile ? "h-4 w-4" : "h-5 w-5"}`} />
               Créer un statut
             </button>
           )}

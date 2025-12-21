@@ -32,14 +32,14 @@ const formatPublishedDate = (dateString) => {
   }
 };
 
-export default function Ads() {
+export default function PublicationsDisplay() {
   const { isDarkMode } = useTheme();
   const { user, loading: authLoading } = useAuth(); // Récupère l'utilisateur et l'état de chargement de l'auth
   const navigate = useNavigate();
-  const [ads, setAds] = useState([]);
+  const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [current, setCurrent] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false); // Pour afficher la modale si non authentifié
   const [isPaused, setIsPaused] = useState(false);
@@ -52,7 +52,7 @@ export default function Ads() {
     publicAxios
       .get("/api/ads/approved")
       .then((response) => {
-        setAds(response.data.ads);
+        setPublications(response.data);
         setLoading(false);
       })
       .catch((error) => {
@@ -66,7 +66,7 @@ export default function Ads() {
   useEffect(() => {
     // Démarrer le défilement automatique seulement si nous avons plus d'une publicité
     // et si aucune vidéo n'est en cours de lecture
-    if (ads?.length > 1 && !isPaused && !showVideo) {
+    if (publications?.length > 1 && !isPaused && !showVideo) {
       // Nettoyer tout intervalle existant
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -74,7 +74,7 @@ export default function Ads() {
 
       // Créer un nouvel intervalle pour changer automatiquement les publicités toutes les 8 secondes
       intervalRef.current = setInterval(() => {
-        nextAd();
+        nextPublication();
       }, 10000); // 10000ms = 10 secondes
     }
 
@@ -84,15 +84,15 @@ export default function Ads() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [ads?.length, isPaused, showVideo]);
+  }, [publications?.length, isPaused, showVideo]);
 
-  const nextAd = () => {
-    setCurrent((prev) => (ads?.length ? (prev + 1) % ads?.length : 0));
+  const nextPublication = () => {
+    setCurrentIndex((prev) => (publications?.length ? (prev + 1) % publications?.length : 0));
   };
 
-  const prevAd = () => {
-    setCurrent((prev) =>
-      ads?.length ? (prev - 1 + ads?.length) % ads?.length : 0
+  const prevPublication = () => {
+    setCurrentIndex((prev) =>
+      publications?.length ? (prev - 1 + publications?.length) % publications?.length : 0
     );
   };
 

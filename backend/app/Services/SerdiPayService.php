@@ -24,20 +24,11 @@ class SerdiPayService
     
     public function __construct()
     {
-        $this->baseUrl = env('SERDIPAY_BASE_TEST_URL', 'https://api.kenzo.serdipay.cloud/api/public-api/v1');
-        $this->apiId = env('SERDIPAY_API_ID');
-        $this->apiPassword = env('SERDIPAY_API_PASSWORD');
-        $this->merchantCode = env('SERDIPAY_MERCHANT_CODE');
-        $this->merchantPin = env('SERDIPAY_MERCHANT_PIN');
-        
-        // // Logger les informations de configuration au démarrage
-        // Log::info('SerdiPay Service Initialization', [
-        //     'base_url' => $this->baseUrl,
-        //     'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown',
-        //     'server_name' => $_SERVER['SERVER_NAME'] ?? 'unknown',
-        //     'http_host' => $_SERVER['HTTP_HOST'] ?? 'unknown',
-        //     'domain' => env('APP_URL', 'unknown'),
-        // ]);
+        $this->baseUrl = config('app.serdipay_base_url', 'https://api.kenzo.serdipay.cloud/api/public-api/v1');
+        $this->apiId = config('app.serdipay_api_id');
+        $this->apiPassword = config('app.serdipay_api_password');
+        $this->merchantCode = config('app.serdipay_merchant_code');
+        $this->merchantPin = config('app.serdipay_merchant_pin');
         
         // Initialiser le client Guzzle avec des options par défaut
         $this->client = new Client([
@@ -244,10 +235,10 @@ class SerdiPayService
             // Logger le payload avant l'envoi
             Log::info('SerdiPay payment payload', [
                 'payload' => $payload,
-                'endpoint' => $this->baseUrl . '/merchant/payment-client',
+                'endpoint' => $this->baseUrl . '/merchant/payment-merchant',
             ]);
             
-            $response = $this->client->request('POST', $this->baseUrl . '/merchant/payment-client', [
+            $response = $this->client->request('POST', $this->baseUrl . '/merchant/payment-merchant', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token
                 ],
@@ -278,7 +269,7 @@ class SerdiPayService
                     'payment_type' => $paymentType,
                     'amount' => $amount,
                     'currency' => $currency,
-                    'session_id' => $responseData['sessionId'],
+                    'session_id' => $responseData['payment']['sessionId'],
                     'reference' => $reference,
                     'type' => 'payment',
                     'direction' => 'client_to_merchant',
@@ -390,7 +381,7 @@ class SerdiPayService
         try {
             Log::info('SerdiPay callback processing', $callbackData);
             
-            $status = $callbackData['status'] ?? null;
+            $status = $callbackData['payment']['status'] ?? null;
             $message = $callbackData['message'] ?? null;
             $sessionId = $callbackData['payment']['sessionId'] ?? null;
             $paymentStatus = $callbackData['payment']['status'] ?? null;
@@ -578,6 +569,8 @@ class SerdiPayService
     {
         $token = $this->getAuthToken();
         
+        \Log::info($paymentMethod);
+        
         if (!$token) {
             return [
                 'success' => false,
@@ -653,7 +646,7 @@ class SerdiPayService
             ]);
             
             // Créer une transaction dans la base de données
-            if ($statusCode === 200 && isset($responseData['sessionId'])) {
+            if ($statusCode === 200 && isset($responseData['payment']['sessionId'])) {
                 SerdiPayTransaction::create([
                     'user_id' => $userId,
                     'wallet_id' => $walletId,
@@ -663,7 +656,7 @@ class SerdiPayService
                     'payment_type' => 'mobile_money',
                     'amount' => $amount,
                     'currency' => $currency,
-                    'session_id' => $responseData['sessionId'],
+                    'session_id' => $responseData['payment']['sessionId'],
                     'reference' => $reference,
                     'type' => 'withdrawal',
                     'direction' => 'merchant_to_client',
@@ -679,7 +672,7 @@ class SerdiPayService
                     'success' => true,
                     'message' => 'Retrait initié avec succès',
                     'code' => 'withdrawal_initiated',
-                    'session_id' => $responseData['sessionId'] ?? null,
+                    'session_id' => $responseData['payment']['sessionId'] ?? null,
                     'data' => $responseData
                 ];
             } else if ($statusCode === 102) {
@@ -687,7 +680,7 @@ class SerdiPayService
                     'success' => true,
                     'message' => 'Retrait en cours de traitement',
                     'code' => 'withdrawal_processing',
-                    'session_id' => $responseData['sessionId'] ?? null,
+                    'session_id' => $responseData['payment']['sessionId'] ?? null,
                     'data' => $responseData
                 ];
             } else {

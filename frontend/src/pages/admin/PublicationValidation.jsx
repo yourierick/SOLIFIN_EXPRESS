@@ -23,10 +23,10 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function AdvertisementValidation() {
+export default function PublicationValidation() {
   const { isDarkMode } = useTheme();
   const [allItems, setAllItems] = useState({
-    advertisements: [],
+    publications: [],
     jobOffers: [],
     businessOpportunities: [],
     socialEvents: [],
@@ -40,7 +40,7 @@ export default function AdvertisementValidation() {
 
   // États pour la pagination backend
   const [pagination, setPagination] = useState({
-    advertisements: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
+    publications: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
     jobOffers: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
     businessOpportunities: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
     socialEvents: { currentPage: 1, totalPages: 1, total: 0, itemsPerPage: 10 },
@@ -50,8 +50,8 @@ export default function AdvertisementValidation() {
   // Compteurs pour les publications en attente
   const pendingCounts = useMemo(
     () => ({
-      advertisements: Array.isArray(allItems.advertisements?.data)
-        ? allItems.advertisements.data.filter((item) => item.statut === "en_attente")
+      publications: Array.isArray(allItems.publications?.data)
+        ? allItems.publications.data.filter((item) => item.statut === "en_attente")
             .length
         : 0,
       jobOffers: Array.isArray(allItems.jobOffers?.data)
@@ -76,7 +76,7 @@ export default function AdvertisementValidation() {
     [allItems]
   );
   const [filters, setFilters] = useState({
-    advertisements: { statut: "all", etat: "all" },
+    publications: { statut: "all", etat: "all" },
     jobOffers: { statut: "all", etat: "all" },
     businessOpportunities: { statut: "all", etat: "all" },
     socialEvents: { statut: "all", etat: "all" },
@@ -98,7 +98,7 @@ export default function AdvertisementValidation() {
   // Recharger les données lorsque les filtres changent
   useEffect(() => {
     // Ne pas appeler fetchData au premier chargement (déjà fait par fetchAllItems)
-    if (pagination.advertisements.currentPage === 1 && 
+    if (pagination.publications.currentPage === 1 && 
         pagination.jobOffers.currentPage === 1 && 
         pagination.businessOpportunities.currentPage === 1 && 
         pagination.socialEvents.currentPage === 1 && 
@@ -121,7 +121,7 @@ export default function AdvertisementValidation() {
     // Pour les changements de page, appeler fetchData
     fetchData();
   }, [
-    pagination.advertisements.currentPage,
+    pagination.publications.currentPage,
     pagination.jobOffers.currentPage,
     pagination.businessOpportunities.currentPage,
     pagination.socialEvents.currentPage,
@@ -136,7 +136,7 @@ export default function AdvertisementValidation() {
 
   // Fonction pour changer de page
   const changePage = (type, newPage) => {
-    const paginationKey = type === "advertisement" ? "advertisements" :
+    const paginationKey = type === "publication" ? "publications" :
                          type === "jobOffer" ? "jobOffers" :
                          type === "businessOpportunity" ? "businessOpportunities" :
                          type === "digitalProduct" ? "digitalProducts" : "socialEvents";
@@ -164,7 +164,7 @@ export default function AdvertisementValidation() {
     }));
     
     // Réinitialiser la page à 1 lors du changement de filtre
-    const paginationKey = type === "advertisement" ? "advertisements" :
+    const paginationKey = type === "publication" ? "publications" :
                          type === "jobOffer" ? "jobOffers" :
                          type === "businessOpportunity" ? "businessOpportunities" :
                          type === "digitalProduct" ? "digitalProducts" : "socialEvents";
@@ -183,13 +183,13 @@ export default function AdvertisementValidation() {
     setIsLoading(true);
     try {
       const [
-        advertisementsRes,
+        publicationsRes,
         jobOffersRes,
         businessOpportunitiesRes,
         socialEventsRes,
         digitalProductsRes,
       ] = await Promise.all([
-        axios.get(`/api/admin/advertisements?page=${pagination.advertisements.currentPage}&per_page=${pagination.advertisements.itemsPerPage}&statut=${filters.advertisements.statut}&etat=${filters.advertisements.etat}`),
+        axios.get(`/api/admin/publications?page=${pagination.publications.currentPage}&per_page=${pagination.publications.itemsPerPage}&statut=${filters.publications.statut}&etat=${filters.publications.etat}`),
         axios.get(`/api/admin/job-offers?page=${pagination.jobOffers.currentPage}&per_page=${pagination.jobOffers.itemsPerPage}&statut=${filters.jobOffers.statut}&etat=${filters.jobOffers.etat}`),
         axios.get(`/api/admin/business-opportunities?page=${pagination.businessOpportunities.currentPage}&per_page=${pagination.businessOpportunities.itemsPerPage}&statut=${filters.businessOpportunities.statut}&etat=${filters.businessOpportunities.etat}`),
         axios.get(`/api/admin/social-events?page=${pagination.socialEvents.currentPage}&per_page=${pagination.socialEvents.itemsPerPage}&statut=${filters.socialEvents.statut}&etat=${filters.socialEvents.etat}`),
@@ -198,7 +198,7 @@ export default function AdvertisementValidation() {
 
       // Mettre à jour les données et la pagination
       setAllItems({
-        advertisements: advertisementsRes.data.advertisements,
+        publications: publicationsRes.data.publications,
         jobOffers: jobOffersRes.data.jobOffers,
         businessOpportunities: businessOpportunitiesRes.data.businessOpportunities,
         socialEvents: socialEventsRes.data.socialEvents,
@@ -208,11 +208,11 @@ export default function AdvertisementValidation() {
       // Mettre à jour les états de pagination
       setPagination(prev => ({
         ...prev,
-        advertisements: {
-          ...prev.advertisements,
-          currentPage: advertisementsRes.data.advertisements.current_page,
-          totalPages: advertisementsRes.data.advertisements.last_page,
-          total: advertisementsRes.data.advertisements.total,
+        publications: {
+          ...prev.publications,
+          currentPage: publicationsRes.data.publications.current_page,
+          totalPages: publicationsRes.data.publications.last_page,
+          total: publicationsRes.data.publications.total,
         },
         jobOffers: {
           ...prev.jobOffers,
@@ -250,8 +250,8 @@ export default function AdvertisementValidation() {
   // Fonction pour obtenir les éléments à afficher (données déjà paginées par le backend)
   const getItemsForType = (type) => {
     switch (type) {
-      case "advertisement":
-        return allItems.advertisements?.data || [];
+      case "publication":
+        return allItems.publications?.data || [];
       case "jobOffer":
         return allItems.jobOffers?.data || [];
       case "businessOpportunity":
@@ -267,7 +267,7 @@ export default function AdvertisementValidation() {
 
   // Fonction pour obtenir les informations de pagination pour un type
   const getPaginationInfo = (type) => {
-    const paginationKey = type === "advertisement" ? "advertisements" :
+    const paginationKey = type === "publication" ? "publications" :
                          type === "jobOffer" ? "jobOffers" :
                          type === "businessOpportunity" ? "businessOpportunities" :
                          type === "digitalProduct" ? "digitalProducts" : "socialEvents";
@@ -332,9 +332,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (type) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${id}/approve`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${id}/approve`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${id}/approve`;
@@ -371,9 +371,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (type) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${id}/etat`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${id}/etat`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${id}/etat`;
@@ -411,9 +411,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (type) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${id}/status`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${id}/status`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${id}/status`;
@@ -460,9 +460,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (type) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${id}`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${id}`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${id}`;
@@ -508,9 +508,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (selectedItemType) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${selectedItem.id}/reject`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${selectedItem.id}/reject`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${selectedItem.id}/reject`;
@@ -973,9 +973,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (selectedItemType) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${id}/reject`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${id}/reject`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${id}/reject`;
@@ -1022,9 +1022,9 @@ export default function AdvertisementValidation() {
       let stateKey = "";
 
       switch (selectedItemType) {
-        case "advertisement":
-          endpoint = `/api/admin/advertisements/${id}/status`;
-          stateKey = "advertisements";
+        case "publication":
+          endpoint = `/api/admin/publications/${id}/status`;
+          stateKey = "publications";
           break;
         case "jobOffer":
           endpoint = `/api/admin/job-offers/${id}/status`;
@@ -1064,7 +1064,7 @@ export default function AdvertisementValidation() {
 
   // Composant de filtres pour chaque type
   const FilterControls = ({ type, typeLabel }) => {
-    const currentType = type === "advertisements" ? "advertisement" :
+    const currentType = type === "publications" ? "publication" :
                          type === "jobOffers" ? "jobOffer" :
                          type === "businessOpportunities" ? "businessOpportunity" :
                          type === "digitalProducts" ? "digitalProduct" : "socialEvent";
@@ -1119,7 +1119,7 @@ export default function AdvertisementValidation() {
     // Déterminer le type de publication pour le modal
     let postType = "";
     switch (selectedItemType) {
-      case "advertisement":
+      case "publication":
         postType = "publicites";
         break;
       case "jobOffer":
@@ -1350,9 +1350,9 @@ export default function AdvertisementValidation() {
                 }
               >
                 <div className="relative flex items-center justify-center">
-                  {pendingCounts.advertisements > 0 && (
+                  {pendingCounts.publications > 0 && (
                     <span className="absolute -top-1.5 sm:-top-2 -right-1.5 sm:-right-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
-                      {pendingCounts.advertisements}
+                      {pendingCounts.publications}
                     </span>
                   )}
                   Publicités
@@ -1450,9 +1450,9 @@ export default function AdvertisementValidation() {
                 </div>
               ) : (
                 <>
-                  <FilterControls type="advertisements" typeLabel="publicité" />
-                  {renderItemList("advertisement")}
-                  <Pagination type="advertisement" />
+                  <FilterControls type="publications" typeLabel="publicité" />
+                  {renderItemList("publication")}
+                  <Pagination type="publication" />
                 </>
               )}
             </Tab.Panel>

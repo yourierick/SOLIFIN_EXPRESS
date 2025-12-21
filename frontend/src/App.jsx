@@ -76,8 +76,8 @@ const FaqManagement = lazy(() => import("./pages/admin/FaqManagement"));
 const CadeauxManagement = lazy(() =>
   import("./pages/admin/components/CadeauxManagement")
 );
-const AdvertisementValidation = lazy(() =>
-  import("./pages/admin/AdvertisementValidation")
+const PublicationValidation = lazy(() =>
+  import("./pages/admin/PublicationValidation")
 );
 const Commissions = lazy(() => import("./pages/admin/Commissions"));
 const TestimonialManagement = lazy(() =>
@@ -114,6 +114,7 @@ const WithdrawalRequests = lazy(() =>
 );
 import PrefetchManager from "./components/PrefetchManager";
 import ServiceWorkerUpdater from "./components/ServiceWorkerUpdater";
+import AdBlockDetector from "./components/AdBlockDetector";
 
 function App() {
   return (
@@ -122,6 +123,7 @@ function App() {
         <ChatProvider>
           <BroadcastProvider>
             <div>
+              <AdBlockDetector />
               <ToastContainer />
               <ChatInterface />
               <PrefetchManager />

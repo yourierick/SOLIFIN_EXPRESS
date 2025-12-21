@@ -169,11 +169,35 @@ export default defineConfig({
             "video-react",
           ],
         },
-        // Optimiser le format des noms de fichiers de sortie
+        // Optimiser le format des noms de fichiers de sortie pour éviter la détection
         entryFileNames: "assets/[name]-[hash].js",
-        chunkFileNames: "assets/[name]-[hash].js",
-        assetFileNames: "assets/[name]-[hash].[ext]",
+        chunkFileNames: "assets/chunk-[hash].js",
+        assetFileNames: "assets/[hash].[ext]",
+        // Obfusquer les noms de fonctions et variables dans le build
+        minifyInternalExports: true,
       },
+      // Configuration pour éviter la détection par les bloqueurs
+      plugins: [
+        // Plugin pour remplacer les termes sensibles dans le code
+        {
+          name: 'anti-adblock',
+          generateBundle(options, bundle) {
+            // Remplacer les termes sensibles dans les fichiers générés
+            Object.keys(bundle).forEach(fileName => {
+              if (fileName.endsWith('.js')) {
+                const chunk = bundle[fileName];
+                if (chunk.type === 'chunk') {
+                  chunk.code = chunk.code
+                    .replace(/ads/g, 'publications')
+                    .replace(/advertisement/g, 'promotion')
+                    .replace(/banner/g, 'showcase')
+                    .replace(/sponsor/g, 'partner');
+                }
+              }
+            });
+          }
+        }
+      ]
     },
   },
   // Optimiser le cache des dépendances

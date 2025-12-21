@@ -189,7 +189,7 @@ export default function MyPage() {
   }, []);
 
   const [publications, setPublications] = useState({
-    advertisements: [],
+    publications: [],
     jobOffers: [],
     businessOpportunities: [],
     digitalProducts: [],
@@ -385,7 +385,7 @@ export default function MyPage() {
 
   // États pour la pagination
   const [pagination, setPagination] = useState({
-    advertisements: { currentPage: 1, itemsPerPage: 3 },
+    publications: { currentPage: 1, itemsPerPage: 3 },
     jobOffers: { currentPage: 1, itemsPerPage: 3 },
     businessOpportunities: { currentPage: 1, itemsPerPage: 3 },
     digitalProducts: { currentPage: 1, itemsPerPage: 3 },
@@ -444,7 +444,7 @@ export default function MyPage() {
         
         // Mettre à jour les publications avec les données de base
         const updatedPublications = {
-          advertisements: basicResponse.data.page.publicites || [],
+          publications: basicResponse.data.page.publicites || [],
           jobOffers: basicResponse.data.page.offres_emploi || [],
           businessOpportunities: basicResponse.data.page.opportunites_affaires || [],
           digitalProducts: basicResponse.data.page.produits_numeriques || [],
@@ -487,8 +487,8 @@ export default function MyPage() {
       // Ajouter le type de données à charger selon l'onglet actif
       let endpoint = `/api/my-page`;
       switch (activeTab) {
-        case 'advertisements':
-          endpoint = `/api/my-page/advertisements`;
+        case 'publications':
+          endpoint = `/api/my-page/publications`;
           break;
         case 'jobOffers':
           endpoint = `/api/my-page/job-offers`;
@@ -513,10 +513,10 @@ export default function MyPage() {
       
       // Mise à jour spécifique selon l'onglet
       switch (activeTab) {
-        case 'advertisements':
+        case 'publications':
           setPublications(prev => ({
             ...prev,
-            advertisements: response.data.advertisements || []
+            publications: response.data.publications || []
           }));
           break;
         case 'jobOffers':
@@ -672,7 +672,7 @@ export default function MyPage() {
 
       // Mettre à jour toutes les publications avec les données fraîches de l'API
       setPublications({
-        advertisements: pageResponse.data.page.publicites || [],
+        publications: pageResponse.data.page.publicites || [],
         jobOffers: pageResponse.data.page.offres_emploi || [],
         businessOpportunities:
           pageResponse.data.page.opportunites_affaires || [],
@@ -812,10 +812,10 @@ export default function MyPage() {
       .then((response) => {
         // Mettre à jour l'état local en fonction du type de publication
         switch (type) {
-          case "advertisement":
+          case "publication":
             setPublications((prev) => ({
               ...prev,
-              advertisements: prev.advertisements.map((ad) =>
+              publications: prev.publications.map((ad) =>
                 ad.id === id ? { ...ad, etat: newState } : ad
               ),
             }));
@@ -961,8 +961,8 @@ export default function MyPage() {
     }
 
     // Charger les publicités par défaut au chargement (un seul appel)
-    setActiveTab('advertisements');
-    loadTabData('advertisements');
+    setActiveTab('publications');
+    loadTabData('publications');
     
     fetchCatalogProducts();
   }, [user.id]);
@@ -1021,8 +1021,8 @@ export default function MyPage() {
       const { id, type } = deleteInfo;
       let endpoint = "";
       switch (type) {
-        case "advertisement":
-          endpoint = `/api/advertisements/${id}`;
+        case "publication":
+          endpoint = `/api/publications/${id}`;
           break;
         case "jobOffer":
           endpoint = `/api/job-offers/${id}`;
@@ -1042,10 +1042,10 @@ export default function MyPage() {
 
       // Mettre à jour l'état local
       switch (type) {
-        case "advertisement":
+        case "publication":
           setPublications((prev) => ({
             ...prev,
-            advertisements: prev.advertisements.filter((ad) => ad.id !== id),
+            publications: prev.publications.filter((ad) => ad.id !== id),
           }));
           break;
         case "jobOffer":
@@ -1087,8 +1087,8 @@ export default function MyPage() {
     try {
       let endpoint = "";
       switch (type) {
-        case "advertisement":
-          endpoint = `/api/advertisements/${id}/etat`;
+        case "publication":
+          endpoint = `/api/publications/${id}/etat`;
           break;
         case "jobOffer":
           endpoint = `/api/job-offers/${id}/etat`;
@@ -1108,10 +1108,10 @@ export default function MyPage() {
 
       // Mettre à jour l'état local
       switch (type) {
-        case "advertisement":
+        case "publication":
           setPublications((prev) => ({
             ...prev,
-            advertisements: prev.advertisements.map((ad) =>
+            publications: prev.publications.map((ad) =>
               ad.id === id ? { ...ad, etat: newState } : ad
             ),
           }));
@@ -1155,7 +1155,7 @@ export default function MyPage() {
   // Fonction pour obtenir le chemin API en fonction du type de publication
   const getPublicationTypeApiPath = (type) => {
     switch (type) {
-      case "advertisement":
+      case "publication":
         return "publicites";
       case "jobOffer":
         return "offres-emploi";
@@ -1177,9 +1177,9 @@ export default function MyPage() {
       let paginationType = "";
 
       switch (type) {
-        case "advertisement":
-          items = publications.advertisements || [];
-          paginationType = "advertisements";
+        case "publication":
+          items = publications.publications || [];
+          paginationType = "publications";
           break;
         case "jobOffer":
           items = publications.jobOffers || [];
@@ -1273,8 +1273,8 @@ export default function MyPage() {
     const getCurrentPage = (type) => {
       let paginationType = "";
       switch (type) {
-        case "advertisement":
-          paginationType = "advertisements";
+        case "publication":
+          paginationType = "publications";
           break;
         case "jobOffer":
           paginationType = "jobOffers";
@@ -1306,7 +1306,7 @@ export default function MyPage() {
       dateRange: "tous",
     });
     setPagination((prev) => ({
-      advertisements: { ...prev.advertisements, currentPage: 1 },
+      publications: { ...prev.publications, currentPage: 1 },
       jobOffers: { ...prev.jobOffers, currentPage: 1 },
       businessOpportunities: { ...prev.businessOpportunities, currentPage: 1 },
       digitalProducts: { ...prev.digitalProducts, currentPage: 1 },
@@ -1571,7 +1571,7 @@ export default function MyPage() {
         isMobile ? "rounded-2xl" : "rounded-3xl"
       } bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 shadow-xl tabs-container`}>
         <Tab.Group onChange={(index) => {
-          const tabTypes = ['advertisements', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
+          const tabTypes = ['publications', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
           if (index < tabTypes.length) {
             loadTabData(tabTypes[index]);
           }
@@ -1808,7 +1808,7 @@ export default function MyPage() {
             </button>
           </div>
           <Tab.Panels>
-            {/* Advertisements Panel */}
+            {/* publications Panel */}
             <Tab.Panel className={`${isMobile ? "p-2" : "p-4"}`}>
               <SubTabsPanel
                 tabs={[
@@ -1849,7 +1849,7 @@ export default function MyPage() {
                               <span className="font-medium">{isMobile ? "Actualiser" : "Actualiser"}</span>
                             </button>
                             <button
-                              onClick={() => handleFormOpen("advertisement")}
+                              onClick={() => handleFormOpen("publication")}
                               className={`group flex items-center ${
                                 isMobile
                                   ? "gap-2 px-3 py-2 text-xs flex-1 justify-center"
@@ -1900,7 +1900,7 @@ export default function MyPage() {
                         ) : (
                           <>
                             {/* Tableau des publicités */}
-                            {getFilteredPublications("advertisement", false).length === 0 ? (
+                            {getFilteredPublications("publication", false).length === 0 ? (
                               <Alert severity="info" sx={{ mb: 2 }}>
                                 {searchTerm ||
                                 filters.statut !== "tous" ||
@@ -1974,7 +1974,7 @@ export default function MyPage() {
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {getFilteredPublications("advertisement", false).map((ad) => (
+                                    {getFilteredPublications("publication", false).map((ad) => (
                                       <TableRow
                                         key={ad.id}
                                         sx={{
@@ -2085,7 +2085,7 @@ export default function MyPage() {
                                             <Tooltip title="Voir les détails" arrow>
                                               <IconButton
                                                 size="small"
-                                                onClick={() => handleViewDetails(ad, "advertisement")}
+                                                onClick={() => handleViewDetails(ad, "publication")}
                                                 sx={{
                                                   color: isDarkMode ? "#60a5fa" : "#2563eb",
                                                   bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
@@ -2100,7 +2100,7 @@ export default function MyPage() {
                                             <Tooltip title="Modifier" arrow>
                                               <IconButton
                                                 size="small"
-                                                onClick={() => handleEdit(ad, "advertisement")}
+                                                onClick={() => handleEdit(ad, "publication")}
                                                 sx={{
                                                   color: isDarkMode ? "#34d399" : "#059669",
                                                   bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
@@ -2115,7 +2115,7 @@ export default function MyPage() {
                                             <Tooltip title="Supprimer" arrow>
                                               <IconButton
                                                 size="small"
-                                                onClick={() => handleDeleteConfirm(ad.id, "advertisement")}
+                                                onClick={() => handleDeleteConfirm(ad.id, "publication")}
                                                 sx={{
                                                   color: isDarkMode ? "#f87171" : "#dc2626",
                                                   bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
@@ -3838,7 +3838,7 @@ export default function MyPage() {
                 } font-medium text-gray-900 dark:text-white`}
               >
                 {isEditMode ? "Modifier" : "Créer"}{" "}
-                {currentFormType === "advertisement" && "une publicité"}
+                {currentFormType === "publication" && "une publicité"}
                 {currentFormType === "jobOffer" && "une offre d'emploi"}
                 {currentFormType === "businessOpportunity" &&
                   "une opportunité d'affaires"}

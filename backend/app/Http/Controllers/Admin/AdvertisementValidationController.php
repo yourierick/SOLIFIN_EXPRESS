@@ -83,7 +83,7 @@ class AdvertisementValidationController extends Controller
             });
             
             return response()->json([
-                'advertisements' => $ads
+                'publications' => $ads
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erreur lors de la récupération des publicités', 'error' => $e->getMessage()], 500);

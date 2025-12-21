@@ -318,7 +318,8 @@ class SettingsController extends Controller
             if ($search) {
                 $query->where(function($q) use ($search) {
                     $q->where('id', 'like', "%{$search}%")
-                      ->orWhere('reference', 'like', "%{$search}%")
+                      ->orWhere('session_id', 'like', "%{$search}%")
+                      ->orWhere('transaction_id', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
                       ->orWhere('phone_number', 'like', "%{$search}%")
                       ->orWhereHas('user', function($userQuery) use ($search) {
@@ -536,7 +537,7 @@ class SettingsController extends Controller
             
             // Définir les en-têtes
             $headers = [
-                'ID', 'Référence', 'Utilisateur', 'Email', 'Téléphone', 
+                'ID', 'Référence', 'Session ID', 'Transaction ID', 'Utilisateur', 'Email', 'Téléphone', 
                 'Montant', 'Devise', 'Méthode de paiement', 'Type', 'Type de paiement',
                 'Direction', 'Statut', 'Date de création', 'Date de mise à jour'
             ];
@@ -547,6 +548,8 @@ class SettingsController extends Controller
                 $data[] = [
                     $transaction->id,
                     $transaction->reference ?? 'Non défini',
+                    $transaction->session_id ?? 'Non défini',
+                    $transaction->transaction_id ?? 'Non défini',
                     $transaction->user ? $transaction->user->name : 'Non défini',
                     $transaction->email ?? 'Non défini',
                     $transaction->phone_number ?? 'Non défini',

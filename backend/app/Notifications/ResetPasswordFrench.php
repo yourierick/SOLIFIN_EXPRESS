@@ -40,7 +40,7 @@ class ResetPasswordFrench extends Notification implements ShouldQueue
             ->line('Ce lien de réinitialisation expirera dans ' . config('auth.passwords.users.expire', 60) . ' minutes.')
             ->line('Si vous n\'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email en toute sécurité.')
             ->line('Pour des raisons de sécurité, ne partagez jamais ce lien avec personne.')
-            ->salutation('Cordialement,<br>L\'équipe SOLIFIN EXPRESS')
+            ->salutation('Cordialement,<br>L\'équipe SOLIFIN')
             ->line('📧 Pour toute assistance, contactez notre service client');
     }
 }

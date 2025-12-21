@@ -45,7 +45,7 @@ import Testimonials from "../components/Testimonials";
 import FAQ from "../components/FAQ";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import Ads from "../components/Ads";
+import PublicationsWrapper from "../components/PublicationsWrapper";
 import ThemeToggle from "../components/ThemeToggle";
 import SectionDivider from "../components/SectionDivider";
 import AboutSolifin from "../components/AboutSolifin";
@@ -135,7 +135,7 @@ export default function Homepage() {
         </section>
         <SectionDivider />
         <section id="ads">
-          <Ads />
+          <PublicationsWrapper />
         </section>
         <SectionDivider />
         <section id="packages">

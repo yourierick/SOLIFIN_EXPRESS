@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Wallet;
 use App\Models\User;
 use App\Models\Pack;
+use App\Models\PurchaseTemp;
 use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
 use App\Models\Setting;
@@ -15,6 +16,7 @@ use App\Models\WalletTransaction;
 use App\Models\WalletSystemTransaction;
 use App\Models\SerdiPayTransaction;
 use App\Models\UserPack;
+use App\Notifications\PaymentInitiatedNotification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +33,7 @@ class SerdiPayController extends Controller
     const STATUS_FAILED = 'failed';
     const STATUS_COMPLETED = 'completed';
     const STATUS_INITIATED = 'initiated';
+    const STATUS_APPROVED = 'approved';
 
     public function __construct(SerdiPayService $serdiPayService)
     {
@@ -45,17 +48,8 @@ class SerdiPayController extends Controller
      */
     public function initialWithdrawal($withdrawal)
     {
-        $walletTransaction = $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('withdrawal_request_id', $withdrawal->id)->first();
+        $walletTransaction = $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->first();
         try {
-            // Vérifier que la demande est bien approuvée
-            if ($withdrawal->status !== self::STATUS_APPROVED) {
-                return [
-                    'success' => false,
-                    'message' => 'La demande de retrait doit être approuvée avant de pouvoir initialiser le paiement',
-                    'status_code' => 400
-                ];
-            }
-            
             // Récupérer les informations nécessaires depuis la demande de retrait
             $phoneNumber = $withdrawal->payment_details['phoneNumber'] ?? null;
             $amount = $withdrawal->payment_details['montant_a_retirer'];
@@ -73,7 +67,7 @@ class SerdiPayController extends Controller
 
             // Préparer les détails de paiement en fonction du type
             $paymentDetails = [];
-            if ($paymentMethod === 'mobile-money') {
+            if ($payment_type === 'mobile-money') {
                 // Pour mobile money, extraire le numéro de téléphone
                 if (empty($phoneNumber)) {
                     return [
@@ -112,7 +106,8 @@ class SerdiPayController extends Controller
             $paymentDetails['phoneNumber'] = $withdrawal->payment_details['phoneNumber'] ?? null;
             $paymentDetails['amount'] = $withdrawal->payment_details['montant_a_retirer'] ?? null;
             $paymentDetails['currency'] = $withdrawal->currency;
-            $paymentDetails['paymentMethod'] = $this->mapPaymentMethodToSerdiPay($withdrawal->payment_method);
+            $paymentDetails['payment_method'] = $methode_paiement;
+            $paymentDetails['payment_type'] = $payment_type;
             $paymentDetails['userId'] = $withdrawal->user_id ?? null;
             $paymentDetails['walletId'] = $withdrawal->user->wallet->id ?? null;
             $paymentDetails['email'] = $withdrawal->user->email ?? null;
@@ -146,6 +141,7 @@ class SerdiPayController extends Controller
 
             $withdrawal->session_id = $result['session_id'];
             $withdrawal->transaction_id = $result['transaction_id'];
+            $withdrawal->status = self::STATUS_APPROVED;
             $withdrawal->payment_status = self::STATUS_INITIATED;
             $withdrawal->save();
                 
@@ -341,9 +337,9 @@ class SerdiPayController extends Controller
     {
         return [
             'phoneNumber' => $data['phoneNumber'] ?? null,
-            'amount' => round(round($data['amount'], 2) + round($data['fees'] ?? 0, 2)),
+            'amount' => round($data['amount'], 2),
             'currency' => $data['currency'],
-            'paymentMethod' => $this->mapPaymentMethodToSerdiPay($data['payment_method']),
+            'paymentMethod' => $data['payment_method'],
             'userId' => $data['user_id'] ?? null,
             'walletId' => $data['wallet_id'] ?? null,
             'email' => $data['email'] ?? null,
@@ -545,7 +541,7 @@ class SerdiPayController extends Controller
             if (!$feesResult['transactionFeeModel']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cette méthode de paiement n\'est pas disponible'
+                    'message' => 'Cette méthode de paiement n\'est pas disponible pour le moment'
                 ], 404);
             }
             
@@ -675,7 +671,7 @@ class SerdiPayController extends Controller
                     'pack_id' => isset($pack) ? $pack->id : null,
                     'duration_months' => $validated['duration_months'] ?? null,
                     'referral_code' => $validated['referralCode'] ?? null,
-                    'amount' => $validated['amount'],
+                    'amount' => $totalAmount,
                     'fees' => $frais_de_transaction,
                     'currency' => $validated['currency'],
                     'payment_method' => $validated['payment_method'],
@@ -736,6 +732,18 @@ class SerdiPayController extends Controller
                         'session_id' => $result['session_id'] ?? null,
                         'transaction_id' => $result['transaction_id'] ?? null
                     ]);
+                
+                // Envoyer la notification de paiement initié
+                $purchaseTemp = PurchaseTemp::where('id', $id)->first();
+                if ($purchaseTemp && !empty($purchaseTemp->user_id)) {
+                    $user->notify(new PaymentInitiatedNotification(
+                        $purchaseTemp->purchase_data['amount'] ?? 0,
+                        $purchaseTemp->purchase_data['currency'] ?? 'USD',
+                        $result['session_id'] ?? null,
+                        $result['transaction_id'] ?? null,
+                        $purchaseTemp->transaction_type
+                    ));
+                }
                 
                 // Retourner la réponse avec les informations nécessaires pour le frontend
                 return response()->json([
@@ -847,10 +855,10 @@ class SerdiPayController extends Controller
 
             // Valider la structure du callback
             $validator = Validator::make($request->all(), [
-                'status' => 'required|string',
                 'message' => 'required|string',
                 'payment.sessionId' => 'required|string',
                 'payment.status' => 'required|string',
+                'payment.sessionStatus' => 'required',
                 'payment.transactionId' => 'nullable|string'
             ]);
 
@@ -863,7 +871,7 @@ class SerdiPayController extends Controller
             }
 
             // Extraire les données du callback
-            $status = $request->input('status');
+            $status = $request->input('payment.status');
             $message = $request->input('message');
             $sessionId = $request->input('payment.sessionId');
             $paymentStatus = $request->input('payment.status');
@@ -882,9 +890,7 @@ class SerdiPayController extends Controller
             // Si le paiement est réussi, finaliser l'achat
             if ($status === 'success' && $paymentStatus === 'success') {    
                 if ($type === 'payment') {
-                    $tempPurchase = DB::table('purchase_temp')
-                        ->where('session_id', $sessionId)
-                        ->first();
+                    $tempPurchase = PurchaseTemp::where('session_id', $sessionId)->first();
 
                     if ($tempPurchase && empty($tempPurchase->completed_at)) {
                         $success = false;
@@ -970,16 +976,14 @@ class SerdiPayController extends Controller
     private function sendPaymentStatusNotification($status, $paymentStatus, $sessionId)
     {
         try {
-            $tempPurchase = DB::table('purchase_temp')
-                ->where('session_id', $sessionId)
-                ->first();
+            $tempPurchase = PurchaseTemp::where('session_id', $sessionId)->first();
                 
             if ($tempPurchase && !empty($tempPurchase->user_id)) {
                 $user = User::find($tempPurchase->user_id);
                 
                 if ($user) {
-                    $amount = $tempPurchase->amount ?? 0;
-                    $currency = $tempPurchase->currency ?? 'USD';
+                    $amount = $tempPurchase->purchase_data['amount'] ?? 0;
+                    $currency = $tempPurchase->purchase_data['currency'] ?? 'USD';
                     $transactionType = $tempPurchase->transaction_type ?? null;
                     
                     // Envoyer notification à l'utilisateur
@@ -1021,8 +1025,8 @@ class SerdiPayController extends Controller
             }
             
             $transactionData = json_decode($tempPurchase->purchase_data);
-            $amount = $tempPurchase->amount ?? 0;
-            $currency = $tempPurchase->currency ?? 'USD';
+            $amount = $tempPurchase->purchase_data['amount'] ?? 0;
+            $currency = $tempPurchase->purchase_data['currency'] ?? 'USD';
             $transactionType = $tempPurchase->transaction_type;
             
             // Envoyer notification de transaction (email + database)

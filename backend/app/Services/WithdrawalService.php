@@ -38,7 +38,7 @@ class WithdrawalService
         try {
             DB::beginTransaction();
             
-            if ($withdrawal->status !== self::STATUS_PENDING || $withdrawal->payment_status !== self::STATUS_FAILED) {
+            if ($withdrawal->status !== self::STATUS_PENDING && $withdrawal->payment_status !== self::STATUS_FAILED) {
                 return [
                     'success' => false,
                     'message' => 'Cette demande ne peut pas être approuvée ou réessayée car elle n\'est pas en attente ou échouée',
@@ -46,7 +46,6 @@ class WithdrawalService
                 ];
             }
 
-            $withdrawal->status = self::STATUS_APPROVED;
             $withdrawal->admin_note = $adminNote;
             $withdrawal->processed_by = $adminId;
             $withdrawal->processed_at = now();
@@ -81,6 +80,7 @@ class WithdrawalService
             DB::rollBack();
             Log::error('Erreur lors de l\'approbation de la demande', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'withdrawal_id' => $withdrawal->id
             ]);
             

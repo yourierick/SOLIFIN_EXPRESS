@@ -8,14 +8,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\DatabaseMessage;
 
-class PaymentStatusNotification extends Notification implements ShouldQueue
+class PaymentInitiatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     protected $amount;
     protected $currency;
     protected $sessionId;
-    protected $status;
+    protected $transactionId;
     protected $transactionType;
 
     /**
@@ -24,16 +24,16 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
      * @param float $amount
      * @param string $currency
      * @param string $sessionId
-     * @param string $status
+     * @param string $transactionId
      * @param string|null $transactionType
      * @return void
      */
-    public function __construct($amount, $currency, $sessionId, $status, $transactionType = null)
+    public function __construct($amount, $currency, $sessionId, $transactionId, $transactionType = null)
     {
         $this->amount = $amount;
         $this->currency = $currency;
         $this->sessionId = $sessionId;
-        $this->status = $status;
+        $this->transactionId = $transactionId;
         $this->transactionType = $transactionType;
     }
 
@@ -56,30 +56,26 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        $status = $this->status === 'success' ? 'réussi' : 'échoué';
-        $subject = "Paiement {$status} - {$this->amount} {$this->currency}";
+        $subject = "Paiement initié - {$this->amount} {$this->currency}";
         
         $mailMessage = (new MailMessage)
             ->subject($subject)
-            ->greeting('Bonjour,');
+            ->greeting('Bonjour,')
+            ->line("Votre paiement de {$this->amount} {$this->currency} a été initié avec succès.")
+            ->line("Référence de session: {$this->sessionId}")
+            ->line("ID de transaction: {$this->transactionId}");
             
-        if ($this->status === 'success') {
-            $mailMessage->line("Votre paiement de {$this->amount} {$this->currency} a été traité avec succès.")
-                ->line("Référence de transaction: {$this->sessionId}");
-                
-            if ($this->transactionType) {
-                $typeLabel = $this->getTransactionTypeLabel();
-                $mailMessage->line("Type de transaction: {$typeLabel}");
-            }
-            
-            $mailMessage->line('Merci pour votre confiance!');
-        } else {
-            $mailMessage->line("Votre paiement de {$this->amount} {$this->currency} n'a pas pu être traité.")
-                ->line("Référence de transaction: {$this->sessionId}")
-                ->line("Veuillez réessayer ou contacter notre service client si le problème persiste.");
+        if ($this->transactionType) {
+            $typeLabel = $this->getTransactionTypeLabel();
+            $mailMessage->line("Type de transaction: {$typeLabel}");
         }
         
-        return $mailMessage->action('Accéder à mon compte', url('/'));
+        $mailMessage->line("Veuillez compléter le paiement en suivant les instructions envoyées à votre téléphone.")
+            ->line("Vous recevrez une confirmation une fois le paiement traité.")
+            ->line('Merci pour votre confiance!')
+            ->action('Accéder à mon compte', url('/'));
+            
+        return $mailMessage;
     }
 
     /**
@@ -90,19 +86,17 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
      */
     public function toDatabase($notifiable)
     {
-        $status = $this->status === 'success' ? 'réussi' : 'échoué';
         $typeLabel = $this->getTransactionTypeLabel();
         
         return [
-            'title' => "Paiement {$status}",
+            'title' => "Paiement initié",
             'amount' => $this->amount,
             'currency' => $this->currency,
             'session_id' => $this->sessionId,
-            'status' => $this->status,
+            'transaction_id' => $this->transactionId,
+            'status' => 'pending',
             'transaction_type' => $this->transactionType,
-            'message' => $this->status === 'success' 
-                ? "Votre paiement de {$this->amount} {$this->currency} a été traité avec succès."
-                : "Votre paiement de {$this->amount} {$this->currency} n'a pas pu être traité."
+            'message' => "Votre paiement de {$this->amount} {$this->currency} a été initié et est en attente de validation."
         ];
     }
 

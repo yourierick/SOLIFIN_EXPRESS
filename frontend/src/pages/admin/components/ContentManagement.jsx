@@ -21,8 +21,8 @@ import usePendingPublications from "../../../hooks/usePendingPublications";
 // Importation des composants pour chaque onglet
 const FormationManagement = lazy(() => import("./FormationManagement"));
 const TestimonialManagement = lazy(() => import("../TestimonialManagement"));
-const AdvertisementValidation = lazy(() =>
-  import("../AdvertisementValidation")
+const PublicationValidation = lazy(() =>
+  import("../PublicationValidation")
 );
 
 /**
@@ -338,7 +338,7 @@ const ContentManagement = () => {
                   </Box>
                 }
               >
-                <AdvertisementValidation />
+                <PublicationValidation />
               </Suspense>
             </Box>
           )}

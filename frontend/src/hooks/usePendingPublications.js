@@ -17,14 +17,14 @@ const usePendingPublications = () => {
 
       // Récupérer les compteurs pour chaque type de publication avec gestion d'erreur individuelle
       const [
-        advertisementsRes,
+        publicationsRes,
         jobOffersRes,
         businessOpportunitiesRes,
         socialEventsRes,
         digitalProductsRes,
       ] = await Promise.allSettled([
         axios
-          .get("/api/admin/advertisements/pending/count")
+          .get("/api/admin/publications/pending/count")
           .catch(() => ({ data: { count: 0 } })),
         axios
           .get("/api/admin/job-offers/pending/count")
@@ -41,9 +41,9 @@ const usePendingPublications = () => {
       ]);
 
       // Extraire et valider les compteurs de chaque réponse
-      const advertisementsCount =
-        advertisementsRes.status === "fulfilled"
-          ? advertisementsRes.value?.data?.count || 0
+      const publicationsCount =
+        publicationsRes.status === "fulfilled"
+          ? publicationsRes.value?.data?.count || 0
           : 0;
       const jobOffersCount =
         jobOffersRes.status === "fulfilled"
@@ -64,7 +64,7 @@ const usePendingPublications = () => {
 
       // Calculer le total des publications en attente
       const totalPending =
-        advertisementsCount +
+        publicationsCount +
         jobOffersCount +
         businessOpportunitiesCount +
         socialEventsCount +
