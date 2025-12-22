@@ -36,6 +36,21 @@ import {
   TablePagination,
 } from "@mui/material";
 import {
+  Check,
+  Close,
+  Save,
+  Visibility,
+  Delete,
+  Warning,
+  FilterList,
+  Search,
+  ArrowBack,
+  ArrowForward,
+  Schedule,
+  Cancel,
+  Error as ErrorIcon,
+} from "@mui/icons-material";
+import {
   XMarkIcon,
   ClockIcon,
   CheckCircleIcon,
@@ -2286,7 +2301,7 @@ const WithdrawalRequests = () => {
           </div>
         </div>
       )}
-      {/* Modal de détails de la demande */}
+      {/* Modal de détails de la demande - Design Moderne */}
       <Dialog
         open={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
@@ -2295,438 +2310,902 @@ const WithdrawalRequests = () => {
         BackdropComponent={Backdrop}
         BackdropProps={{
           sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
           },
         }}
         PaperProps={{
           sx: {
-            borderRadius: 2,
-            maxHeight: "85vh",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
-            border: "1px solid rgba(0, 0, 0, 0.08)",
+            borderRadius: 3,
+            maxHeight: "95vh",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             overflow: "hidden",
+            background: isDarkMode 
+              ? "linear-gradient(135deg, #1f2937 0%, #111827 100%)"
+              : "linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)",
+            mx: { xs: 1, sm: 2 }, // Marges optimisées pour mobile
           },
+        }}
+        transitionDuration={{
+          enter: 300,
+          exit: 200,
         }}
       >
         {selectedRequest && (
           <>
+            {/* Header moderne avec gradient */}
             <DialogTitle
               sx={{
-                background: isDarkMode ? "#1f2937" : "#ffffff",
-                color: isDarkMode ? "#ffffff" : "#111827",
+                background: isDarkMode 
+                  ? "linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)"
+                  : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                color: "#ffffff",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                p: 3,
-                borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                p: 0,
+                position: "relative",
+                overflow: "hidden",
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
+                },
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ 
+                display: "flex", 
+                alignItems: "center", 
+                p: { xs: 2, sm: 3 }, // Padding réduit pour mobile
+                position: "relative",
+                zIndex: 1,
+                width: "100%"
+              }}>
                 <Box
                   sx={{
-                    backgroundColor: isDarkMode ? "#374151" : "#f3f4f6",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
                     borderRadius: "50%",
-                    p: 1,
-                    mr: 2,
+                    p: { xs: 1, sm: 1.5 }, // Padding adaptatif
+                    mr: { xs: 1.5, sm: 2.5 },
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
                   }}
                 >
-                  <EyeIcon style={{ 
-                    width: 20, 
-                    height: 20, 
-                    color: isDarkMode ? "#9ca3af" : "#6b7280" 
+                  <Visibility sx={{ 
+                    fontSize: { xs: 20, sm: 24 }, // Taille adaptative
+                    color: "#ffffff" 
                   }} />
                 </Box>
-                <Box>
+                <Box sx={{ flex: 1 }}>
                   <Typography
                     variant="h6"
                     component="div"
-                    sx={{ fontWeight: 600, mb: 0.5 }}
+                    sx={{ 
+                      fontWeight: 700, 
+                      mb: 0.5,
+                      textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                      fontSize: { xs: "1.1rem", sm: "1.25rem" } // Taille adaptative
+                    }}
                   >
                     Demande #{selectedRequest.id}
                   </Typography>
                   <Typography 
                     variant="body2" 
                     sx={{ 
-                      color: isDarkMode ? "#9ca3af" : "#6b7280",
-                      fontSize: "0.875rem"
+                      color: "rgba(255, 255, 255, 0.9)",
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      fontWeight: 500
                     }}
                   >
-                    Détails de la demande de retrait
+                    Détails complets
                   </Typography>
                 </Box>
+                <IconButton
+                  onClick={() => setSelectedRequest(null)}
+                  size="small"
+                  sx={{
+                    color: "rgba(255, 255, 255, 0.9)",
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.2)",
+                      color: "#ffffff",
+                      transform: "scale(1.05)",
+                    },
+                    transition: "all 0.2s ease-in-out",
+                    p: { xs: 1, sm: 1.5 } // Padding adaptatif
+                  }}
+                >
+                  <Close sx={{ 
+                    fontSize: { xs: 18, sm: 20 } 
+                  }} />
+                </IconButton>
               </Box>
-              <IconButton
-                onClick={() => setSelectedRequest(null)}
-                size="small"
-                sx={{
-                  color: isDarkMode ? "#9ca3af" : "#6b7280",
-                  "&:hover": {
-                    backgroundColor: isDarkMode ? "#374151" : "#f3f4f6",
-                  },
-                }}
-              >
-                <XMarkIcon style={{ width: 20, height: 20 }} />
-              </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 3, backgroundColor: isDarkMode ? "#1f2937" : "#ffffff" }}>
-              {/* Informations principales */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  color: isDarkMode ? "#ffffff" : "#111827",
-                  mb: 2 
-                }}>
-                  Informations de la demande
-                </Typography>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
-                      }}>
-                        ID de la demande
-                      </Typography>
-                      <Typography sx={{ 
-                        color: isDarkMode ? "#ffffff" : "#111827",
-                        fontWeight: 500 
-                      }}>
-                        #{selectedRequest.id}
-                      </Typography>
-                    </Box>
-                  </Grid>
+            {/* Contenu moderne */}
+            <DialogContent sx={{ 
+              p: 0, 
+              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+              maxHeight: "calc(95vh - 180px)",
+              overflowY: "auto",
+              "&::-webkit-scrollbar": {
+                width: "6px",
+              },
+              "&::-webkit-scrollbar-track": {
+                background: isDarkMode ? "#374151" : "#f1f5f9",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: isDarkMode ? "#6b7280" : "#cbd5e1",
+                borderRadius: "3px",
+              },
+            }}>
+              {/* Carte d'informations principales */}
+              <Box sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  sx={{
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, #374151 0%, #1f2937 100%)"
+                      : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                    borderRadius: 3,
+                    p: { xs: 2, sm: 2.5 },
+                    mb: { xs: 2, sm: 2.5 },
+                    border: `1px solid ${isDarkMode ? "#4b5563" : "#e2e8f0"}`,
+                    boxShadow: isDarkMode 
+                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 700, 
+                    color: isDarkMode ? "#ffffff" : "#1e293b",
+                    mb: { xs: 2, sm: 2.5 },
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    fontSize: { xs: "1rem", sm: "1.125rem" }
+                  }}>
+                    <Box
+                      sx={{
+                        width: 4,
+                        height: 24,
+                        background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                        borderRadius: 2,
+                      }}
+                    />
+                    Informations essentielles
+                  </Typography>
                   
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
-                      }}>
-                        Montant
-                      </Typography>
-                      <Typography sx={{ 
-                        color: isDarkMode ? "#ffffff" : "#111827",
-                        fontWeight: 500 
-                      }}>
-                        {formatCurrency(selectedRequest.amount, selectedCurrency)}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
-                      }}>
-                        Statut de traitement
-                      </Typography>
-                        <Chip
-                          icon={getStatusIcon(selectedRequest.status)}
-                          label={
-                            selectedRequest.status === "pending"
-                              ? "En attente"
-                              : selectedRequest.status === "approved"
-                              ? "Approuvé"
-                              : selectedRequest.status === "rejected"
-                              ? "Rejeté"
-                              : selectedRequest.status === "cancelled"
-                              ? "Annulé"
-                              : selectedRequest.status === "failed"
-                              ? "Échoué"
-                              : selectedRequest.status
-                          }
-                          color={
-                            selectedRequest.status === "approved"
-                              ? "success"
-                              : selectedRequest.status === "rejected" ||
-                                selectedRequest.status === "failed"
-                              ? "error"
-                              : selectedRequest.status === "cancelled"
-                              ? "warning"
-                              : "default"
-                          }
-                          size="small"
-                        />
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
-                      }}>
-                        Statut de paiement
-                      </Typography>
-                      <Chip
-                        icon={getStatusIcon(selectedRequest.payment_status)}
-                        label={
-                          selectedRequest.payment_status === "pending"
-                            ? "En attente"
-                            : selectedRequest.payment_status === "paid"
-                            ? "Payé"
-                            : selectedRequest.payment_status === "failed"
-                            ? "Échoué"
-                            : selectedRequest.payment_status === "initiated"
-                            ? "Initialisé"
-                            : selectedRequest.payment_status
+                  <Grid container spacing={{ xs: 2, sm: 2.5 }}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: { xs: 1.5, sm: 2 },
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
                         }
-                        color={
-                          selectedRequest.payment_status === "paid"
-                            ? "success"
-                            : selectedRequest.payment_status === "failed"
-                            ? "error"
-                            : selectedRequest.payment_status === "initiated"
-                            ? "info"
-                            : "default"
-                        }
-                        size="small"
-                      />
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* Détails supplémentaires */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  color: isDarkMode ? "#ffffff" : "#111827",
-                  mb: 2 
-                }}>
-                  Détails supplémentaires
-                </Typography>
-                
-                <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
                       }}>
-                        Utilisateur
-                      </Typography>
-                      <Typography sx={{ 
-                        color: isDarkMode ? "#ffffff" : "#111827",
-                        fontWeight: 500 
-                      }}>
-                        {selectedRequest.user?.name || 'N/A'}
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
-                      }}>
-                        Méthode de paiement
-                      </Typography>
-                      <Typography sx={{ 
-                        color: isDarkMode ? "#ffffff" : "#111827",
-                        fontWeight: 500 
-                      }}>
-                        {selectedRequest.payment_method || 'N/A'}
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" sx={{ 
-                        color: isDarkMode ? "#9ca3af" : "#6b7280",
-                        mb: 0.5 
-                      }}>
-                        Date de demande
-                      </Typography>
-                      <Typography sx={{ 
-                        color: isDarkMode ? "#ffffff" : "#111827",
-                        fontWeight: 500 
-                      }}>
-                        {selectedRequest.created_at ? format(new Date(selectedRequest.created_at), 'dd/MM/yyyy HH:mm') : 'N/A'}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-              </Box>
-
-              {/* Métadonnées */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  color: isDarkMode ? "#ffffff" : "#111827",
-                  mb: 2 
-                }}>
-                  Métadonnées
-                </Typography>
-                
-                <Box sx={{ 
-                  backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
-                  borderRadius: 2,
-                  p: 3,
-                  border: `1px solid ${isDarkMode ? "#4b5563" : "#e5e7eb"}`
-                }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      {selectedRequest.payment_details && (
-                      <Grid item xs={12}>
                         <Typography variant="body2" sx={{ 
-                          color: isDarkMode ? "#9ca3af" : "#6b7280",
-                          mb: 1 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          mb: { xs: 0.5, sm: 0.75 },
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          letterSpacing: "0.05em",
                         }}>
-                          Métadonnées supplémentaires
+                          ID
                         </Typography>
-                        <Box sx={{ 
-                          backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                          borderRadius: 1,
-                          p: 2,
-                          border: `1px solid ${isDarkMode ? "#4b5563" : "#d1d5db"}`
+                        <Typography sx={{ 
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontWeight: 700,
+                          fontSize: { xs: "1rem", sm: "1.125rem" },
                         }}>
-                          <Typography sx={{ 
-                            color: isDarkMode ? "#ffffff" : "#111827",
-                            fontFamily: 'monospace',
-                            fontSize: '0.75rem',
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-all'
-                          }}>
-                            {(() => {
-                              try {
-                                const details = typeof selectedRequest.payment_details === 'string' 
-                                  ? JSON.parse(selectedRequest.payment_details) 
-                                  : selectedRequest.payment_details;
-                                
-                                return Object.entries(details).map(([key, value]) => {
-                                  return `${key}: ${value}`;
-                                }).join('\n');
-                              } catch (error) {
-                                return selectedRequest.payment_details;
-                              }
-                            })()}
-                          </Typography>
+                          #{selectedRequest.id}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: { xs: 1.5, sm: 2 },
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                        }
+                      }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          mb: { xs: 0.5, sm: 0.75 },
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          letterSpacing: "0.05em",
+                        }}>
+                          Montant
+                        </Typography>
+                        <Typography sx={{ 
+                          color: isDarkMode ? "#10b981" : "#059669",
+                          fontWeight: 700,
+                          fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                        }}>
+                          {formatCurrency(selectedRequest.amount, selectedCurrency)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: { xs: 1.5, sm: 2 },
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                        }
+                      }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          mb: { xs: 0.5, sm: 0.75 },
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          letterSpacing: "0.05em",
+                        }}>
+                          Statut
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          {getStatusIcon(selectedRequest.status)}
+                          <Chip
+                            label={
+                              selectedRequest.status === "pending"
+                                ? "En attente"
+                                : selectedRequest.status === "approved"
+                                ? "Approuvé"
+                                : selectedRequest.status === "rejected"
+                                ? "Rejeté"
+                                : selectedRequest.status === "cancelled"
+                                ? "Annulé"
+                                : selectedRequest.status === "failed"
+                                ? "Échoué"
+                                : selectedRequest.status
+                            }
+                            color={
+                              selectedRequest.status === "approved"
+                                ? "success"
+                                : selectedRequest.status === "rejected" ||
+                                  selectedRequest.status === "failed"
+                                ? "error"
+                                : selectedRequest.status === "cancelled"
+                                ? "warning"
+                                : "default"
+                            }
+                            size="small"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                            }}
+                          />
                         </Box>
-                      </Grid>
-                    )}
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: { xs: 1.5, sm: 2 },
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                        }
+                      }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          mb: { xs: 0.5, sm: 0.75 },
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          letterSpacing: "0.05em",
+                        }}>
+                          Paiement
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          {getStatusIcon(selectedRequest.payment_status)}
+                          <Chip
+                            label={
+                              selectedRequest.payment_status === "pending"
+                                ? "En attente"
+                                : selectedRequest.payment_status === "paid"
+                                ? "Payé"
+                                : selectedRequest.payment_status === "failed"
+                                ? "Échoué"
+                                : selectedRequest.payment_status === "initiated"
+                                ? "Initialisé"
+                                : selectedRequest.payment_status
+                            }
+                            color={
+                              selectedRequest.payment_status === "paid"
+                                ? "success"
+                                : selectedRequest.payment_status === "failed"
+                                ? "error"
+                                : selectedRequest.payment_status === "initiated"
+                                ? "info"
+                                : "default"
+                            }
+                            size="small"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                     </Grid>
                   </Grid>
                 </Box>
-              </Box>
 
-              {/* Note administrative */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  color: isDarkMode ? "#ffffff" : "#111827",
-                  mb: 2 
-                }}>
-                  Note administrative
-                </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  placeholder="Ajouter une note administrative..."
+                {/* Carte des détails supplémentaires */}
+                <Box
                   sx={{
-                    backgroundColor: isDarkMode ? "#374151" : "#ffffff",
-                    '& .MuiOutlinedInput-root': {
-                      color: isDarkMode ? "#ffffff" : "#111827",
-                      '& fieldset': {
-                        borderColor: isDarkMode ? "#4b5563" : "#d1d5db",
-                      },
-                      '&:hover fieldset': {
-                        borderColor: isDarkMode ? "#6b7280" : "#9ca3af",
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: "#3b82f6",
-                      },
-                    },
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, #374151 0%, #1f2937 100%)"
+                      : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                    borderRadius: 3,
+                    p: 2.5,
+                    mb: 2.5,
+                    border: `1px solid ${isDarkMode ? "#4b5563" : "#e2e8f0"}`,
+                    boxShadow: isDarkMode 
+                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                   }}
-                />
+                >
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 700, 
+                    color: isDarkMode ? "#ffffff" : "#1e293b",
+                    mb: 2.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}>
+                    <Box
+                      sx={{
+                        width: 4,
+                        height: 24,
+                        background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                        borderRadius: 2,
+                      }}
+                    />
+                    Informations détaillées
+                  </Typography>
+                  
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: 2,
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                        }
+                      }}>
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Typography sx={{ 
+                              color: isDarkMode ? "#9ca3af" : "#64748b",
+                              fontSize: "0.875rem",
+                              fontWeight: 700,
+                            }}>
+                              👤
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            fontSize: "0.75rem",
+                            letterSpacing: "0.05em",
+                          }}>
+                            Utilisateur
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontWeight: 600,
+                          fontSize: "1rem",
+                        }}>
+                          {selectedRequest.user?.name || 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: 2,
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                        }
+                      }}>
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Typography sx={{ 
+                              color: isDarkMode ? "#9ca3af" : "#64748b",
+                              fontSize: "0.875rem",
+                              fontWeight: 700,
+                            }}>
+                              💳
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            fontSize: "0.75rem",
+                            letterSpacing: "0.05em",
+                          }}>
+                            Méthode
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontWeight: 600,
+                          fontSize: "1rem",
+                        }}>
+                          {selectedRequest.payment_method || 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ 
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: 2,
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          transform: "translateY(-2px)",
+                          boxShadow: isDarkMode 
+                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                        }
+                      }}>
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Typography sx={{ 
+                              color: isDarkMode ? "#9ca3af" : "#64748b",
+                              fontSize: "0.875rem",
+                              fontWeight: 700,
+                            }}>
+                              📅
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            fontSize: "0.75rem",
+                            letterSpacing: "0.05em",
+                          }}>
+                            Date
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ 
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontWeight: 600,
+                          fontSize: "1rem",
+                        }}>
+                          {selectedRequest.created_at ? format(new Date(selectedRequest.created_at), 'dd/MM/yyyy HH:mm') : 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Carte des métadonnées */}
+                {selectedRequest.payment_details && (
+                  <Box
+                    sx={{
+                      background: isDarkMode 
+                        ? "linear-gradient(135deg, #374151 0%, #1f2937 100%)"
+                        : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                      borderRadius: 3,
+                      p: 2.5,
+                      mb: 2.5,
+                      border: `1px solid ${isDarkMode ? "#4b5563" : "#e2e8f0"}`,
+                      boxShadow: isDarkMode 
+                        ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                        : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 700, 
+                      color: isDarkMode ? "#ffffff" : "#1e293b",
+                      mb: 2.5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}>
+                      <Box
+                        sx={{
+                          width: 4,
+                          height: 24,
+                          background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                          borderRadius: 2,
+                        }}
+                      />
+                      Métadonnées de paiement
+                    </Typography>
+                    
+                    <Box sx={{ 
+                      backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                      borderRadius: 2,
+                      p: 2.5,
+                      border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                      position: "relative",
+                      overflow: "hidden",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: "3px",
+                        background: "linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #f59e0b 100%)",
+                      }
+                    }}>
+                      <Typography sx={{ 
+                        color: isDarkMode ? "#ffffff" : "#1e293b",
+                        fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                        fontSize: '0.875rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                        lineHeight: 1.6,
+                      }}>
+                        {(() => {
+                          try {
+                            const details = typeof selectedRequest.payment_details === 'string' 
+                              ? JSON.parse(selectedRequest.payment_details) 
+                              : selectedRequest.payment_details;
+                            
+                            return Object.entries(details).map(([key, value]) => {
+                              return (
+                                <Box key={key} sx={{ mb: 1 }}>
+                                  <Typography component="span" sx={{ 
+                                    color: isDarkMode ? "#8b5cf6" : "#7c3aed",
+                                    fontWeight: 600,
+                                    fontSize: "0.875rem",
+                                  }}>
+                                    {key}:
+                                  </Typography>
+                                  <Typography component="span" sx={{ 
+                                    color: isDarkMode ? "#10b981" : "#059669",
+                                    ml: 1,
+                                    fontSize: "0.875rem",
+                                  }}>
+                                    {value}
+                                  </Typography>
+                                </Box>
+                              );
+                            });
+                          } catch (error) {
+                            return selectedRequest.payment_details;
+                          }
+                        })()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Carte de note administrative */}
+                <Box
+                  sx={{
+                    background: isDarkMode 
+                      ? "linear-gradient(135deg, #374151 0%, #1f2937 100%)"
+                      : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                    borderRadius: 3,
+                    p: 2.5,
+                    mb: 2.5,
+                    border: `1px solid ${isDarkMode ? "#4b5563" : "#e2e8f0"}`,
+                    boxShadow: isDarkMode 
+                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 700, 
+                    color: isDarkMode ? "#ffffff" : "#1e293b",
+                    mb: 2.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}>
+                    <Box
+                      sx={{
+                        width: 4,
+                        height: 24,
+                        background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                        borderRadius: 2,
+                      }}
+                    />
+                    Note administrative
+                  </Typography>
+                  
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="Ajouter une note administrative..."
+                    sx={{
+                      backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-root': {
+                        color: isDarkMode ? "#ffffff" : "#1e293b",
+                        borderRadius: 2,
+                        '& fieldset': {
+                          borderColor: isDarkMode ? "#374151" : "#e2e8f0",
+                          borderWidth: "2px",
+                        },
+                        '&:hover fieldset': {
+                          borderColor: isDarkMode ? "#6b7280" : "#cbd5e1",
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: "#3b82f6",
+                          borderWidth: "2px",
+                          boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.1)",
+                        },
+                      },
+                    }}
+                  />
+                </Box>
               </Box>
             </DialogContent>
 
+            {/* Actions modernes */}
             <DialogActions
               sx={{
-                p: 3,
-                borderTop: `1px solid ${isDarkMode ? "#4b5563" : "#e5e7eb"}`,
-                backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                p: { xs: 2, sm: 3 },
+                borderTop: `1px solid ${isDarkMode ? "#4b5563" : "#e2e8f0"}`,
+                background: isDarkMode 
+                  ? "linear-gradient(135deg, #1f2937 0%, #111827 100%)"
+                  : "linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)",
               }}
             >
-                <Box
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: { xs: 1, sm: 2 },
+                  flexWrap: "wrap",
+                  justifyContent: "flex-end",
+                  width: "100%",
+                }}
+              >
+                {selectedRequest.status === "pending" && (
+                  <>
+                    <Button
+                      onClick={() => handleApproveRequest(selectedRequest.id)}
+                      variant="contained"
+                      disabled={isProcessing}
+                      startIcon={<Check />}
+                      sx={{
+                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                        color: "#ffffff",
+                        fontWeight: 600,
+                        px: { xs: 2, sm: 2.5 },
+                        py: { xs: 1.5, sm: 1.25 },
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        minWidth: { xs: "48px", sm: "auto" },
+                        boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 8px 25px rgba(16, 185, 129, 0.4)",
+                        },
+                        "&:disabled": {
+                          background: isDarkMode ? "#374151" : "#e5e7eb",
+                          color: isDarkMode ? "#9ca3af" : "#9ca3af",
+                        },
+                        transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          display: { xs: "flex", sm: "none" },
+                          margin: 0,
+                        },
+                        "& .MuiButton-endIcon": {
+                          display: { xs: "flex", sm: "none" },
+                          margin: 0,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                        {isProcessing ? "Traitement..." : "Approuver"}
+                      </Box>
+                    </Button>
+                    <Button
+                      onClick={() => handleRejectRequest(selectedRequest.id)}
+                      variant="contained"
+                      disabled={isProcessing}
+                      startIcon={<Close />}
+                      sx={{
+                        background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                        color: "#ffffff",
+                        fontWeight: 600,
+                        px: { xs: 2, sm: 2.5 },
+                        py: { xs: 1.5, sm: 1.25 },
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        minWidth: { xs: "48px", sm: "auto" },
+                        boxShadow: "0 4px 14px rgba(239, 68, 68, 0.3)",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 8px 25px rgba(239, 68, 68, 0.4)",
+                        },
+                        "&:disabled": {
+                          background: isDarkMode ? "#374151" : "#e5e7eb",
+                          color: isDarkMode ? "#9ca3af" : "#9ca3af",
+                        },
+                        transition: "all 0.2s ease-in-out",
+                        "& .MuiButton-startIcon": {
+                          display: { xs: "flex", sm: "none" },
+                          margin: 0,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                        {isProcessing ? "Traitement..." : "Rejeter"}
+                      </Box>
+                    </Button>
+                  </>
+                )}
+                <Button
+                  onClick={handleSaveAdminNote}
+                  variant="contained"
+                  disabled={isSavingNote || !adminNote.trim()}
+                  startIcon={<Save />}
                   sx={{
-                    display: "flex",
-                    gap: 2,
-                    flexWrap: "wrap",
-                    justifyContent: "flex-end",
-                    width: "100%",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                    color: "#ffffff",
+                    fontWeight: 600,
+                    px: { xs: 2, sm: 2.5 },
+                    py: { xs: 1.5, sm: 1.25 },
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    minWidth: { xs: "48px", sm: "auto" },
+                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.3)",
+                    "&:hover": {
+                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 8px 25px rgba(59, 130, 246, 0.4)",
+                    },
+                    "&:disabled": {
+                      background: isDarkMode ? "#374151" : "#e5e7eb",
+                      color: isDarkMode ? "#9ca3af" : "#9ca3af",
+                    },
+                    transition: "all 0.2s ease-in-out",
+                    "& .MuiButton-startIcon": {
+                      display: { xs: "flex", sm: "none" },
+                      margin: 0,
+                    },
                   }}
                 >
-                  {selectedRequest.status === "pending" && (
-                    <>
-                      <Button
-                        onClick={() => handleApproveRequest(selectedRequest.id)}
-                        variant="contained"
-                        color="success"
-                        disabled={isProcessing}
-                        startIcon={<CheckIcon />}
-                        sx={{
-                          backgroundColor: "#10b981",
-                          "&:hover": {
-                            backgroundColor: "#059669",
-                          },
-                        }}
-                      >
-                        {isProcessing ? "Traitement..." : "Approuver"}
-                      </Button>
-                      <Button
-                        onClick={() => handleRejectRequest(selectedRequest.id)}
-                        variant="contained"
-                        color="error"
-                        disabled={isProcessing}
-                        startIcon={<XMarkIcon />}
-                        sx={{
-                          backgroundColor: "#ef4444",
-                          "&:hover": {
-                            backgroundColor: "#dc2626",
-                          },
-                        }}
-                      >
-                        {isProcessing ? "Traitement..." : "Rejeter"}
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    onClick={handleSaveAdminNote}
-                    variant="contained"
-                    disabled={isSavingNote || !adminNote.trim()}
-                    sx={{
-                      backgroundColor: "#3b82f6",
-                      "&:hover": {
-                        backgroundColor: "#2563eb",
-                      },
-                    }}
-                  >
-                    {isSavingNote ? "Enregistrement..." : "Enregistrer la note"}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setSelectedRequest(null)}
-                    sx={{
-                      borderColor: isDarkMode ? "#4b5563" : "#d1d5db",
-                      color: isDarkMode ? "#9ca3af" : "#6b7280",
-                      "&:hover": {
-                        backgroundColor: isDarkMode ? "#374151" : "#f3f4f6",
-                        borderColor: isDarkMode ? "#6b7280" : "#9ca3af",
-                      },
-                    }}
-                  >
+                  <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                    {isSavingNote ? "Enregistrement..." : "Enregistrer"}
+                  </Box>
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setSelectedRequest(null)}
+                  startIcon={<Close />}
+                  sx={{
+                    borderColor: isDarkMode ? "#4b5563" : "#d1d5db",
+                    color: isDarkMode ? "#9ca3af" : "#6b7280",
+                    fontWeight: 600,
+                    px: { xs: 2, sm: 2.5 },
+                    py: { xs: 1.5, sm: 1.25 },
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    minWidth: { xs: "48px", sm: "auto" },
+                    borderWidth: "2px",
+                    "&:hover": {
+                      backgroundColor: isDarkMode ? "#374151" : "#f8fafc",
+                      borderColor: isDarkMode ? "#6b7280" : "#9ca3af",
+                      transform: "translateY(-2px)",
+                    },
+                    transition: "all 0.2s ease-in-out",
+                    "& .MuiButton-startIcon": {
+                      display: { xs: "flex", sm: "none" },
+                      margin: 0,
+                    },
+                  }}
+                >
+                  <Box sx={{ display: { xs: "none", sm: "block" } }}>
                     Fermer
-                  </Button>
-                </Box>
-              </DialogActions>
+                  </Box>
+                </Button>
+              </Box>
+            </DialogActions>
           </>
         )}
       </Dialog>
