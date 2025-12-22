@@ -67,20 +67,25 @@ export default function AdBlockDetector() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between py-3">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              <span className="font-medium">AdBlock détecté!</span> Pour une meilleure expérience, veuillez désactiver AdBlock ou ajouter notre site à votre liste blanche.
-            </p>
-          </div>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between py-2 sm:py-3">
           <button
             onClick={() => setDismissed(true)}
-            className="flex-shrink-0 p-1 rounded-md text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
+            className="flex-shrink-0 p-1.5 sm:p-2 rounded-md text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors mr-2 sm:mr-3"
+            aria-label="Fermer l'alerte"
           >
-            <XMarkIcon className="h-4 w-4" />
+            <XMarkIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
+          <div className="flex items-center flex-1 min-w-0">
+            <ExclamationTriangleIcon className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400 mr-2 sm:mr-3 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 leading-tight">
+                <span className="font-medium block sm:inline">AdBlock détecté!</span>
+                <span className="hidden sm:inline ml-1">Pour une meilleure expérience, veuillez désactiver AdBlock ou ajouter notre site à votre liste blanche.</span>
+                <span className="sm:hidden ml-1">Désactivez AdBlock pour une meilleure expérience.</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
