@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use App\Models\Setting;
 use App\Services\RegistrationService;
+use App\Notifications\TrialAccountDeletedNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +63,15 @@ class DeleteExpiredTrialAccounts extends Command
                     try {
                         foreach ($expiredTrialUsers as $user) {
                             $this->line("Suppression du compte utilisateur ID: {$user->id}, Email: {$user->email}, Créé le: {$user->created_at}");
+                            
+                            // Envoyer la notification de suppression avant de supprimer le compte
+                            try {
+                                $user->notify(new TrialAccountDeletedNotification(Carbon::now()));
+                                $this->line("Notification de suppression envoyée à l'utilisateur ID: {$user->id}");
+                            } catch (\Exception $e) {
+                                $this->error("Impossible d'envoyer la notification à l'utilisateur ID: {$user->id}: {$e->getMessage()}");
+                                Log::error("Erreur notification suppression utilisateur {$user->id}: " . $e->getMessage());
+                            }
                             
                             // Supprimer l'utilisateur et toutes ses données associées
                             $user->delete();

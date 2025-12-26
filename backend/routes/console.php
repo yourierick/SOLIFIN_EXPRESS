@@ -21,6 +21,12 @@ Schedule::command('publications:update-status')
     ->appendOutputTo(storage_path('logs/publications-status.log'))
     ->description('Met à jour le statut des publications expirées tous les jours à 00h30');
 
+Schedule::command('users:send-trial-warnings')
+    ->daily()
+    ->at('09:00')
+    ->appendOutputTo(storage_path('logs/trial-warnings.log'))
+    ->description('Envoie les avertissements d\'expiration de période d\'essai tous les jours à 9h');
+
 Schedule::command('users:delete-expired-trials')
     ->daily()
     ->at('01:00')
