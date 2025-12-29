@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Pack;
 use App\Models\Publicite; // Correction du modèle
-use App\Models\JobOffer;
-use App\Models\BusinessOpportunity;
+use App\Models\OffreEmploi;
+use App\Models\OpportuniteAffaire;
 use App\Models\Testimonial;
 use Illuminate\Http\Request;
 use App\Models\Setting;
@@ -40,6 +40,140 @@ class HomeController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Retourner les offres d'emploi approuvées
+     */
+    public function approvedJobOffers()
+    {
+        try {
+            $jobOffers = OffreEmploi::where('statut', 'approuvé')
+                ->where('etat', 'disponible')
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function($offer) {
+                    // Générer l'URL complète pour le fichier si besoin
+                    $offer->offer_file_url = $offer->offer_file ? asset('storage/' . $offer->offer_file) : null;
+                    return $offer;
+                });
+            return response()->json([
+                'success' => true,
+                'jobOffers' => $jobOffers
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des offres d\'emploi',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Retourner les opportunités d'affaire approuvées
+     */
+    public function approvedBusinessOpportunities()
+    {
+        try {
+            $businessOpportunities = OpportuniteAffaire::where('statut', 'approuvé')
+                ->where('etat', 'disponible')
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function($opportunity) {
+                    // Générer l'URL complète pour le fichier si besoin
+                    $opportunity->opportunity_file_url = $opportunity->opportunity_file ? asset('storage/' . $opportunity->opportunity_file) : null;
+                    return $opportunity;
+                });
+            return response()->json([
+                'success' => true,
+                'businessOpportunities' => $businessOpportunities
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des opportunités d\'affaire',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Retourner toutes les opportunités (offres d'emploi + opportunités d'affaire) avec pagination
+     */
+    public function getAllOpportunities(Request $request)
+    {
+        try {
+            $page = $request->get('page', 1);
+            $limit = $request->get('limit', 10);
+            
+            // Récupérer toutes les offres d'emploi approuvées et disponibles
+            $jobOffersQuery = OffreEmploi::where('statut', 'approuvé')
+                ->where('etat', 'disponible')
+                ->orderBy('created_at', 'desc');
+
+            // Récupérer toutes les opportunités d'affaire approuvées et disponibles
+            $businessOpportunitiesQuery = OpportuniteAffaire::where('statut', 'approuvé')
+                ->where('etat', 'disponible')
+                ->orderBy('created_at', 'desc');
+
+            // Compter le total des opportunités
+            $totalJobOffers = $jobOffersQuery->count();
+            $totalBusinessOpportunities = $businessOpportunitiesQuery->count();
+            $total = $totalJobOffers + $totalBusinessOpportunities;
+
+            // Calculer l'offset pour la pagination
+            $offset = ($page - 1) * $limit;
+
+            // Récupérer les offres d'emploi pour cette page
+            $jobOffers = $jobOffersQuery->get()
+                ->map(function($offer) {
+                    $offer->type_opportunite = 'emploi';
+                    $offer->offer_file_url = $offer->offer_file ? asset('storage/' . $offer->offer_file) : null;
+                    return $offer;
+                });
+
+            // Récupérer les opportunités d'affaire pour cette page
+            $businessOpportunities = $businessOpportunitiesQuery->get()
+                ->map(function($opportunity) {
+                    $opportunity->type_opportunite = 'affaire';
+                    $opportunity->opportunity_file_url = $opportunity->opportunity_file ? asset('storage/' . $opportunity->opportunity_file) : null;
+                    return $opportunity;
+                });
+
+            // Fusionner et trier par date de création
+            $allOpportunities = $jobOffers->concat($businessOpportunities)
+                ->sortByDesc('created_at')
+                ->values();
+
+            // Appliquer la pagination manuellement
+            $paginatedOpportunities = $allOpportunities->slice($offset, $limit);
+
+            // Calculer le nombre total de pages
+            $totalPages = ceil($total / $limit);
+
+            return response()->json([
+                'success' => true,
+                'opportunities' => $paginatedOpportunities,
+                'pagination' => [
+                    'currentPage' => (int)$page,
+                    'totalPages' => $totalPages,
+                    'total' => $total,
+                    'limit' => (int)$limit,
+                    'hasNextPage' => $page < $totalPages,
+                    'hasPrevPage' => $page > 1
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des opportunités',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function index()
     {
         try {

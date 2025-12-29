@@ -113,7 +113,7 @@ class SocialEventController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'description' => 'nullable|string|max:1000',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'nullable|image|max:2048',
                 'video' => 'nullable|mimes:mp4,mov,ogg,qt|max:5120', // 5 Mo maximum
             ]);
 

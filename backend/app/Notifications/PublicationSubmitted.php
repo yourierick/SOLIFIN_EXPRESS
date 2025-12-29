@@ -64,7 +64,8 @@ class PublicationSubmitted extends Notification
             'type' => 'warning',
             'titre' => 'Nouvelle publication en attente d\'approbation',
             'icon' => 'exclamation-circle',
-            'link' => '/admin/content-management'
+            'link' => '/admin/content-management',
+            'message' => 'Une nouvelle publication a été soumise et est en attente d\'approbation.'
         ];
     }
 }

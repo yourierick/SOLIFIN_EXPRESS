@@ -4,7 +4,8 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   XCircleIcon,
-  XMarkIcon
+  XMarkIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -93,6 +94,29 @@ export default function TrialAlert({
               >
                 {message}
               </motion.p>
+              
+              <motion.a
+                href="/dashboard/packs"
+                className="inline-flex items-center gap-2 mt-3 text-sm font-semibold hover:gap-3 transition-all duration-300 text-gray-900 hover:text-gray-700 dark:text-gray-100 dark:hover:text-gray-300"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Souscrire à un pack
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity, 
+                    repeatDelay: 0.5,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <ArrowRightIcon className="h-4 w-4" />
+                </motion.div>
+              </motion.a>
             </div>
             
             <motion.button

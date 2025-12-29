@@ -4,6 +4,8 @@ import { MagnifyingGlassIcon, ArrowTopRightOnSquareIcon, ChevronLeftIcon, Chevro
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import axios from "../../../utils/axios";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Box, Typography, FormControl, Select, MenuItem, Pagination as MuiPagination } from "@mui/material";
 
 export default function PageSearch() {
@@ -17,6 +19,7 @@ export default function PageSearch() {
   const [subscribedPages, setSubscribedPages] = useState([]);
   const [recommendedPages, setRecommendedPages] = useState([]);
   const [loadingPages, setLoadingPages] = useState(false);
+  const [subscribingPageId, setSubscribingPageId] = useState(null); // État pour le loader d'abonnement
   
   // États pour la pagination
   const [searchPagination, setSearchPagination] = useState({
@@ -38,16 +41,16 @@ export default function PageSearch() {
     perPage: 6
   });
 
-  // Charger les pages abonnées
+  // Charger les abonnés de l'utilisateur
   const fetchSubscribedPages = useCallback(async (page = 1, perPage = subscribedPagination.perPage) => {
     try {
-      const response = await axios.get(`/api/pages/subscribed?page=${page}&per_page=${perPage}`);
+      const response = await axios.get(`/api/pages/subscriptions?page=${page}&per_page=${perPage}`);
       
       if (page === 1) {
-        // Remplacer les pages si c'est la première page
+        // Remplacer les abonnés si c'est la première page
         setSubscribedPages(response.data.pages || []);
       } else {
-        // Ajouter les pages aux pages existantes si c'est une page suivante
+        // Ajouter les abonnés aux abonnés existants si c'est une page suivante
         setSubscribedPages(prevPages => [...prevPages, ...(response.data.pages || [])]);
       }
       
@@ -59,7 +62,7 @@ export default function PageSearch() {
         perPage: response.data.per_page
       });
     } catch (err) {
-      console.error("Erreur lors du chargement des pages abonnées:", err);
+      console.error("Erreur lors du chargement des abonnés:", err);
     }
   }, [subscribedPagination.perPage]);
 
@@ -94,17 +97,31 @@ export default function PageSearch() {
     }
   }, [user?.id, recommendedPagination.perPage]);
 
-  // S'abonner à une page
+  // Gérer l'abonnement/désabonnement selon le statut actuel
   const handleSubscribe = useCallback(async (pageId) => {
     try {
-      await axios.post(`/api/pages/${pageId}/subscribe`);
+      setSubscribingPageId(pageId); // Activer le loader pour cette page
+      
+      // Trouver la page dans la liste des abonnés pour vérifier le statut
+      const page = subscribedPages.find(p => p.id === pageId);
+      
+      if (page?.is_subscribed) {
+        // Si déjà abonné, se désabonner
+        await axios.post(`/api/pages/${pageId}/unsubscribe`);
+      } else {
+        // Si pas encore abonné, s'abonner
+        await axios.post(`/api/pages/${pageId}/subscribe`);
+      }
+      
       // Rafraîchir les listes de pages
       fetchSubscribedPages();
       fetchRecommendedPages();
     } catch (err) {
-      console.error("Erreur lors de l'abonnement à la page:", err);
+      console.error("Erreur lors de la gestion de l'abonnement:", err);
+    } finally {
+      setSubscribingPageId(null); // Désactiver le loader
     }
-  }, [fetchSubscribedPages, fetchRecommendedPages]);
+  }, [subscribedPages, fetchSubscribedPages, fetchRecommendedPages]);
 
   // Se désabonner d'une page
   const handleUnsubscribe = useCallback(async (pageId) => {
@@ -348,27 +365,40 @@ export default function PageSearch() {
             e.stopPropagation();
             isSubscribed ? handleUnsubscribe(page.id) : handleSubscribe(page.id);
           }}
+          disabled={subscribingPageId === page.id}
           className={`w-full mt-4 py-3 px-4 rounded-lg flex items-center justify-center font-semibold transition-all duration-200 transform hover:scale-105 ${
             isSubscribed
               ? isDarkMode
                 ? "bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
               : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl"
-          }`}
+          } ${subscribingPageId === page.id ? "opacity-75 cursor-not-allowed transform-none" : ""}`}
         >
-          {isSubscribed ? (
+          {subscribingPageId === page.id ? (
             <>
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Se désabonner
+              {isSubscribed ? "Désabonnement..." : "Abonnement..."}
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              S'abonner
+              {isSubscribed ? (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  Se désabonner
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  S'abonner
+                </>
+              )}
             </>
           )}
         </button>
@@ -378,114 +408,211 @@ export default function PageSearch() {
 
   return (
     <div className={`rounded-lg shadow p-4 ${isDarkMode ? "bg-[#1f2937]" : "bg-white"}`}>
-      {/* Barre de recherche */}
-      <div className="mb-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className={`h-5 w-5 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
+      {/* Liste des abonnés */}
+      <div className="mt-8 mb-5">
+        <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+          Mes abonnés
+        </h3>
+
+        {loadingPages ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Rechercher des pages par nom d'utilisateur..."
-            className={`block w-full pl-10 pr-3 py-2 border ${
-              isDarkMode
-                ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-            } rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
-          />
-        </div>
-      </div>
-
-      {/* Résultats de recherche */}
-      {searchQuery && (
-        <div className="mb-8">
-          <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-            Résultats de recherche
-          </h3>
-
-          {isSearching ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {searchResults.length > 0 ? (
-                searchResults.map((page) => {
-                  // Vérifier si l'utilisateur est abonné à cette page
-                  const isSubscribed = subscribedPages.some((subPage) => subPage.id === page.id);
-                  return renderPageCard(page, isSubscribed);
-                })
-              ) : (
-                <p className={`col-span-full text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                  Aucune page trouvée pour cette recherche.
-                </p>
-              )}
-              
-              {/* Pagination Material-UI pour les résultats de recherche */}
-              {searchResults.length > 0 && searchPagination.lastPage > 1 && (
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 6, px: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
-                      Afficher
-                    </Typography>
-                    <FormControl size="small" sx={{ minWidth: 80 }}>
-                      <Select
-                        value={searchPagination.perPage}
-                        onChange={(e) => handleSearchRowsPerPageChange(parseInt(e.target.value, 10))}
-                        sx={{
-                          "& .MuiOutlinedInput-notchedOutline": {
-                            borderColor: isDarkMode ? "#4B5563" : "#3B82F6",
-                          },
-                          "& .MuiSvgIcon-root": {
-                            color: isDarkMode ? "#9CA3AF" : "#6B7280",
-                          },
-                        }}
-                      >
-                        <MenuItem value={3}>3</MenuItem>
-                        <MenuItem value={6}>6</MenuItem>
-                        <MenuItem value={9}>9</MenuItem>
-                        <MenuItem value={12}>12</MenuItem>
-                        <MenuItem value={24}>24</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
-                      résultats par page
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
-                      {searchPagination.total > 0
-                        ? `${(searchPagination.currentPage - 1) * searchPagination.perPage + 1}-${Math.min(searchPagination.currentPage * searchPagination.perPage, searchPagination.total)} sur ${searchPagination.total}`
-                        : "0 résultats"}
-                    </Typography>
-                    <MuiPagination
-                      count={searchPagination.lastPage}
-                      page={searchPagination.currentPage}
-                      onChange={(e, newPage) => handleSearchPageChange(newPage)}
-                      color="primary"
-                      size="medium"
-                      showFirstButton
-                      showLastButton
+        ) : (
+          <div className="space-y-3">
+            {subscribedPages.length > 0 ? (
+              subscribedPages.map((page) => (
+                <div
+                  key={page.id}
+                  className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg border transition-all duration-200 hover:shadow-md ${
+                    isDarkMode 
+                      ? "bg-gray-800 border-gray-700 hover:bg-gray-750" 
+                      : "bg-white border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {/* Informations de l'abonné */}
+                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1 mb-3 sm:mb-0">
+                    {/* Photo de profil */}
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={page.user?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.user?.name || 'User')}&background=3b82f6&color=fff`}
+                        alt={page.user?.name || 'Utilisateur'}
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-primary-500"
+                      />
+                      {/* Indicateur d'abonnement mutuel */}
+                      {page.is_subscribed && (
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                          <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Nom et informations */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-semibold text-sm sm:text-sm ${isDarkMode ? "text-white" : "text-gray-900"} truncate`}>
+                        {page.user?.name || 'Utilisateur inconnu'}
+                      </h4>
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 mt-1">
+                        <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          {page.nombre_abonnes || 0} abonnés
+                        </span>
+                        {page.subscription_date && (
+                          <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                            Abonné {formatDistanceToNow(new Date(page.subscription_date), { 
+                              addSuffix: true, 
+                              locale: fr 
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => handleSubscribe(page.id)}
+                      disabled={subscribingPageId === page.id}
+                      className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center min-w-[100px] sm:min-w-[120px] ${
+                        page.is_subscribed
+                          ? isDarkMode
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          : isDarkMode
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      } ${subscribingPageId === page.id ? "opacity-75 cursor-not-allowed" : ""}`}
+                    >
+                      {subscribingPageId === page.id ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span className="hidden sm:inline">
+                            {page.is_subscribed ? "Arrêt..." : "Suivi..."}
+                          </span>
+                          <span className="sm:hidden">
+                            {page.is_subscribed ? "Arrêt" : "Suivi"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline">
+                            {page.is_subscribed ? "Arrêter de suivre" : "Suivre en retour"}
+                          </span>
+                          <span className="sm:hidden">
+                            {page.is_subscribed ? "Arrêter" : "Suivre"}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/dashboard/pages/${page.id}`)}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        isDarkMode 
+                          ? "text-gray-400 hover:text-white hover:bg-gray-700" 
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                      title="Voir la page"
+                    >
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                Vous n'avez aucun abonné pour le moment.
+              </p>
+            )}
+            
+            {/* Pagination pour les abonnés */}
+            {subscribedPages.length > 0 && subscribedPagination.lastPage > 1 && (
+              <Box sx={{ 
+                display: "flex", 
+                flexDirection: { xs: "column", sm: "row" }, 
+                justifyContent: "space-between", 
+                alignItems: { xs: "flex-start", sm: "center" }, 
+                mt: 6, 
+                px: 2,
+                gap: { xs: 3, sm: 2 }
+              }}>
+                <Box sx={{ 
+                  display: "flex", 
+                  flexDirection: { xs: "column", sm: "row" }, 
+                  alignItems: { xs: "flex-start", sm: "center" }, 
+                  gap: 2,
+                  width: { xs: "100%", sm: "auto" }
+                }}>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
+                    Afficher
+                  </Typography>
+                  <FormControl size="small" sx={{ minWidth: 80 }}>
+                    <Select
+                      value={subscribedPagination.perPage}
+                      onChange={(e) => handleSubscribedRowsPerPageChange(parseInt(e.target.value, 10))}
                       sx={{
-                        "& .MuiPaginationItem-root": {
-                          borderRadius: 2,
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: isDarkMode ? "#4B5563" : "#3B82F6",
                         },
-                        "& .Mui-selected": {
-                          background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-                          color: "white",
+                        "& .MuiSvgIcon-root": {
+                          color: isDarkMode ? "#9CA3AF" : "#6B7280",
                         },
                       }}
-                    />
-                  </Box>
+                    >
+                      <MenuItem value={3}>3</MenuItem>
+                      <MenuItem value={6}>6</MenuItem>
+                      <MenuItem value={9}>9</MenuItem>
+                      <MenuItem value={12}>12</MenuItem>
+                      <MenuItem value={24}>24</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
+                    résultats par page
+                  </Typography>
                 </Box>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+
+                <Box sx={{ 
+                  display: "flex", 
+                  flexDirection: { xs: "column", sm: "row" }, 
+                  alignItems: { xs: "flex-start", sm: "center" }, 
+                  gap: 2,
+                  width: { xs: "100%", sm: "auto" }
+                }}>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
+                    {subscribedPagination.total > 0
+                      ? `${(subscribedPagination.currentPage - 1) * subscribedPagination.perPage + 1}-${Math.min(subscribedPagination.currentPage * subscribedPagination.perPage, subscribedPagination.total)} sur ${subscribedPagination.total}`
+                      : "0 résultats"}
+                  </Typography>
+                  <MuiPagination
+                    count={subscribedPagination.lastPage}
+                    page={subscribedPagination.currentPage}
+                    onChange={(e, newPage) => handleSubscribedPageChange(newPage)}
+                    color="primary"
+                    size="medium"
+                    showFirstButton
+                    showLastButton
+                    sx={{
+                      "& .MuiPaginationItem-root": {
+                        borderRadius: 2,
+                      },
+                      "& .Mui-selected": {
+                        background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Box>
+              </Box>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Pages recommandées */}
       <div className="mb-6">
@@ -495,6 +622,115 @@ export default function PageSearch() {
         <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
           Suggestions
         </h3>
+
+        {/* Barre de recherche */}
+        <div className="mb-6">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className={`h-5 w-5 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Rechercher des pages par nom d'utilisateur..."
+              className={`block w-full pl-10 pr-3 py-2 border ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+              } rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
+            />
+          </div>
+        </div>
+
+        {/* Résultats de recherche */}
+        {searchQuery && (
+          <div className="mb-8">
+            <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+              Résultats de recherche
+            </h3>
+
+            {isSearching ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {searchResults.length > 0 ? (
+                  searchResults.map((page) => {
+                    // Vérifier si l'utilisateur est abonné à cette page
+                    const isSubscribed = subscribedPages.some((subPage) => subPage.id === page.id);
+                    return renderPageCard(page, isSubscribed);
+                  })
+                ) : (
+                  <p className={`col-span-full text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Aucune page trouvée pour cette recherche.
+                  </p>
+                )}
+                
+                {/* Pagination Material-UI pour les résultats de recherche */}
+                {searchResults.length > 0 && searchPagination.lastPage > 1 && (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 6, px: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
+                        Afficher
+                      </Typography>
+                      <FormControl size="small" sx={{ minWidth: 80 }}>
+                        <Select
+                          value={searchPagination.perPage}
+                          onChange={(e) => handleSearchRowsPerPageChange(parseInt(e.target.value, 10))}
+                          sx={{
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: isDarkMode ? "#4B5563" : "#3B82F6",
+                            },
+                            "& .MuiSvgIcon-root": {
+                              color: isDarkMode ? "#9CA3AF" : "#6B7280",
+                            },
+                          }}
+                        >
+                          <MenuItem value={3}>3</MenuItem>
+                          <MenuItem value={6}>6</MenuItem>
+                          <MenuItem value={9}>9</MenuItem>
+                          <MenuItem value={12}>12</MenuItem>
+                          <MenuItem value={24}>24</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
+                        résultats par page
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
+                        {searchPagination.total > 0
+                          ? `${(searchPagination.currentPage - 1) * searchPagination.perPage + 1}-${Math.min(searchPagination.currentPage * searchPagination.perPage, searchPagination.total)} sur ${searchPagination.total}`
+                          : "0 résultats"}
+                      </Typography>
+                      <MuiPagination
+                        count={searchPagination.lastPage}
+                        page={searchPagination.currentPage}
+                        onChange={(e, newPage) => handleSearchPageChange(newPage)}
+                        color="primary"
+                        size="medium"
+                        showFirstButton
+                        showLastButton
+                        sx={{
+                          "& .MuiPaginationItem-root": {
+                            borderRadius: 2,
+                          },
+                          "& .Mui-selected": {
+                            background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
+                            color: "white",
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {loadingPages ? (
           <div className="flex items-center justify-center py-10">
@@ -552,89 +788,6 @@ export default function PageSearch() {
                     count={recommendedPagination.lastPage}
                     page={recommendedPagination.currentPage}
                     onChange={(e, newPage) => handleRecommendedPageChange(newPage)}
-                    color="primary"
-                    size="medium"
-                    showFirstButton
-                    showLastButton
-                    sx={{
-                      "& .MuiPaginationItem-root": {
-                        borderRadius: 2,
-                      },
-                      "& .Mui-selected": {
-                        background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-                        color: "white",
-                      },
-                    }}
-                  />
-                </Box>
-              </Box>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Pages suivies */}
-      <div className="mt-8">
-        <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-          Pages que vous suivez
-        </h3>
-
-        {loadingPages ? (
-          <div className="flex items-center justify-center py-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {subscribedPages.length > 0 ? (
-              subscribedPages.map((page) => renderPageCard(page, true))
-            ) : (
-              <p className={`col-span-full text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Vous ne suivez aucune page pour le moment.
-              </p>
-            )}
-            
-            {/* Pagination Material-UI pour les pages abonnées */}
-            {subscribedPages.length > 0 && subscribedPagination.lastPage > 1 && (
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 6, px: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
-                    Afficher
-                  </Typography>
-                  <FormControl size="small" sx={{ minWidth: 80 }}>
-                    <Select
-                      value={subscribedPagination.perPage}
-                      onChange={(e) => handleSubscribedRowsPerPageChange(parseInt(e.target.value, 10))}
-                      sx={{
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: isDarkMode ? "#4B5563" : "#3B82F6",
-                        },
-                        "& .MuiSvgIcon-root": {
-                          color: isDarkMode ? "#9CA3AF" : "#6B7280",
-                        },
-                      }}
-                    >
-                      <MenuItem value={3}>3</MenuItem>
-                      <MenuItem value={6}>6</MenuItem>
-                      <MenuItem value={9}>9</MenuItem>
-                      <MenuItem value={12}>12</MenuItem>
-                      <MenuItem value={24}>24</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
-                    résultats par page
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Typography variant="body2" sx={{ color: isDarkMode ? "text.secondary" : "text.secondary" }}>
-                    {subscribedPagination.total > 0
-                      ? `${(subscribedPagination.currentPage - 1) * subscribedPagination.perPage + 1}-${Math.min(subscribedPagination.currentPage * subscribedPagination.perPage, subscribedPagination.total)} sur ${subscribedPagination.total}`
-                      : "0 résultats"}
-                  </Typography>
-                  <MuiPagination
-                    count={subscribedPagination.lastPage}
-                    page={subscribedPagination.currentPage}
-                    onChange={(e, newPage) => handleSubscribedPageChange(newPage)}
                     color="primary"
                     size="medium"
                     showFirstButton

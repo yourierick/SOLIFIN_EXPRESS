@@ -65,7 +65,7 @@ export default function PublicationCard({
   // Déterminer les détails spécifiques au type de publication
   const getPublicationDetails = () => {
     switch (type) {
-      case "advertisement":
+      case "publications":
         return {
           title: publication.titre,
           description: publication.description,

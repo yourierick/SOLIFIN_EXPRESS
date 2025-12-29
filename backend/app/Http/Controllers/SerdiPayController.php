@@ -548,12 +548,6 @@ class SerdiPayController extends Controller
             $frais_de_transaction = $feesResult['globalFees'];
             $transactionFee = $feesResult['transactionFeeModel'];
             
-            // Log des frais calculés
-            \Log::info('Frais calculés', [
-                'montant' => $paymentAmount,
-                'frais_de_transaction' => $frais_de_transaction,
-            ]);
-            
             // Montant total incluant les frais de transaction
             $totalAmount = $paymentAmount + $frais_de_transaction;
             
@@ -579,14 +573,6 @@ class SerdiPayController extends Controller
                 $packCost = $paymentVerification['packCost'];
                 $step = $paymentVerification['step'];
                 $periods = $paymentVerification['periods'];
-                
-                \Log::info('Vérification du coût du pack réussie', [
-                    'prix_pack' => $pack->price,
-                    'duree_mois' => $validated['duration_months'],
-                    'pas_abonnement' => $step,
-                    'periodes' => $periods,
-                    'cout_total' => $packCost,
-                ]);
             }
 
             // Si la méthode de paiement est solifin-wallet, traiter directement l'achat
@@ -602,7 +588,6 @@ class SerdiPayController extends Controller
                     'payment_method' => $validated['payment_method'],
                     'payment_type' => $validated['payment_type'],
                     'payment_details' => $validated['payment_details'],
-                    'phoneNumber' => $validated['payment_details']['phoneNumber'],
                 ];
                 $purchaseData = new Request($purchaseData);
 

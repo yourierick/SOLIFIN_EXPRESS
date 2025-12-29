@@ -46,6 +46,7 @@ import FAQ from "../components/FAQ";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import PublicationsWrapper from "../components/PublicationsWrapper";
+import OpportunitiesTable from "../components/OpportunitiesTable";
 import ThemeToggle from "../components/ThemeToggle";
 import SectionDivider from "../components/SectionDivider";
 import AboutSolifin from "../components/AboutSolifin";
@@ -137,13 +138,15 @@ export default function Homepage() {
         <section id="ads">
           <PublicationsWrapper />
         </section>
+        
+        <SectionDivider />
+        <section id="opportunities">
+          <OpportunitiesTable />
+        </section>
+        
         <SectionDivider />
         <section id="packages">
           <Packages />
-        </section>
-        <SectionDivider />
-        <section id="theory-of-change">
-          <TheoryOfChange />
         </section>
         <SectionDivider />
         <section id="features">
@@ -152,6 +155,10 @@ export default function Homepage() {
         <SectionDivider />
         <section id="referral">
           <Referral />
+        </section>
+        <SectionDivider />
+        <section id="theory-of-change">
+          <TheoryOfChange />
         </section>
         <SectionDivider />
         <section id="stats">

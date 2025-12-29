@@ -27,8 +27,8 @@ const PublicationPackAlert = () => {
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              Votre pack de publication n'est pas actif, veuillez le réactiver
-              pour publier.
+              Votre abonnement n'est pas actif, veuillez le réactiver
+              pour faire des publications.
               {packInfo && (
                 <span className="font-medium">
                   {" "}
@@ -39,7 +39,7 @@ const PublicationPackAlert = () => {
                 to="/dashboard/packs/:id"
                 className="ml-2 font-medium underline"
               >
-                Gérer mon pack
+                Gérer mon abonnement
               </Link>
             </p>
           </div>

@@ -95,11 +95,8 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
         
         return [
             'title' => "Paiement {$status}",
-            'amount' => $this->amount,
-            'currency' => $this->currency,
-            'session_id' => $this->sessionId,
-            'status' => $this->status,
-            'transaction_type' => $this->transactionType,
+            'icon' => 'exclamation-circle',
+            'type' => 'info',
             'message' => $this->status === 'success' 
                 ? "Votre paiement de {$this->amount} {$this->currency} a été traité avec succès."
                 : "Votre paiement de {$this->amount} {$this->currency} n'a pas pu être traité."

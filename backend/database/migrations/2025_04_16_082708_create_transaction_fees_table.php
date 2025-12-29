@@ -56,6 +56,11 @@ return new class extends Migration
                 'payment_type' => 'credit-card',
                 'created_at' => now(),
             ],
+            [
+                'payment_method' => 'solifin-wallet',
+                'payment_type' => 'solifin-wallet',
+                'created_at' => now(),
+            ],
         ]);
     }
 

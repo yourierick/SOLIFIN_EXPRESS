@@ -60,15 +60,16 @@ class LoginController extends Controller
         
         // Si l'utilisateur est en période d'essai, ajouter les informations sur la date d'expiration
         if ($user->status === RegistrationService::STATUS_TRIAL) {
-            $trialDurationDays = (int) Setting::getValue('essai_duration_days', 10);
-            $createdAt = Carbon::parse($user->created_at);
-            $trialEndDate = $createdAt->copy()->addDays($trialDurationDays);
+            // $trialDurationDays = (int) Setting::getValue('essai_duration_days', 10);
+            // $createdAt = Carbon::parse($user->created_at);
+            // $trialEndDate = $createdAt->copy()->addDays($trialDurationDays);
             
             $response['trial'] = [
                 'isTrialUser' => true,
-                'trialEndDate' => $trialEndDate->format('Y-m-d'),
-                'daysRemaining' => now()->diffInDays($trialEndDate, false),
-                'message' => 'Votre période d\'essai se termine le ' . $trialEndDate->format('d/m/Y') . '. Veuillez souscrire à un pack à partir de l\'onglet Mes Packs pour conserver votre compte.'
+                // 'trialEndDate' => $trialEndDate->format('Y-m-d'),
+                // 'daysRemaining' => now()->diffInDays($trialEndDate, false),
+                // 'message' => 'Votre période d\'essai se termine le ' . $trialEndDate->format('d/m/Y') . '. Veuillez souscrire à un pack à partir de l\'onglet Mes Packs pour conserver votre compte.'
+                'message' => 'Afin de profiter pleinement de tous les avantages qu\'offre SOLIFIN, veuillez souscrire à l\'abonnement de votre choix, veuillez cliquer sur le bouton ci-dessous!'
             ];
         } else {
             $response['trial'] = ['isTrialUser' => false];

@@ -490,6 +490,7 @@ export default function MyPage() {
         case 'publications':
           endpoint = `/api/my-page/publications`;
           break;
+
         case 'jobOffers':
           endpoint = `/api/my-page/job-offers`;
           break;
@@ -510,7 +511,7 @@ export default function MyPage() {
 
       // Appel API avec pagination et filtres
       const response = await axios.get(`${endpoint}?${params.toString()}`);
-      
+
       // Mise à jour spécifique selon l'onglet
       switch (activeTab) {
         case 'publications':
@@ -574,10 +575,8 @@ export default function MyPage() {
   // Fonction pour actualiser manuellement les données
   const handleRefresh = async () => {
     try {
-      toast.info("Actualisation en cours...");
-      await fetchPageData();
+      await fetchPageData(activeTab);
       // fetchPageData inclut déjà fetchCatalogProducts, fetchLivreurs et fetchMyPurchases
-      toast.success("Données actualisées avec succès!");
     } catch (error) {
       console.error("Erreur lors de l'actualisation:", error);
       toast.error("Erreur lors de l'actualisation des données");
@@ -1742,7 +1741,7 @@ export default function MyPage() {
                     }
                   >
                     <UsersIcon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
-                    <span className="truncate">Pages</span>
+                    <span className="truncate">Mes abonnés</span>
                   </Tab>
                   
                   {/* Produits numériques Tab */}
@@ -3128,15 +3127,6 @@ export default function MyPage() {
             {/* Pages Panel */}
             <Tab.Panel className={`${isMobile ? "p-2" : "p-4"}`}>
               <div className="news-feed-wrapper">
-                <h2
-                  className={`${
-                    isMobile ? "text-base" : "text-lg"
-                  } font-semibold text-gray-800 dark:text-white ${
-                    isMobile ? "mb-3" : "mb-4"
-                  }`}
-                >
-                  Pages
-                </h2>
                 <PageSearch compact={isMobile} />
               </div>
             </Tab.Panel>

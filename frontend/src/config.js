@@ -41,6 +41,7 @@ export const PAGINATION = {
 export const PAYMENT_TYPES = {
   MOBILE_MONEY: "mobile-money",
   CREDIT_CARD: "credit-card",
+  WALLET: "solifin-wallet"
 };
 
 // Configuration détaillée des méthodes de paiement par type
@@ -56,6 +57,9 @@ export const PAYMENT_METHODS = {
     { id: "mastercard", name: "Mastercard" },
     { id: "american-express", name: "American Express" },
   ],
+  [PAYMENT_TYPES.WALLET]: [
+    {id: "solifin-wallet", name: "Portefeuille SOLIFIN"}
+  ]
 };
 
 export default {

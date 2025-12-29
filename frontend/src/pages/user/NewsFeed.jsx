@@ -1786,7 +1786,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                     </TableRow>
                   </TableHead>
 
-              <TableBody>
+                  <TableBody>
                     {posts
                       .filter((post) => post.type === "offres-emploi")
                       .map((post) => (

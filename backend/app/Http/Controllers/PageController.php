@@ -109,7 +109,7 @@ class PageController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Page non trouvée',
-                'advertisements' => [],
+                'publications' => [],
                 'pagination' => [
                     'currentPage' => 1,
                     'totalPages' => 0,
@@ -159,7 +159,7 @@ class PageController extends Controller
 
         return response()->json([
             'success' => true,
-            'advertisements' => $advertisements,
+            'publications' => $advertisements,
             'pagination' => [
                 'currentPage' => (int)$pageNumber,
                 'totalPages' => $totalPages,
@@ -749,6 +749,83 @@ class PageController extends Controller
         return response()->json([
             'success' => true,
             'isSubscribed' => $isSubscribed
+        ]);
+    }
+
+    /**
+     * Récupérer la liste des abonnés de l'utilisateur connecté
+     * avec vérification d'abonnement mutuel
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getSubscriptions(Request $request)
+    {
+        $userId = Auth::id();
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 10);
+        
+        // Récupérer les abonnés de la page de l'utilisateur connecté
+        $userPage = Page::where('user_id', $userId)->first();
+        
+        if (!$userPage) {
+            return response()->json([
+                'pages' => [],
+                'current_page' => 1,
+                'last_page' => 1,
+                'total' => 0,
+                'per_page' => $perPage
+            ]);
+        }
+        
+        // Récupérer les abonnés de la page de l'utilisateur avec leurs pages
+        $subscribersQuery = $userPage->abonnes()->with(['user' => function($query) {
+            $query->select('id', 'name', 'picture');
+        }]);
+        
+        // Paginer les résultats
+        $paginatedSubscribers = $subscribersQuery->paginate($perPage, ['*'], 'page', $page);
+        $subscribers = $paginatedSubscribers->items();
+
+        $pages = [];
+        foreach ($subscribers as $subscriber) {
+            // Récupérer la page de l'abonné séparément pour éviter la récursion
+            $subscriberPage = Page::where('user_id', $subscriber->user_id)->first();
+            
+            if ($subscriberPage) {
+                // Formater les URLs des images
+                if ($subscriber->user->picture) {
+                    $subscriber->user->picture = asset('storage/' . $subscriber->user->picture);
+                }
+
+                if ($subscriberPage->photo_de_couverture) {
+                    $subscriberPage->photo_de_couverture = asset('storage/' . $subscriberPage->photo_de_couverture);
+                }
+
+                // Vérifier si l'utilisateur connecté est abonné à la page de cet abonné (abonnement mutuel)
+                $subscriberPage->is_subscribed = PageAbonnes::where('page_id', $subscriberPage->id)
+                                                          ->where('user_id', $userId)
+                                                          ->exists();
+                
+                // Ajouter la date d'abonnement de l'abonné
+                $subscriberPage->subscription_date = $subscriber->created_at;
+                
+                // Ajouter le nombre d'abonnés de la page
+                $subscriberPage->nombre_abonnes = $subscriberPage->abonnes()->count();
+                
+                // Ajouter les informations de l'utilisateur propriétaire
+                $subscriberPage->user = $subscriber->user;
+                
+                $pages[] = $subscriberPage;
+            }
+        }
+        
+        return response()->json([
+            'pages' => $pages,
+            'current_page' => $paginatedSubscribers->currentPage(),
+            'last_page' => $paginatedSubscribers->lastPage(),
+            'total' => $paginatedSubscribers->total(),
+            'per_page' => $paginatedSubscribers->perPage()
         ]);
     }
 

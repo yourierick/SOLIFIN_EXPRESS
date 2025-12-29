@@ -96,7 +96,7 @@ export default function PublicationDetailsModal({
       : "Date inconnue";
 
     switch (type) {
-      case "advertisement":
+      case "publication":
         return {
           title: "Publicité",
           subtitle: publication.titre,

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Tab } from "@headlessui/react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import EmojiPicker from "emoji-picker-react";
 import {
   PlusIcon,
   PhotoIcon,
@@ -59,6 +63,9 @@ export default function Social() {
   const [isViewingStatus, setIsViewingStatus] = useState(false);
   const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
   const [showDescriptionOnly, setShowDescriptionOnly] = useState(false); // Nouvel état pour contrôler l'affichage
+  const [isStatusLoading, setIsStatusLoading] = useState(false); // État pour le chargement du statut
+  const [loadedStatuses, setLoadedStatuses] = useState(new Set()); // Suivi des statuts chargés
+  const [expandedDescriptions, setExpandedDescriptions] = useState(new Set()); // Suivi des descriptions étendues
 
   // États pour le signalement
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -84,6 +91,12 @@ export default function Social() {
   const videoInputRef = useRef(null);
   const statusInterval = useRef(null);
   const [fileError, setFileError] = useState("");
+  
+  // États pour le sélecteur d'emojis
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
+  const emojiButtonRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // États pour le modal de confirmation
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -147,6 +160,45 @@ export default function Social() {
       document.body.style.removeProperty('--transition-duration');
     };
   }, [isMobile]);
+
+  // Gérer la sélection d'emoji
+  const onEmojiClick = (emojiObject) => {
+    const emoji = emojiObject.emoji;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const cursorPosition = textarea.selectionStart;
+    const textBeforeCursor = description.substring(0, cursorPosition);
+    const textAfterCursor = description.substring(cursorPosition);
+    
+    const newText = textBeforeCursor + emoji + textAfterCursor;
+    setDescription(newText);
+    
+    // Repositionner le curseur après l'emoji
+    setTimeout(() => {
+      const newCursorPosition = cursorPosition + emoji.length;
+      textarea.selectionStart = newCursorPosition;
+      textarea.selectionEnd = newCursorPosition;
+      textarea.focus();
+    }, 0);
+    
+    setShowEmojiPicker(false);
+  };
+  
+  // Fermer le sélecteur d'emoji quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) && 
+          emojiButtonRef.current && !emojiButtonRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Récupérer les statuts aimés par l'utilisateur
   const fetchLikedStatuses = async () => {
@@ -458,6 +510,10 @@ export default function Social() {
 
     if (statuses.length === 0) return;
 
+    // Réinitialiser les états de chargement
+    setLoadedStatuses(new Set());
+    setIsStatusLoading(false);
+
     // Afficher d'abord les statuts avec les données disponibles
     setCurrentStatusGroup(statusGroup);
     setCurrentPageStatuses(statuses);
@@ -466,62 +522,59 @@ export default function Social() {
     setIsPaused(false);
     setProgressBarWidth(0);
 
+    // Précharger immédiatement le premier statut
+    if (statuses.length > 0) {
+      const firstStatus = statuses[0];
+      const mediaUrl = firstStatus.image_url || firstStatus.video_url;
+      
+      if (mediaUrl) {
+        setIsStatusLoading(true);
+        const img = new Image();
+        img.onload = () => {
+          setLoadedStatuses(prev => new Set([...prev, firstStatus.id]));
+          setIsStatusLoading(false);
+        };
+        img.onerror = () => {
+          setLoadedStatuses(prev => new Set([...prev, firstStatus.id]));
+          setIsStatusLoading(false);
+        };
+        img.src = mediaUrl;
+      } else {
+        setLoadedStatuses(prev => new Set([...prev, firstStatus.id]));
+      }
+    }
+
     // Précharger les données complètes de tous les statuts en arrière-plan
     try {
-      // Précharger immédiatement le premier statut
-      if (statuses.length > 0) {
-        const firstStatusId = statuses[0].id;
-        const response = await axios.get(`/api/social-events/${firstStatusId}`);
-        const updatedFirstStatus = response.data;
+      Promise.all(
+        statuses.slice(1).map(async (status) => {
+          try {
+            const resp = await axios.get(`/api/social-events/${status.id}`);
+            const updatedStatus = resp.data;
 
-        // Mettre à jour le premier statut avec les données complètes
-        setCurrentPageStatuses((prev) =>
-          prev.map((status, index) =>
-            index === 0
-              ? {
-                  ...status,
-                  ...updatedFirstStatus,
-                  // Préserver ces propriétés pour éviter l'alternance
-                  image_url: updatedFirstStatus.image_url || status.image_url,
-                  video_url: updatedFirstStatus.video_url || status.video_url,
-                  description:
-                    updatedFirstStatus.description || status.description,
-                }
-              : status
-          )
-        );
-
-        // Précharger le reste des statuts en arrière-plan
-        Promise.all(
-          statuses.slice(1).map(async (status, index) => {
-            try {
-              const resp = await axios.get(`/api/social-events/${status.id}`);
-              const updatedStatus = resp.data;
-
-              // Mettre à jour chaque statut individuellement
-              setCurrentPageStatuses((prev) =>
-                prev.map((s, i) =>
-                  s.id === status.id
-                    ? {
-                        ...s,
-                        ...updatedStatus,
-                        // Préserver ces propriétés pour éviter l'alternance
-                        image_url: updatedStatus.image_url || s.image_url,
-                        video_url: updatedStatus.video_url || s.video_url,
-                        description: updatedStatus.description || s.description,
-                      }
-                    : s
-                )
-              );
-            } catch (err) {
-              console.error(
-                `Erreur lors du préchargement du statut ${status.id}:`,
-                err
-              );
-            }
-          })
-        );
-      }
+            // Mettre à jour chaque statut individuellement
+            setCurrentPageStatuses((prev) =>
+              prev.map((s) =>
+                s.id === status.id
+                  ? {
+                      ...s,
+                      ...updatedStatus,
+                      // Préserver ces propriétés pour éviter l'alternance
+                      image_url: updatedStatus.image_url || s.image_url,
+                      video_url: updatedStatus.video_url || s.video_url,
+                      description: updatedStatus.description || s.description,
+                    }
+                  : s
+              )
+            );
+          } catch (err) {
+            console.error(
+              `Erreur lors du préchargement du statut ${status.id}:`,
+              err
+            );
+          }
+        })
+      );
     } catch (error) {
       console.error(
         "Erreur lors du préchargement des données du statut:",
@@ -533,8 +586,38 @@ export default function Social() {
   // Naviguer au statut suivant
   const goToNextStatus = () => {
     if (currentStatusIndex < currentPageStatuses.length - 1) {
-      setCurrentStatusIndex(currentStatusIndex + 1);
+      const nextIndex = currentStatusIndex + 1;
+      const nextStatus = currentPageStatuses[nextIndex];
+      
+      // Changer immédiatement de statut pour afficher le prochain
+      setCurrentStatusIndex(nextIndex);
       setProgressBarWidth(0);
+      
+      // Vérifier si le statut suivant est déjà chargé
+      if (!loadedStatuses.has(nextStatus.id)) {
+        setIsStatusLoading(true);
+        
+        // Simuler le chargement de l'image/vidéo
+        const mediaUrl = nextStatus.image_url || nextStatus.video_url;
+        if (mediaUrl) {
+          const img = new Image();
+          img.onload = () => {
+            setLoadedStatuses(prev => new Set([...prev, nextStatus.id]));
+            setIsStatusLoading(false);
+          };
+          img.onerror = () => {
+            // En cas d'erreur, on quand même continue
+            setLoadedStatuses(prev => new Set([...prev, nextStatus.id]));
+            setIsStatusLoading(false);
+          };
+          img.src = mediaUrl;
+        } else {
+          // Pour les statuts texte, pas besoin de chargement
+          setLoadedStatuses(prev => new Set([...prev, nextStatus.id]));
+          setIsStatusLoading(false);
+        }
+      }
+      // Si déjà chargé, ne rien faire (le statut est déjà affiché)
     } else {
       // Fermer la vue si c'est le dernier statut
       setIsViewingStatus(false);
@@ -544,27 +627,71 @@ export default function Social() {
   // Naviguer au statut précédent
   const goToPreviousStatus = () => {
     if (currentStatusIndex > 0) {
-      setCurrentStatusIndex(currentStatusIndex - 1);
+      const prevIndex = currentStatusIndex - 1;
+      const prevStatus = currentPageStatuses[prevIndex];
+      
+      // Changer immédiatement de statut pour afficher le précédent
+      setCurrentStatusIndex(prevIndex);
       setProgressBarWidth(0);
+      
+      // Vérifier si le statut précédent est déjà chargé
+      if (!loadedStatuses.has(prevStatus.id)) {
+        setIsStatusLoading(true);
+        
+        const mediaUrl = prevStatus.image_url || prevStatus.video_url;
+        if (mediaUrl) {
+          const img = new Image();
+          img.onload = () => {
+            setLoadedStatuses(prev => new Set([...prev, prevStatus.id]));
+            setIsStatusLoading(false);
+          };
+          img.onerror = () => {
+            setLoadedStatuses(prev => new Set([...prev, prevStatus.id]));
+            setIsStatusLoading(false);
+          };
+          img.src = mediaUrl;
+        } else {
+          setLoadedStatuses(prev => new Set([...prev, prevStatus.id]));
+          setIsStatusLoading(false);
+        }
+      }
+      // Si déjà chargé, ne rien faire (le statut est déjà affiché)
     }
+  };
+
+  // Fonction pour basculer l'affichage de la description
+  const toggleDescriptionExpansion = (statusId) => {
+    setExpandedDescriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(statusId)) {
+        newSet.delete(statusId);
+      } else {
+        newSet.add(statusId);
+      }
+      return newSet;
+    });
+  };
+
+  // Fonction pour tronquer le texte
+  const truncateText = (text, maxLength = 100) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+  };
+
+  // Fonction pour réinitialiser les états de visualisation des statuts
+  const resetStatusView = () => {
+    setIsViewingStatus(false);
+    setCurrentStatusIndex(0);
+    setIsPaused(false);
+    setProgressBarWidth(0);
+    setIsStatusLoading(false);
+    setLoadedStatuses(new Set());
+    setExpandedDescriptions(new Set());
   };
 
   // Mettre en pause ou reprendre le défilement
   const togglePause = () => {
     setIsPaused(!isPaused);
-  };
-
-  // Fonction pour réinitialiser les états de visualisation des statuts
-  const resetStatusView = () => {
-    setCurrentStatusIndex(0);
-    setCurrentPageStatuses([]);
-    setCurrentStatusGroup("");
-    setCurrentPageInfo(null);
-    setIsViewingStatus(false);
-    setIsPaused(false);
-    setProgressBarWidth(0);
-    // Ne pas essayer de nettoyer l'intervalle ici, il est déjà géré par l'effet useEffect
-    setIsStatusReported(false);
   };
 
   // Fonction pour fermer la vue des statuts
@@ -722,20 +849,63 @@ export default function Social() {
           </div>
         )}
 
-        {/* Champ de texte optimisé pour mobile */}
+        {/* Champ de texte optimisé pour mobile avec bouton emoji */}
         <div className={`mb-4 ${isMobile ? "mb-3" : "mb-4"}`}>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Que voulez-vous partager ?"
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 ${
-              isDarkMode
-                ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-            } ${isMobile ? "text-base py-3" : "text-sm py-2"}`}
-            rows={isMobile ? 3 : 4}
-          />
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Que voulez-vous partager ?"
+              className={`w-full px-3 py-2 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 resize-none ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+              } ${isMobile ? "text-base py-3" : "text-sm py-2"}`}
+              rows={isMobile ? 3 : 4}
+            />
+            
+            {/* Bouton emoji */}
+            <button
+              ref={emojiButtonRef}
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={`absolute right-2 top-2 p-2 rounded-full transition-all duration-200 ${
+                isDarkMode
+                  ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              }`}
+              title="Ajouter un emoji"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Sélecteur d'emojis */}
+        {showEmojiPicker && (
+          <div 
+            ref={emojiPickerRef}
+            className="emoji-picker-container"
+            style={{
+              position: 'absolute',
+              bottom: '60px',
+              right: '0px',
+              zIndex: 1000
+            }}
+          >
+            <EmojiPicker 
+              onEmojiClick={onEmojiClick} 
+              theme={isDarkMode ? 'dark' : 'light'}
+              searchDisabled={false}
+              skinTonesDisabled
+              width={isMobile ? 280 : 300}
+              height={isMobile ? 350 : 400}
+            />
+          </div>
+        )}
 
         {/* Message d'erreur pour les fichiers */}
         {fileError && (
@@ -1310,7 +1480,7 @@ export default function Social() {
     let timer;
     let progressTimer;
 
-    if (isViewingStatus && !isPaused) {
+    if (isViewingStatus && !isPaused && !isStatusLoading) {
       // Réinitialiser l'affichage pour montrer l'image/vidéo à chaque changement de statut
       setShowDescriptionOnly(false);
 
@@ -1331,8 +1501,7 @@ export default function Social() {
       // Timer pour passer au statut suivant
       timer = setTimeout(() => {
         if (currentStatusIndex < currentPageStatuses.length - 1) {
-          setCurrentStatusIndex(currentStatusIndex + 1);
-          setProgressBarWidth(0);
+          goToNextStatus();
         } else {
           // Fermer la vue si c'est le dernier statut
           setIsViewingStatus(false);
@@ -1348,10 +1517,11 @@ export default function Social() {
     isViewingStatus,
     currentStatusIndex,
     isPaused,
+    isStatusLoading,
     currentPageStatuses.length,
   ]);
 
-  // Rendu de la vue d'un statut (style WhatsApp)
+  // Rendu de la vue d'un statut (style WhatsApp) - Modal avec Dialog
   const renderStatusView = () => {
     if (!isViewingStatus || currentPageStatuses.length === 0) return null;
 
@@ -1359,298 +1529,607 @@ export default function Social() {
     if (!currentStatus) return null;
 
     return (
-      <div
-        className={`relative bg-black z-40 flex flex-col rounded-lg overflow-hidden shadow-xl ${
-          isDarkMode ? "border border-gray-700" : "border border-gray-300"
-        }`}
-        style={{ height: "70vh" }}
-        onClick={togglePause} // Mettre en pause/reprendre en cliquant sur le statut
-      >
-        {/* Barre de progression */}
-        <div className="absolute top-0 left-0 right-0 flex px-2 pt-2 space-x-1">
-          {currentPageStatuses.map((_, index) => (
-            <div
-              key={index}
-              className="h-1 rounded-full flex-1 bg-gray-600 overflow-hidden"
-            >
-              {index === currentStatusIndex && (
-                <div
-                  className="h-full bg-white"
-                  style={{ width: `${progressBarWidth}%` }}
-                />
-              )}
-              {index < currentStatusIndex && (
-                <div className="h-full bg-white w-full" />
-              )}
-            </div>
-          ))}
-        </div>
+      <Transition appear show={isViewingStatus} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={closeStatusView}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm" />
+          </Transition.Child>
 
-        {/* En-tête */}
-        <div className="flex items-center justify-between px-4 pt-6 pb-2 z-10">
-          <div className="flex items-center">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                closeStatusView();
-              }}
-              className="text-white mr-2 hover:bg-gray-700 p-1 rounded-full transition-colors"
-            >
-              <XMarkIcon className="h-5 w-5" />
-            </button>
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden mr-2">
-                {currentPageInfo?.picture ? (
-                  <img
-                    src={currentPageInfo.picture}
-                    alt={currentPageInfo.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-xs font-medium">
-                    {currentPageInfo?.name?.charAt(0) || "U"}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="text-white text-sm font-medium">
-                  {currentPageInfo?.name || "Statut"}
-                </p>
-                <p className="text-gray-300 text-xs">
-                  {formatDistanceToNow(new Date(currentStatus.created_at), {
-                    addSuffix: true,
-                    locale: fr,
-                  })}
-                </p>
-              </div>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="relative w-full max-w-6xl h-screen max-h-screen bg-black overflow-hidden">
+                  {/* Barre de progression */}
+                  <div className="absolute top-0 left-0 right-0 flex px-4 pt-4 space-x-2 z-20">
+                    {currentPageStatuses.map((_, index) => (
+                      <div
+                        key={index}
+                        className="h-1.5 rounded-full flex-1 bg-gray-700 overflow-hidden"
+                      >
+                        {index === currentStatusIndex && (
+                          <motion.div
+                            className="h-full bg-white"
+                            initial={{ width: "0%" }}
+                            animate={{ width: `${progressBarWidth}%` }}
+                            transition={{ duration: 0.1 }}
+                          />
+                        )}
+                        {index < currentStatusIndex && (
+                          <div className="h-full bg-white w-full" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* En-tête */}
+                  <div className={`flex items-center justify-between px-4 pt-8 pb-4 z-30 relative ${
+                    isMobile ? 'px-3 pt-6 pb-3' : 'px-4 pt-8 pb-4'
+                  }`}>
+                    <div className="flex items-center">
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          closeStatusView();
+                        }}
+                        className={`text-white hover:bg-white/20 rounded-full transition-all duration-200 relative z-40 ${
+                          isMobile ? 'mr-2 p-2' : 'mr-3 p-2'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <XMarkIcon className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                      </motion.button>
+                      <div className="flex items-center">
+                        <motion.div 
+                          className={`rounded-full bg-gray-700 flex items-center justify-center overflow-hidden ring-2 ring-white/20 ${
+                            isMobile ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          {currentPageInfo?.picture ? (
+                            <img
+                              src={currentPageInfo.picture}
+                              alt={currentPageInfo.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className={`text-white font-medium ${
+                              isMobile ? 'text-xs' : 'text-sm'
+                            }`}>
+                              {currentPageInfo?.name?.charAt(0) || "U"}
+                            </span>
+                          )}
+                        </motion.div>
+                        <div>
+                          <p className={`text-white font-medium ${
+                            isMobile ? 'text-sm' : 'text-base'
+                          }`}>
+                            {currentPageInfo?.name || "Statut"}
+                          </p>
+                          <p className={`text-gray-400 ${
+                            isMobile ? 'text-xs' : 'text-sm'
+                          }`}>
+                            {formatDistanceToNow(new Date(currentStatus.created_at), {
+                              addSuffix: true,
+                              locale: fr,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Boutons de contrôle */}
+                    <div className={`flex items-center ${
+                      isMobile ? 'space-x-2' : 'space-x-4'
+                    }`}>
+                      {/* Bouton pause/lecture */}
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePause();
+                        }}
+                        className={`text-white hover:bg-white/20 rounded-full transition-all duration-200 ${
+                          isMobile ? 'p-1.5' : 'p-2'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        {isPaused ? (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </motion.button>
+
+                      {/* Bouton J'aime */}
+                      {!isMobile && (
+                        <div className="flex items-center">
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleLike(currentStatus.id);
+                            }}
+                            className={`text-white rounded-full transition-all duration-200 ${
+                              currentStatus.user_id === currentUser?.id
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:bg-white/20"
+                            } p-2`}
+                            disabled={isLiking || currentStatus.user_id === currentUser?.id}
+                            title={
+                              currentStatus.user_id === currentUser?.id
+                                ? "Vous ne pouvez pas aimer votre propre statut"
+                                : ""
+                            }
+                            whileHover={{ scale: currentStatus.user_id !== currentUser?.id ? 1.1 : 1 }}
+                            whileTap={{ scale: currentStatus.user_id !== currentUser?.id ? 0.9 : 1 }}
+                          >
+                            {likedStatuses.includes(currentStatus.id) ? (
+                              <HeartIconSolid className="h-6 w-6 text-red-500" />
+                            ) : (
+                              <HeartIcon className="h-6 w-6" />
+                            )}
+                          </motion.button>
+
+                          {/* Compteur de j'aime (visible uniquement pour le propriétaire) */}
+                          {currentStatus.user_id === currentUser?.id && (
+                            <motion.span 
+                              className="text-sm text-white ml-2"
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                            >
+                              {currentStatus.likes_count ||
+                                currentStatus.likes?.length ||
+                                0}
+                            </motion.span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Compteur de vues (visible uniquement pour le propriétaire) */}
+                      {!isMobile && currentStatus.user_id === currentUser?.id && (
+                        <div className="flex items-center ml-3">
+                          <EyeIcon className="h-6 w-6 text-white" />
+                          <motion.span 
+                            className="text-sm text-white ml-2"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                          >
+                            {currentStatus.views_count || 0}
+                          </motion.span>
+                        </div>
+                      )}
+
+                      {/* Bouton de suppression (uniquement pour mes statuts) */}
+                      {currentStatusGroup === "my" && (
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeStatusView();
+                            confirmDelete(currentStatus.id);
+                          }}
+                          className={`text-white hover:bg-red-500/20 rounded-full transition-all duration-200 ${
+                            isMobile ? 'p-1.5' : 'p-2'
+                          }`}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          <TrashIcon className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                        </motion.button>
+                      )}
+
+                      {/* Bouton de signalement (uniquement pour les statuts des autres) */}
+                      {currentStatusGroup !== "my" && (
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openReportModal();
+                          }}
+                          className={`text-white hover:bg-white/20 rounded-full transition-all duration-200 ${
+                            isStatusReported ? "text-red-500" : ""
+                          } ${isMobile ? 'p-1.5' : 'p-2'}`}
+                          disabled={isStatusReported}
+                          title={
+                            isStatusReported
+                              ? "Vous avez déjà signalé ce statut"
+                              : "Signaler ce statut"
+                          }
+                          whileHover={{ scale: !isStatusReported ? 1.1 : 1 }}
+                          whileTap={{ scale: !isStatusReported ? 0.9 : 1 }}
+                        >
+                          <ExclamationCircleIcon className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Description (en bas, au-dessus des indicateurs) - uniquement pour images/vidéos */}
+                  {currentStatus.description && (currentStatus.image_url || currentStatus.video_url) && (
+                    <motion.div 
+                      className={`absolute left-0 right-0 p-3 ${
+                        expandedDescriptions.has(currentStatus.id)
+                          ? 'bg-black/90 backdrop-blur-sm'
+                          : 'bg-gradient-to-t from-black/80 via-black/60 to-transparent'
+                      } z-20 ${
+                        isMobile ? 'bottom-14' : 'bottom-16'
+                      }`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <div className="text-white">
+                        {/* Pour images/vidéos : description tronquée avec "voir plus" */}
+                        <p className={`leading-relaxed ${
+                          isMobile ? 'text-xs' : 'text-sm'
+                        }`}>
+                          {expandedDescriptions.has(currentStatus.id) 
+                            ? currentStatus.description 
+                            : truncateText(currentStatus.description, isMobile ? 80 : 120)
+                          }
+                        </p>
+                        {currentStatus.description.length > (isMobile ? 80 : 120) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDescriptionExpansion(currentStatus.id);
+                            }}
+                            className={`text-blue-300 hover:text-blue-200 transition-colors duration-200 ${
+                              isMobile ? 'text-xs mt-1' : 'text-xs mt-1'
+                            }`}
+                          >
+                            {expandedDescriptions.has(currentStatus.id) ? 'Voir moins' : 'Voir plus'}
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Contenu du statut */}
+                  <div
+                    className={`flex-1 flex items-center justify-center relative ${
+                      isMobile ? 'p-2' : 'p-4'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isStatusLoading) {
+                        goToNextStatus();
+                      }
+                    }}
+                  >
+                    {/* Overlay de chargement */}
+                    {isStatusLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-md z-20">
+                        <div className="text-center">
+                          <div className={`inline-block animate-spin rounded-full border-4 border-solid border-white border-t-transparent ${
+                            isMobile ? 'h-8 w-8' : 'h-12 w-12'
+                          }`}></div>
+                          <p className={`text-white mt-4 ${
+                            isMobile ? 'text-xs' : 'text-sm'
+                          }`}>Chargement...</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Contenu flou pendant le chargement */}
+                    <div className={`transition-all duration-300 ${
+                      isStatusLoading ? 'blur-sm opacity-50' : 'blur-none opacity-100'
+                    }`}>
+                      {currentStatus.image_url ? (
+                        <motion.img
+                          key={currentStatus.id} // Key pour forcer le rechargement
+                          src={currentStatus.image_url}
+                          alt="Statut"
+                          className={`object-contain rounded-lg shadow-2xl ${
+                            isMobile 
+                              ? 'max-h-[60vh] max-w-[95vw]' 
+                              : 'max-h-[70vh] max-w-[90vw]'
+                          }`}
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                          whileHover={{ scale: 1.02 }}
+                        />
+                      ) : currentStatus.video_url ? (
+                        <motion.video
+                          key={currentStatus.id} // Key pour forcer le rechargement
+                          src={currentStatus.video_url}
+                          controls
+                          autoPlay
+                          className={`object-contain rounded-lg shadow-2xl ${
+                            isMobile 
+                              ? 'max-h-[60vh] max-w-[95vw]' 
+                              : 'max-h-[70vh] max-w-[90vw]'
+                          }`}
+                          onClick={(e) => e.stopPropagation()}
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      ) : (
+                        <motion.div 
+                          key={currentStatus.id} // Key pour forcer le rechargement
+                          className={`flex items-center justify-center ${
+                            isMobile ? 'w-full h-full min-h-[300px]' : 'w-full h-full min-h-[400px]'
+                          }`}
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <p className={`text-white font-medium text-center leading-relaxed px-8 max-w-4xl ${
+                            isMobile ? 'text-lg' : 'text-2xl'
+                          }`}>
+                            {currentStatus.description}
+                          </p>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Navigation */}
+                  <div
+                    className={`absolute inset-y-0 left-0 flex items-center justify-start z-10 ${
+                      isMobile ? 'w-1/2 pl-4' : 'w-1/3 pl-8'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToPreviousStatus();
+                    }}
+                  >
+                    {currentStatusIndex > 0 && (
+                      <motion.button 
+                        className={`bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-all duration-200 shadow-lg ${
+                          isMobile ? 'p-2' : 'p-3'
+                        }`}
+                        whileHover={{ scale: 1.1, x: 5 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <ChevronLeftIcon className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
+                      </motion.button>
+                    )}
+                  </div>
+                  <div
+                    className={`absolute inset-y-0 right-0 flex items-center justify-end z-10 ${
+                      isMobile ? 'w-1/2 pr-4' : 'w-1/3 pr-8'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToNextStatus();
+                    }}
+                  >
+                    {currentStatusIndex < currentPageStatuses.length - 1 && (
+                      <motion.button 
+                        className={`bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-all duration-200 shadow-lg ${
+                          isMobile ? 'p-2' : 'p-3'
+                        }`}
+                        whileHover={{ scale: 1.1, x: -5 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <ChevronRightIcon className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
+                      </motion.button>
+                    )}
+                  </div>
+
+                  {/* Indicateurs de navigation au centre */}
+                  <div className={`absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-4 z-10 ${
+                    isMobile ? 'bottom-4' : 'bottom-6'
+                  }`}>
+                    {/* Bouton J'aime (mobile uniquement) */}
+                    {isMobile && (
+                      <div className="flex items-center">
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLike(currentStatus.id);
+                          }}
+                          className={`text-white rounded-full transition-all duration-200 ${
+                            currentStatus.user_id === currentUser?.id
+                              ? "opacity-50 cursor-not-allowed"
+                              : "hover:bg-white/20"
+                          } p-1.5`}
+                          disabled={isLiking || currentStatus.user_id === currentUser?.id}
+                          title={
+                            currentStatus.user_id === currentUser?.id
+                              ? "Vous ne pouvez pas aimer votre propre statut"
+                              : ""
+                          }
+                          whileHover={{ scale: currentStatus.user_id !== currentUser?.id ? 1.1 : 1 }}
+                          whileTap={{ scale: currentStatus.user_id !== currentUser?.id ? 0.9 : 1 }}
+                        >
+                          {likedStatuses.includes(currentStatus.id) ? (
+                            <HeartIconSolid className="h-5 w-5 text-red-500" />
+                          ) : (
+                            <HeartIcon className="h-5 w-5" />
+                          )}
+                        </motion.button>
+
+                        {/* Compteur de j'aime (visible uniquement pour le propriétaire) */}
+                        {currentStatus.user_id === currentUser?.id && (
+                          <motion.span 
+                            className="text-xs text-white ml-1"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                          >
+                            {currentStatus.likes_count ||
+                              currentStatus.likes?.length ||
+                              0}
+                          </motion.span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Indicateurs de progression */}
+                    <div className="flex space-x-2">
+                      {currentPageStatuses.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`rounded-full transition-all duration-300 ${
+                            index === currentStatusIndex 
+                              ? isMobile ? 'w-6 h-1.5 bg-white' : 'w-8 h-2 bg-white'
+                              : isMobile ? 'w-1.5 h-1.5 bg-white/50' : 'w-2 h-2 bg-white/50'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Compteur de vues (mobile uniquement, visible uniquement pour le propriétaire) */}
+                    {isMobile && currentStatus.user_id === currentUser?.id && (
+                      <div className="flex items-center">
+                        <EyeIcon className="h-5 w-5 text-white" />
+                        <motion.span 
+                          className="text-xs text-white ml-1"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                        >
+                          {currentStatus.views_count || 0}
+                        </motion.span>
+                      </div>
+                    )}
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
             </div>
           </div>
-
-          {/* Boutons de contrôle */}
-          <div className="flex items-center space-x-3">
-            {/* Bouton pause/lecture */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePause();
-              }}
-              className="text-white hover:bg-gray-700 p-1 rounded-full transition-colors"
-              >
-              {isPaused ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-            </button>
-
-            {/* Bouton J'aime */}
-            <div className="flex items-center">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleLike(currentStatus.id);
-                }}
-                className={`text-white p-1 rounded-full transition-colors ${
-                  currentStatus.user_id === currentUser?.id
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-gray-700"
-                }`}
-                disabled={isLiking || currentStatus.user_id === currentUser?.id}
-                title={
-                  currentStatus.user_id === currentUser?.id
-                    ? "Vous ne pouvez pas aimer votre propre statut"
-                    : ""
-                }
-              >
-                {likedStatuses.includes(currentStatus.id) ? (
-                  <HeartIconSolid className="h-5 w-5 text-red-500" />
-                ) : (
-                  <HeartIcon className="h-5 w-5" />
-                )}
-              </button>
-
-              {/* Compteur de j'aime (visible uniquement pour le propriétaire) */}
-              {currentStatus.user_id === currentUser?.id && (
-                <span className="text-xs text-white ml-1">
-                  {currentStatus.likes_count ||
-                    currentStatus.likes?.length ||
-                    0}
-                </span>
-              )}
-            </div>
-
-            {/* Compteur de vues (visible uniquement pour le propriétaire) */}
-            {currentStatus.user_id === currentUser?.id && (
-              <div className="flex items-center ml-2">
-                <EyeIcon className="h-5 w-5 text-white" />
-                <span className="text-xs text-white ml-1">
-                  {currentStatus.views_count || 0}
-                </span>
-              </div>
-            )}
-
-            {/* Bouton de suppression (uniquement pour mes statuts) */}
-            {currentStatusGroup === "my" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeStatusView();
-                  confirmDelete(currentStatus.id);
-                }}
-                className="text-white hover:bg-gray-700 p-1 rounded-full transition-colors"
-              >
-                <TrashIcon className="h-5 w-5" />
-              </button>
-            )}
-
-            {/* Bouton de signalement (uniquement pour les statuts des autres) */}
-            {currentStatusGroup !== "my" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openReportModal();
-                }}
-                className={`text-white hover:bg-gray-700 p-1 rounded-full transition-colors ${
-                  isStatusReported ? "text-red-500" : ""
-                }`}
-                disabled={isStatusReported}
-                title={
-                  isStatusReported
-                    ? "Vous avez déjà signalé ce statut"
-                    : "Signaler ce statut"
-                }
-              >
-                <ExclamationCircleIcon className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Contenu du statut */}
-        <div
-          className="flex-1 flex items-center justify-center p-4"
-          onClick={(e) => {
-            e.stopPropagation(); // Éviter de déclencher le toggle pause
-            goToNextStatus();
-          }}
-        >
-          {currentStatus.image_url ? (
-            <img
-              src={currentStatus.image_url}
-              alt="Statut"
-              className="max-h-full max-w-full object-contain"
-            />
-          ) : currentStatus.video_url ? (
-            <video
-              src={currentStatus.video_url}
-              controls
-              autoPlay
-              className="max-h-full max-w-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <div className="bg-primary-600 p-6 rounded-lg max-w-md">
-              <p className="text-white text-xl">{currentStatus.description}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div
-          className="absolute inset-y-0 left-0 w-1/4 flex items-center justify-start pl-4"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToPreviousStatus();
-          }}
-        >
-          {currentStatusIndex > 0 && (
-            <button className="bg-black bg-opacity-50 rounded-full p-2 text-white hover:bg-opacity-70 transition-all">
-              <ChevronLeftIcon className="h-6 w-6" />
-            </button>
-          )}
-        </div>
-        <div
-          className="absolute inset-y-0 right-0 w-1/4 flex items-center justify-end pr-4"
-          onClick={(e) => {
-            e.stopPropagation();
-            goToNextStatus();
-          }}
-        >
-          {currentStatusIndex < currentPageStatuses.length - 1 && (
-            <button className="bg-black bg-opacity-50 rounded-full p-2 text-white hover:bg-opacity-70 transition-all">
-              <ChevronRightIcon className="h-6 w-6" />
-            </button>
-          )}
-        </div>
-
-        {/* Description (si présente et avec image/vidéo) */}
-        {currentStatus.description &&
-          (currentStatus.image_url || currentStatus.video_url) && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
-              <p className="text-white">{currentStatus.description}</p>
-            </div>
-          )}
-      </div>
+        </Dialog>
+      </Transition>
     );
   };
 
   return (
     <>
+      {/* Modal de visualisation des statuts - rendu au niveau le plus haut pour couvrir toute la fenêtre */}
+      {renderStatusView()}
+      
       <div className={`container mx-auto px-4 py-6 ${
         isMobile ? "px-3 py-4" : "px-4 py-6"
       } max-w-4xl`}>
-        {/* En-tête optimisé pour mobile */}
-        <div className={`flex justify-between items-center mb-6 ${
-          isMobile ? "mb-4 flex-col gap-3" : "mb-6"
+        {/* En-tête optimisé pour mobile avec design moderne */}
+        <div className={`relative mb-8 ${
+          isMobile ? "mb-6" : "mb-8"
         }`}>
-          <p
-            className={`font-bold ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            } ${isMobile ? "text-sm text-center" : "text-md"}`}
-          >
-            Un moment, une pensée, une photo. Racontez votre journée à votre
-            manière.
-          </p>
-          {!isCreating && (
-            <button
-              type="button"
-              onClick={() => setIsCreating(true)}
-              className={`inline-flex items-center border border-transparent rounded-md shadow-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
-                isMobile ? "px-3 py-2 text-xs w-full justify-center active:scale-95" : "px-4 py-2 text-sm"
-              }`}
-            >
-              <PlusIcon className={`mr-2 ${isMobile ? "h-4 w-4" : "h-5 w-5"}`} />
-              Créer un statut
-            </button>
-          )}
+          {/* Fond décoratif */}
+          <div className={`absolute inset-0 rounded-2xl overflow-hidden ${
+            isDarkMode 
+              ? "bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-indigo-900/20" 
+              : "bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50"
+          }`}>
+            <div className={`absolute inset-0 ${
+              isDarkMode 
+                ? "bg-gradient-to-t from-black/40 to-transparent" 
+                : "bg-gradient-to-t from-white/60 to-transparent"
+            }`}></div>
+          </div>
+          
+          {/* Contenu */}
+          <div className={`relative p-6 ${
+            isMobile ? "p-4 text-center" : "p-6"
+          }`}>
+            <div className={`${isMobile ? "space-y-4" : "flex justify-between items-center"}`}>
+              {/* Texte d'en-tête */}
+              <div className={`${isMobile ? "w-full" : "flex-1"}`}>
+                <h1 className={`font-bold mb-2 ${
+                  isDarkMode ? "text-white" : "text-gray-900"
+                } ${isMobile ? "text-lg" : "text-xl"}`}>
+                  Partagez vos moments
+                </h1>
+                <p className={`${
+                  isDarkMode ? "text-gray-300" : "text-gray-600"
+                } ${isMobile ? "text-sm" : "text-base"} leading-relaxed`}>
+                  Une photo, une pensée, une émotion. 
+                  <br className={isMobile ? "block" : "hidden"} />
+                  Racontez votre journée à votre manière.
+                </p>
+              </div>
+              
+              {/* Bouton de création */}
+              {!isCreating && (
+                <motion.button
+                  type="button"
+                  onClick={() => setIsCreating(true)}
+                  className={`${
+                    isMobile 
+                      ? "w-full mt-4" 
+                      : "ml-6"
+                  } inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                    isMobile ? "active:scale-95" : ""
+                  }`}
+                  whileHover={{ scale: isMobile ? 1.02 : 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <PlusIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-5 w-5"}`} />
+                  <span className={isMobile ? "text-sm" : "text-base"}>
+                    Créer un statut
+                  </span>
+                </motion.button>
+              )}
+            </div>
+            
+            {/* Indicateurs visuels */}
+            <div className={`flex items-center space-x-4 mt-4 ${
+              isMobile ? "justify-center" : ""
+            }`}>
+              <div className={`flex items-center space-x-2 ${
+                isDarkMode ? "text-gray-400" : "text-gray-500"
+              }`}>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className={`text-xs ${isMobile ? "hidden" : "block"}`}>
+                  Actif maintenant
+                </span>
+              </div>
+              <div className={`h-4 w-px ${
+                isDarkMode ? "bg-gray-600" : "bg-gray-300"
+              } ${isMobile ? "hidden" : "block"}`}></div>
+              <div className={`flex items-center space-x-1 ${
+                isDarkMode ? "text-gray-400" : "text-gray-500"
+              }`}>
+                <PhotoIcon className="h-4 w-4" />
+                <VideoCameraIcon className="h-4 w-4" />
+                <span className={`text-xs ${isMobile ? "hidden" : "block"}`}>
+                  Photos & Vidéos
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {isCreating
           ? renderCreationForm()
-          : isViewingStatus
-          ? renderStatusView()
           : renderStatusList()}
 
         {/* Modal de confirmation pour la suppression */}
@@ -1665,152 +2144,136 @@ export default function Social() {
           isDarkMode={isDarkMode}
           type="danger"
         />
+      </div>
 
-        {/* Modal de signalement */}
-        {isReportModalOpen && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <div
-                className="fixed inset-0 transition-opacity"
-                aria-hidden="true"
-              >
-                <div className="absolute inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm"></div>
-              </div>
+      {/* Modal de signalement - rendu en dehors du conteneur principal */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm"></div>
+            </div>
 
-              <span
-                className="hidden sm:inline-block sm:align-middle sm:h-screen"
-                aria-hidden="true"
-              >
-                &#8203;
-              </span>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
 
-              <div
-                className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${
-                  isDarkMode ? "bg-gray-800" : "bg-white"
-                }`}
-              >
-                <div
-                  className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${
-                    isDarkMode ? "bg-gray-800" : "bg-white"
-                  }`}
-                >
-                  <div className="sm:flex sm:items-start">
-                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                      <ExclamationCircleIcon
-                        className="h-6 w-6 text-red-600"
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                      <h3
-                        className={`text-lg leading-6 font-medium ${
-                          isDarkMode ? "text-white" : "text-gray-900"
+            <div
+              className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${
+                isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+              }`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-headline"
+            >
+              <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${
+                isDarkMode ? "bg-gray-800" : "bg-white"
+              }`}>
+                <div className="sm:flex sm:items-start">
+                  <div
+                    className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${
+                      isDarkMode ? "bg-red-900" : "bg-red-100"
+                    } sm:mx-0 sm:h-10 sm:w-10`}
+                  >
+                    <ExclamationCircleIcon
+                      className={`h-6 w-6 ${
+                        isDarkMode ? "text-red-200" : "text-red-600"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3
+                      className={`text-lg leading-6 font-medium ${
+                        isDarkMode ? "text-white" : "text-gray-900"
+                      }`}
+                      id="modal-headline"
+                    >
+                      Signaler ce statut
+                    </h3>
+                    <div className="mt-2">
+                      <p
+                        className={`text-sm ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
                         }`}
                       >
-                        Signaler ce statut
-                      </h3>
-                      <div className="mt-2">
-                        <p
-                          className={`text-sm ${
-                            isDarkMode ? "text-gray-300" : "text-gray-500"
-                          }`}
-                        >
-                          Veuillez indiquer la raison pour laquelle vous
-                          souhaitez signaler ce statut.
-                        </p>
-                      </div>
-
+                        Pour quelle raison signalez-vous ce statut ?
+                      </p>
                       <div className="mt-4">
-                        <label
-                          htmlFor="report-reason"
-                          className={`block text-sm font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Raison du signalement *
-                        </label>
                         <select
-                          id="report-reason"
                           value={reportReason}
                           onChange={(e) => setReportReason(e.target.value)}
-                          className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md ${
+                          className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                             isDarkMode
-                              ? "bg-gray-700 text-white border-gray-600"
-                              : "bg-white text-gray-900 border-gray-300"
+                              ? "bg-gray-700 border-gray-600 text-white"
+                              : "bg-white border-gray-300 text-gray-900"
                           }`}
-                          required
                         >
                           <option value="">Sélectionnez une raison</option>
-                          {Object.entries(reportReasons).map(([key, value]) => (
-                            <option key={key} value={key}>
-                              {value}
+                          {reportReasons.map((reason) => (
+                            <option key={reason.id} value={reason.id}>
+                              {reason.name}
                             </option>
                           ))}
                         </select>
                       </div>
-
                       <div className="mt-4">
-                        <label
-                          htmlFor="report-description"
-                          className={`block text-sm font-medium ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Détails (facultatif)
-                        </label>
                         <textarea
-                          id="report-description"
                           value={reportDescription}
                           onChange={(e) => setReportDescription(e.target.value)}
-                          rows="3"
-                          className={`mt-1 block w-full sm:text-sm border-gray-300 rounded-md ${
+                          rows={3}
+                          placeholder="Description optionnelle..."
+                          className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                             isDarkMode
-                              ? "bg-gray-700 text-white border-gray-600"
-                              : "bg-white text-gray-900 border-gray-300"
+                              ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                              : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
                           }`}
-                          placeholder="Fournissez plus de détails sur votre signalement..."
-                        ></textarea>
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <div
-                  className={`px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse ${
-                    isDarkMode
-                      ? "bg-gray-800 border-t border-gray-700"
-                      : "bg-gray-50 border-t border-gray-200"
+              </div>
+              <div
+                className={`px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse ${
+                  isDarkMode ? "bg-gray-700" : "bg-gray-50"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={submitReport}
+                  disabled={isReportSubmitting || !reportReason}
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm ${
+                    isReportSubmitting || !reportReason
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={submitReport}
-                    disabled={isReportSubmitting || !reportReason}
-                    className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm ${
-                      isReportSubmitting || !reportReason
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                  >
-                    {isReportSubmitting ? "Envoi en cours..." : "Signaler"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeReportModal}
-                    className={`mt-3 w-full inline-flex justify-center rounded-md border ${
-                      isDarkMode
-                        ? "border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                    } shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`}
-                  >
-                    Annuler
-                  </button>
-                </div>
+                  {isReportSubmitting ? "Envoi en cours..." : "Signaler"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeReportModal}
+                  className={`mt-3 w-full inline-flex justify-center rounded-md border ${
+                    isDarkMode
+                      ? "border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  } shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`}
+                >
+                  Annuler
+                </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+      
       <ToastContainer
         position="top-right"
         autoClose={3000}

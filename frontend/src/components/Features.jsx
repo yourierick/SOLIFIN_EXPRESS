@@ -6,6 +6,7 @@ import {
   ShieldCheckIcon,
   RocketLaunchIcon,
   GlobeAltIcon,
+  BuildingLibraryIcon
 } from "@heroicons/react/24/outline";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -89,13 +90,13 @@ export default function Features() {
               isDarkMode ? "text-white" : "text-gray-900"
             }`}
           >
-            Avantages du{" "}
+            Programme de fidélité des abonnés aux Services SOLIFIN{" "}
             <span
               className={`relative inline-block ${
                 isDarkMode ? "text-green-400" : "text-green-600"
               }`}
             >
-              programme
+              Pour la croissance de vos revenus
               <motion.span
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
@@ -112,46 +113,139 @@ export default function Features() {
             }`}
           >
             Découvrez les avantages uniques qui font de notre système MLM la
-            référence dans le domaine du marketing de réseau.
+            référence dans le domaine du marketing digital.
           </p>
         </motion.div>
 
+        {/* Section Principes du Programme de Fidélité */}
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          transition={{ duration: 0.5 }}
+          className="mb-16"
         >
-          {features?.map((feature) => (
-            <motion.div
-              key={feature.name}
-              variants={itemVariants}
-              className={`p-6 rounded-xl transition-shadow ${
-                isDarkMode
-                  ? "bg-gray-800 shadow-lg hover:shadow-gray-700/50"
-                  : "bg-white shadow-lg hover:shadow-xl"
-              }`}
-            >
-              <div className="flex items-center mb-4">
-                <feature.icon
-                  className={`h-8 w-8 ${
-                    isDarkMode ? "text-primary-400" : "text-primary-600"
-                  }`}
-                />
-                <h3
-                  className={`ml-3 text-xl font-semibold ${
+          <div className={`p-8 rounded-2xl ${
+            isDarkMode 
+              ? "bg-gray-800 shadow-lg border border-gray-700" 
+              : "bg-white shadow-lg border border-gray-100"
+          }`}>
+            <h3 className={`text-2xl font-bold text-center mb-8 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>
+              I. PRINCIPES DU PROGRAMME DE FIDELITE
+            </h3>
+            
+            <div className="space-y-6">
+              {/* Réseau Solidaire */}
+              <div className="flex items-start">
+                <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
+                  isDarkMode ? "bg-green-900/30" : "bg-green-100"
+                }`}>
+                  <UserGroupIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h4 className={`font-bold text-lg mb-2 ${
                     isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {feature.name}
-                </h3>
+                  }`}>
+                    Réseau Solidaire
+                  </h4>
+                  <p className={`text-sm leading-relaxed ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}>
+                    Un programme basé sur le principe de marketing digital dans la vente collective des services SOLIFIN. Cette approche permet à chaque abonné de bénéficier de la force du réseau pour développer ses activités et accroître ses revenus grâce à la collaboration mutuelle.
+                  </p>
+                </div>
               </div>
-              <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                {feature.description}
-              </p>
-            </motion.div>
-          ))}
+
+              {/* Indépendance Financière */}
+              <div className="flex items-start">
+                <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
+                  isDarkMode ? "bg-blue-900/30" : "bg-blue-100"
+                }`}>
+                  <CurrencyDollarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h4 className={`font-bold text-lg mb-2 ${
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  }`}>
+                    Indépendance Financière
+                  </h4>
+                  <p className={`text-sm leading-relaxed ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}>
+                    Libérer chaque personne abonnée de sa dépendance financière à travers le paiement de commission générée sur la vente des services SOLIFIN. Chaque membre devient acteur de sa réussite financière en construisant des sources de revenus passifs et durables.
+                  </p>
+                </div>
+              </div>
+
+              {/* Appui au Développement Socioéconomique */}
+              <div className="flex items-start">
+                <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
+                  isDarkMode ? "bg-purple-900/30" : "bg-purple-100"
+                }`}>
+                  <BuildingLibraryIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h4 className={`font-bold text-lg mb-2 ${
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  }`}>
+                    Appui au Développement Socioéconomique
+                  </h4>
+                  <p className={`text-sm leading-relaxed ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}>
+                    Chaque abonné contribue à l'amélioration des conditions de vie socioéconomiques dans sa communauté à travers le parrainage de ses proches, la contribution aux actions de développement et/ou humanitaires de sa zone. Le programme crée un impact positif qui s'étend bien au-delà des bénéfices individuels.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Section Pourquoi choisir notre programme de fidélité */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-16"
+        >
+          <div className={`p-8 rounded-2xl ${
+            isDarkMode 
+              ? "bg-gray-800 shadow-lg border border-gray-700" 
+              : "bg-white shadow-lg border border-gray-100"
+          }`}>
+            <h3 className={`text-2xl font-bold text-center mb-8 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>
+              2. POURQUOI CHOISIR NOTRE PROGRAMME DE FIDELITE ?
+            </h3>
+            
+            <div className="space-y-6">
+              {features?.map((feature, index) => (
+                <div key={feature.name} className="flex items-start">
+                  <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
+                    isDarkMode ? "bg-primary-900/30" : "bg-primary-100"
+                  }`}>
+                    <feature.icon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <h4 className={`font-bold text-lg mb-2 ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}>
+                      {feature.name}
+                    </h4>
+                    <p className={`text-sm leading-relaxed ${
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    }`}>
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>

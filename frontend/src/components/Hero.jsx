@@ -17,94 +17,100 @@ export default function Hero() {
   const slides = [
     {
       title: (
-        <>
-          Trouver de nouveaux clients
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-            style={{
-              fontSize: "2.5rem",
-            }}
-          >
-            Êtes-vous à la recherche de clientèle pour l’achat ou la location de vos produits et services ?
-          </span>
-        </>
+        <span
+          className={`block font-bold leading-tight ${
+            isDarkMode ? "text-white" : "text-gray-800"
+          }`}
+          style={{
+            fontSize: "clamp(1.8rem, 5vw, 3rem)",
+            textShadow: isDarkMode
+              ? "0 2px 10px rgba(0,0,0,0.5)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          Êtes-vous à la recherche de clientèle pour l'achat ou la location de vos produits et services ?
+        </span>
       ),
-      text: "Développez votre activité en élargissant votre réseau et en touchant davantage d’acheteurs ou de locataires.",
       button1: "Commencer Maintenant",
       button2: "En Savoir Plus",
       background: "/img/hero-carousel/background_7.jpg",
     },
     {
       title: (
-        <>
-          Saisir des opportunités professionnelles
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-            style={{
-              fontSize: "2.5rem",
-            }}
-          >
-            Avez-vous besoin d’opportunités d’emplois, d’affaires, de partenariats ou de financement ?
-          </span>
-        </>
+        <span
+          className={`block font-bold leading-tight ${
+            isDarkMode ? "text-white" : "text-gray-800"
+          }`}
+          style={{
+            fontSize: "clamp(1.8rem, 5vw, 3rem)",
+            textShadow: isDarkMode
+              ? "0 2px 10px rgba(0,0,0,0.5)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          Avez-vous besoin d'opportunités d'emplois, d'affaires, de partenariats ou de financement ?
+        </span>
       ),
-      text: "Explorez des possibilités d’emploi, d’affaires, de partenariats ou de financements pour booster votre carrière et vos projets.",
       button1: "Rejoindre Maintenant",
       button2: "Découvrir Plus",
       background: "/img/hero-carousel/background_2.jpg",
     },
     {
       title: (
-        <>
-          Vendre vos connaissances et outils
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-            style={{
-              fontSize: "2.5rem",
-            }}
-          >
-            Avez-vous des livres, formations, cours, logiciels ou applications à vendre en ligne ?
-          </span>
-        </>
+        <span
+          className={`block font-bold leading-tight ${
+            isDarkMode ? "text-white" : "text-gray-800"
+          }`}
+          style={{
+            fontSize: "clamp(1.8rem, 5vw, 3rem)",
+            textShadow: isDarkMode
+              ? "0 2px 10px rgba(0,0,0,0.5)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          Avez-vous des livres, formations, cours, logiciels ou applications à vendre en ligne ?
+        </span>
       ),
-      text: "Transformez vos savoirs et créations en revenus grâce à la vente de livres, formations, cours ou applications en ligne.",
       button1: "Vous inscrire maintenant!",
       button2: "En savoir d'avantage",
       background: "/img/hero-carousel/background_6.jpg",
     },
     {
       title: (
-        <>
-          Rester connecté en continu
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-          >
-            Désirez-vous rester connecté avec vos proches 24h/24 ?
-          </span>
-        </>
+        <span
+          className={`block font-bold leading-tight ${
+            isDarkMode ? "text-white" : "text-gray-800"
+          }`}
+          style={{
+            fontSize: "clamp(1.8rem, 5vw, 3rem)",
+            textShadow: isDarkMode
+              ? "0 2px 10px rgba(0,0,0,0.5)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          Désirez-vous rester connecté avec vos proches 24h/24 ?
+        </span>
       ),
-      text: "Profitez des solutions qui vous permettent de garder le contact avec vos proches, où que vous soyez et à tout moment.",
       button1: "Démarrer l'Aventure",
       button2: "En savoir plus",
       background: "/img/hero-carousel/background_9.jpg",
     },
     {
       title: (
-        <>
-          Atteindre la liberté financière
-          <br />
-          <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
-          >
-            Souhaitez-vous en finir avec vos préoccupations financières ?
-          </span>
-        </>
+        <span
+          className={`block font-bold leading-tight ${
+            isDarkMode ? "text-white" : "text-gray-800"
+          }`}
+          style={{
+            fontSize: "clamp(1.8rem, 5vw, 3rem)",
+            textShadow: isDarkMode
+              ? "0 2px 10px rgba(0,0,0,0.5)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          Souhaitez-vous en finir avec vos préoccupations financières ?
+        </span>
       ),
-      text: "Découvrez des moyens efficaces pour réduire vos soucis financiers et construire une stabilité durable.",
       button1: "Nous rejoindre!",
       button2: "A propos de nous",
       background: "/img/hero-carousel/background_4.jpg",
@@ -112,17 +118,36 @@ export default function Hero() {
     
     {
       title: (
-        <>
-          Bienvenu chez SOLIFIN!
-          <br />
+        <div className="space-y-4">
           <span
-            className={isDarkMode ? "text-primary-400" : "text-primary-600"}
+            className={`block font-bold leading-tight ${
+              isDarkMode ? "text-white" : "text-gray-800"
+            }`}
+            style={{
+              fontSize: "clamp(1.8rem, 5vw, 3rem)",
+              textShadow: isDarkMode
+                ? "0 2px 10px rgba(0,0,0,0.5)"
+                : "0 2px 10px rgba(0,0,0,0.1)",
+            }}
           >
-            Solution Express Pour L’Indépendance Financière
+            Bienvenu(e)s chez SOLIFIN!
           </span>
-        </>
+          <span
+            className={`block font-semibold leading-tight ${
+              isDarkMode ? "text-primary-400" : "text-primary-600"
+            }`}
+            style={{
+              fontSize: "clamp(1.5rem, 4vw, 2.5rem)",
+              textShadow: isDarkMode
+                ? "0 2px 8px rgba(0,0,0,0.4)"
+                : "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            Solution Express Pour L'Indépendance Financière
+          </span>
+        </div>
       ),
-      text: "SOLIFIN, Votre Partenaire Fidèle Pour L’Indépendance Financière, Ensemble pour la liberté financière",
+      text: "Votre Partenaire Fidèle Pour l'Indépendance Financière",
       button1: "Vous lancez!",
       button2: "A propos de nous",
       background: "/img/hero-carousel/background_8.jpg",
@@ -180,7 +205,7 @@ export default function Hero() {
         <Swiper
           modules={[Pagination, Autoplay]}
           pagination={{ el: ".custom-swiper-pagination", clickable: true }}
-          autoplay={{ delay: 7000, disableOnInteraction: false }}
+          autoplay={{ delay: 15000, disableOnInteraction: false }}
           loop={true}
           className="max-w-4xl mx-auto"
           onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
@@ -201,16 +226,25 @@ export default function Hero() {
                     {slide.title}
                   </h1>
                 </motion.div>
-                <motion.p
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className={`text-lg md:text-xl lg:text-2xl mb-12 max-w-3xl mx-auto ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  transition={{ duration: 0.8 }}  
+                  className="mb-8"
                 >
-                  {slide.text}
-                </motion.p>
+                  <span
+                    className={`inline-block px-6 py-3 rounded-full leading-relaxed`}
+                    style={{
+                      fontWeight: "600",
+                      letterSpacing: "0.075em",
+                      textShadow: isDarkMode 
+                        ? "0 1px 2px rgba(0,0,0,0.3)" 
+                        : "0 1px 2px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {slide.text}
+                  </span>
+                </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

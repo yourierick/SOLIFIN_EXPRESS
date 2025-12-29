@@ -7,6 +7,8 @@ const defaultFooterLinks = {
     { name: "À propos", href: "#about" },
     { name: "Packages", href: "#packages" },
     { name: "Témoignages", href: "#testimonials" },
+    { name: "Publicités", href: "#ads" },
+    { name: "Offres d'emploi", href: "#opportunities" },
   ],
   support: [
     { name: "Programme de fidelité SOLIFIN", href: "#features" },
@@ -125,8 +127,8 @@ export default function Footer({
           >
             <h3 className="text-2xl font-bold text-primary-500">SOLIFIN</h3>
             <p className="mt-4 text-gray-400">
-              Construisons ensemble votre avenir financier grâce à notre système
-              de parrainage innovant.
+              Construisons ensemble votre avenir financier grâce à nos services
+              innovants, avec SOLIFIN, devenez la meilleure version de vous-même!
             </p>
           </motion.div>
 

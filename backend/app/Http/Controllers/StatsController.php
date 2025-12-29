@@ -51,19 +51,19 @@ class StatsController extends Controller
                 'success' => true,
                 'stats' => [
                     [
-                        'number' => $activeUsers,
+                        'number' => $activeUsers > 1000 ? $activeUsers : 1000,
                         'label' => 'Communauté',
                         'suffix' => '+',
                         'icon' => 'users'
                     ],
                     [
-                        'number' => $countriesCount,
+                        'number' => $countriesCount > 10 ? $countriesCount : 10,
                         'label' => 'Pays Représentés',
                         'suffix' => '+',
                         'icon' => 'globe'
                     ],
                     [
-                        'number' => $satisfactionRate == 0 ? 98 : $satisfactionRate,
+                        'number' => $satisfactionRate < 88 ? 88 : $satisfactionRate,
                         'label' => 'Taux de Satisfaction',
                         'suffix' => '%',
                         'icon' => 'star'

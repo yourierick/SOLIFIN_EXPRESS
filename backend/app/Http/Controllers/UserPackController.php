@@ -32,7 +32,7 @@ class UserPackController extends Controller
                     ->first();
                 
                 $isActive = (bool) $userPack;
-                
+
                 $packInfo = [
                     'id' => $pack->id,
                     'name' => $pack->name,
@@ -44,8 +44,6 @@ class UserPackController extends Controller
                 ];
             }
         }
-
-        \Log::info($packInfo);
 
         return response()->json([
             'is_active' => $isActive,

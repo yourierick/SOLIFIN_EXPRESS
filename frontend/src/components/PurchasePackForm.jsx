@@ -913,17 +913,6 @@ export default function PurchasePackForm({
       const newTotal = prix_du_pack * periods;
       setTotalAmount(newTotal);
 
-      console.log("Calcul du montant total:", {
-        prix_mensuel: pack.price,
-        pas_abonnement: step,
-        prix_du_pack: prix_du_pack, // Prix de base (prix mensuel × pas)
-        devise: selectedCurrency,
-        duree_mois: months,
-        periodes_totales: periods,
-        montant_total: newTotal,
-        explication: `Prix mensuel (${pack.price}) × pas (${step}) = ${prix_du_pack}, puis × périodes (${periods}) = ${newTotal}`,
-      });
-
       // Les frais seront calculés par le useEffect séparé ci-dessus
     }
   }, [pack, months, prix_du_pack, selectedCurrency, paymentMethod]);
@@ -951,9 +940,6 @@ export default function PurchasePackForm({
       const roundedFee = parseFloat(fee.toFixed(2));
       setTransactionFees(roundedFee);
       setFeePercentage(percentage);
-      console.log(
-        `Frais calculés: ${roundedFee} ${selectedCurrency} (${percentage}% de ${amount})`
-      );
     } else {
       setTransactionFees(0);
     }
@@ -1084,6 +1070,7 @@ export default function PurchasePackForm({
     e.preventDefault();
     setError("");
     setLoading(true);
+
 
     if (paymentMethod === PAYMENT_TYPES.WALLET) {
       const totalWithFees = totalAmount + (transactionFees || 0);

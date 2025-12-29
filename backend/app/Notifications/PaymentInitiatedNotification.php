@@ -90,12 +90,9 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
         
         return [
             'title' => "Paiement initié",
-            'amount' => $this->amount,
-            'currency' => $this->currency,
-            'session_id' => $this->sessionId,
-            'transaction_id' => $this->transactionId,
-            'status' => 'pending',
-            'transaction_type' => $this->transactionType,
+            'icon' => 'exclamation-circle',
+            'type' => 'info',
+            'link' => '/admin/transactions',
             'message' => "Votre paiement de {$this->amount} {$this->currency} a été initié et est en attente de validation."
         ];
     }

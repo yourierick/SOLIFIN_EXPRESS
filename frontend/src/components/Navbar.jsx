@@ -162,7 +162,7 @@ export default function Navbar() {
                     smooth={true}
                     offset={-70}
                     duration={500}
-                    className={`inline-flex items-center px-2 pt-1 text-base lg:text-lg xl:text-xl font-medium hover:text-primary-600 transition-colors duration-200 ${
+                    className={`inline-flex items-center px-2 pt-1 text-sm lg:text-base xl:text-lg font-medium hover:text-primary-600 transition-colors duration-200 ${
                       isDarkMode ? "text-gray-200" : "text-gray-900"
                     }`}
                   >
@@ -173,7 +173,7 @@ export default function Navbar() {
                   <RouterLink
                     key={item.name}
                     to={item.href}
-                    className={`inline-flex items-center px-2 pt-1 text-lg xl:text-xl font-medium transition-colors duration-200 ${
+                    className={`inline-flex items-center px-2 pt-1 text-base xl:text-lg font-medium transition-colors duration-200 ${
                       item.current
                         ? "border-b-2 border-primary-500 text-primary-600"
                         : isDarkMode
@@ -266,7 +266,7 @@ export default function Navbar() {
               <div className="flex items-center space-x-3 xl:space-x-5">
                 <RouterLink
                   to="/login"
-                  className={`inline-flex items-center px-4 lg:px-5 py-2.5 text-base lg:text-lg font-medium rounded-md transition-colors duration-200 ${
+                  className={`inline-flex items-center px-5 lg:px-6 py-3 text-base lg:text-lg font-medium rounded-md transition-colors duration-200 ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white"
                       : "text-gray-900 hover:text-gray-700"
@@ -276,7 +276,7 @@ export default function Navbar() {
                 </RouterLink>
                 <RouterLink
                   to="/register"
-                  className="inline-flex items-center px-4 lg:px-5 py-2.5 text-base lg:text-lg font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors duration-200"
+                  className="inline-flex items-center px-5 lg:px-6 py-3 text-base lg:text-lg font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors duration-200"
                 >
                   Inscription
                 </RouterLink>
@@ -323,7 +323,7 @@ export default function Navbar() {
                   smooth={true}
                   offset={-70}
                   duration={500}
-                  className={`block px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"
                       : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
@@ -337,7 +337,7 @@ export default function Navbar() {
                 <RouterLink
                   key={item.name}
                   to={item.href}
-                  className={`block px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     item.current
                       ? "bg-primary-100 text-primary-600"
                       : isDarkMode
@@ -358,7 +358,7 @@ export default function Navbar() {
               <>
                 <RouterLink
                   to="/admin"
-                  className={`block px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"
                       : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
@@ -372,7 +372,7 @@ export default function Navbar() {
                     logout();
                     setIsOpen(false);
                   }}
-                  className={`block w-full text-left px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block w-full text-left px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"
                       : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
@@ -388,7 +388,7 @@ export default function Navbar() {
               <div className="space-y-3">
                 <RouterLink
                   to="/dashboard"
-                  className={`block px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"
                       : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
@@ -399,7 +399,7 @@ export default function Navbar() {
                 </RouterLink>
                 <RouterLink
                   to="/user/packs"
-                  className={`block px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"
                       : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
@@ -413,7 +413,7 @@ export default function Navbar() {
                     logout();
                     setIsOpen(false);
                   }}
-                  className={`block w-full text-left px-4 py-3 text-lg font-medium rounded-lg ${
+                  className={`block w-full text-left px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"
                       : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"

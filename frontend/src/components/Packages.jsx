@@ -88,11 +88,10 @@ export default function Packages() {
       <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className={`text-3xl font-bold tracking-tight sm:text-5xl mb-6 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-            Notre programme <span className={isDarkMode ? "text-green-400" : "text-green-600"}>de Fidélité</span>
+            Prix d’abonnement à nos <span className={isDarkMode ? "text-green-400" : "text-green-600"}>services par pack</span>
           </h2>
           <p className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-            Choisissez le pack qui vous convient le mieux et profitez de toutes nos fonctionnalités premium pour développer votre activité sur
-            <span className="text-green-500 font-medium"> SOLIFIN</span>
+            Choisissez le pack qui convient à vos objectifs et laissez-nous vous accompagnez vers l'indépendance financière!
           </p>
         </div>
 

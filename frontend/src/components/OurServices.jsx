@@ -109,35 +109,35 @@ export default function OurServices() {
         "/img/blog/maison-for-sale.jpg",
         "/img/blog/terrain.png",
       ],
-      title: "Publicité en ligne de vos produits et services",
+      title: "Espace publicitaire",
       description:
-        "Boostez rapidement vos produits et services, y compris vos services de locations ou de vente de maisons/appartement, parcelles, véhicule/machines… à travers l'espace publicitaire numérique fourni sans coût sur la plateforme SOLIFIN, les réseaux sociaux, etc.",
+        "pour la promotion de vos produits et services y compris locations ou de vente de maisons/appartement, parcelles, véhicule/machines…",
     },
     {
       image: "/img/blog/partenaire.jpg",
       title:
-        "Publication et accès aux opportunités d'affaires, d'emploi, de financement, de partenariat",
+        "Espace de publication et d’accès",
       description:
-        "Élargissez les champs de vos publications d'opportunités d'emplois, opportunités de partenariat, appel à projet, appel à manifestation d'intérêt, opportunités d'affaires, diverses annonces/informations… pour permettre l'accès au public le plus large.",
+        "aux opportunités d'affaires, d'emploi, de financement, de partenariat",
     },
     {
       image: "/img/blog/formation.jpg",
       title:
-        "Publicité et vente/offre de vos cours et formations en ligne, applications, e-books et articles",
+        "Espace pour la  vente en ligne",
       description:
-        "Contribuez au développement du capital humain et des entreprises à travers vos ventes en ligne de cours/formations, outils de gestion/applications/logiciels, e-books… publiés sur la plateforme SOLIFIN.",
+        "de vos cours, formations, applications, e-books et articles",
     },
     {
       image: "/img/blog/social.jpg",
-      title: "Partagez vos évènements avec vos proches",
+      title: "Page sociale",
       description:
-        "Faites-vous informer et partagez avec vos proches vos évènements : naissances, anniversaires, divertissement, mariages, décès…",
+        "pour rester connecter 24h/24  avec vos proches",
     },
     {
       image: "/img/blog/argent.jpg",
-      title: "Croissance rapide de revenus et accès aux capitaux",
+      title: "Croissance rapide de vos revenus",
       description:
-        "Pour votre indépendance financière, abonnez-vous directement sur le Pack de votre choix pour encaisser infiniment les recettes sur vos ventes en ligne, vos commissions sur chacun de vos parrainages directs et/ou indirects, vos bonus sur les retraits et les bonus mensuels.",
+        "Grâce au programme de fidélité SOLIFIN",
     },
   ];
 
@@ -208,7 +208,7 @@ export default function OurServices() {
               ref={desktopSwiperRef}
               modules={[Autoplay]}
               spaceBetween={24}
-              slidesPerView="auto"
+              slidesPerView={3}
               autoplay={{
                 delay: 4000,
                 disableOnInteraction: false,
@@ -222,7 +222,7 @@ export default function OurServices() {
               onMouseLeave={handleMouseLeave}
             >
               {services?.map((service, index) => (
-                <SwiperSlide key={index} className="w-auto" style={{ width: '320px' }}>
+                <SwiperSlide key={index}>
                   <motion.div
                     variants={itemVariants}
                     whileHover="hover"

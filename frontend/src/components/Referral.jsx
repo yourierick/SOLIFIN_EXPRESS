@@ -82,7 +82,7 @@ export default function Referral() {
                 isDarkMode ? "text-green-400" : "text-green-600"
               }`}
             >
-              Système de Parrainage
+              programme de fidélité ?
               <motion.span
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}

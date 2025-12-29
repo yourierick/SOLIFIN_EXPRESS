@@ -52,7 +52,7 @@ export default function PublicationsDisplay() {
     publicAxios
       .get("/api/ads/approved")
       .then((response) => {
-        setPublications(response.data);
+        setPublications(response.data.ads);
         setLoading(false);
       })
       .catch((error) => {
@@ -110,7 +110,7 @@ export default function PublicationsDisplay() {
 
   return (
     <section
-      id="ads"
+      id="publications"
       className={`w-full py-12 ${
         isDarkMode
           ? "bg-gradient-to-br from-gray-900 to-gray-800"
@@ -175,14 +175,14 @@ export default function PublicationsDisplay() {
           </div>
         ) : error ? (
           <div className="text-center py-12 text-red-500">{error}</div>
-        ) : !ads?.length ? (
+        ) : !publications?.length ? (
           <div className="text-center py-12 text-gray-400">
             Aucune publicité à afficher.
           </div>
         ) : (
           <div className="relative max-w-6xl mx-auto">
             <motion.div
-              key={ads[current]?.id}
+              key={publications[currentIndex]?.id}
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -30 }}
@@ -266,12 +266,12 @@ export default function PublicationsDisplay() {
                       }}
                     >
                       {/* Image ou vidéo */}
-                      {(ads[current]?.image_url || ads[current]?.image) &&
-                        (!ads[current]?.video_url || !showVideo) && (
+                      {(publications[currentIndex]?.image_url || publications[currentIndex]?.image) &&
+                        (!publications[currentIndex]?.video_url || !showVideo) && (
                           <>
                             <img
-                              src={ads[current]?.image_url || ads[current]?.image}
-                              alt={ads[current]?.titre || ads[current]?.title}
+                              src={publications[currentIndex]?.image_url || publications[currentIndex]?.image}
+                              alt={publications[currentIndex]?.titre || publications[currentIndex]?.title}
                               className="w-full h-full object-cover absolute inset-0 transition-transform duration-700 group-hover:scale-105"
                             />
 
@@ -279,7 +279,7 @@ export default function PublicationsDisplay() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                             {/* Bouton play vidéo */}
-                            {ads[current]?.video_url && (
+                            {publications[currentIndex]?.video_url && (
                               <motion.button
                                 aria-label="Lire la vidéo"
                                 onClick={() => {
@@ -297,7 +297,7 @@ export default function PublicationsDisplay() {
                         )}
 
                       {/* Lecteur vidéo */}
-                      {ads[current]?.video_url && showVideo && (
+                      {publications[currentIndex]?.video_url && showVideo && (
                         <div className="absolute inset-0 bg-black flex items-center justify-center">
                           <motion.button
                             onClick={() => {
@@ -313,7 +313,7 @@ export default function PublicationsDisplay() {
 
                           <ReactPlayer
                             ref={videoRef}
-                            url={ads[current].video_url}
+                            url={publications[currentIndex].video_url}
                             width="100%"
                             height="100%"
                             playing={true}
@@ -361,7 +361,7 @@ export default function PublicationsDisplay() {
                           : "0 2px 8px rgba(0,0,0,0.1)",
                       }}
                     >
-                      {ads[current]?.titre || ads[current]?.title}
+                      {publications[currentIndex]?.titre || publications[currentIndex]?.title}
                     </motion.h3>
 
                     {/* Date */}
@@ -375,7 +375,7 @@ export default function PublicationsDisplay() {
                       }}
                     >
                       <CalendarIcon className="w-4 h-4" />
-                      {formatPublishedDate(ads[current]?.created_at)}
+                      {formatPublishedDate(publications[currentIndex]?.created_at)}
                     </motion.div>
 
                     {/* Description */}
@@ -388,7 +388,7 @@ export default function PublicationsDisplay() {
                         color: isDarkMode ? "rgba(255,255,255,0.8)" : "rgba(30,41,59,0.9)",
                       }}
                     >
-                      {ads[current]?.description || ""}
+                      {publications[currentIndex]?.description || ""}
                     </motion.p>
 
                     {/* CTA Button */}
@@ -405,7 +405,7 @@ export default function PublicationsDisplay() {
                       onClick={() => {
                         if (user && user.id) {
                           navigate(
-                            `/dashboard/pages/${ads[current]?.page_id}#pub-${ads[current]?.id}`
+                            `/dashboard/pages/${publications[currentIndex]?.page_id}#pub-${publications[currentIndex]?.id}`
                           );
                         } else {
                           navigate("/interet");
@@ -443,7 +443,7 @@ export default function PublicationsDisplay() {
 
                       <div className="relative z-10 flex items-center justify-center gap-3">
                         <ArrowRightIcon className="w-5 h-5" />
-                        {ads[current]?.cta || "Je suis intéressé !"}
+                        {publications[currentIndex]?.cta || "Je suis intéressé !"}
                       </div>
                     </motion.button>
 
@@ -468,7 +468,7 @@ export default function PublicationsDisplay() {
                 </div>
               </div>
             </motion.div>
-            {ads?.length > 1 && (
+            {publications?.length > 1 && (
               <>
                 <button
                   onClick={() => {
@@ -521,7 +521,7 @@ export default function PublicationsDisplay() {
                   </svg>
                 </button>
                 <div className="flex justify-center mt-6 space-x-3">
-                  {ads?.map((_, idx) => (
+                  {publications?.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => {

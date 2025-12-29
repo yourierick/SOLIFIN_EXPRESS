@@ -13,7 +13,7 @@ export default function PublicationsWrapper() {
     const checkAds = async () => {
       try {
         const response = await publicAxios.get("/api/ads/approved");
-        
+
         // Vérifier si le composant est toujours monté avant de mettre à jour l'état
         if (isMounted) {
           const ads = response.data.ads || [];
@@ -44,6 +44,6 @@ export default function PublicationsWrapper() {
     return null;
   }
 
-  // Afficher le composant Ads seulement s'il y a des données
-  return <Ads />;
+  // Afficher le composant PublicationsDisplay seulement s'il y a des données
+  return <PublicationsDisplay />;
 }

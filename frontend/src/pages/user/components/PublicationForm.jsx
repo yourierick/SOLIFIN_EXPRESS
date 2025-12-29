@@ -272,7 +272,7 @@ export default function PublicationForm({
   }, [isEditMode, initialData]);
 
   const formFields = {
-    advertisement: [
+    publication: [
       {
         name: "type",
         label: "Type",
@@ -663,7 +663,7 @@ export default function PublicationForm({
 
   // Initialiser conditionsLivraison comme un tableau vide si c'est null ou undefined
   useEffect(() => {
-    if (!conditionsLivraison && type === "advertisement") {
+    if (!conditionsLivraison && type === "publication") {
       setConditionsLivraison([]);
     }
   }, [conditionsLivraison, type]);
@@ -672,7 +672,7 @@ export default function PublicationForm({
   useEffect(() => {
     if (isEditMode && initialData) {
       // Définir les valeurs spécifiques au type de publication
-      if (type === "advertisement") {
+      if (type === "publication") {
         setValue("categorie", initialData.categorie);
         setValue("besoin_livreurs", initialData.besoin_livreurs || "NON");
         // Gérer les conditions de livraison comme un tableau
@@ -1064,7 +1064,7 @@ export default function PublicationForm({
   };
 
   const getFields = () => {
-    if (!type) return [];
+    if (!type || !formFields[type]) return [];
 
     return formFields[type].filter((field) => {
       // Exclure le champ pays car il sera rendu en dur dans le formulaire
@@ -1074,7 +1074,7 @@ export default function PublicationForm({
 
       if (field.show) {
         const values = {};
-        if (type === "advertisement") {
+        if (type === "publication") {
           values.categorie = watchCategorie;
           values.besoin_livreurs = watchBesoinLivreurs;
         }
