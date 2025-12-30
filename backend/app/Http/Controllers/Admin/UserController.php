@@ -103,6 +103,63 @@ class UserController extends BaseController
                 ->withCount('referrals')
                 ->findOrFail($id);
 
+            // Récupérer les informations de connexion de l'utilisateur
+            $session = DB::table('sessions')
+                ->where('user_id', $id)
+                ->orderBy('id', 'desc')
+                ->first();
+                
+            $user->last_ip_address = $session ? $session->ip_address : null;
+            
+            // Extraire des informations plus lisibles du user-agent
+            if ($session && $session->user_agent) {
+                $userAgent = $session->user_agent;
+                
+                // Détecter le navigateur
+                $browser = "Inconnu";
+                if (strpos($userAgent, 'Edg') !== false) {
+                    $browser = "Microsoft Edge";
+                } elseif (strpos($userAgent, 'Chrome') !== false) {
+                    $browser = "Google Chrome";
+                } elseif (strpos($userAgent, 'Firefox') !== false) {
+                    $browser = "Mozilla Firefox";
+                } elseif (strpos($userAgent, 'Safari') !== false) {
+                    $browser = "Safari";
+                } elseif (strpos($userAgent, 'Opera') !== false || strpos($userAgent, 'OPR') !== false) {
+                    $browser = "Opera";
+                }
+                
+                // Détecter le système d'exploitation
+                $os = "Inconnu";
+                if (strpos($userAgent, 'Windows') !== false) {
+                    $os = "Windows";
+                } elseif (strpos($userAgent, 'Mac') !== false) {
+                    $os = "macOS";
+                } elseif (strpos($userAgent, 'Android') !== false) {
+                    $os = "Android";
+                } elseif (strpos($userAgent, 'iOS') !== false || strpos($userAgent, 'iPhone') !== false || strpos($userAgent, 'iPad') !== false) {
+                    $os = "iOS";
+                } elseif (strpos($userAgent, 'Linux') !== false) {
+                    $os = "Linux";
+                }
+                
+                // Détecter le type d'appareil
+                $device = "Desktop";
+                if (strpos($userAgent, 'Mobile') !== false || strpos($userAgent, 'Android') !== false || strpos($userAgent, 'iPhone') !== false) {
+                    $device = "Mobile";
+                } elseif (strpos($userAgent, 'Tablet') !== false || strpos($userAgent, 'iPad') !== false) {
+                    $device = "Tablet";
+                }
+                
+                $user->browser = $browser;
+                $user->os = $os;
+                $user->device_type = $device;
+            } else {
+                $user->browser = null;
+                $user->os = null;
+                $user->device_type = null;
+            }
+
             // Récupérer le wallet de l'utilisateur à détailler
             $userWallet = Wallet::where('user_id', $id)->first();
             $wallet = $userWallet ? [
@@ -1276,6 +1333,63 @@ class UserController extends BaseController
 
             foreach ($admins as $admin) {
                 $admin->picture = $admin->picture ? asset('storage/' . $admin->picture) : null;
+                
+                // Récupérer les informations de connexion de l'administrateur
+                $session = DB::table('sessions')
+                    ->where('user_id', $admin->id)
+                    ->orderBy('id', 'desc')
+                    ->first();
+                    
+                $admin->last_ip_address = $session ? $session->ip_address : null;
+                
+                // Extraire des informations plus lisibles du user-agent
+                if ($session && $session->user_agent) {
+                    $userAgent = $session->user_agent;
+                    
+                    // Détecter le navigateur
+                    $browser = "Inconnu";
+                    if (strpos($userAgent, 'Edg') !== false) {
+                        $browser = "Microsoft Edge";
+                    } elseif (strpos($userAgent, 'Chrome') !== false) {
+                        $browser = "Google Chrome";
+                    } elseif (strpos($userAgent, 'Firefox') !== false) {
+                        $browser = "Mozilla Firefox";
+                    } elseif (strpos($userAgent, 'Safari') !== false) {
+                        $browser = "Safari";
+                    } elseif (strpos($userAgent, 'Opera') !== false || strpos($userAgent, 'OPR') !== false) {
+                        $browser = "Opera";
+                    }
+                    
+                    // Détecter le système d'exploitation
+                    $os = "Inconnu";
+                    if (strpos($userAgent, 'Windows') !== false) {
+                        $os = "Windows";
+                    } elseif (strpos($userAgent, 'Mac') !== false) {
+                        $os = "macOS";
+                    } elseif (strpos($userAgent, 'Android') !== false) {
+                        $os = "Android";
+                    } elseif (strpos($userAgent, 'iOS') !== false || strpos($userAgent, 'iPhone') !== false || strpos($userAgent, 'iPad') !== false) {
+                        $os = "iOS";
+                    } elseif (strpos($userAgent, 'Linux') !== false) {
+                        $os = "Linux";
+                    }
+                    
+                    // Détecter le type d'appareil
+                    $device = "Desktop";
+                    if (strpos($userAgent, 'Mobile') !== false || strpos($userAgent, 'Android') !== false || strpos($userAgent, 'iPhone') !== false) {
+                        $device = "Mobile";
+                    } elseif (strpos($userAgent, 'Tablet') !== false || strpos($userAgent, 'iPad') !== false) {
+                        $device = "Tablet";
+                    }
+                    
+                    $admin->browser = $browser;
+                    $admin->os = $os;
+                    $admin->device_type = $device;
+                } else {
+                    $admin->browser = null;
+                    $admin->os = null;
+                    $admin->device_type = null;
+                }
             }
             
             return response()->json([

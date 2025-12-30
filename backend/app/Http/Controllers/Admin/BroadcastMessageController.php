@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BroadcastMessage;
+use App\Models\User;
+use App\Models\Pack;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -47,6 +49,7 @@ class BroadcastMessageController extends Controller
             'description' => 'required|string',
             'type' => 'required|in:text,image,video',
             'status' => 'boolean',
+            'target_type' => 'required|in:all,subscribed,unsubscribed,specific_user,pack',
         ];
         
         // Règles conditionnelles pour les médias
@@ -70,11 +73,25 @@ class BroadcastMessageController extends Controller
             $rules['media_content'] = 'required_without_all:media_url,media_file';
         }
         
+        // Règles conditionnelles pour les destinataires
+        if ($request->target_type === 'specific_user') {
+            $rules['target_users'] = 'required|array|min:1';
+            $rules['target_users.*'] = 'exists:users,id';
+        } elseif ($request->target_type === 'pack') {
+            $rules['target_packs'] = 'required|array|min:1';
+            $rules['target_packs.*'] = 'exists:packs,id';
+        } else {
+            $rules['target_users'] = 'nullable';
+            $rules['target_packs'] = 'nullable';
+        }
+        
         $validator = Validator::make($request->all(), $rules, [
             'media_content.required_without_all' => 'Veuillez fournir soit une URL, soit un fichier pour ce type de message.',
             'media_file.max' => $request->type === 'image' 
                 ? 'L\'image ne doit pas dépasser 1Mo.' 
-                : 'La vidéo ne doit pas dépasser 5Mo.'
+                : 'La vidéo ne doit pas dépasser 5Mo.',
+            'target_users.required' => 'Veuillez sélectionner au moins un utilisateur.',
+            'target_packs.required' => 'Veuillez sélectionner au moins un pack.'
         ]);
 
         if ($validator->fails()) {
@@ -90,6 +107,9 @@ class BroadcastMessageController extends Controller
             'type' => $request->type,
             'status' => $request->status ?? false,
             'published_at' => $request->status ? now() : null,
+            'target_type' => $request->target_type,
+            'target_users' => $request->target_users ?? null,
+            'target_packs' => $request->target_packs ?? null,
         ];
         
         // Traitement du fichier si présent
@@ -140,6 +160,7 @@ class BroadcastMessageController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'type' => 'required|in:text,image,video',
+            'target_type' => 'required|in:all,subscribed,unsubscribed,specific_user,pack',
         ];
         
         // Règles conditionnelles pour les médias
@@ -160,10 +181,24 @@ class BroadcastMessageController extends Controller
             }
         }
         
+        // Règles conditionnelles pour les destinataires
+        if ($request->target_type === 'specific_user') {
+            $rules['target_users'] = 'required|array|min:1';
+            $rules['target_users.*'] = 'exists:users,id';
+        } elseif ($request->target_type === 'pack') {
+            $rules['target_packs'] = 'required|array|min:1';
+            $rules['target_packs.*'] = 'exists:packs,id';
+        } else {
+            $rules['target_users'] = 'nullable';
+            $rules['target_packs'] = 'nullable';
+        }
+        
         $validator = Validator::make($request->all(), $rules, [
             'media_file.max' => $request->type === 'image' 
                 ? 'L\'image ne doit pas dépasser 1Mo.' 
-                : 'La vidéo ne doit pas dépasser 5Mo.'
+                : 'La vidéo ne doit pas dépasser 5Mo.',
+            'target_users.required' => 'Veuillez sélectionner au moins un utilisateur.',
+            'target_packs.required' => 'Veuillez sélectionner au moins un pack.'
         ]);
 
         if ($validator->fails()) {
@@ -177,6 +212,9 @@ class BroadcastMessageController extends Controller
             'title' => $request->title,
             'description' => $request->description,
             'type' => $request->type,
+            'target_type' => $request->target_type,
+            'target_users' => $request->target_users ?? null,
+            'target_packs' => $request->target_packs ?? null,
         ];
         
         // Traitement du fichier si présent
@@ -202,6 +240,55 @@ class BroadcastMessageController extends Controller
         return response()->json([
             'message' => 'Message mis à jour avec succès',
             'data' => $message
+        ]);
+    }
+
+    /**
+     * Récupérer les utilisateurs disponibles pour la diffusion.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getTargetUsers(Request $request)
+    {
+        $search = $request->query('search', '');
+        
+        // Ne retourner que si on a au moins 2 caractères pour éviter les requêtes trop larges
+        if (strlen($search) < 2) {
+            return response()->json([
+                'data' => []
+            ]);
+        }
+        
+        $query = User::where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->where('is_admin', false) // Exclure les administrateurs
+            ->select('id', 'name', 'email')
+            ->orderBy('name')
+            ->limit(20); // Réduire à 20 pour de meilleures performances
+            
+        $users = $query->get();
+            
+        return response()->json([
+            'data' => $users
+        ]);
+    }
+
+    /**
+     * Récupérer les packs disponibles pour la diffusion.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getPacks()
+    {
+        $packs = Pack::select('id', 'name', 'description', 'price')
+            ->orderBy('name')
+            ->get();
+            
+        return response()->json([
+            'data' => $packs
         ]);
     }
 

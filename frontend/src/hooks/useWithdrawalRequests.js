@@ -3,13 +3,19 @@ import axios from "axios";
 
 /**
  * Hook personnalisé pour récupérer le nombre de demandes de retrait en attente
+ * @param {boolean} isAdmin - Indique si l'utilisateur est administrateur
  * @returns {Object} { pendingCount, loading, error }
  */
-export default function useWithdrawalRequests() {
+export default function useWithdrawalRequests(isAdmin = false) {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
     const fetchPendingRequests = async () => {
       try {
         setLoading(true);
@@ -57,14 +63,14 @@ export default function useWithdrawalRequests() {
     // Rafraîchir les données toutes les 1 minute
     const intervalId = setInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isAdmin) {
         fetchPendingRequests();
       }
     }, 1 * 60 * 1000);
 
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isAdmin) {
         // Rafraîchir les données quand l'utilisateur revient sur la page
         fetchPendingRequests();
       }
@@ -76,7 +82,7 @@ export default function useWithdrawalRequests() {
       clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [isAdmin]);
 
   return { pendingCount, loading };
 }

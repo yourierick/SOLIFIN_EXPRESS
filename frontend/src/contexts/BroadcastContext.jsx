@@ -42,11 +42,13 @@ export const BroadcastProvider = ({ children }) => {
     try {
       const response = await instance.get("/api/broadcast-messages");
       if (response.data && response.data.data) {
-        setMessages(response.data.data);
+        // Filtrer les messages selon les destinataires
+        const filteredMessages = filterMessagesForUser(response.data.data, user);
+        setMessages(filteredMessages);
 
         // Si des messages sont disponibles, les afficher
-        if (response.data.data.length > 0) {
-          setMessagesToShow(response.data.data);
+        if (filteredMessages.length > 0) {
+          setMessagesToShow(filteredMessages);
           setModalOpen(true);
         }
       }
@@ -58,6 +60,33 @@ export const BroadcastProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Vérifier si l'utilisateur doit voir un message spécifique
+  const shouldSeeMessage = (message, currentUser) => {
+    if (!currentUser) return false;
+
+    switch (message.target_type) {
+      case 'all':
+        return true;
+      case 'subscribed':
+        return currentUser.status === 'active';
+      case 'unsubscribed':
+        return currentUser.status === 'trial';
+      case 'specific_user':
+        return message.target_users && message.target_users.includes(currentUser.id.toString());
+      case 'pack':
+        return message.target_packs && message.target_packs.includes(currentUser.pack_de_publication_id?.toString());
+      default:
+        return true;
+    }
+  };
+
+  // Filtrer les messages selon les destinataires
+  const filterMessagesForUser = (messages, currentUser) => {
+    if (!currentUser) return [];
+    
+    return messages.filter(message => shouldSeeMessage(message, currentUser));
   };
 
   // Vérifier s'il y a de nouveaux messages (polling)

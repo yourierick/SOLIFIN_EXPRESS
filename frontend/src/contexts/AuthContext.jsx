@@ -84,7 +84,7 @@ const isAlwaysAccessible = (path) => {
 };
 
 // Durée d'inactivité avant expiration de session (en millisecondes)
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const SESSION_TIMEOUT = 20 * 60 * 1000; // 20 minutes
 
 // Hook personnalisé pour utiliser le contexte d'authentification
 const useAuth = () => {

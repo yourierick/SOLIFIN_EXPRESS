@@ -21,7 +21,15 @@ class CreateBroadcastMessagesTable extends Migration
             $table->string('media_url')->nullable();
             $table->boolean('status')->default(false);
             $table->timestamp('published_at')->nullable();
+            
+            // Champs pour la sélection des destinataires
+            $table->enum('target_type', ['all', 'subscribed', 'unsubscribed', 'specific_user', 'pack'])->default('all');
+            $table->json('target_users')->nullable(); // Pour les utilisateurs spécifiques
+            $table->json('target_packs')->nullable(); // Pour les packs spécifiques (plusieurs packs possibles)
             $table->timestamps();
+            
+            // Index pour les performances
+            $table->index(['target_type', 'status']);
         });
 
         // Table pour suivre quels utilisateurs ont vu quels messages

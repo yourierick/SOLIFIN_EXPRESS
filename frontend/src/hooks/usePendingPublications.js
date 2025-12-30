@@ -3,9 +3,10 @@ import axios from "axios";
 
 /**
  * Hook personnalisé pour récupérer le nombre de publications en attente
+ * @param {boolean} isAdmin - Indique si l'utilisateur est administrateur
  * @returns {Object} - Objet contenant le nombre de publications en attente et l'état de chargement
  */
-const usePendingPublications = () => {
+const usePendingPublications = (isAdmin = false) => {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,19 +86,24 @@ const usePendingPublications = () => {
   };
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
     fetchPendingPublications();
 
     // Mettre à jour le compteur toutes les 2 minutes
     const interval = setInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isAdmin) {
         fetchPendingPublications();
       }
     }, 2 * 60 * 1000);
 
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isAdmin) {
         // Rafraîchir les données quand l'utilisateur revient sur la page
         fetchPendingPublications();
       }
@@ -109,7 +115,7 @@ const usePendingPublications = () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [isAdmin]);
 
   return { pendingCount, loading, error, refresh: fetchPendingPublications };
 };

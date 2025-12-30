@@ -4,9 +4,10 @@ import axios from "axios";
 /**
  * Hook personnalisé pour récupérer le nombre de témoignages en attente
  *
+ * @param {boolean} isAdmin - Indique si l'utilisateur est administrateur
  * @returns {Object} Un objet contenant le nombre de témoignages en attente et l'état de chargement
  */
-const usePendingTestimonials = () => {
+const usePendingTestimonials = (isAdmin = false) => {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,19 +38,24 @@ const usePendingTestimonials = () => {
   };
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
     fetchPendingCount();
 
     // Rafraîchir le compteur toutes les 2 minutes
     const interval = setInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isAdmin) {
         fetchPendingCount();
       }
     }, 2 * 60 * 1000);
 
     // Écouter les changements de visibilité de la page
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isAdmin) {
         // Rafraîchir les données quand l'utilisateur revient sur la page
         fetchPendingCount();
       }
@@ -61,7 +67,7 @@ const usePendingTestimonials = () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [isAdmin]);
 
   return { pendingCount, loading, error, refresh: fetchPendingCount };
 };

@@ -21,6 +21,9 @@ class BroadcastMessage extends Model
         'media_url',
         'status',
         'published_at',
+        'target_type',
+        'target_users',
+        'target_packs',
     ];
 
     /**
@@ -30,6 +33,8 @@ class BroadcastMessage extends Model
      */
     protected $casts = [
         'published_at' => 'datetime',
+        'target_users' => 'array',
+        'target_packs' => 'array',
     ];
 
     /**

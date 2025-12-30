@@ -477,10 +477,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Route pour récupérer le prix du boost
     Route::get('/boost-price', [\App\Http\Controllers\BoostPriceController::class, 'getBoostPrice']);
     
-    // Routes pour les invitations de parrainage
-    Route::get('/invitations/statistics', [\App\Http\Controllers\ReferralInvitationController::class, 'statistics']);
-    Route::apiResource('/referral-invitations', \App\Http\Controllers\ReferralInvitationController::class);
-    Route::post('/referral-invitations/{id}/resend', [\App\Http\Controllers\ReferralInvitationController::class, 'resend']);
+    // // Routes pour les invitations de parrainage
+    // Route::get('/invitations/statistics', [\App\Http\Controllers\ReferralInvitationController::class, 'statistics']);
+    // Route::apiResource('/referral-invitations', \App\Http\Controllers\ReferralInvitationController::class);
+    // Route::post('/referral-invitations/{id}/resend', [\App\Http\Controllers\ReferralInvitationController::class, 'resend']);
     
     // Routes pour les invitations à témoigner
     Route::prefix('testimonials')->group(function () {
@@ -523,6 +523,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::middleware('permission:manage-admins')->group(function () {
         Route::get('get-roles', [UserController::class, 'getRoles']);
         Route::get('admins', [UserController::class, 'getAdmins']);
+        Route::get('admins/{id}', [UserController::class, 'getAdmin']);
         Route::post('/admins/create', [UserController::class, 'createAdmin']);
         Route::patch('admins/{id}', [UserController::class, 'updateAdmin']);
         Route::delete('admins/{id}', [UserController::class, 'deleteAdmin']);
@@ -728,6 +729,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::middleware('permission:manage-broadcast-messages')->group(function () {
         // Routes pour la gestion des messages de diffusion
         Route::prefix('broadcast-messages')->group(function () {
+            // Routes pour récupérer les options de destinataires
+            Route::get('/users', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'getTargetUsers']);
+            Route::get('/getpacks', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'getPacks']);
             Route::get('/stats', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'stats']);
             Route::get('/', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\Admin\BroadcastMessageController::class, 'store']);

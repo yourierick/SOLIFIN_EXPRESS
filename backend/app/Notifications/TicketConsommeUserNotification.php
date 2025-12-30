@@ -42,7 +42,7 @@ class TicketConsommeUserNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['database'];
+        return ['database', 'mail'];
     }
 
     /**
@@ -57,7 +57,7 @@ class TicketConsommeUserNotification extends Notification implements ShouldQueue
             'type' => 'success',
             'icon' => 'gift',
             'titre' => 'Cadeau remis',
-            'message' => "Votre cadeau {$this->cadeau->nom} a été remis avec succès.",
+            'message' => "Votre cadeau {$this->cadeau->nom} a été remis avec succès par l'admin " . $this->admin->name,
             'link' => '/dashboard/finances',
             'ticket_id' => $this->ticket->id,
             'cadeau_id' => $this->cadeau->id,
@@ -65,6 +65,7 @@ class TicketConsommeUserNotification extends Notification implements ShouldQueue
             'admin_name' => $this->admin->name
         ];
     }
+
 
     /**
      * Get the broadcastable representation of the notification.
@@ -97,11 +98,11 @@ class TicketConsommeUserNotification extends Notification implements ShouldQueue
             ->line('Nous vous informons que votre cadeau a été remis avec succès.')
             ->line('Détails de la remise :')
             ->line('Cadeau : ' . $this->cadeau->nom)
-            ->line('Valeur : ' . $this->cadeau->valeur . ' €')
+            ->line('Valeur : ' . $this->cadeau->valeur . ' $')
             ->line('Remis par : ' . $this->admin->name)
             ->line('Date de remise : ' . now()->format('d/m/Y H:i'))
             ->line('Code du ticket : ' . $this->ticket->code_verification)
-            ->action('Voir mes tickets', env('FRONTEND_URL') . '/dashboard/tickets')
-            ->line('Merci d\'utiliser notre application !');
+            ->action('Voir mes tickets', env('FRONTEND_URL') . '/dashboard/finances')
+            ->line('Merci pour la confiance !');
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,36 +15,560 @@ import {
   useTheme as useMuiTheme,
   Avatar,
   Chip,
-  Paper,
+  Stack,
 } from "@mui/material";
 import {
   XMarkIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  InformationCircleIcon,
   BellIcon,
   PhotoIcon,
   FilmIcon,
   DocumentTextIcon,
   CalendarDaysIcon,
-  ClockIcon,
   CheckCircleIcon,
-  ArrowPathIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme } from "../../contexts/ThemeContext";
 
-/**
- * Modal pour afficher les messages de diffusion aux utilisateurs
- *
- * Ce composant affiche les messages de diffusion un par un
- * avec la possibilité de naviguer entre eux ou de les fermer.
- *
- * @param {Object} props - Les propriétés du composant
- * @param {boolean} props.open - État d'ouverture du modal
- * @param {function} props.onClose - Fonction appelée à la fermeture du modal
- * @param {Array} props.messages - Liste des messages à afficher
- * @param {function} props.onMessageSeen - Fonction appelée quand un message est vu
- */
+// Design System Tokens
+const DESIGN_SYSTEM = {
+  spacing: {
+    xs: 1,
+    sm: 2,
+    md: 3,
+    lg: 4,
+    xl: 6,
+  },
+  borderRadius: {
+    sm: "8px",
+    md: "12px",
+    lg: "16px",
+    xl: "20px",
+    xxl: "32px",
+  },
+  shadows: {
+    glass: "0 8px 32px rgba(0, 0, 0, 0.1)",
+    glow: "0 0 20px rgba(74, 222, 128, 0.6)",
+    elevated: "0 16px 48px rgba(0, 0, 0, 0.15)",
+  },
+  transitions: {
+    fast: "0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+    smooth: "0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    slow: "0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+  },
+};
+
+// Theme Configuration
+const createTheme = (isDark) => ({
+  name: isDark ? "dark" : "light",
+  colors: {
+    primary: isDark ? "#4ade80" : "#16a34a",
+    secondary: isDark ? "#22c55e" : "#15803d",
+    background: {
+      primary: isDark 
+        ? "linear-gradient(145deg, rgba(17, 24, 39, 0.95) 0%, rgba(31, 41, 55, 0.95) 50%, rgba(17, 24, 39, 0.95) 100%)"
+        : "linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 50%, rgba(255, 255, 255, 0.95) 100%)",
+      secondary: isDark 
+        ? "linear-gradient(145deg, rgba(74, 222, 128, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%)"
+        : "linear-gradient(145deg, rgba(74, 222, 128, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)",
+      glass: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.8)",
+      overlay: isDark ? "rgba(0, 0, 0, 0.4)" : "rgba(0, 0, 0, 0.15)",
+    },
+    text: {
+      primary: isDark ? "#ffffff" : "#1e293b",
+      secondary: isDark ? "#4ade80" : "#16a34a",
+      muted: isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+    },
+    border: {
+      primary: isDark ? "rgba(74, 222, 128, 0.2)" : "rgba(74, 222, 128, 0.3)",
+      secondary: isDark ? "rgba(74, 222, 128, 0.3)" : "rgba(74, 222, 128, 0.4)",
+    },
+  },
+  effects: {
+    blur: "blur(20px) saturate(180%)",
+    glow: isDark ? "0 0 20px rgba(74, 222, 128, 0.6)" : "0 0 20px rgba(74, 222, 128, 0.8)",
+  },
+});
+
+// Responsive Hook
+const useResponsive = () => {
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(muiTheme.breakpoints.down("md"));
+  const isDesktop = useMediaQuery(muiTheme.breakpoints.up("lg"));
+
+  return useMemo(() => ({
+    isMobile,
+    isTablet,
+    isDesktop,
+    spacing: {
+      container: isMobile ? DESIGN_SYSTEM.spacing.sm : DESIGN_SYSTEM.spacing.lg,
+      content: isMobile ? DESIGN_SYSTEM.spacing.xs : DESIGN_SYSTEM.spacing.md,
+    },
+    sizing: {
+      avatar: isMobile ? 48 : 64,
+      button: { 
+        height: isMobile ? 40 : 48, 
+        minWidth: isMobile ? 40 : 100 
+      },
+      chip: { height: isMobile ? 28 : 32 },
+    },
+    typography: {
+      title: isMobile ? "1.1rem" : "1.4rem",
+      body: isMobile ? "0.9rem" : "1rem",
+      caption: isMobile ? "0.75rem" : "0.8rem",
+    },
+  }), [isMobile, isTablet, isDesktop]);
+};
+
+// Animation Components
+const AnimatedIcon = ({ children, delay = 0, animation = "pulse" }) => {
+  const animations = {
+    pulse: {
+      "@keyframes pulse": {
+        "0%, 100%": { transform: "scale(1)", opacity: 1 },
+        "50%": { transform: "scale(1.05)", opacity: 0.8 },
+      },
+      animation: "pulse 2s ease-in-out infinite",
+    },
+    bell: {
+      "@keyframes bellRing": {
+        "0%, 100%": { transform: "rotate(0deg) scale(1)" },
+        "10%": { transform: "rotate(8deg) scale(1.05)" },
+        "20%": { transform: "rotate(-8deg) scale(1.05)" },
+        "30%": { transform: "rotate(4deg) scale(1.02)" },
+        "40%": { transform: "rotate(-4deg) scale(1.02)" },
+        "50%": { transform: "rotate(0deg) scale(1)" },
+      },
+      animation: "bellRing 3s ease-in-out infinite",
+    },
+    sparkle: {
+      "@keyframes sparkle": {
+        "0%, 100%": { opacity: 0.4, transform: "scale(0.8)" },
+        "50%": { opacity: 1, transform: "scale(1.2)" },
+      },
+      animation: "sparkle 2s ease-in-out infinite",
+    },
+    float: {
+      "@keyframes float": {
+        "0%, 100%": { transform: "translate(-50%, -50%) scale(1)" },
+        "50%": { transform: "translate(-50%, -55%) scale(1.05)" },
+      },
+      animation: "float 6s ease-in-out infinite",
+    },
+  };
+
+  return (
+    <Box sx={{ 
+      ...animations[animation], 
+      animationDelay: `${delay}ms` 
+    }}>
+      {children}
+    </Box>
+  );
+};
+
+// Message Type Icons
+const MessageIcon = ({ type, theme, sizing }) => {
+  const icons = {
+    image: {
+      component: PhotoIcon,
+      color: "#3b82f6",
+      bg: theme.colors.background.secondary,
+    },
+    video: {
+      component: FilmIcon,
+      color: "#ec4899",
+      bg: theme.colors.background.secondary,
+    },
+    text: {
+      component: DocumentTextIcon,
+      color: "#8b5cf6",
+      bg: theme.colors.background.secondary,
+    },
+  };
+
+  const { component: Icon, color, bg } = icons[type] || icons.text;
+
+  return (
+    <Avatar
+      sx={{
+        background: bg,
+        backdropFilter: "blur(10px)",
+        width: sizing.avatar,
+        height: sizing.avatar,
+        boxShadow: DESIGN_SYSTEM.shadows.glass,
+      }}
+    >
+      <Icon 
+        className={sizing.avatar === 48 ? "h-6 w-6" : "h-8 w-8"} 
+        style={{ color }} 
+      />
+    </Avatar>
+  );
+};
+
+// Message Content Renderer
+const MessageRenderer = ({ message, theme, responsive, fadeIn, animateIcon }) => {
+  const renderMedia = () => {
+    switch (message.type) {
+      case "image":
+        return (
+          <Box sx={{ 
+            width: "100%", 
+            display: "flex", 
+            justifyContent: "center", 
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: DESIGN_SYSTEM.borderRadius.lg,
+            boxShadow: DESIGN_SYSTEM.shadows.glass,
+            transition: DESIGN_SYSTEM.transitions.smooth,
+            "&:hover": { transform: "scale(1.02)" },
+            maxHeight: responsive.isMobile ? "30vh" : "40vh",
+          }}>
+            <img
+              src={message.media_url}
+              alt={message.title}
+              style={{
+                width: "100%",
+                maxHeight: responsive.isMobile ? "300px" : "450px",
+                objectFit: "contain",
+              }}
+            />
+          </Box>
+        );
+
+      case "video":
+        return (
+          <Box sx={{ 
+            width: "100%", 
+            display: "flex", 
+            justifyContent: "center",
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: DESIGN_SYSTEM.borderRadius.lg,
+            boxShadow: DESIGN_SYSTEM.shadows.glass,
+            maxHeight: responsive.isMobile ? "30vh" : "40vh",
+          }}>
+            <video
+              controls
+              style={{
+                width: "100%",
+                maxHeight: responsive.isMobile ? "300px" : "450px",
+              }}
+            >
+              <source src={message.media_url} type="video/mp4" />
+              Votre navigateur ne supporte pas la lecture de vidéos.
+            </video>
+          </Box>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Box sx={{ textAlign: "center", mb: DESIGN_SYSTEM.spacing.lg }}>
+      {renderMedia()}
+
+      <Fade in={fadeIn} timeout={800} style={{ transitionDelay: "300ms" }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, justifyContent: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              px: responsive.spacing.content,
+              py: responsive.spacing.container,
+              borderRadius: DESIGN_SYSTEM.borderRadius.lg,
+              maxWidth: "100%",
+              lineHeight: 1.6,
+              color: theme.colors.text.primary,
+              fontSize: responsive.typography.body,
+              flex: 1,
+            }}
+          >
+            {message.description}
+          </Typography>
+        </Box>
+      </Fade>
+    </Box>
+  );
+};
+
+// Navigation Component
+const Navigation = ({ 
+  currentIndex, 
+  totalMessages, 
+  onPrevious, 
+  onNext, 
+  onClose, 
+  theme, 
+  responsive 
+}) => {
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < totalMessages - 1;
+  const isLast = currentIndex === totalMessages - 1;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        position: "relative",
+        px: responsive.spacing.content,
+        py: responsive.isMobile ? 0.5 : 1,
+        background: theme.colors.background.secondary,
+        borderRadius: responsive.isMobile ? DESIGN_SYSTEM.borderRadius.sm : DESIGN_SYSTEM.borderRadius.md,
+        backdropFilter: "blur(10px)",
+        boxShadow: DESIGN_SYSTEM.shadows.glass,
+      }}
+    >
+      <Button
+        startIcon={<ChevronLeftIcon className="h-3 w-3" />}
+        onClick={onPrevious}
+        disabled={!hasPrevious}
+        sx={{
+          color: hasPrevious ? theme.colors.text.secondary : theme.colors.text.muted,
+          background: hasPrevious ? theme.colors.background.secondary : "transparent",
+          backdropFilter: hasPrevious ? "blur(8px)" : "none",
+          borderRadius: DESIGN_SYSTEM.borderRadius.sm,
+          px: responsive.isMobile ? 1 : 1.5,
+          py: 0.5,
+          textTransform: "none",
+          fontWeight: 600,
+          fontSize: responsive.isMobile ? "0.7rem" : "0.75rem",
+          minWidth: responsive.isMobile ? 28 : 70,
+          height: responsive.isMobile ? 28 : 36,
+          boxShadow: hasPrevious ? DESIGN_SYSTEM.shadows.glass : "none",
+          transition: DESIGN_SYSTEM.transitions.smooth,
+          "&:hover:not(.Mui-disabled)": {
+            background: theme.colors.background.secondary,
+            transform: "translateY(-1px)",
+            boxShadow: theme.effects.glow,
+          },
+          "&.Mui-disabled": {
+            opacity: 0.5,
+            cursor: "not-allowed",
+          },
+        }}
+      >
+        {!responsive.isMobile && "Précédent"}
+      </Button>
+      
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.3 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            px: responsive.isMobile ? 1 : 1.5,
+            py: 0.3,
+            borderRadius: "12px",
+            background: theme.colors.background.secondary,
+            color: theme.colors.text.secondary,
+            fontWeight: 700,
+            fontSize: responsive.isMobile ? "0.65rem" : "0.7rem",
+            backdropFilter: "blur(8px)",
+            boxShadow: DESIGN_SYSTEM.shadows.glass,
+            minWidth: responsive.isMobile ? "45px" : "60px",
+            textAlign: "center",
+          }}
+        >
+          {currentIndex + 1} / {totalMessages}
+        </Typography>
+        
+        {responsive.isMobile && (
+          <Box sx={{ display: "flex", gap: 0.2 }}>
+            {Array.from({ length: totalMessages }, (_, index) => (
+              <Box
+                key={index}
+                sx={{
+                  width: 3,
+                  height: 3,
+                  borderRadius: "50%",
+                  background: index === currentIndex 
+                    ? theme.colors.text.secondary 
+                    : theme.colors.text.muted,
+                  transition: DESIGN_SYSTEM.transitions.smooth,
+                  boxShadow: index === currentIndex ? theme.effects.glow : "none",
+                }}
+              />
+            ))}
+          </Box>
+        )}
+      </Box>
+      
+      <Button
+        endIcon={hasNext ? <ChevronRightIcon className="h-3 w-3" /> : null}
+        onClick={onNext}
+        variant={hasNext ? "text" : "contained"}
+        sx={{
+          color: hasNext ? theme.colors.text.secondary : theme.colors.text.primary,
+          background: hasNext 
+            ? theme.colors.background.secondary 
+            : theme.colors.primary,
+          backdropFilter: hasNext ? "blur(8px)" : "none",
+          borderRadius: DESIGN_SYSTEM.borderRadius.sm,
+          px: responsive.isMobile ? 1 : 1.5,
+          py: 0.5,
+          textTransform: "none",
+          fontWeight: 600,
+          fontSize: responsive.isMobile ? "0.7rem" : "0.75rem",
+          minWidth: responsive.isMobile ? 28 : 70,
+          height: responsive.isMobile ? 28 : 36,
+          boxShadow: hasNext ? DESIGN_SYSTEM.shadows.glass : theme.effects.glow,
+          transition: DESIGN_SYSTEM.transitions.smooth,
+          "&:hover": {
+            background: hasNext 
+              ? theme.colors.background.secondary 
+              : theme.colors.secondary,
+            transform: "translateY(-1px)",
+            boxShadow: theme.effects.glow,
+          },
+        }}
+      >
+        {hasNext ? (responsive.isMobile ? "" : "Suivant") : "Fermer"}
+      </Button>
+    </Box>
+  );
+};
+
+// Header Component
+const Header = ({ message, onClose, theme, responsive, currentIndex, messagesLength }) => (
+  <DialogTitle
+    sx={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderBottom: 0,
+      py: responsive.isMobile ? 1.5 : 2,
+      px: responsive.spacing.content,
+      backgroundColor: "transparent",
+      position: "relative",
+      zIndex: 1,
+      textAlign: "center",
+    }}
+  >
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+        position: "relative",
+      }}
+    >
+      <AnimatedIcon animation="bell">
+        <Avatar
+          sx={{
+            background: theme.colors.background.secondary,
+            backdropFilter: "blur(10px)",
+            width: responsive.isMobile ? 36 : 48,
+            height: responsive.isMobile ? 36 : 48,
+            boxShadow: theme.effects.glow,
+            mb: 1,
+          }}
+        >
+          <BellIcon 
+            className={responsive.sizing.avatar === 48 ? "h-5 w-5" : "h-6 w-6"} 
+            style={{ color: theme.colors.text.secondary }} 
+          />
+        </Avatar>
+      </AnimatedIcon>
+      
+      {!responsive.isMobile && (
+        <Stack direction="row" spacing={0.5} sx={{ mb: 1 }}>
+          {[0, 0.3, 0.6].map((delay, index) => (
+            <AnimatedIcon key={index} delay={delay * 1000} animation="sparkle">
+              <SparklesIcon 
+                className="h-3 w-3" 
+                style={{ color: theme.colors.text.secondary }} 
+              />
+            </AnimatedIcon>
+          ))}
+        </Stack>
+      )}
+      
+      <Typography
+        variant={responsive.isMobile ? "subtitle1" : "h6"}
+        component="div"
+        sx={{
+          fontWeight: 600,
+          fontSize: responsive.isMobile ? "1rem" : "1.2rem",
+          color: theme.colors.text.primary,
+          mb: 1,
+          textAlign: "center",
+          textShadow: theme.name === "dark" 
+            ? "0 1px 2px rgba(0, 0, 0, 0.4)" 
+            : "0 1px 1px rgba(0, 0, 0, 0.1)",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {message.title}
+      </Typography>
+      
+      <Fade in={true} timeout={600}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Chip
+            icon={<CalendarDaysIcon className="h-3 w-3" />}
+            label={new Date(message.created_at).toLocaleDateString()}
+            size="small"
+            sx={{
+              background: theme.colors.background.secondary,
+              color: theme.colors.text.secondary,
+              fontSize: responsive.isMobile ? "0.7rem" : "0.75rem",
+              fontWeight: 600,
+              height: responsive.isMobile ? 24 : 28,
+              borderRadius: "12px",
+              backdropFilter: "blur(8px)",
+              "& .MuiChip-icon": { 
+                color: theme.colors.text.secondary,
+                fontSize: "0.7rem"
+              },
+            }}
+          />
+          <Chip
+            icon={<CheckCircleIcon className="h-3 w-3" />}
+            label={`${currentIndex + 1}/${messagesLength}`}
+            size="small"
+            sx={{
+              background: theme.colors.background.secondary,
+              color: theme.colors.text.secondary,
+              fontSize: responsive.isMobile ? "0.7rem" : "0.75rem",
+              fontWeight: 600,
+              height: responsive.isMobile ? 24 : 28,
+              borderRadius: "12px",
+              backdropFilter: "blur(8px)",
+              "& .MuiChip-icon": { 
+                color: theme.colors.text.secondary,
+                fontSize: "0.7rem"
+              },
+            }}
+          />
+        </Box>
+      </Fade>
+    </Box>
+    
+    <IconButton
+      edge="end"
+      onClick={onClose}
+      aria-label="close"
+      sx={{
+        position: "absolute",
+        top: responsive.isMobile ? 8 : 12,
+        right: responsive.isMobile ? 8 : 12,
+        color: theme.colors.text.primary,
+        width: responsive.isMobile ? 32 : 40,
+        height: responsive.isMobile ? 32 : 40,
+        borderRadius: "10px",
+      }}
+    >
+      <XMarkIcon className={responsive.sizing.button.height === 32 ? "h-4 w-4" : "h-5 w-5"} />
+    </IconButton>
+  </DialogTitle>
+);
+
+// Main Component
 const BroadcastMessageModal = ({
   open,
   onClose,
@@ -52,46 +576,97 @@ const BroadcastMessageModal = ({
   onMessageSeen,
 }) => {
   const { isDarkMode } = useTheme();
-  const muiTheme = useMuiTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const responsive = useResponsive();
+  const theme = useMemo(() => createTheme(isDarkMode), [isDarkMode]);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentMessage, setCurrentMessage] = useState(null);
   const [fadeIn, setFadeIn] = useState(true);
   const [animateIcon, setAnimateIcon] = useState(false);
-  const iconRef = useRef(null);
 
-  // Animation pour l'icône
-  useEffect(() => {
-    if (fadeIn) {
-      setTimeout(() => {
-        setAnimateIcon(true);
-      }, 200);
-    } else {
-      setAnimateIcon(false);
-    }
-  }, [fadeIn]);
+  // Optimized styles with useMemo
+  const modalStyles = useMemo(() => ({
+    paper: {
+      background: theme.colors.background.primary,
+      backdropFilter: theme.effects.blur,
+      WebkitBackdropFilter: theme.effects.blur,
+      color: theme.colors.text.primary,
+      borderRadius: responsive.isMobile ? DESIGN_SYSTEM.borderRadius.xl : DESIGN_SYSTEM.borderRadius.xxl,
+      boxShadow: DESIGN_SYSTEM.shadows.elevated,
+      overflow: "hidden",
+      maxHeight: responsive.isMobile ? "95vh" : "90vh",
+      display: "flex",
+      flexDirection: "column",
+      position: "relative",
+      border: isDarkMode ? "2px solid transparent" : `2px solid ${theme.colors.border.primary}`,
+      backgroundClip: "padding-box, border-box",
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "120px",
+        background: isDarkMode
+          ? "radial-gradient(ellipse at top center, rgba(74, 222, 128, 0.15) 0%, rgba(74, 222, 128, 0) 60%)"
+          : "radial-gradient(ellipse at top center, rgba(74, 222, 128, 0.25) 0%, rgba(74, 222, 128, 0) 60%)",
+        zIndex: 0,
+        pointerEvents: "none",
+      },
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "300px",
+        height: "300px",
+        background: isDarkMode
+          ? "radial-gradient(circle, rgba(74, 222, 128, 0.05) 0%, rgba(74, 222, 128, 0) 70%)"
+          : "radial-gradient(circle, rgba(74, 222, 128, 0.08) 0%, rgba(74, 222, 128, 0) 70%)",
+        borderRadius: "50%",
+        zIndex: 0,
+        pointerEvents: "none",
+      },
+    },
+    backdrop: {
+      backdropFilter: "blur(12px) saturate(150%)",
+      WebkitBackdropFilter: "blur(12px) saturate(150%)",
+      backgroundColor: theme.colors.background.overlay,
+    },
+    content: {
+      pt: 0,
+      pb: responsive.spacing.container,
+      px: responsive.spacing.content,
+      maxHeight: responsive.isMobile ? "70vh" : "65vh",
+      overflow: "auto",
+      scrollbarWidth: "thin",
+      "&::-webkit-scrollbar": {
+        width: "6px",
+        backgroundColor: "transparent",
+      },
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: theme.colors.border.primary,
+        borderRadius: "6px",
+        "&:hover": {
+          backgroundColor: theme.colors.border.secondary,
+        },
+      },
+      overflowX: "hidden",
+      position: "relative",
+      zIndex: 1,
+    },
+    divider: {
+      my: responsive.spacing.container,
+      borderColor: theme.colors.border.primary,
+      opacity: 0.8,
+      borderWidth: "2px",
+      borderRadius: "2px",
+    },
+  }), [theme, responsive, isDarkMode]);
 
-  // Mettre à jour le message courant lorsque l'index change ou que les messages changent
-  useEffect(() => {
-    if (messages && messages.length > 0 && currentIndex < messages.length) {
-      setCurrentMessage(messages[currentIndex]);
-
-      // Marquer le message comme vu
-      if (onMessageSeen && messages[currentIndex]) {
-        onMessageSeen(messages[currentIndex].id);
-      }
-    } else {
-      setCurrentMessage(null);
-    }
-  }, [currentIndex, messages, onMessageSeen]);
-
-  // Si pas de message à afficher, ne pas rendre le modal
-  if (!currentMessage || messages.length === 0) {
-    return null;
-  }
-
-  // Gérer la navigation vers le message précédent
-  const handlePrevious = () => {
+  // Optimized handlers with useCallback
+  const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
       setFadeIn(false);
       setAnimateIcon(false);
@@ -100,10 +675,9 @@ const BroadcastMessageModal = ({
         setFadeIn(true);
       }, 300);
     }
-  };
+  }, [currentIndex]);
 
-  // Gérer la navigation vers le message suivant
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIndex < messages.length - 1) {
       setFadeIn(false);
       setAnimateIcon(false);
@@ -112,613 +686,96 @@ const BroadcastMessageModal = ({
         setFadeIn(true);
       }, 300);
     } else {
-      // Si c'est le dernier message, fermer le modal
       onClose();
     }
-  };
+  }, [currentIndex, messages.length, onClose]);
 
-  // Obtenir l'icône appropriée pour le type de message
-  const getMessageIcon = () => {
-    switch (currentMessage.type) {
-      case "image":
-        return (
-          <PhotoIcon
-            className="h-8 w-8"
-            style={{ color: isDarkMode ? "#60a5fa" : "#3b82f6" }}
-          />
-        );
-      case "video":
-        return (
-          <FilmIcon
-            className="h-8 w-8"
-            style={{ color: isDarkMode ? "#f472b6" : "#ec4899" }}
-          />
-        );
-      case "text":
-      default:
-        return (
-          <DocumentTextIcon
-            className="h-8 w-8"
-            style={{ color: isDarkMode ? "#a78bfa" : "#8b5cf6" }}
-          />
-        );
+  // Icon animation effect
+  useEffect(() => {
+    if (fadeIn) {
+      const timer = setTimeout(() => setAnimateIcon(true), 200);
+      return () => clearTimeout(timer);
+    } else {
+      setAnimateIcon(false);
     }
-  };
+  }, [fadeIn]);
 
-  // Rendu du contenu en fonction du type de message
-  const renderMessageContent = () => {
-    switch (currentMessage.type) {
-      case "image":
-        return (
-          <Fade in={fadeIn} timeout={400}>
-            <Box
-              sx={{
-                textAlign: "center",
-                mb: 2,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <Zoom
-                in={animateIcon}
-                timeout={500}
-                style={{ transitionDelay: animateIcon ? "200ms" : "0ms" }}
-              >
-                <Avatar
-                  sx={{
-                    bgcolor: isDarkMode
-                      ? "rgba(96, 165, 250, 0.2)"
-                      : "rgba(59, 130, 246, 0.1)",
-                    width: 60,
-                    height: 60,
-                    mb: 2,
-                    animation: animateIcon ? "pulse 2s infinite" : "none",
-                    "@keyframes pulse": {
-                      "0%": {
-                        boxShadow: "0 0 0 0 rgba(59, 130, 246, 0.4)",
-                      },
-                      "70%": {
-                        boxShadow: "0 0 0 10px rgba(59, 130, 246, 0)",
-                      },
-                      "100%": {
-                        boxShadow: "0 0 0 0 rgba(59, 130, 246, 0)",
-                      },
-                    },
-                  }}
-                >
-                  <PhotoIcon
-                    className="h-8 w-8"
-                    style={{
-                      color: isDarkMode ? "#60a5fa" : "#3b82f6",
-                    }}
-                  />
-                </Avatar>
-              </Zoom>
-              <Box
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  mb: 2,
-                  position: "relative",
-                  overflow: "hidden",
-                  borderRadius: "10px",
-                  boxShadow: isDarkMode
-                    ? "0 8px 16px rgba(0, 0, 0, 0.5)"
-                    : "0 8px 16px rgba(0, 0, 0, 0.1)",
-                  transition: "transform 0.3s ease-in-out",
-                  "&:hover": {
-                    transform: "scale(1.02)",
-                  },
-                  maxHeight: "40vh", // Limite la hauteur des images
-                }}
-              >
-                <img
-                  src={currentMessage.media_url}
-                  alt={currentMessage.title}
-                  style={{
-                    width: "100%",
-                    maxHeight: "450px",
-                    objectFit: "contain",
-                  }}
-                />
-              </Box>
-              <Fade
-                in={fadeIn}
-                timeout={800}
-                style={{ transitionDelay: "300ms" }}
-              >
-                <Typography
-                  variant="body1"
-                  sx={{
-                    px: 3,
-                    py: 2,
-                    borderRadius: "8px",
-                    backgroundColor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.03)",
-                    maxWidth: "90%",
-                    lineHeight: 1.6,
-                    boxShadow: isDarkMode
-                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)"
-                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                >
-                  {currentMessage.description}
-                </Typography>
-              </Fade>
-            </Box>
-          </Fade>
-        );
-      case "video":
-        return (
-          <Fade in={fadeIn} timeout={400}>
-            <Box
-              sx={{
-                textAlign: "center",
-                mb: 2,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <Zoom
-                in={animateIcon}
-                timeout={500}
-                style={{ transitionDelay: animateIcon ? "200ms" : "0ms" }}
-              >
-                <Avatar
-                  sx={{
-                    bgcolor: isDarkMode
-                      ? "rgba(244, 114, 182, 0.2)"
-                      : "rgba(236, 72, 153, 0.1)",
-                    width: 60,
-                    height: 60,
-                    mb: 2,
-                    animation: animateIcon ? "pulse 2s infinite" : "none",
-                    "@keyframes pulse": {
-                      "0%": {
-                        boxShadow: "0 0 0 0 rgba(236, 72, 153, 0.4)",
-                      },
-                      "70%": {
-                        boxShadow: "0 0 0 10px rgba(236, 72, 153, 0)",
-                      },
-                      "100%": {
-                        boxShadow: "0 0 0 0 rgba(236, 72, 153, 0)",
-                      },
-                    },
-                  }}
-                >
-                  <FilmIcon
-                    className="h-8 w-8"
-                    style={{
-                      color: isDarkMode ? "#f472b6" : "#ec4899",
-                    }}
-                  />
-                </Avatar>
-              </Zoom>
-              <Box
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  mb: 2,
-                  position: "relative",
-                  overflow: "hidden",
-                  borderRadius: "10px",
-                  boxShadow: isDarkMode
-                    ? "0 8px 16px rgba(0, 0, 0, 0.5)"
-                    : "0 8px 16px rgba(0, 0, 0, 0.1)",
-                  maxHeight: "40vh", // Limite la hauteur des vidéos
-                }}
-              >
-                <video
-                  controls
-                  style={{
-                    width: "100%",
-                    maxHeight: "450px",
-                  }}
-                >
-                  <source src={currentMessage.media_url} type="video/mp4" />
-                  Votre navigateur ne supporte pas la lecture de vidéos.
-                </video>
-              </Box>
-              <Fade
-                in={fadeIn}
-                timeout={800}
-                style={{ transitionDelay: "300ms" }}
-              >
-                <Typography
-                  variant="body1"
-                  sx={{
-                    px: 3,
-                    py: 2,
-                    borderRadius: "8px",
-                    backgroundColor: isDarkMode
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.03)",
-                    maxWidth: "90%",
-                    lineHeight: 1.6,
-                    boxShadow: isDarkMode
-                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)"
-                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                >
-                  {currentMessage.description}
-                </Typography>
-              </Fade>
-            </Box>
-          </Fade>
-        );
-      case "text":
-      default:
-        return (
-          <Fade in={fadeIn} timeout={400}>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: isMobile ? "200px" : "300px",
-                px: 2,
-                width: "100%", // Assure que la boîte prend toute la largeur disponible
-              }}
-            >
-              <Fade
-                in={fadeIn}
-                timeout={800}
-                style={{ transitionDelay: "300ms" }}
-              >
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 1,
-                    textAlign: "center",
-                    width: "95%",
-                    lineHeight: 1.6,
-                    fontSize: "1.05rem",
-                    color: isDarkMode ? "#f3f4f6" : "#fff",
-                    px: 2,
-                    py: 1.5,
-                    borderRadius: "10px",
-                    boxShadow: isDarkMode
-                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)"
-                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                    overflowWrap: "break-word",
-                    wordBreak: "break-word",
-                    border: isDarkMode
-                      ? "1px solid rgba(74, 222, 128, 0.2)"
-                      : "1px solid rgba(74, 222, 128, 0.3)",
-                  }}
-                >
-                  {currentMessage.description}
-                </Typography>
-              </Fade>
-            </Box>
-          </Fade>
-        );
+  // Message update effect
+  useEffect(() => {
+    if (messages && messages.length > 0 && currentIndex < messages.length) {
+      setCurrentMessage(messages[currentIndex]);
+
+      // Mark message as seen
+      if (onMessageSeen && messages[currentIndex]) {
+        onMessageSeen(messages[currentIndex].id);
+      }
+    } else {
+      setCurrentMessage(null);
     }
-  };
+  }, [currentIndex, messages, onMessageSeen]);
+
+  // Early return if no message
+  if (!currentMessage || messages.length === 0) {
+    return null;
+  }
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth={responsive.isMobile ? "sm" : "md"}
       fullWidth
       TransitionComponent={Grow}
       transitionDuration={400}
-      PaperProps={{
-        sx: {
-          background: isDarkMode
-            ? "linear-gradient(135deg, rgb(31, 41, 55) 0%, rgb(17, 24, 39) 100%)"
-            : "linear-gradient(135deg,rgb(62, 107, 66) 0%,rgb(23, 142, 33) 100%)",
-          color: isDarkMode ? "white" : "#1e4620",
-          borderRadius: "24px",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(8px)",
-          overflow: "hidden",
-          border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-          maxHeight: "85vh", // Limite la hauteur maximale du modal
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "100px",
-            background: isDarkMode
-              ? "radial-gradient(circle at top center, rgba(74, 222, 128, 0.2) 0%, rgba(74, 222, 128, 0) 70%)"
-              : "radial-gradient(circle at top center, rgba(74, 222, 128, 0.4) 0%, rgba(74, 222, 128, 0) 70%)",
-            zIndex: 0,
-            pointerEvents: "none",
-          },
-        },
-      }}
-      sx={{
-        "& .MuiBackdrop-root": {
-          backdropFilter: "blur(8px)",
-          backgroundColor: isDarkMode
-            ? "rgba(0, 0, 0, 0.85)"
-            : "rgba(0, 0, 0, 0.65)",
-        },
-      }}
+      PaperProps={{ sx: modalStyles.paper }}
+      sx={{ "& .MuiBackdrop-root": modalStyles.backdrop }}
     >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: 0,
-          py: 2,
-          px: 2,
-          backgroundColor: "transparent",
-          position: "relative",
-          zIndex: 1,
-          textAlign: "center",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          <Zoom in={true} timeout={500}>
-            <Avatar
-              sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(74, 222, 128, 0.2)"
-                  : "rgba(245, 245, 245, 0.8)",
-                width: 50,
-                height: 50,
-                boxShadow: "0 0 20px rgba(74, 222, 128, 0.4)",
-                mb: 1,
-                animation: "bellRing 2s infinite",
-                "@keyframes bellRing": {
-                  "0%": { transform: "rotate(0deg)" },
-                  "5%": { transform: "rotate(15deg)" },
-                  "10%": { transform: "rotate(-15deg)" },
-                  "15%": { transform: "rotate(10deg)" },
-                  "20%": { transform: "rotate(-10deg)" },
-                  "25%": { transform: "rotate(5deg)" },
-                  "30%": { transform: "rotate(-5deg)" },
-                  "35%": { transform: "rotate(0deg)" },
-                  "100%": { transform: "rotate(0deg)" },
-                },
-              }}
-            >
-              <BellIcon
-                className="h-7 w-7"
-                style={{
-                  color: isDarkMode ? "#4ade80" : "#166534",
-                }}
-              />
-            </Avatar>
-          </Zoom>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              fontWeight: 600,
-              fontSize: "1.15rem",
-              color: isDarkMode ? "#f3f4f6" : "#fff",
-              mb: 1,
-              textAlign: "center",
-            }}
-          >
-            {currentMessage.title}
-          </Typography>
-          <Fade in={true} timeout={800}>
-            <Box
-              sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}
-            >
-              <Chip
-                icon={<CalendarDaysIcon className="h-4 w-4" />}
-                label={new Date(currentMessage.created_at).toLocaleDateString()}
-                size="small"
-                sx={{
-                  bgcolor: isDarkMode ? "rgba(74, 222, 128, 0.2)" : "#fff",
-                  color: isDarkMode ? "#4ade80" : "#166534",
-                  fontSize: "0.75rem",
-                  height: 24,
-                  border: isDarkMode
-                    ? "1px solid rgba(74, 222, 128, 0.3)"
-                    : "1px solid rgba(74, 222, 128, 0.5)",
-                }}
-              />
-              <Chip
-                icon={<CheckCircleIcon className="h-4 w-4" />}
-                label={currentIndex + 1 + "/" + messages.length}
-                size="small"
-                sx={{
-                  bgcolor: isDarkMode ? "rgba(74, 222, 128, 0.3)" : "#fff",
-                  color: isDarkMode ? "#4ade80" : "#166534",
-                  fontSize: "0.75rem",
-                  height: 24,
-                  border: isDarkMode
-                    ? "1px solid rgba(74, 222, 128, 0.3)"
-                    : "1px solid rgba(74, 222, 128, 0.5)",
-                }}
-              />
-            </Box>
-          </Fade>
-        </Box>
-        <IconButton
-          edge="end"
-          color="inherit"
-          onClick={onClose}
-          aria-label="close"
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            color: isDarkMode ? "#4ade80" : "#fff",
-            bgcolor: isDarkMode
-              ? "rgba(74, 222, 128, 0.1)"
-              : "rgba(74, 222, 128, 0.1)",
-            "&:hover": {
-              backgroundColor: isDarkMode
-                ? "rgba(74, 222, 128, 0.2)"
-                : "rgba(74, 222, 128, 0.2)",
-            },
-          }}
-        >
-          <XMarkIcon className="h-5 w-5" />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent
-        sx={{
-          pt: 0,
-          pb: 0,
-          px: isMobile ? 2 : 3,
-          maxHeight: "65vh", // Limite la hauteur maximale à 65% de la hauteur de la fenêtre
-          overflow: "auto", // Ajoute un ascenseur automatique si nécessaire
-          scrollbarWidth: "thin", // Pour Firefox
-          "&::-webkit-scrollbar": {
-            // Pour Chrome, Safari, etc.
-            width: "8px",
-            backgroundColor: "transparent",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: isDarkMode
-              ? "rgba(74, 222, 128, 0.3)"
-              : "rgba(74, 222, 128, 0.3)",
-            borderRadius: "4px",
-            "&:hover": {
-              backgroundColor: isDarkMode
-                ? "rgba(74, 222, 128, 0.5)"
-                : "rgba(74, 222, 128, 0.5)",
-            },
-          },
-          // Assure que le contenu du modal ne déborde pas
-          overflowX: "hidden",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {renderMessageContent()}
-
-        <Divider
-          sx={{
-            my: 2,
-            borderColor: isDarkMode
-              ? "rgba(74, 222, 128, 0.3)"
-              : "rgba(74, 222, 128, 0.3)",
-            opacity: 0.8,
-          }}
+      <Header 
+        message={currentMessage} 
+        onClose={onClose} 
+        theme={theme}
+        responsive={responsive}
+        currentIndex={currentIndex}
+        messagesLength={messages.length}
+      />
+      
+      <DialogContent sx={modalStyles.content}>
+        <MessageRenderer 
+          message={currentMessage}
+          theme={theme}
+          responsive={responsive}
+          fadeIn={fadeIn}
+          animateIcon={animateIcon}
         />
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-            position: "relative",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              top: "-20px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "50px",
-              height: "3px",
-              borderRadius: "3px",
-              backgroundColor: isDarkMode
-                ? "rgba(74, 222, 128, 0.3)"
-                : "rgba(74, 222, 128, 0.3)",
-            },
-          }}
-        >
-          <Button
-            startIcon={<ChevronLeftIcon className="h-4 w-4" />}
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            sx={{
-              color: isDarkMode ? "rgba(74, 222, 128, 0.7)" : "#fff",
-              "&.Mui-disabled": {
-                color: isDarkMode ? "rgba(74, 222, 128, 0.3)" : "#9f9f9f",
-              },
-              textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                backgroundColor: isDarkMode
-                  ? "rgba(74, 222, 128, 0.1)"
-                  : "rgba(74, 222, 128, 0.1)",
-              },
-            }}
-          >
-            {isMobile ? "" : "Précédent"}
-          </Button>
-          <Typography
-            variant="body2"
-            sx={{
-              alignSelf: "center",
-              px: 2,
-              py: 0.5,
-              borderRadius: "16px",
-              backgroundColor: isDarkMode ? "rgba(74, 222, 128, 0.2)" : "#fff",
-              color: isDarkMode ? "#4ade80" : "#166534",
-              fontWeight: 600,
-              fontSize: "0.85rem",
-            }}
-          >
-            {currentIndex + 1} / {messages.length}
-          </Typography>
-          <Button
-            endIcon={
-              currentIndex < messages.length - 1 ? (
-                <ChevronRightIcon className="h-5 w-5" />
-              ) : null
-            }
-            onClick={handleNext}
-            variant={currentIndex < messages.length - 1 ? "text" : "contained"}
-            sx={{
-              color:
-                currentIndex < messages.length - 1
-                  ? isDarkMode
-                    ? "rgba(74, 222, 128, 0.7)"
-                    : "#166534"
-                  : isDarkMode
-                  ? "#0f172a"
-                  : "white",
-              backgroundColor:
-                currentIndex < messages.length - 1
-                  ? "transparent"
-                  : isDarkMode
-                  ? "#4ade80"
-                  : "#166534",
-              textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                backgroundColor:
-                  currentIndex < messages.length - 1
-                    ? isDarkMode
-                      ? "rgba(74, 222, 128, 0.1)"
-                      : "rgba(74, 222, 128, 0.1)"
-                    : isDarkMode
-                    ? "#22c55e"
-                    : "#15803d",
-              },
-            }}
-          >
-            {currentIndex < messages.length - 1
-              ? isMobile
-                ? ""
-                : "Suivant"
-              : "Fermer"}
-          </Button>
-        </Box>
       </DialogContent>
+
+      {/* Footer Sticky avec les contrôles de navigation */}
+      <Box
+        sx={{
+          position: "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: theme.colors.background.primary,
+          backdropFilter: theme.effects.blur,
+          WebkitBackdropFilter: theme.effects.blur,
+          borderTop: `1px solid ${theme.colors.border.primary}`,
+          px: responsive.spacing.content,
+          py: responsive.isMobile ? 0.5 : 1,
+          zIndex: 10,
+          boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        <Navigation
+          currentIndex={currentIndex}
+          totalMessages={messages.length}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          onClose={onClose}
+          theme={theme}
+          responsive={responsive}
+        />
+      </Box>
     </Dialog>
   );
 };
