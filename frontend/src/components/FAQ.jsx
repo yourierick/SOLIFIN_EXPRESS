@@ -125,6 +125,16 @@ export default function FAQ() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
+          <div className="inline-block">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
+              className={`h-1 w-20 mx-auto mb-2 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
+              }`}
+            />
+          </div>
           <h2
             className={`heading-secondary mb-4 ${
               isDarkMode ? "text-white" : ""

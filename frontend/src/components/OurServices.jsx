@@ -148,57 +148,35 @@ export default function OurServices() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
-        className="text-center mb-16"
+        className="text-center mb-1"
       >
         <div className="inline-block">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
-            className={`h-1.5 w-24 mx-auto mb-6 rounded-full ${
-              isDarkMode ? "bg-green-500" : "bg-green-600"
-            }`}
-          />
-        </div>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
+              className={`h-1 w-20 mx-auto mb-2 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
+              }`}
+            />
+          </div>
 
         <h2
-          className={`text-3xl font-extrabold tracking-tight sm:text-5xl mb-6 ${
+          className={`text-3xl font-bold tracking-tight sm:text-4xl mb-4 ${
             isDarkMode ? "text-white" : "text-gray-900"
           }`}
         >
           Nos{" "}
-          <span
-            className={`relative inline-block ${
-              isDarkMode ? "text-green-400" : "text-green-600"
-            }`}
-          >
+          <span className={isDarkMode ? "text-green-400" : "text-green-600"}>
             Services
-            <motion.span
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
-              className={`absolute bottom-1 left-0 h-0.5 ${
-                isDarkMode ? "bg-green-400/40" : "bg-green-600/40"
-              }`}
-            />
           </span>
         </h2>
-
-        <p
-          className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${
-            isDarkMode ? "text-gray-300" : "text-gray-600"
-          }`}
-        >
-          Découvrez les services que nous proposons pour vous accompagner vers
-          l'indépendance financière et le développement de votre activité
-        </p>
-
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
-          className="mt-16 relative"
+          className="mt-8 relative"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -232,7 +210,7 @@ export default function OurServices() {
                         : "bg-white hover:shadow-green-500/40 border border-gray-100"
                     }`}
                   >
-              <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
+              <div className="w-full h-40 md:h-44 lg:h-48 xl:h-44 overflow-hidden bg-gray-100 dark:bg-gray-900 flex-shrink-0">
                 {index === 0 ? (
                   <Swiper
                     spaceBetween={30}
@@ -268,9 +246,9 @@ export default function OurServices() {
                   />
                 )}
               </div>
-              <div className="flex flex-col flex-1 p-6">
+              <div className="flex flex-col flex-1 p-6 min-h-[200px]">
                 <h3
-                  className={`text-lg font-bold mb-3 leading-tight ${
+                  className={`text-lg font-bold mb-3 leading-tight flex-shrink-0 ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
@@ -285,7 +263,7 @@ export default function OurServices() {
                 </p>
                 
                 {/* Bouton d'action avec animation */}
-                <div className="mt-auto">
+                <div className="mt-auto flex-shrink-0">
                   {isAuthenticated ? (
                     <button
                       className={`flex items-center justify-center w-full py-2 px-4 rounded-lg transition-all duration-300 ${

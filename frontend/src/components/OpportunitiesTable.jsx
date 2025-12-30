@@ -120,39 +120,36 @@ export default function OpportunitiesTable() {
   }
 
   if (!opportunities.length) {
-    return (
-      <section className={`w-full py-16 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
-        <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
-          <div className="text-center py-12 text-gray-400">
-            Aucune opportunité disponible pour le moment.
-          </div>
-        </div>
-      </section>
-    );
+    return null; // Ne rien afficher s'il n'y a pas d'opportunités
   }
 
   return (
-    <section className={`w-full py-16 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
-      <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
+    <section className={`w-full py-16 ${isDarkMode ? "bg-gray-900" : "bg-green-50"}`}>
+      <div className={`w-full px-4 mx-auto sm:px-6 lg:px-8`}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
+          <div className="inline-block">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
+              className={`h-1 w-20 mx-auto mb-2 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
+              }`}
+            />
+          </div>
           <h2 className={`text-3xl lg:text-4xl font-bold mb-4 ${
             isDarkMode ? "text-white" : "text-gray-900"
           }`}>
             Opportunités d'Emploi et d'Affaire
           </h2>
-          <p className={`text-lg ${
-            isDarkMode ? "text-gray-300" : "text-gray-600"
-          }`}>
-            Découvrez les dernières opportunités professionnelles et business
-          </p>
         </motion.div>
 
-        <div className="overflow-x-auto" id="opportunities-table">
+        <div className={`overflow-x-auto ${isDarkMode ? "bg-gray-800" : "bg-white"}`} id="opportunities-table">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}

@@ -111,62 +111,38 @@ export default function PublicationsDisplay() {
   return (
     <section
       id="publications"
-      className={`w-full py-12 ${
+      className={`w-full py-10 sm:py-20 ${
         isDarkMode
-          ? "bg-gradient-to-br from-gray-900 to-gray-800"
-          : "bg-gradient-to-br from-gray-100 to-white"
+          ? "bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800"
+          : "bg-gradient-to-br from-gray-50 via-white to-slate-50"
       }`}
     >
-      <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
+      <div className="w-full px-4 mx-auto sm:px-6 lg:px-2">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-4"
         >
           <div className="inline-block">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
-              className={`h-1.5 w-24 mx-auto mb-6 rounded-full ${
-                isDarkMode ? "bg-green-500" : "bg-green-600"
+              className={`h-1 w-20 mx-auto mb-2 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
               }`}
             />
           </div>
 
           <h2
-            className={`text-3xl font-bold tracking-tight sm:text-5xl mb-6 ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Publicités et{" "}
-            <span
-              className={`relative inline-block ${
-                isDarkMode ? "text-green-400" : "text-green-600"
-              }`}
-            >
-              Annonces
-              <motion.span
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
-                className={`absolute bottom-1 left-0 h-0.5 ${
-                  isDarkMode ? "bg-green-400/40" : "bg-green-600/40"
-                }`}
-              />
-            </span>
-          </h2>
-          <p
-            className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${
-              isDarkMode ? "text-gray-300" : "text-gray-600"
-            }`}
-          >
-            Profitez des meilleures opportunités de marketing pour vos produits
-            et services grâce à la communauté grandissante de{" "}
-            <span className="text-primary-600 font-medium">SOLIFIN</span>
-          </p>
+          className={`text-3xl font-bold tracking-tight sm:text-4xl mb-4 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Annonces et Publicités
+        </h2>
         </motion.div>
 
         {loading ? (
@@ -194,68 +170,49 @@ export default function PublicationsDisplay() {
               }}
               className="relative group"
             >
-              {/* Glass morphisme card avec effets avancés */}
-              <div className="relative overflow-hidden backdrop-blur-xl rounded-3xl border transition-all duration-500 group-hover:shadow-2xl"
+              {/* Modern card design */}
+              <div className="relative overflow-hidden rounded-3xl transition-all duration-500 group-hover:shadow-2xl"
                 style={{
                   background: isDarkMode
-                    ? "linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9))"
-                    : "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,250,252,0.95))",
-                  borderColor: isDarkMode ? "rgba(100,116,139,0.3)" : "rgba(203,213,225,0.5)",
+                    ? "linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98))"
+                    : "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.95))",
+                  borderColor: isDarkMode ? "rgba(100,116,139,0.2)" : "rgba(203,213,225,0.3)",
                   borderWidth: "1px",
+                  boxShadow: isDarkMode 
+                    ? "0 20px 40px -10px rgba(0,0,0,0.3)" 
+                    : "0 20px 40px -10px rgba(0,0,0,0.1)",
                 }}
               >
-                {/* Animated gradient background */}
+                {/* Subtle animated background */}
                 <motion.div
-                  className="absolute inset-0 opacity-20"
+                  className="absolute inset-0 opacity-10"
                   animate={{
                     background: [
-                      "linear-gradient(45deg, rgba(34,197,94,0.1), rgba(16,185,129,0.05))",
-                      "linear-gradient(135deg, rgba(16,185,129,0.1), rgba(34,197,94,0.05))",
-                      "linear-gradient(225deg, rgba(34,197,94,0.1), rgba(16,185,129,0.05))",
-                      "linear-gradient(315deg, rgba(16,185,129,0.1), rgba(34,197,94,0.05))",
+                      "linear-gradient(45deg, rgba(34,197,94,0.05), rgba(16,185,129,0.02))",
+                      "linear-gradient(135deg, rgba(16,185,129,0.05), rgba(34,197,94,0.02))",
+                      "linear-gradient(225deg, rgba(34,197,94,0.05), rgba(16,185,129,0.02))",
+                      "linear-gradient(315deg, rgba(16,185,129,0.05), rgba(34,197,94,0.02))",
                     ],
                   }}
                   transition={{
-                    duration: 10,
+                    duration: 15,
                     repeat: Infinity,
                     ease: "linear",
                   }}
                 />
 
-                {/* Floating particles */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {[...Array(8)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 opacity-30"
-                      style={{
-                        left: `${10 + (i * 12)}%`,
-                        top: `${15 + (i * 10)}%`,
-                      }}
-                      animate={{
-                        y: [0, -40, 0],
-                        opacity: [0, 0.6, 0],
-                        scale: [0, 1, 0],
-                      }}
-                      transition={{
-                        duration: 4 + (i * 0.5),
-                        repeat: Infinity,
-                        delay: i * 0.4,
-                        ease: "easeInOut",
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <div className="relative z-10 p-8">
+                <div className="relative z-10 p-8 md:p-10">
                   {/* Media container */}
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="relative mb-8 rounded-2xl overflow-hidden shadow-xl"
+                    className="relative mb-8 rounded-2xl overflow-hidden"
                     style={{
                       background: isDarkMode ? "#1e293b" : "#f8fafc",
+                      boxShadow: isDarkMode 
+                        ? "0 10px 30px -10px rgba(0,0,0,0.5)" 
+                        : "0 10px 30px -10px rgba(0,0,0,0.1)",
                     }}
                   >
                     <div
@@ -353,7 +310,7 @@ export default function PublicationsDisplay() {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.2 }}
-                      className="text-4xl font-black leading-tight"
+                      className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight"
                       style={{
                         color: isDarkMode ? "white" : "#0f172a",
                         textShadow: isDarkMode
@@ -383,7 +340,7 @@ export default function PublicationsDisplay() {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.4 }}
-                      className="text-xl leading-relaxed"
+                      className="text-lg md:text-xl leading-relaxed"
                       style={{
                         color: isDarkMode ? "rgba(255,255,255,0.8)" : "rgba(30,41,59,0.9)",
                       }}
@@ -396,11 +353,7 @@ export default function PublicationsDisplay() {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.5, type: "spring" }}
-                      whileHover={{
-                        scale: 1.02,
-                        y: -2,
-                        boxShadow: "0 20px 40px -10px rgba(34,197,94,0.5)",
-                      }}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         if (user && user.id) {
@@ -411,36 +364,13 @@ export default function PublicationsDisplay() {
                           navigate("/interet");
                         }
                       }}
-                      className="w-full py-5 px-8 rounded-2xl font-bold text-xl relative overflow-hidden group"
+                      className="w-full py-4 px-8 rounded-xl font-semibold text-lg relative overflow-hidden transition-all duration-300"
                       style={{
                         background: "linear-gradient(135deg, #22c55e, #10b981)",
                         color: "white",
-                        boxShadow: "0 10px 25px -5px rgba(34,197,94,0.4)",
+                        boxShadow: "0 10px 25px -5px rgba(34,197,94,0.3)",
                       }}
                     >
-                      {/* Button shine effect */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div
-                          className="absolute inset-0"
-                          style={{
-                            background: "linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)",
-                            backgroundSize: "200% 100%",
-                          }}
-                        >
-                          <motion.div
-                            animate={{
-                              backgroundPosition: ["200% 50%", "-200% 50%"],
-                            }}
-                            transition={{
-                              duration: 1.5,
-                              repeat: Infinity,
-                              ease: "linear",
-                            }}
-                            className="h-full w-full"
-                          />
-                        </div>
-                      </div>
-
                       <div className="relative z-10 flex items-center justify-center gap-3">
                         <ArrowRightIcon className="w-5 h-5" />
                         {publications[currentIndex]?.cta || "Je suis intéressé !"}
@@ -472,7 +402,7 @@ export default function PublicationsDisplay() {
               <>
                 <button
                   onClick={() => {
-                    prevAd();
+                    prevPublication();
                     // Ne pas arrêter la vidéo si elle est en cours de lecture
                     if (!showVideo) {
                       pauseAutoScroll();
@@ -480,16 +410,20 @@ export default function PublicationsDisplay() {
                   }}
                   onMouseEnter={showVideo ? null : pauseAutoScroll}
                   onMouseLeave={showVideo ? null : resumeAutoScroll}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow-2xl p-4 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-800 transition-all duration-300 hover:scale-110 z-10"
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 shadow-xl p-3 rounded-xl transition-all duration-300 hover:scale-110 z-10 ${
+                    isDarkMode 
+                      ? "bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600"
+                      : "bg-white/90 hover:bg-gray-50 text-gray-800 border border-gray-200"
+                  }`}
                   aria-label="Précédent"
-                  style={{ left: "-3rem" }}
+                  style={{ left: "-2rem" }}
                 >
                   <svg
-                    width="32"
-                    height="32"
+                    width="24"
+                    height="24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="3"
+                    strokeWidth="2.5"
                     viewBox="0 0 24 24"
                   >
                     <path d="M15 19l-7-7 7-7" />
@@ -497,7 +431,7 @@ export default function PublicationsDisplay() {
                 </button>
                 <button
                   onClick={() => {
-                    nextAd();
+                    nextPublication();
                     // Ne pas arrêter la vidéo si elle est en cours de lecture
                     if (!showVideo) {
                       pauseAutoScroll();
@@ -505,27 +439,31 @@ export default function PublicationsDisplay() {
                   }}
                   onMouseEnter={showVideo ? null : pauseAutoScroll}
                   onMouseLeave={showVideo ? null : resumeAutoScroll}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 shadow-2xl p-4 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-800 transition-all duration-300 hover:scale-110 z-10"
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 shadow-xl p-3 rounded-xl transition-all duration-300 hover:scale-110 z-10 ${
+                    isDarkMode 
+                      ? "bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600"
+                      : "bg-white/90 hover:bg-gray-50 text-gray-800 border border-gray-200"
+                  }`}
                   aria-label="Suivant"
-                  style={{ right: "-3rem" }}
+                  style={{ right: "-2rem" }}
                 >
                   <svg
-                    width="32"
-                    height="32"
+                    width="24"
+                    height="24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="3"
+                    strokeWidth="2.5"
                     viewBox="0 0 24 24"
                   >
                     <path d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <div className="flex justify-center mt-6 space-x-3">
+                <div className="flex justify-center mt-8 space-x-2">
                   {publications?.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => {
-                        setCurrent(idx);
+                        setCurrentIndex(idx);
                         // Ne pas arrêter la vidéo si elle est en cours de lecture
                         if (!showVideo) {
                           pauseAutoScroll();
@@ -533,10 +471,12 @@ export default function PublicationsDisplay() {
                       }}
                       onMouseEnter={showVideo ? null : pauseAutoScroll}
                       onMouseLeave={showVideo ? null : resumeAutoScroll}
-                      className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                        current === idx
-                          ? "bg-green-500 scale-150 shadow-xl"
-                          : "bg-gray-300 dark:bg-gray-600 hover:bg-green-400 dark:hover:bg-green-600 hover:scale-125"
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        currentIndex === idx
+                          ? "bg-green-500 w-8 shadow-lg"
+                          : isDarkMode
+                            ? "bg-gray-600 hover:bg-gray-500"
+                            : "bg-gray-300 hover:bg-gray-400"
                       }`}
                       aria-label={`Aller à la publicité ${idx + 1}`}
                     />

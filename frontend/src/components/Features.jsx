@@ -83,38 +83,28 @@ export default function Features() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-4"
         >
+          <div className="inline-block">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
+              className={`h-1 w-20 mx-auto mb-4 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
+              }`}
+            />
+          </div>
           <h2
-            className={`text-3xl font-bold tracking-tight sm:text-5xl mb-6 ${
+            className={`text-3xl font-bold tracking-tight sm:text-4xl mb-4 ${
               isDarkMode ? "text-white" : "text-gray-900"
             }`}
           >
-            Programme de fidélité des abonnés aux Services SOLIFIN{" "}
-            <span
-              className={`relative inline-block ${
-                isDarkMode ? "text-green-400" : "text-green-600"
-              }`}
-            >
-              Pour la croissance de vos revenus
-              <motion.span
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
-                className={`absolute bottom-1 left-0 h-0.5 ${
-                  isDarkMode ? "bg-green-400/40" : "bg-green-600/40"
-                }`}
-              />
+            Programme de fidélité pour les  abonnés aux services {" "}
+            <span className={isDarkMode ? "text-green-400" : "text-green-600"}>
+              SOLIFIN
             </span>
           </h2>
-          <p
-            className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${
-              isDarkMode ? "text-gray-300" : "text-gray-600"
-            }`}
-          >
-            Découvrez les avantages uniques qui font de notre système MLM la
-            référence dans le domaine du marketing digital.
-          </p>
         </motion.div>
 
         {/* Section Principes du Programme de Fidélité */}
@@ -123,81 +113,99 @@ export default function Features() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-16"
+          className="mb-8"
         >
-          <div className={`p-8 rounded-2xl ${
+          <div className={`p-5 rounded-2xl ${
             isDarkMode 
               ? "bg-gray-800 shadow-lg border border-gray-700" 
               : "bg-white shadow-lg border border-gray-100"
           }`}>
-            <h3 className={`text-2xl font-bold text-center mb-8 ${
+            <h3 className={`text-2xl font-bold text-center mb-4 ${
               isDarkMode ? "text-white" : "text-gray-900"
             }`}>
               I. PRINCIPES DU PROGRAMME DE FIDELITE
             </h3>
             
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Réseau Solidaire */}
-              <div className="flex items-start">
-                <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
-                  isDarkMode ? "bg-green-900/30" : "bg-green-100"
-                }`}>
-                  <UserGroupIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <h4 className={`font-bold text-lg mb-2 ${
+              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+                isDarkMode
+                  ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
+                  : "bg-gradient-to-r from-green-50 to-green-100 border border-green-200"
+              }`}>
+                <div className="flex items-center mb-4">
+                  <div className={`p-3 rounded-xl mr-4 ${
+                    isDarkMode ? "bg-gray-600/40" : "bg-green-200"
+                  }`}>
+                    <UserGroupIcon className={`h-6 w-6 ${
+                      isDarkMode ? "text-green-400/70" : "text-green-600"
+                    }`} />
+                  </div>
+                  <h4 className={`font-bold text-lg ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     Réseau Solidaire
                   </h4>
-                  <p className={`text-sm leading-relaxed ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}>
-                    Un programme basé sur le principe de marketing digital dans la vente collective des services SOLIFIN. Cette approche permet à chaque abonné de bénéficier de la force du réseau pour développer ses activités et accroître ses revenus grâce à la collaboration mutuelle.
-                  </p>
                 </div>
+                <p className={`text-sm leading-relaxed ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  Un programme basé sur le principe de marketing digital dans la vente collective des services SOLIFIN. Cette approche permet à chaque abonné de bénéficier de la force du réseau pour développer ses activités et accroître ses revenus grâce à la collaboration mutuelle.
+                </p>
               </div>
 
               {/* Indépendance Financière */}
-              <div className="flex items-start">
-                <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
-                  isDarkMode ? "bg-blue-900/30" : "bg-blue-100"
-                }`}>
-                  <CurrencyDollarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h4 className={`font-bold text-lg mb-2 ${
+              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+                isDarkMode
+                  ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
+                  : "bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200"
+              }`}>
+                <div className="flex items-center mb-4">
+                  <div className={`p-3 rounded-xl mr-4 ${
+                    isDarkMode ? "bg-gray-600/40" : "bg-blue-200"
+                  }`}>
+                    <CurrencyDollarIcon className={`h-6 w-6 ${
+                      isDarkMode ? "text-blue-400/70" : "text-blue-600"
+                    }`} />
+                  </div>
+                  <h4 className={`font-bold text-lg ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     Indépendance Financière
                   </h4>
-                  <p className={`text-sm leading-relaxed ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}>
-                    Libérer chaque personne abonnée de sa dépendance financière à travers le paiement de commission générée sur la vente des services SOLIFIN. Chaque membre devient acteur de sa réussite financière en construisant des sources de revenus passifs et durables.
-                  </p>
                 </div>
+                <p className={`text-sm leading-relaxed ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  Libérer chaque personne abonnée de sa dépendance financière à travers le paiement de commission générée sur la vente des services SOLIFIN. Chaque membre devient acteur de sa réussite financière en construisant des sources de revenus passifs et durables.
+                </p>
               </div>
 
               {/* Appui au Développement Socioéconomique */}
-              <div className="flex items-start">
-                <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
-                  isDarkMode ? "bg-purple-900/30" : "bg-purple-100"
-                }`}>
-                  <BuildingLibraryIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h4 className={`font-bold text-lg mb-2 ${
+              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+                isDarkMode
+                  ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
+                  : "bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200"
+              }`}>
+                <div className="flex items-center mb-4">
+                  <div className={`p-3 rounded-xl mr-4 ${
+                    isDarkMode ? "bg-gray-600/40" : "bg-purple-200"
+                  }`}>
+                    <BuildingLibraryIcon className={`h-6 w-6 ${
+                      isDarkMode ? "text-purple-400/70" : "text-purple-600"
+                    }`} />
+                  </div>
+                  <h4 className={`font-bold text-lg ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     Appui au Développement Socioéconomique
                   </h4>
-                  <p className={`text-sm leading-relaxed ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}>
-                    Chaque abonné contribue à l'amélioration des conditions de vie socioéconomiques dans sa communauté à travers le parrainage de ses proches, la contribution aux actions de développement et/ou humanitaires de sa zone. Le programme crée un impact positif qui s'étend bien au-delà des bénéfices individuels.
-                  </p>
                 </div>
+                <p className={`text-sm leading-relaxed ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  Chaque abonné contribue à l'amélioration des conditions de vie socioéconomiques dans sa communauté à travers le parrainage de ses proches, la contribution aux actions de développement et/ou humanitaires de sa zone. Le programme crée un impact positif qui s'étend bien au-delà des bénéfices individuels.
+                </p>
               </div>
             </div>
           </div>
@@ -209,7 +217,6 @@ export default function Features() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-16"
         >
           <div className={`p-8 rounded-2xl ${
             isDarkMode 
@@ -222,28 +229,70 @@ export default function Features() {
               2. POURQUOI CHOISIR NOTRE PROGRAMME DE FIDELITE ?
             </h3>
             
-            <div className="space-y-6">
-              {features?.map((feature, index) => (
-                <div key={feature.name} className="flex items-start">
-                  <div className={`p-2 rounded-lg mr-4 mt-1 flex-shrink-0 ${
-                    isDarkMode ? "bg-primary-900/30" : "bg-primary-100"
-                  }`}>
-                    <feature.icon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <div>
-                    <h4 className={`font-bold text-lg mb-2 ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}>
-                      {feature.name}
-                    </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features?.map((feature, index) => {
+                // Définir les couleurs alternatives
+                const colorSchemes = [
+                  {
+                    bg: isDarkMode ? "from-gray-700/40 to-gray-600/20" : "from-green-50 to-green-100",
+                    border: isDarkMode ? "border-gray-600/40" : "border-green-200",
+                    iconBg: isDarkMode ? "bg-gray-600/40" : "bg-green-200",
+                    iconColor: isDarkMode ? "text-green-400/70" : "text-green-600"
+                  },
+                  {
+                    bg: isDarkMode ? "from-gray-700/40 to-gray-600/20" : "from-blue-50 to-blue-100",
+                    border: isDarkMode ? "border-gray-600/40" : "border-blue-200",
+                    iconBg: isDarkMode ? "bg-gray-600/40" : "bg-blue-200",
+                    iconColor: isDarkMode ? "text-blue-400/70" : "text-blue-600"
+                  },
+                  {
+                    bg: isDarkMode ? "from-gray-700/40 to-gray-600/20" : "from-purple-50 to-purple-100",
+                    border: isDarkMode ? "border-gray-600/40" : "border-purple-200",
+                    iconBg: isDarkMode ? "bg-gray-600/40" : "bg-purple-200",
+                    iconColor: isDarkMode ? "text-purple-400/70" : "text-purple-600"
+                  },
+                  {
+                    bg: isDarkMode ? "from-gray-700/40 to-gray-600/20" : "from-orange-50 to-orange-100",
+                    border: isDarkMode ? "border-gray-600/40" : "border-orange-200",
+                    iconBg: isDarkMode ? "bg-gray-600/40" : "bg-orange-200",
+                    iconColor: isDarkMode ? "text-orange-400/70" : "text-orange-600"
+                  },
+                  {
+                    bg: isDarkMode ? "from-gray-700/40 to-gray-600/20" : "from-pink-50 to-pink-100",
+                    border: isDarkMode ? "border-gray-600/40" : "border-pink-200",
+                    iconBg: isDarkMode ? "bg-gray-600/40" : "bg-pink-200",
+                    iconColor: isDarkMode ? "text-pink-400/70" : "text-pink-600"
+                  },
+                  {
+                    bg: isDarkMode ? "from-gray-700/40 to-gray-600/20" : "from-indigo-50 to-indigo-100",
+                    border: isDarkMode ? "border-gray-600/40" : "border-indigo-200",
+                    iconBg: isDarkMode ? "bg-gray-600/40" : "bg-indigo-200",
+                    iconColor: isDarkMode ? "text-indigo-400/70" : "text-indigo-600"
+                  }
+                ];
+                
+                const colorScheme = colorSchemes[index % colorSchemes.length];
+                
+                return (
+                  <div key={feature.name} className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 bg-gradient-to-r ${colorScheme.bg} border ${colorScheme.border}`}>
+                    <div className="flex items-center mb-4">
+                      <div className={`p-3 rounded-xl mr-4 ${colorScheme.iconBg}`}>
+                        <feature.icon className={`h-6 w-6 ${colorScheme.iconColor}`} />
+                      </div>
+                      <h4 className={`font-bold text-lg ${
+                        isDarkMode ? "text-white" : "text-gray-900"
+                      }`}>
+                        {feature.name}
+                      </h4>
+                    </div>
                     <p className={`text-sm leading-relaxed ${
-                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       {feature.description}
                     </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </motion.div>

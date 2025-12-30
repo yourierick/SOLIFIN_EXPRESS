@@ -61,7 +61,7 @@ export default function Referral() {
   return (
     <section
       id="referral"
-      className={`section-padding ${isDarkMode ? "bg-gray-900" : "bg-white"}`}
+      className={`py-10 px-4 md:px-8 lg:px-8 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
     >
       <div className="max-w-7xl mx-auto">
         <motion.div
@@ -69,38 +69,28 @@ export default function Referral() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-8"
         >
-          <h2
-            className={`text-3xl font-bold tracking-tight sm:text-5xl mb-6 ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Comment fonctionne notre{" "}
-            <span
-              className={`relative inline-block ${
-                isDarkMode ? "text-green-400" : "text-green-600"
+          <div className="inline-block">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
+              className={`h-1 w-20 mx-auto mb-2 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
               }`}
-            >
-              programme de fidélité ?
-              <motion.span
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ delay: 0.5, duration: 1.2, ease: "easeInOut" }}
-                className={`absolute bottom-1 left-0 h-0.5 ${
-                  isDarkMode ? "bg-green-400/40" : "bg-green-600/40"
-                }`}
-              />
-            </span>
-          </h2>
-          <p
-            className={`text-lg max-w-3xl mx-auto ${
-              isDarkMode ? "text-gray-300" : "text-gray-600"
-            }`}
-          >
-            Un système simple et efficace qui vous permet de générer des revenus
-            passifs en développant votre réseau.
-          </p>
+            />
+          </div>
+          <h2
+          className={`text-3xl font-bold tracking-tight sm:text-4xl mb-4 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Comment fonctionne notre{" "}
+          <span className={isDarkMode ? "text-green-400" : "text-green-600"}>
+            programme de fidélité ?
+          </span>
+        </h2>
         </motion.div>
 
         <motion.div
@@ -183,7 +173,7 @@ export default function Referral() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-16 text-center"
+          className="mt-8 text-center"
         >
           <RouterLink to="/register">
             <motion.button

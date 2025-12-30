@@ -101,15 +101,8 @@ export default function Stats() {
               isDarkMode ? "text-primary-100" : "text-white"
             }`}
           >
-            SOLIFIN en Chiffres
+            SOLIFIN EN CHIFFRES
           </h2>
-          <p
-            className={`text-lg max-w-2xl mx-auto ${
-              isDarkMode ? "text-gray-300" : "text-white/80"
-            }`}
-          >
-            Découvrez l'impact de notre communauté à travers le monde
-          </p>
         </motion.div>
 
         {loading ? (

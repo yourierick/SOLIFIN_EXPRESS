@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -85,14 +86,21 @@ export default function Packages() {
 
   return (
     <section className={`w-full py-16 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
-      <div className="w-full px-4 mx-auto sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+      <div className="w-full px-4 mx-auto sm:px-6 lg:px-5">
+        <div className="text-center mb-8">
+          <div className="inline-block">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
+              className={`h-1 w-20 mx-auto mb-2 rounded-full ${
+                isDarkMode ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-green-500 to-emerald-500"
+              }`}
+            />
+          </div>
           <h2 className={`text-3xl font-bold tracking-tight sm:text-5xl mb-6 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
             Prix d’abonnement à nos <span className={isDarkMode ? "text-green-400" : "text-green-600"}>services par pack</span>
           </h2>
-          <p className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-            Choisissez le pack qui convient à vos objectifs et laissez-nous vous accompagnez vers l'indépendance financière!
-          </p>
         </div>
 
         {loading ? (
