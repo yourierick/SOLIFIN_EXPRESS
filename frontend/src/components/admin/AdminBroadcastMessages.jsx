@@ -615,23 +615,21 @@ const AdminBroadcastMessages = () => {
               sx={{
                 p: 3,
                 background: isDarkMode 
-                  ? `linear-gradient(135deg, ${alpha(muiTheme.palette.success.main, 0.1)} 0%, ${alpha(muiTheme.palette.success.dark, 0.05)} 100%)`
-                  : `linear-gradient(135deg, ${alpha(muiTheme.palette.success.light, 0.1)} 0%, ${muiTheme.palette.success.contrastText} 100%)`,
-                border: `1px solid ${alpha(muiTheme.palette.success.main, isDarkMode ? 0.3 : 0.1)}`,
-                borderRadius: "16px",
+                  ? `linear-gradient(135deg, ${alpha(muiTheme.palette.success.main, 0.08)} 0%, ${alpha(muiTheme.palette.success.dark, 0.04)} 100%)`
+                  : `linear-gradient(135deg, ${alpha(muiTheme.palette.success.light, 0.08)} 0%, ${muiTheme.palette.success.contrastText} 100%)`,
+                border: `1px solid ${alpha(muiTheme.palette.success.main, isDarkMode ? 0.2 : 0.1)}`,
+                borderRadius: "20px",
                 boxShadow: isDarkMode 
-                  ? "0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)"
-                  : "0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)",
+                  ? "0 12px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)"
+                  : "0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03)",
                 position: "relative",
                 overflow: "hidden",
-                "&::before": {
-                  content: '""',
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: "4px",
-                  background: `linear-gradient(90deg, ${muiTheme.palette.success.main}, ${muiTheme.palette.success.light})`,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: isDarkMode 
+                    ? "0 16px 32px rgba(0, 0, 0, 0.2), 0 6px 12px rgba(0, 0, 0, 0.15)"
+                    : "0 16px 32px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.04)",
                 }
               }}
             >
@@ -905,78 +903,90 @@ const AdminBroadcastMessages = () => {
                 <TableRow>
                   <TableCell
                     sx={{
-                      background: isDarkMode ? alpha('#1F2937', 0.8) : alpha('#ffffff', 0.8),
+                      background: isDarkMode ? alpha('#1F2937', 0.6) : alpha('#ffffff', 0.9),
                       color: isDarkMode ? "white" : "inherit",
-                      fontWeight: "600",
-                      borderBottom: `2px solid ${muiTheme.palette.primary.main}`,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.1)}`,
                       fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      textTransform: "none",
+                      letterSpacing: "0.25px",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
                     }}
                   >
                     Titre
                   </TableCell>
                   <TableCell
                     sx={{
-                      background: isDarkMode ? alpha('#1F2937', 0.8) : alpha('#ffffff', 0.8),
+                      background: isDarkMode ? alpha('#1F2937', 0.6) : alpha('#ffffff', 0.9),
                       color: isDarkMode ? "white" : "inherit",
-                      fontWeight: "600",
-                      borderBottom: `2px solid ${muiTheme.palette.primary.main}`,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.1)}`,
                       fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      textTransform: "none",
+                      letterSpacing: "0.25px",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
                     }}
                   >
                     Type
                   </TableCell>
                   <TableCell
                     sx={{
-                      background: isDarkMode ? alpha('#1F2937', 0.8) : alpha('#ffffff', 0.8),
+                      background: isDarkMode ? alpha('#1F2937', 0.6) : alpha('#ffffff', 0.9),
                       color: isDarkMode ? "white" : "inherit",
-                      fontWeight: "600",
-                      borderBottom: `2px solid ${muiTheme.palette.primary.main}`,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.1)}`,
                       fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      textTransform: "none",
+                      letterSpacing: "0.25px",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
                     }}
                   >
                     Destinataires
                   </TableCell>
                   <TableCell
                     sx={{
-                      background: isDarkMode ? alpha('#1F2937', 0.8) : alpha('#ffffff', 0.8),
+                      background: isDarkMode ? alpha('#1F2937', 0.6) : alpha('#ffffff', 0.9),
                       color: isDarkMode ? "white" : "inherit",
-                      fontWeight: "600",
-                      borderBottom: `2px solid ${muiTheme.palette.primary.main}`,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.1)}`,
                       fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      textTransform: "none",
+                      letterSpacing: "0.25px",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
                     }}
                   >
                     Statut
                   </TableCell>
                   <TableCell
                     sx={{
-                      background: isDarkMode ? alpha('#1F2937', 0.8) : alpha('#ffffff', 0.8),
+                      background: isDarkMode ? alpha('#1F2937', 0.6) : alpha('#ffffff', 0.9),
                       color: isDarkMode ? "white" : "inherit",
-                      fontWeight: "600",
-                      borderBottom: `2px solid ${muiTheme.palette.primary.main}`,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.1)}`,
                       fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      textTransform: "none",
+                      letterSpacing: "0.25px",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
                     }}
                   >
                     Date
                   </TableCell>
                   <TableCell
                     sx={{
-                      background: isDarkMode ? alpha('#1F2937', 0.8) : alpha('#ffffff', 0.8),
+                      background: isDarkMode ? alpha('#1F2937', 0.6) : alpha('#ffffff', 0.9),
                       color: isDarkMode ? "white" : "inherit",
-                      fontWeight: "600",
-                      borderBottom: `2px solid ${muiTheme.palette.primary.main}`,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.1)}`,
                       fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      textTransform: "none",
+                      letterSpacing: "0.25px",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
                       textAlign: "center",
                     }}
                   >

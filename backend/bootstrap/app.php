@@ -64,7 +64,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Groupe de middleware API
         $middleware->group('api', [
-            ThrottleRequests::class.':api',
+            ThrottleRequests::class.':80,1',  // 80 requêtes par minute pour les utilisateurs authentifiés
+            SubstituteBindings::class,
+        ]);
+
+        // Groupe de middleware API Admin avec limite plus élevée
+        $middleware->group('api-admin', [
+            ThrottleRequests::class.':120,1',  // 120 requêtes par minute pour les admins
             SubstituteBindings::class,
         ]);
 
@@ -82,6 +88,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle' => ThrottleRequests::class,
             'verified' => EnsureEmailIsVerified::class,
             'admin' => AdminMiddleware::class,
+            'admin-throttle' => ThrottleRequests::class.':120,1',  // Alias pour throttle admin
             'country.access' => CheckCountryAccess::class,
             'permission' => CheckPermission::class,
         ]);

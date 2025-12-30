@@ -502,7 +502,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 });
 
 // Routes admin
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')->group(function () {
     Route::middleware('permission:manage-packs')->group(function () {
         // Gestion des packs
         Route::apiResource('packs', \App\Http\Controllers\Admin\PackController::class);
