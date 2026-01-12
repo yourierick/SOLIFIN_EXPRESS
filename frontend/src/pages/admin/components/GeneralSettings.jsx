@@ -212,14 +212,28 @@ const GeneralSettings = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("finance");
+  
+  // États pour la gestion des grades
+  const [grades, setGrades] = useState([]);
+  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [currentGrade, setCurrentGrade] = useState(null);
+  const [gradeFormData, setGradeFormData] = useState({
+    niveau: '',
+    designation: '',
+    points: '',
+    symbole: null
+  });
+  const [gradeErrors, setGradeErrors] = useState({});
+  const [gradeSubmitting, setGradeSubmitting] = useState(false);
 
   // Catégories disponibles
   const categories = [
-    { id: "finance", label: "Paramètres financiers" },
-    { id: "social", label: "Réseaux sociaux" },
-    { id: "legal", label: "Documents légaux" },
-    { id: "about", label: "À propos" },
-    { id: "period", label: "Période et validité" },
+    { id: "finance", label: "finances" },
+    { id: "social", label: "réseaux" },
+    { id: "legal", label: "documents" },
+    { id: "about", label: "à propos" },
+    { id: "period", label: "validité" },
+    { id: "grade", label: "grades" },
   ];
 
   // Fonction pour filtrer les paramètres par catégorie
@@ -227,9 +241,142 @@ const GeneralSettings = () => {
     return FIXED_SETTINGS.filter((setting) => setting.category === category);
   };
 
+  // Fonctions pour la gestion des grades
+  const fetchGrades = async () => {
+    try {
+      const response = await axios.get('/api/admin/grades');
+      if (response.data.success) {
+        setGrades(response.data.grades);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération des grades:", error);
+      toast.error("Erreur lors de la récupération des grades");
+    }
+  };
+
+  const handleEditGrade = (grade) => {
+    setCurrentGrade(grade);
+    setGradeFormData({
+      niveau: grade.niveau,
+      designation: grade.designation,
+      points: grade.points.toString(),
+      symbole: null
+    });
+    setGradeErrors({});
+    setShowGradeModal(true);
+  };
+
+  const handleDeleteGrade = async (grade) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le grade "${grade.niveau}" ?`)) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(`/api/admin/grades/${grade.id}`);
+      if (response.data.success) {
+        toast.success(response.data.message);
+        fetchGrades();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression du grade:", error);
+      toast.error("Erreur lors de la suppression du grade");
+    }
+  };
+
+  const handleGradeSubmit = async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('niveau', gradeFormData.niveau);
+    formData.append('designation', gradeFormData.designation);
+    formData.append('points', gradeFormData.points);
+    
+    if (gradeFormData.symbole) {
+      formData.append('symbole', gradeFormData.symbole);
+    }
+
+    try {
+      setGradeSubmitting(true);
+      
+      let response;
+      if (currentGrade) {
+        response = await axios.post(`/api/admin/grades/${currentGrade.id}?_method=PUT`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } else {
+        response = await axios.post('/api/admin/grades', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setShowGradeModal(false);
+        setCurrentGrade(null);
+        setGradeFormData({
+          niveau: '',
+          designation: '',
+          points: '',
+          symbole: null
+        });
+        fetchGrades();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la soumission du grade:", error);
+      if (error.response && error.response.data && error.response.data.errors) {
+        setGradeErrors(error.response.data.errors);
+      } else {
+        toast.error("Erreur lors de la sauvegarde du grade");
+      }
+    } finally {
+      setGradeSubmitting(false);
+    }
+  };
+
+  const handleGradeChange = (e) => {
+    const { name, value, files } = e.target;
+    
+    if (name === 'symbole' && files && files.length > 0) {
+      setGradeFormData(prev => ({
+        ...prev,
+        symbole: files[0]
+      }));
+    } else {
+      setGradeFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+    
+    // Effacer l'erreur pour ce champ
+    if (gradeErrors[name]) {
+      setGradeErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
+  };
+
+  const handleCloseGradeModal = () => {
+    setShowGradeModal(false);
+    setCurrentGrade(null);
+    setGradeFormData({
+      niveau: '',
+      designation: '',
+      points: '',
+      symbole: null
+    });
+    setGradeErrors({});
+  };
+
   // Récupérer les paramètres au chargement du composant
   useEffect(() => {
     fetchSettings();
+    fetchGrades(); // Charger les grades au chargement
   }, [refreshKey]);
 
   // Fonction pour récupérer les paramètres depuis l'API
@@ -533,16 +680,48 @@ const GeneralSettings = () => {
                 <button
                   key={category.id}
                   onClick={() => setActiveTab(category.id)}
-                  className={`px-5 py-2.5 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${
+                  className={`flex-1 min-w-fit px-6 py-3 rounded-t-xl font-medium text-sm transition-all duration-300 relative group ${
                     activeTab === category.id
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400 border-t-2 border-l-2 border-r-2 border-blue-500 dark:border-blue-400 -mb-px"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t-2 border-l-2 border-r-2 border-transparent"
                   }`}
                 >
-                  <span className="relative z-10">{category.label}</span>
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {category.id === "grade" && (
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    )}
+                    {category.id === "finance" && (
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {category.id === "social" && (
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                      </svg>
+                    )}
+                    {category.id === "legal" && (
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    )}
+                    {category.id === "about" && (
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {category.id === "period" && (
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                    {category.label}
+                  </span>
                   {activeTab === category.id && (
                     <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 transform -translate-y-0"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transform -translate-y-0"
                       layoutId="activeTab"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -765,6 +944,135 @@ const GeneralSettings = () => {
                     </div>
                   );
                 })}
+              </div>
+            ) : activeTab === "grade" ? (
+              // Onglet Grades - Gestion CRUD complète
+              <div className="space-y-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Gestion des Grades
+                  </h3>
+                  <button
+                    onClick={() => setShowGradeModal(true)}
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                  >
+                    <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Ajouter un grade
+                  </button>
+                </div>
+
+                {/* Liste des grades */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {grades.map((grade) => (
+                    <div
+                      key={grade.id}
+                      className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden"
+                    >
+                      {/* Header avec symbole proéminent */}
+                      <div className="relative p-8 pb-6">
+                        {/* Arrière-plan décoratif */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 dark:from-blue-400/10 dark:to-purple-400/10"></div>
+                        
+                        {/* Contenu principal */}
+                        <div className="relative z-10">
+                          {/* Symbole centré et proéminent */}
+                          <div className="flex justify-center mb-6">
+                            {grade.symbole ? (
+                              <div className="relative">
+                                <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-3xl flex items-center justify-center shadow-2xl border-2 border-white dark:border-gray-700">
+                                  <img
+                                    src={`${grade.symbole_url}`}
+                                    alt={`Grade ${grade.niveau}`}
+                                    className="w-20 h-20 object-contain drop-shadow-lg"
+                                  />
+                                </div>
+                                {/* Badge de niveau */}
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                                  {grade.niveau}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-3xl flex items-center justify-center shadow-2xl border-2 border-white dark:border-gray-700">
+                                <span className="text-3xl font-bold text-gray-500 dark:text-gray-400">
+                                  {grade.niveau}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Informations du grade */}
+                          <div className="text-center">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                              {grade.designation}
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                              Niveau {grade.niveau}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Section points et actions */}
+                      <div className="relative bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-8 py-6 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between">
+                          {/* Points */}
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md">
+                              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Points requis</p>
+                              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                {parseFloat(grade.points).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditGrade(grade)}
+                              className="p-2.5 rounded-xl bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-110"
+                              title="Modifier"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGrade(grade)}
+                              className="p-2.5 rounded-xl bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-110"
+                              title="Supprimer"
+                            >
+                              <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Message si aucun grade */}
+                {grades.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="h-10 w-10 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                      Aucun grade trouvé
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                      Commencez par ajouter des grades pour gérer les niveaux des utilisateurs.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               // Affichage responsive : cards sur mobile, tableau sur desktop
@@ -1272,6 +1580,201 @@ const GeneralSettings = () => {
                       Traitement...
                     </span>
                   ) : currentSetting ? (
+                    <span className="flex items-center gap-2">
+                      <PencilIcon className="h-4 w-4" />
+                      Mettre à jour
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Ajouter
+                    </span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </ModalPortal>
+
+      {/* Modal pour la gestion des grades */}
+      <ModalPortal isOpen={showGradeModal} onClose={handleCloseGradeModal}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[95vh] flex flex-col border border-gray-200 dark:border-gray-700">
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-10"></div>
+            <div className="relative flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                  <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {currentGrade ? "Modifier un grade" : "Ajouter un grade"}
+                </h3>
+              </div>
+              <button
+                onClick={handleCloseGradeModal}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200 transition-colors"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+          <div className="overflow-y-auto flex-1">
+            <form onSubmit={handleGradeSubmit} className="p-6">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label
+                      htmlFor="niveau"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Niveau
+                    </label>
+                    <select
+                      id="niveau"
+                      name="niveau"
+                      value={gradeFormData.niveau}
+                      onChange={handleGradeChange}
+                      className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                        gradeErrors.niveau ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
+                      <option value="">Sélectionner un niveau</option>
+                      <option value="1">Niveau 1</option>
+                      <option value="2">Niveau 2</option>
+                      <option value="3">Niveau 3</option>
+                      <option value="4">Niveau 4</option>
+                      <option value="5">Niveau 5</option>
+                      <option value="6">Niveau 6</option>
+                    </select>
+                    {gradeErrors.niveau && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {gradeErrors.niveau}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="designation"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Désignation
+                    </label>
+                    <input
+                      type="text"
+                      id="designation"
+                      name="designation"
+                      value={gradeFormData.designation}
+                      onChange={handleGradeChange}
+                      className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                        gradeErrors.designation ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                      }`}
+                      placeholder="Ex: Débutant, Intermédiaire, Avancé"
+                    />
+                    {gradeErrors.designation && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {gradeErrors.designation}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="points"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Points requis
+                  </label>
+                  <input
+                    type="number"
+                    id="points"
+                    name="points"
+                    value={gradeFormData.points}
+                    onChange={handleGradeChange}
+                    min="0"
+                    step="0.01"
+                    className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      gradeErrors.points ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                    }`}
+                    placeholder="Ex: 1000"
+                  />
+                  {gradeErrors.points && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {gradeErrors.points}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="symbole"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Symbole (médaille)
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      id="symbole"
+                      name="symbole"
+                      onChange={handleGradeChange}
+                      accept="image/jpeg,image/jpg,image/png"
+                      className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-md shadow-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold ${
+                        gradeErrors.symbole ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                      }`}
+                    />
+                    {gradeErrors.symbole && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {gradeErrors.symbole}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Formats acceptés: JPG, PNG. Taille max: 2MB. Le symbole sera affiché comme une médaille sur le profil utilisateur.
+                    </p>
+                    {gradeFormData.symbole && (
+                      <div className="mt-2 border dark:border-gray-600 rounded-md p-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          Aperçu du symbole:
+                        </p>
+                        <div className="flex justify-center">
+                          <img
+                            src={URL.createObjectURL(gradeFormData.symbole)}
+                            alt="Aperçu du symbole"
+                            className="max-h-20 object-contain"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={handleCloseGradeModal}
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 transform hover:scale-105"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={gradeSubmitting}
+                  className={`px-6 py-3 rounded-xl font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 shadow-lg ${
+                    gradeSubmitting ? "opacity-70 cursor-not-allowed scale-100" : ""
+                  }`}
+                >
+                  {gradeSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></span>
+                      Traitement...
+                    </span>
+                  ) : currentGrade ? (
                     <span className="flex items-center gap-2">
                       <PencilIcon className="h-4 w-4" />
                       Mettre à jour

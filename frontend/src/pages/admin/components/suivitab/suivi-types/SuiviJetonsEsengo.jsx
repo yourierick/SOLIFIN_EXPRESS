@@ -19,6 +19,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Avatar,
   Tab,
   Tabs,
   Dialog,
@@ -568,46 +569,49 @@ const SuiviJetonsEsengo = ({ period, setPeriod }) => {
 
   // Composant pour les cartes de statistiques
   const StatsCard = ({ title, value, color, icon }) => (
-    <Card
-      sx={{
-        background: isDarkMode ? "#1f2937" : "#ffffff",
-        border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-        borderRadius: { xs: 2, md: 3 },
-        borderLeft: `4px solid ${color}`,
-        boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-        transition: "all 0.3s ease",
-        "&:hover": {
-          transform: "translateY(-2px) scale(1.02)",
-          boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+    <Card 
+      sx={{ 
+        background: isDarkMode ? '#1f2937' : '#ffffff',
+        border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+        borderRadius: 3,
+        overflow: 'hidden',
+        position: 'relative',
+        transition: 'all 0.3s ease',
+        height: 120,
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        '&:hover': {
+          transform: 'translateY(-4px)',
         }
       }}
     >
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="h4" fontWeight={600} color={color} sx={{ mb: 1 }}>
-              {value}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: `${color}15`,
-              color: color,
-            }}
-          >
-            {icon}
-          </Box>
+      <Box sx={{ 
+        backgroundColor: isDarkMode ? 'transparent' : `${color}15`,
+        p: 2,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        flex: 1
+      }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" sx={{ color: isDarkMode ? color : `${color}cc`, fontWeight: 500 }}>
+            {title}
+          </Typography>
+          <Typography variant="h4" sx={{ color: isDarkMode ? color : `${color}99`, fontWeight: 700, lineHeight: 1.2 }}>
+            {value}
+          </Typography>
         </Box>
-      </CardContent>
+        <Avatar 
+          sx={{ 
+            bgcolor: color,
+            width: 36,
+            height: 36
+          }}
+        >
+          {React.cloneElement(icon, { sx: { fontSize: 18, color: 'white' }})}
+        </Avatar>
+      </Box>
     </Card>
   );
 

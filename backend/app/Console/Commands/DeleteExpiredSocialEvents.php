@@ -29,7 +29,7 @@ class DeleteExpiredSocialEvents extends Command
      *
      * @var int
      */
-    protected $chunkSize = 50;
+    protected $chunkSize = 500; // Augmenté pour meilleure performance
 
     /**
      * Execute the console command.
@@ -48,45 +48,68 @@ class DeleteExpiredSocialEvents extends Command
         $totalErrors = 0;
         
         try {
-            // Traitement par lots des statuts sociaux expirés
+            // Traitement par lots optimisé des statuts sociaux expirés
             SocialEvent::where('statut', 'approuvé')
                 ->where('created_at', '<', now()->subHours($hours))
                 ->chunk($this->chunkSize, function ($events) use (&$totalDeleted, &$totalErrors) {
                     $this->info("Processing batch of {$events->count()} events...");
                     
-                    foreach ($events as $event) {
-                        DB::beginTransaction();
+                    try {
+                        DB::transaction(function () use ($events, &$totalDeleted) {
+                            // Précharger les relations pour éviter les requêtes N+1
+                            $events->load(['reports']);
+                            
+                            // Collecter tous les fichiers à supprimer
+                            $filesToDelete = [];
+                            $reportIdsToDelete = [];
+                            
+                            foreach ($events as $event) {
+                                if ($event->image) {
+                                    $filesToDelete[] = $event->image;
+                                }
+                                if ($event->video) {
+                                    $filesToDelete[] = $event->video;
+                                }
+                                
+                                // Collecter les IDs des signalements
+                                $reportIdsToDelete = array_merge(
+                                    $reportIdsToDelete, 
+                                    $event->reports->pluck('id')->toArray()
+                                );
+                            }
+                            
+                            // Supprimer les signalements en une seule requête
+                            if (!empty($reportIdsToDelete)) {
+                                DB::table('social_event_reports')
+                                    ->whereIn('id', $reportIdsToDelete)
+                                    ->delete();
+                            }
+                            
+                            // Supprimer les événements en une seule requête
+                            $eventIds = $events->pluck('id')->toArray();
+                            SocialEvent::whereIn('id', $eventIds)->delete();
+                            
+                            // Supprimer les fichiers (en dehors de la transaction)
+                            foreach ($filesToDelete as $file) {
+                                try {
+                                    Storage::disk('public')->delete($file);
+                                } catch (\Exception $e) {
+                                    $this->warn("Could not delete file: {$file} - {$e->getMessage()}");
+                                }
+                            }
+                            
+                            $totalDeleted += $events->count();
+                            
+                            $this->line("Deleted batch of {$events->count()} social events");
+                        });
                         
-                        try {
-                            // Supprimer les fichiers associés (images, vidéos)
-                            if ($event->image) {
-                                Storage::disk('public')->delete($event->image);
-                            }
-                            
-                            if ($event->video) {
-                                Storage::disk('public')->delete($event->video);
-                            }
-                            
-                            // Supprimer les signalements associés
-                            $event->reports()->delete();
-                            
-                            // Supprimer le statut social
-                            $event->delete();
-                            
-                            DB::commit();
-                            $totalDeleted++;
-                            
-                            $this->line("Deleted social event ID: {$event->id}");
-                        } catch (\Exception $e) {
-                            DB::rollBack();
-                            $totalErrors++;
-                            
-                            $this->error("Error deleting social event ID: {$event->id} - {$e->getMessage()}");
-                            Log::error("Error deleting social event: {$e->getMessage()}", [
-                                'event_id' => $event->id,
-                                'exception' => $e->getTraceAsString(),
-                            ]);
-                        }
+                    } catch (\Exception $e) {
+                        $totalErrors += $events->count();
+                        $this->error("Error processing batch: {$e->getMessage()}");
+                        Log::error("Error deleting batch of social events", [
+                            'batch_count' => $events->count(),
+                            'exception' => $e->getTraceAsString(),
+                        ]);
                     }
                 });
                 

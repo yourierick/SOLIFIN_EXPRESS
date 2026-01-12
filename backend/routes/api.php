@@ -169,6 +169,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/user/update-status', [\App\Http\Controllers\UserStatusController::class, 'updateStatus']);
     Route::get('/user/statuses', [\App\Http\Controllers\UserStatusController::class, 'getStatuses']);
     
+    // Routes pour les grades
+    Route::get('/grades', [\App\Http\Controllers\User\GradeController::class, 'index']);
+    Route::get('/grades/progression', [\App\Http\Controllers\User\GradeController::class, 'getProgression']);
+    
     // Routes pour les messages de diffusion (utilisateur)
     Route::prefix('broadcast-messages')->group(function () {
         Route::get('/', [\App\Http\Controllers\BroadcastMessageController::class, 'getUnseenMessages']);
@@ -241,6 +245,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/dashboard/packs', [DashboardController::class, 'packs']);
     Route::get('/dashboard/carousel', [DashboardController::class, 'carousel']);
     Route::get('/stats/global', [DashboardController::class, 'getGlobalStats']);
+    Route::post('/dashboard/grade-notification-seen', [DashboardController::class, 'markGradeNotificationAsSeen']);
 
     // Routes de notification
     Route::get('/notifications', [NotificationController::class, 'index']);
@@ -472,15 +477,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     Route::post('/funds-transfer', [App\Http\Controllers\User\WalletUserController::class, 'funds_transfer']);
     Route::get('/recipient-info/{account_id}', [App\Http\Controllers\User\WalletUserController::class, 'getRecipientInfo']);
+    Route::post('/recipients-info', [App\Http\Controllers\User\WalletUserController::class, 'getMultipleRecipientsInfo']);
     Route::get('/sending-fee-percentage', [App\Http\Controllers\User\WalletUserController::class, 'getSendingFeePercentage']);
 
     // Route pour récupérer le prix du boost
     Route::get('/boost-price', [\App\Http\Controllers\BoostPriceController::class, 'getBoostPrice']);
-    
-    // // Routes pour les invitations de parrainage
-    // Route::get('/invitations/statistics', [\App\Http\Controllers\ReferralInvitationController::class, 'statistics']);
-    // Route::apiResource('/referral-invitations', \App\Http\Controllers\ReferralInvitationController::class);
-    // Route::post('/referral-invitations/{id}/resend', [\App\Http\Controllers\ReferralInvitationController::class, 'resend']);
     
     // Routes pour les invitations à témoigner
     Route::prefix('testimonials')->group(function () {
@@ -777,6 +778,18 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
             Route::delete('/{id}', [\App\Http\Controllers\RoleController::class, 'destroy']);
             Route::get('/permissions/all', [\App\Http\Controllers\RoleController::class, 'permissions']);
             Route::post('/assign-to-user', [\App\Http\Controllers\RoleController::class, 'assignRoleToUser']);
+        });
+
+        // Routes pour la gestion des grades
+        Route::prefix('/grades')->group(function () {
+            Route::get('/history', [\App\Http\Controllers\Admin\GradeController::class, 'getGradeHistory']);
+            Route::get('/history/export', [\App\Http\Controllers\Admin\GradeController::class, 'exportGradeHistory']);
+            Route::get('/', [\App\Http\Controllers\Admin\GradeController::class, 'index']);
+            Route::get('/select', [\App\Http\Controllers\Admin\GradeController::class, 'getForSelect']);
+            Route::get('/{id}', [\App\Http\Controllers\Admin\GradeController::class, 'show']);
+            Route::post('/', [\App\Http\Controllers\Admin\GradeController::class, 'store']);
+            Route::put('/{id}', [\App\Http\Controllers\Admin\GradeController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\GradeController::class, 'destroy']);
         });
     });
 

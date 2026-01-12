@@ -432,7 +432,7 @@ const WithdrawalRequests = () => {
             background: isDarkMode
               ? "linear-gradient(135deg, rgba(31, 41, 55, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%)"
               : "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(249, 250, 251, 0.9) 100%)",
-            backdropFilter: "blur(20px)",
+            backdropFilter: "blur(12px)",
             border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
             boxShadow: isDarkMode
               ? "0 8px 32px rgba(0, 0, 0, 0.3)"
@@ -700,7 +700,7 @@ const WithdrawalRequests = () => {
               background: isDarkMode
                 ? "linear-gradient(135deg, rgba(31, 41, 55, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%)"
                 : "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(249, 250, 251, 0.9) 100%)",
-              backdropFilter: "blur(20px)",
+              backdropFilter: "blur(12px)",
               border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
               boxShadow: isDarkMode
                 ? "0 8px 32px rgba(0, 0, 0, 0.3)"
@@ -786,7 +786,7 @@ const WithdrawalRequests = () => {
                     background: isDarkMode
                       ? "linear-gradient(135deg, rgba(31, 41, 55, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%)"
                       : "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(249, 250, 251, 0.9) 100%)",
-                    backdropFilter: "blur(20px)",
+                    backdropFilter: "blur(12px)",
                     border: `1px solid ${alpha(
                       theme.palette.primary.main,
                       0.1
@@ -1393,21 +1393,23 @@ const WithdrawalRequests = () => {
         TransitionComponent={Zoom}
         sx={{
           "& .MuiBackdrop-root": {
-            backdropFilter: "blur(8px)",
+            backdropFilter: "blur(4px)",
             backgroundColor: isDarkMode
-              ? "rgba(0, 0, 0, 0.7)"
-              : "rgba(255, 255, 255, 0.5)",
+              ? "rgba(0, 0, 0, 0.85)"
+              : "rgba(0, 0, 0, 0.3)",
           },
           "& .MuiDialog-paper": {
             borderRadius: 3,
             background: isDarkMode
-              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.85) 0%, rgba(17, 24, 39, 0.85) 100%)"
-              : "linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(249, 250, 251, 0.85) 100%)",
-            backdropFilter: "blur(20px)",
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%)"
+              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%)",
+            backdropFilter: "blur(12px)",
+            border: isDarkMode
+              ? "1px solid rgba(255, 255, 255, 0.1)"
+              : "1px solid rgba(0, 0, 0, 0.1)",
             boxShadow: isDarkMode
-              ? "0 20px 60px rgba(0, 0, 0, 0.5)"
-              : "0 20px 60px rgba(0, 0, 0, 0.15)",
+              ? "0 25px 50px rgba(0, 0, 0, 0.5), 0 10px 25px rgba(0, 0, 0, 0.3)"
+              : "0 25px 50px rgba(0, 0, 0, 0.15), 0 10px 25px rgba(0, 0, 0, 0.1)",
           },
         }}
       >
@@ -1879,6 +1881,27 @@ const WithdrawalRequests = () => {
         onClose={() => setCancelDialogOpen(false)}
         maxWidth="xs"
         fullWidth
+        sx={{
+          "& .MuiBackdrop-root": {
+            backdropFilter: "blur(4px)",
+            backgroundColor: isDarkMode
+              ? "rgba(0, 0, 0, 0.85)"
+              : "rgba(0, 0, 0, 0.3)",
+          },
+          "& .MuiDialog-paper": {
+            borderRadius: 3,
+            background: isDarkMode
+              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%)"
+              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%)",
+            backdropFilter: "blur(12px)",
+            border: isDarkMode
+              ? "1px solid rgba(255, 255, 255, 0.1)"
+              : "1px solid rgba(0, 0, 0, 0.1)",
+            boxShadow: isDarkMode
+              ? "0 25px 50px rgba(0, 0, 0, 0.5), 0 10px 25px rgba(0, 0, 0, 0.3)"
+              : "0 25px 50px rgba(0, 0, 0, 0.15), 0 10px 25px rgba(0, 0, 0, 0.1)",
+          },
+        }}
       >
         <DialogTitle>Annuler la demande de retrait</DialogTitle>
         <DialogContent>
@@ -1915,6 +1938,27 @@ const WithdrawalRequests = () => {
         onClose={() => setDeleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
+        sx={{
+          "& .MuiBackdrop-root": {
+            backdropFilter: "blur(4px)",
+            backgroundColor: isDarkMode
+              ? "rgba(0, 0, 0, 0.85)"
+              : "rgba(0, 0, 0, 0.3)",
+          },
+          "& .MuiDialog-paper": {
+            borderRadius: 3,
+            background: isDarkMode
+              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%)"
+              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%)",
+            backdropFilter: "blur(12px)",
+            border: isDarkMode
+              ? "1px solid rgba(255, 255, 255, 0.1)"
+              : "1px solid rgba(0, 0, 0, 0.1)",
+            boxShadow: isDarkMode
+              ? "0 25px 50px rgba(0, 0, 0, 0.5), 0 10px 25px rgba(0, 0, 0, 0.3)"
+              : "0 25px 50px rgba(0, 0, 0, 0.15), 0 10px 25px rgba(0, 0, 0, 0.1)",
+          },
+        }}
       >
         <DialogTitle>Supprimer la demande de retrait</DialogTitle>
         <DialogContent>

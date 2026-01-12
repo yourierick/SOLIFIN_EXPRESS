@@ -71,6 +71,7 @@ const Users = () => {
     search: "",
     status: "",
     has_pack: "",
+    grade_id: "",
     start_date: null,
     end_date: null,
   });
@@ -93,6 +94,8 @@ const Users = () => {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [grades, setGrades] = useState([]);
+  const [gradesLoading, setGradesLoading] = useState(false);
   const { toast } = useToast();
 
   // Fonctions utilitaires
@@ -225,9 +228,31 @@ const Users = () => {
     }
   };
 
+  const fetchGrades = async () => {
+    try {
+      setGradesLoading(true);
+      const response = await axios.get("/api/admin/grades");
+      console.log(response);
+      
+      if (response.data.success) {
+        setGrades(response.data.grades);
+      } else {
+        throw new Error(
+          response.data.message ||
+            "Erreur lors de la récupération des grades"
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching grades:", err);
+    } finally {
+      setGradesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchDashboardStats();
+    fetchGrades();
   }, []);
 
   useEffect(() => {
@@ -419,7 +444,7 @@ const Users = () => {
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="mb-4 sm:mb-6 max-w-4xl">
+      <div className="mb-4 p-3 sm:mb-6 max-w-4xl">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg sm:text-xl font-semibold flex items-center text-gray-900 dark:text-white">
             <PersonIcon
@@ -480,6 +505,7 @@ const Users = () => {
                       search: "",
                       status: "",
                       has_pack: "",
+                      grade_id: "",
                       start_date: null,
                       end_date: null,
                     });
@@ -493,16 +519,17 @@ const Users = () => {
         </div>
 
         {showFilters && (
-          <div className="mt-3 mb-4 p-3 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-300 ease-in-out animate__animated animate__fadeIn animate__faster">
-            <div className="flex flex-wrap gap-3 items-start">
-              <div className="w-full">
+          <div className="mt-3 mb-4 p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 ease-in-out">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              {/* Champ de recherche */}
+              <div className="lg:col-span-2 xl:col-span-3">
                 <TextField
                   size="small"
                   label="Rechercher"
                   variant="outlined"
                   value={filters.search}
                   onChange={(e) => handleFilterChange("search", e.target.value)}
-                  className="w-full mb-3"
+                  className="w-full"
                   placeholder="Rechercher par nom, email ou ID..."
                   fullWidth
                   InputProps={{
@@ -527,207 +554,258 @@ const Users = () => {
                 />
               </div>
 
-              <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-                <div className="flex flex-wrap gap-3">
-                  <FormControl size="small" className="w-full sm:w-40">
-                    <InputLabel>Statut</InputLabel>
-                    <Select
-                      value={filters.status}
-                      label="Statut"
-                      onChange={(e) =>
-                        handleFilterChange("status", e.target.value)
-                      }
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: "#1f2937",
-                            "& .MuiMenuItem-root": {
-                              color: "white",
+              {/* Filtres en grille */}
+              <FormControl size="small" className="w-full">
+                <InputLabel>Statut</InputLabel>
+                <Select
+                  value={filters.status}
+                  label="Statut"
+                  onChange={(e) =>
+                    handleFilterChange("status", e.target.value)
+                  }
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        bgcolor: "#1f2937",
+                        "& .MuiMenuItem-root": {
+                          color: "white",
+                          "&:hover": {
+                            bgcolor: "rgba(255, 255, 255, 0.08)",
+                          },
+                          "&.Mui-selected": {
+                            bgcolor: "rgba(255, 255, 255, 0.16)",
+                            "&:hover": {
+                              bgcolor: "rgba(255, 255, 255, 0.24)",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="">Tous</MenuItem>
+                  <MenuItem value="active">Actif</MenuItem>
+                  <MenuItem value="inactive">Inactif</MenuItem>
+                  <MenuItem value="trial">En essai</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" className="w-full">
+                <InputLabel>Possède un pack</InputLabel>
+                <Select
+                  value={filters.has_pack}
+                  label="Possède un pack"
+                  onChange={(e) =>
+                    handleFilterChange("has_pack", e.target.value)
+                  }
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        bgcolor: "#1f2937",
+                        "& .MuiMenuItem-root": {
+                          color: "white",
+                          "&:hover": {
+                            bgcolor: "rgba(255, 255, 255, 0.08)",
+                          },
+                          "&.Mui-selected": {
+                            bgcolor: "rgba(255, 255, 255, 0.16)",
+                            "&:hover": {
+                              bgcolor: "rgba(255, 255, 255, 0.24)",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="">Tous</MenuItem>
+                  <MenuItem value="1">Oui</MenuItem>
+                  <MenuItem value="0">Non</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" className="w-full">
+                <InputLabel>Grade</InputLabel>
+                <Select
+                  value={filters.grade_id}
+                  label="Grade"
+                  onChange={(e) =>
+                    handleFilterChange("grade_id", e.target.value)
+                  }
+                  disabled={gradesLoading}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        bgcolor: isDarkMode ? "#1f2937" : "#ffffff",
+                        "& .MuiMenuItem-root": {
+                          color: isDarkMode ? "white" : "#1f2937",
+                          "&:hover": {
+                            bgcolor: isDarkMode 
+                              ? "rgba(255, 255, 255, 0.08)" 
+                              : "rgba(0, 0, 0, 0.04)",
+                          },
+                          "&.Mui-selected": {
+                            bgcolor: isDarkMode 
+                              ? "rgba(255, 255, 255, 0.16)" 
+                              : "rgba(25, 118, 210, 0.08)",
+                            "&:hover": {
+                              bgcolor: isDarkMode 
+                                ? "rgba(255, 255, 255, 0.24)" 
+                                : "rgba(25, 118, 210, 0.12)",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="">Tous</MenuItem>
+                  {grades && grades.map((grade) => (
+                    <MenuItem key={grade.id} value={grade.id}>
+                      {grade.designation}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Filtres de date */}
+              <LocalizationProvider
+                dateAdapter={AdapterDateFns}
+                adapterLocale={frLocale}
+              >
+                <DatePicker
+                  label="Inscrit depuis"
+                  value={filters.start_date}
+                  onChange={(date) =>
+                    handleFilterChange("start_date", date)
+                  }
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      className: "w-full",
+                      variant: "outlined",
+                      InputProps: {
+                        endAdornment: filters.start_date && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              edge="end"
+                              size="small"
+                              onClick={() =>
+                                handleFilterChange("start_date", null)
+                              }
+                            >
+                              <ClearIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    },
+                    popper: {
+                      sx: {
+                        "& .MuiPaper-root": {
+                          bgcolor: "#1f2937",
+                          color: "white",
+                          "& .MuiPickersDay-root": {
+                            color: "white",
+                            "&:hover": {
+                              bgcolor: "rgba(255, 255, 255, 0.08)",
+                            },
+                            "&.Mui-selected": {
+                              bgcolor: "rgba(255, 255, 255, 0.16)",
                               "&:hover": {
-                                bgcolor: "rgba(255, 255, 255, 0.08)",
-                              },
-                              "&.Mui-selected": {
-                                bgcolor: "rgba(255, 255, 255, 0.16)",
-                                "&:hover": {
-                                  bgcolor: "rgba(255, 255, 255, 0.24)",
-                                },
+                                bgcolor: "rgba(255, 255, 255, 0.24)",
                               },
                             },
                           },
+                          "& .MuiDayCalendar-header": {
+                            color: "rgba(255, 255, 255, 0.7)",
+                          },
+                          "& .MuiPickersCalendarHeader-label": {
+                            color: "white",
+                          },
+                          "& .MuiIconButton-root": {
+                            color: "white",
+                          },
                         },
-                      }}
-                    >
-                      <MenuItem value="">Tous</MenuItem>
-                      <MenuItem value="active">Actif</MenuItem>
-                      <MenuItem value="inactive">Inactif</MenuItem>
-                      <MenuItem value="trial">En essai</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <FormControl size="small" className="w-full sm:w-44">
-                    <InputLabel>Possède un pack</InputLabel>
-                    <Select
-                      value={filters.has_pack}
-                      label="Possède un pack"
-                      onChange={(e) =>
-                        handleFilterChange("has_pack", e.target.value)
-                      }
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: "#1f2937",
-                            "& .MuiMenuItem-root": {
-                              color: "white",
+                      },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+
+              <LocalizationProvider
+                dateAdapter={AdapterDateFns}
+                adapterLocale={frLocale}
+              >
+                <DatePicker
+                  label="Inscrit jusqu'à"
+                  value={filters.end_date}
+                  onChange={(date) => handleFilterChange("end_date", date)}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      className: "w-full",
+                      variant: "outlined",
+                      InputProps: {
+                        endAdornment: filters.end_date && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              edge="end"
+                              size="small"
+                              onClick={() =>
+                                handleFilterChange("end_date", null)
+                              }
+                            >
+                              <ClearIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    },
+                    popper: {
+                      sx: {
+                        "& .MuiPaper-root": {
+                          bgcolor: "#1f2937",
+                          color: "white",
+                          "& .MuiPickersDay-root": {
+                            color: "white",
+                            "&:hover": {
+                              bgcolor: "rgba(255, 255, 255, 0.08)",
+                            },
+                            "&.Mui-selected": {
+                              bgcolor: "rgba(255, 255, 255, 0.16)",
                               "&:hover": {
-                                bgcolor: "rgba(255, 255, 255, 0.08)",
-                              },
-                              "&.Mui-selected": {
-                                bgcolor: "rgba(255, 255, 255, 0.16)",
-                                "&:hover": {
-                                  bgcolor: "rgba(255, 255, 255, 0.24)",
-                                },
+                                bgcolor: "rgba(255, 255, 255, 0.24)",
                               },
                             },
                           },
+                          "& .MuiDayCalendar-header": {
+                            color: "rgba(255, 255, 255, 0.7)",
+                          },
+                          "& .MuiPickersCalendarHeader-label": {
+                            color: "white",
+                          },
+                          "& .MuiIconButton-root": {
+                            color: "white",
+                          },
                         },
-                      }}
-                    >
-                      <MenuItem value="">Tous</MenuItem>
-                      <MenuItem value="1">Oui</MenuItem>
-                      <MenuItem value="0">Non</MenuItem>
-                    </Select>
-                  </FormControl>
+                      },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
 
-                  <LocalizationProvider
-                    dateAdapter={AdapterDateFns}
-                    adapterLocale={frLocale}
-                  >
-                    <DatePicker
-                      label="Inscrit depuis"
-                      value={filters.start_date}
-                      onChange={(date) =>
-                        handleFilterChange("start_date", date)
-                      }
-                      slotProps={{
-                        textField: {
-                          size: "small",
-                          className: "w-full sm:w-40",
-                          variant: "outlined",
-                          InputProps: {
-                            endAdornment: filters.start_date && (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  edge="end"
-                                  size="small"
-                                  onClick={() =>
-                                    handleFilterChange("start_date", null)
-                                  }
-                                >
-                                  <ClearIcon fontSize="small" />
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          },
-                        },
-                        popper: {
-                          sx: {
-                            "& .MuiPaper-root": {
-                              bgcolor: "#1f2937",
-                              color: "white",
-                              "& .MuiPickersDay-root": {
-                                color: "white",
-                                "&:hover": {
-                                  bgcolor: "rgba(255, 255, 255, 0.08)",
-                                },
-                                "&.Mui-selected": {
-                                  bgcolor: "rgba(255, 255, 255, 0.16)",
-                                  "&:hover": {
-                                    bgcolor: "rgba(255, 255, 255, 0.24)",
-                                  },
-                                },
-                              },
-                              "& .MuiDayCalendar-header": {
-                                color: "rgba(255, 255, 255, 0.7)",
-                              },
-                              "& .MuiPickersCalendarHeader-label": {
-                                color: "white",
-                              },
-                              "& .MuiIconButton-root": {
-                                color: "white",
-                              },
-                            },
-                          },
-                        },
-                      }}
-                    />
-
-                    <DatePicker
-                      label="Inscrit jusqu'à"
-                      value={filters.end_date}
-                      onChange={(date) => handleFilterChange("end_date", date)}
-                      slotProps={{
-                        textField: {
-                          size: "small",
-                          className: "w-full sm:w-40",
-                          variant: "outlined",
-                          InputProps: {
-                            endAdornment: filters.end_date && (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  edge="end"
-                                  size="small"
-                                  onClick={() =>
-                                    handleFilterChange("end_date", null)
-                                  }
-                                >
-                                  <ClearIcon fontSize="small" />
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          },
-                        },
-                        popper: {
-                          sx: {
-                            "& .MuiPaper-root": {
-                              bgcolor: "#1f2937",
-                              color: "white",
-                              "& .MuiPickersDay-root": {
-                                color: "white",
-                                "&:hover": {
-                                  bgcolor: "rgba(255, 255, 255, 0.08)",
-                                },
-                                "&.Mui-selected": {
-                                  bgcolor: "rgba(255, 255, 255, 0.16)",
-                                  "&:hover": {
-                                    bgcolor: "rgba(255, 255, 255, 0.24)",
-                                  },
-                                },
-                              },
-                              "& .MuiDayCalendar-header": {
-                                color: "rgba(255, 255, 255, 0.7)",
-                              },
-                              "& .MuiPickersCalendarHeader-label": {
-                                color: "white",
-                              },
-                              "& .MuiIconButton-root": {
-                                color: "white",
-                              },
-                            },
-                          },
-                        },
-                      }}
-                    />
-                  </LocalizationProvider>
-                </div>
-
+              {/* Boutons d'action */}
+              <div className="flex gap-2 items-end">
                 <Button
                   variant="contained"
                   color="primary"
-                  size="small"
                   onClick={() => {
                     setFilters({
                       search: "",
                       status: "",
                       has_pack: "",
+                      grade_id: "",
                       start_date: null,
                       end_date: null,
                     });
@@ -764,7 +842,7 @@ const Users = () => {
         )}
 
         {/* Tableau de bord statistiques */}
-        <div className="mb-6 max-w-5xl mx-auto">
+        <div className="mb-6 p-3 max-w-5xl mx-auto">
           {statsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, index) => (
@@ -1118,7 +1196,7 @@ const Users = () => {
           </div>
         ) : users.length === 0 ? (
           <div className="mt-8 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 p-12 text-center">
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex flex-col items-end justify-center">
               <PersonIcon sx={{ fontSize: 60, color: "#9ca3af" }} />
               <p className="mt-4 text-lg text-gray-500 dark:text-gray-400">
                 Aucun utilisateur trouvé avec les filtres actuels.
@@ -1160,6 +1238,12 @@ const Users = () => {
                         className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider hidden md:table-cell"
                       >
                         Email
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider hidden md:table-cell"
+                      >
+                        Grade
                       </th>
                       <th
                         scope="col"
@@ -1232,6 +1316,24 @@ const Users = () => {
                         <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
                           <div className="transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
                             {user.email}
+                          </div>
+                        </td>
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap text-sm text-orange-600 dark:text-yellow-300 hidden md:table-cell">
+                          <div className="flex flex-col items-center space-y-1">
+                            <div className="flex">
+                              {Array.from({ length: user.grade?.niveau || 0 }, (_, i) => (
+                                <svg
+                                  key={i}
+                                  className="w-4 h-4 text-yellow-400 fill-current"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <div className="transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium text-center">
+                              {user.grade?.designation || 'Abonné simple'}
+                            </div>
                           </div>
                         </td>
                         <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 hidden lg:table-cell">

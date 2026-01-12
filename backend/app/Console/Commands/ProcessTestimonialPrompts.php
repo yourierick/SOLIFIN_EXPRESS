@@ -79,18 +79,24 @@ class ProcessTestimonialPrompts extends Command
             'stats' => $stats,
         ]);
         
-        // Afficher les statistiques globales
+        // Afficher les statistiques globales avec requêtes optimisées
         $this->newLine();
         $this->info('Statistiques globales :');
-        $pendingCount = TestimonialPrompt::pending()->count();
-        $displayedCount = TestimonialPrompt::displayed()->count();
-        $submittedCount = TestimonialPrompt::submitted()->count();
-        $declinedCount = TestimonialPrompt::declined()->count();
-        $expiredCount = TestimonialPrompt::expired()->count();
+        
+        // Récupérer toutes les statistiques en une seule requête
+        $globalStats = TestimonialPrompt::selectRaw('
+            SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = "displayed" THEN 1 ELSE 0 END) as displayed,
+            SUM(CASE WHEN status = "submitted" THEN 1 ELSE 0 END) as submitted,
+            SUM(CASE WHEN status = "declined" THEN 1 ELSE 0 END) as declined,
+            SUM(CASE WHEN status = "expired" THEN 1 ELSE 0 END) as expired
+        ')->first();
         
         $this->table(
             ['En attente', 'Affichées', 'Soumises', 'Déclinées', 'Expirées'],
-            [[$pendingCount, $displayedCount, $submittedCount, $declinedCount, $expiredCount]]
+            [
+                [$globalStats->pending ?? 0, $globalStats->displayed ?? 0, $globalStats->submitted ?? 0, $globalStats->declined ?? 0, $globalStats->expired ?? 0]
+            ]
         );
         
         return Command::SUCCESS;

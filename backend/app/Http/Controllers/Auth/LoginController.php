@@ -55,7 +55,6 @@ class LoginController extends Controller
         }
         
         $user->picture = $user->getProfilePictureUrlAttribute();
-        
         $response = ['user' => $user];
         
         // Si l'utilisateur est en période d'essai, ajouter les informations sur la date d'expiration

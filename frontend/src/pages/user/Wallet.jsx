@@ -1003,13 +1003,13 @@ export default function Wallets() {
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
                   onClick={() => handleWithdrawalClick(userWallet.id, "admin")}
-                  className={`p-2.5 sm:p-3 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
+                  className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
                     isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-blue-500"
                       : "border-gray-300 text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-500"
                   }`}
                 >
-                  <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <BanknotesIcon className="h-6 w-6 sm:h-7 sm:w-7" />
                 </button>
                 <span className="tooltip-text">Faire un retrait</span>
               </div>
@@ -1017,13 +1017,13 @@ export default function Wallets() {
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
                   onClick={handleVirtualPurchaseClick}
-                  className={`p-2.5 sm:p-3 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
+                  className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
                     isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-green-500"
                       : "border-gray-300 text-gray-700 hover:bg-green-50 hover:text-green-600 hover:border-green-500"
                   }`}
                 >
-                  <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <CurrencyDollarIcon className="h-6 w-6 sm:h-7 sm:w-7" />
                 </button>
                 <span className="tooltip-text">Acheter du virtuel</span>
               </div>
@@ -1031,13 +1031,13 @@ export default function Wallets() {
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
                   onClick={handleTransferButtonClick}
-                  className={`p-2.5 sm:p-3 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
+                  className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
                     isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-purple-500"
                       : "border-gray-300 text-gray-700 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-500"
                   }`}
                 >
-                  <FaExchangeAlt className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <FaExchangeAlt className="h-6 w-6 sm:h-7 sm:w-7" />
                 </button>
                 <span className="tooltip-text">Transférer des fonds</span>
               </div>
@@ -1936,7 +1936,7 @@ export default function Wallets() {
       <FundsTransferModal
         isOpen={showTransferModal}
         onClose={() => setShowTransferModal(false)}
-        onSuccess={fetchWalletData}
+        onSuccess={handleRefresh}
         balance_usd={userWallet?.balance_usd || 0}
         balance_cdf={userWallet?.balance_cdf || 0}
         userInfo={user}

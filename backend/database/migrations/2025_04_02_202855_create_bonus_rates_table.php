@@ -18,9 +18,9 @@ class CreateBonusRatesTable extends Migration
             $table->id();
             $table->foreignId('pack_id')->constrained()->onDelete('cascade');
             $table->enum('frequence', ['weekly', 'monthly'])->default('weekly');
-            $table->integer('nombre_filleuls')->comment('Nombre de filleuls pour obtenir 1 point (seuil)');
-            $table->integer('points_attribues')->default(1)->comment('Nombre de points attribués par palier');
-            $table->decimal('valeur_point', 10, 2)->nullable()->comment('Valeur d\'un point en devise');
+            $table->integer('nombre_filleuls')->comment('Nombre de filleuls pour obtenir 1 jeton (seuil)');
+            $table->integer('points_attribues')->default(1)->comment('Nombre de jetons attribués par palier');
+            $table->decimal('valeur_point', 10, 2)->nullable()->comment('Valeur du jeton en terme de point pour les grades utilisateur');
             $table->enum('type', [BonusRates::TYPE_ESENGO])
                   ->default(BonusRates::TYPE_ESENGO)
                   ->comment('Type de bonus: esengo (hebdomadaire)');

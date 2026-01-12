@@ -32,7 +32,7 @@ class JetonEsengoService
     /**
      * Taille des lots pour le traitement des utilisateurs
      */
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 500; // Augmenté pour meilleure performance
     
     /**
      * Longueur du code de vérification des tickets
@@ -47,9 +47,10 @@ class JetonEsengoService
      * Note: On traite TOUJOURS la semaine précédente terminée, jamais la semaine en cours
      * Cela garantit que la semaine est complète avant le traitement
      * 
+     * @param int $batchSize Taille du lot pour le traitement
      * @return array Statistiques sur les jetons attribués
      */
-    public function processWeeklyJetons()
+    public function processWeeklyJetons($batchSize = self::BATCH_SIZE)
     {
         $stats = [
             'users_processed' => 0,
@@ -66,7 +67,8 @@ class JetonEsengoService
                 $query->where('user_packs.status', 'active')
                       ->where('user_packs.payment_status', 'completed');
             })
-            ->chunk(self::BATCH_SIZE, function($users) use ($startDate, $endDate, &$stats) {
+            ->with(['packs.pack']) // Précharger les relations pour éviter N+1
+            ->chunk($batchSize, function($users) use ($startDate, $endDate, &$stats) {
                 foreach ($users as $user) {
                     $this->processJetonsForUser($user, $startDate, $endDate, $stats);
                 }
@@ -109,6 +111,7 @@ class JetonEsengoService
                 $query->where('user_packs.status', 'active')
                       ->where('user_packs.payment_status', 'completed');
             })
+            ->with(['packs.pack']) // Précharger les relations pour éviter N+1
             ->chunk(self::BATCH_SIZE, function($users) use ($startDate, $endDate, &$stats) {
                 foreach ($users as $user) {
                     $this->processJetonsForUser($user, $startDate, $endDate, $stats);
@@ -173,6 +176,7 @@ class JetonEsengoService
         return UserPack::where('user_id', $userId)
             ->where('status', 'active')
             ->where('payment_status', 'completed')
+            ->with('pack') // Précharger la relation pack pour éviter N+1
             ->get();
     }
     
@@ -186,7 +190,8 @@ class JetonEsengoService
      */
     private function processJetonsForUserPack($user, $userPack, $filleulsCount, &$stats)
     {
-        $pack = Pack::find($userPack->pack_id);
+        // Utiliser le pack déjà préchargé
+        $pack = $userPack->pack;
         if (!$pack) {
             return;
         }
@@ -335,7 +340,8 @@ class JetonEsengoService
                 $jetonsToAward,
                 $expirationDate,
                 $description,
-                $metadata
+                $metadata,
+                $bonusRate
             );
             
             if ($jetonsCreated > 0) {
@@ -361,35 +367,60 @@ class JetonEsengoService
      * @param array $metadata Métadonnées à associer aux jetons
      * @return int Nombre de jetons créés
      */
-    private function createJetonsForUser($user, $packId, $count, $expirationDate, $description, $metadata)
+    private function createJetonsForUser($user, $packId, $count, $expirationDate, $description, $metadata, $bonusRate)
     {
-        $jetonsCreated = 0;
-        
-        for ($i = 0; $i < $count; $i++) {
-            // Générer un code unique pour le jeton
-            $codeUnique = UserJetonEsengo::generateUniqueCode($user->id);
+        try {
+            DB::transaction(function () use ($user, $packId, $count, $expirationDate, $description, $metadata, $bonusRate) {
+                // Préparer les données pour insertion en masse
+                $jetonsData = [];
+                $historyData = [];
+                $totalPoints = $count * $bonusRate->valeur_point;
+                
+                for ($i = 0; $i < $count; $i++) {
+                    $codeUnique = UserJetonEsengo::generateUniqueCode($user->id);
+                    
+                    $jetonsData[] = [
+                        'user_id' => $user->id,
+                        'pack_id' => $packId,
+                        'code_unique' => $codeUnique,
+                        'is_used' => false,
+                        'date_expiration' => $expirationDate,
+                        'metadata' => json_encode($metadata),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                
+                // Insérer les jetons en masse
+                $insertedJetons = DB::table('user_jeton_esengos')->insertGetId($jetonsData);
+                
+                // Mettre à jour les points du wallet
+                $user->wallet->increment('points', $totalPoints);
+                
+                // Préparer les données d'historique pour insertion en masse
+                foreach ($jetonsData as $jetonDatum) {
+                    $historyData[] = [
+                        'user_id' => $user->id,
+                        'jeton_esengo_id' => $insertedJetons,
+                        'action' => 'attribution',
+                        'description' => $description,
+                        'metadata' => json_encode($metadata),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                
+                // Insérer l'historique en masse
+                if (!empty($historyData)) {
+                    DB::table('user_jeton_esengo_histories')->insert($historyData);
+                }
+            });
             
-            // Créer le jeton dans la base de données
-            $jeton = UserJetonEsengo::create([
-                'user_id' => $user->id,
-                'pack_id' => $packId,
-                'code_unique' => $codeUnique,
-                'is_used' => false,
-                'date_expiration' => $expirationDate,
-                'metadata' => $metadata,
-            ]);
-            
-            // Enregistrer l'attribution dans l'historique
-            UserJetonEsengoHistory::logAttribution(
-                $jeton,
-                $description,
-                $metadata
-            );
-            
-            $jetonsCreated++;
+            return $count;
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la création des jetons: " . $e->getMessage());
+            return 0;
         }
-        
-        return $jetonsCreated;
     }
     
     /**

@@ -26,6 +26,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->text('apropos')->nullable();
             $table->string('acquisition_source')->nullable()->comment('Comment l\'utilisateur a connu SOLIFIN');
+            $table->timestamp('last_seen')->nullable();
             $table->text('picture')->nullable();
             $table->boolean('is_admin')->default(false);
             $table->timestamp('email_verified_at')->nullable();

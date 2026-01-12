@@ -72,6 +72,10 @@ const FundsTransferModal = ({
     useState(false);
   const [recipientInfo, setRecipientInfo] = useState({});
   const [errors, setErrors] = useState({});
+  const [isMultipleTransfer, setIsMultipleTransfer] = useState(false);
+  const [multipleRecipients, setMultipleRecipients] = useState([
+    { recipient_account_id: "", amount: "", name: "", fee_amount: 0, commission_amount: 0, total_fee: 0 }
+  ]);
 
   // Mettre à jour walletData si les props changent
   useEffect(() => {
@@ -110,6 +114,10 @@ const FundsTransferModal = ({
     setTransferFeeAmount(0);
     setTransferCommissionAmount(0);
     setTotalFeeAmount(0);
+    setIsMultipleTransfer(false);
+    setMultipleRecipients([
+      { recipient_account_id: "", amount: "", name: "", fee_amount: 0, commission_amount: 0, total_fee: 0 }
+    ]);
   };
 
   // Fonction pour récupérer les frais de transfert
@@ -178,6 +186,93 @@ const FundsTransferModal = ({
     }
   };
 
+  // Gestion des changements pour les transferts multiples
+  const handleMultipleRecipientChange = (index, field, value) => {
+    const updatedRecipients = [...multipleRecipients];
+    updatedRecipients[index][field] = value;
+    
+    // Calculer les frais pour ce destinataire si le montant change
+    if (field === 'amount' && value && !isNaN(parseFloat(value))) {
+      const amount = parseFloat(value);
+      const fee = transferFeePercentage > 0 ? (amount * transferFeePercentage) / 100 : 0;
+      const commission = transferCommissionPercentage > 0 ? (amount * transferCommissionPercentage) / 100 : 0;
+      const totalFee = fee + commission;
+      
+      updatedRecipients[index].fee_amount = fee;
+      updatedRecipients[index].commission_amount = commission;
+      updatedRecipients[index].total_fee = totalFee;
+    } else if (field === 'amount' && (!value || isNaN(parseFloat(value)))) {
+      updatedRecipients[index].fee_amount = 0;
+      updatedRecipients[index].commission_amount = 0;
+      updatedRecipients[index].total_fee = 0;
+    }
+    
+    // Si c'est un account_id et qu'il n'y a pas encore de nom, récupérer le nom
+    if (field === 'recipient_account_id' && value && !updatedRecipients[index].name) {
+      // Ajouter un petit délai pour éviter trop de requêtes pendant la saisie
+      setTimeout(() => {
+        fetchSingleRecipientName(index, value);
+      }, 500);
+    }
+    
+    setMultipleRecipients(updatedRecipients);
+  };
+
+  // Récupérer le nom d'un seul destinataire (pour l'auto-complétion)
+  const fetchSingleRecipientName = async (index, accountId) => {
+    try {
+      const response = await axios.post('/api/recipients-info', {
+        account_ids: [accountId]
+      });
+
+      if (response.data.success && response.data.recipients[accountId]?.success) {
+        const updatedRecipients = [...multipleRecipients];
+        updatedRecipients[index].name = response.data.recipients[accountId].user?.name || '';
+        setMultipleRecipients(updatedRecipients);
+      }
+    } catch (error) {
+      // Silencieux pour ne pas perturber l'utilisateur pendant la saisie
+    }
+  };
+
+  // Ajouter un destinataire
+  const addRecipient = () => {
+    setMultipleRecipients([...multipleRecipients, 
+      { recipient_account_id: "", amount: "", name: "", fee_amount: 0, commission_amount: 0, total_fee: 0 }
+    ]);
+  };
+
+  // Supprimer un destinataire
+  const removeRecipient = (index) => {
+    if (multipleRecipients.length > 1) {
+      const updatedRecipients = multipleRecipients.filter((_, i) => i !== index);
+      setMultipleRecipients(updatedRecipients);
+    }
+  };
+
+  // Calculer le total pour les transferts multiples
+  const calculateMultipleTransferTotal = () => {
+    return multipleRecipients.reduce((total, recipient) => {
+      const amount = parseFloat(recipient.amount) || 0;
+      const totalFee = parseFloat(recipient.total_fee) || 0;
+      return total + amount + totalFee;
+    }, 0);
+  };
+
+  // Calculer le montant total transféré (sans frais)
+  const calculateTotalAmountTransferred = () => {
+    return multipleRecipients.reduce((total, recipient) => {
+      return total + (parseFloat(recipient.amount) || 0);
+    }, 0);
+  };
+
+  // Calculer le total des frais
+  const calculateTotalFees = () => {
+    return multipleRecipients.reduce((total, recipient) => {
+      return total + (parseFloat(recipient.total_fee) || 0);
+    }, 0);
+  };
+
   // Initialiser automatiquement la devise selon le contexte global
   useEffect(() => {
     const initialCurrency = canUseCDF() ? globalCurrency : "USD";
@@ -224,38 +319,61 @@ const FundsTransferModal = ({
       }
     }
 
-    // Validation du montant
-    if (
-      !transferData.amount ||
-      isNaN(transferData.amount) ||
-      parseFloat(transferData.amount) <= 0
-    ) {
-      newErrors.amount = "Veuillez entrer un montant valide";
-    }
+    if (isMultipleTransfer) {
+      // Validation pour transfert multiple
+      multipleRecipients.forEach((recipient, index) => {
+        if (!recipient.recipient_account_id) {
+          newErrors[`recipient_account_id_${index}`] = "L'identifiant du compte destinataire est requis";
+        }
+        
+        if (!recipient.amount || isNaN(recipient.amount) || parseFloat(recipient.amount) <= 0) {
+          newErrors[`amount_${index}`] = "Veuillez entrer un montant valide";
+        }
+        
+        // Vérifier si l'utilisateur essaie de se transférer des fonds à lui-même
+        if (recipient.recipient_account_id === userInfo?.account_id) {
+          newErrors[`recipient_account_id_${index}`] = "Vous ne pouvez pas vous transférer des fonds";
+        }
+      });
 
-    // Validation du destinataire (ID du compte)
-    if (!transferData.recipient_account_id) {
-      newErrors.recipient_account_id =
-        "L'identifiant du compte destinataire est requis";
-    }
-
-    // Vérifier si l'utilisateur essaie de se transférer des fonds à lui-même
-    if (transferData.recipient_account_id === userInfo?.account_id) {
-      newErrors.recipient_account_id =
-        "Vous ne pouvez pas vous transférer des fonds";
-    }
-
-    // Vérifier si le portefeuille a suffisamment de fonds
-    const transferAmount = parseFloat(transferData.amount);
-    if (!isNaN(transferAmount) && selectedCurrency) {
-      const totalAmount = transferAmount + totalFeeAmount;
-      const availableBalance =
-        selectedCurrency === "USD"
-          ? walletData?.balance_usd
-          : walletData?.balance_cdf;
-
+      // Vérifier si le portefeuille a suffisamment de fonds pour le total
+      const totalAmount = calculateMultipleTransferTotal();
+      const availableBalance = selectedCurrency === "USD" ? walletData?.balance_usd : walletData?.balance_cdf;
+      
       if (totalAmount > availableBalance) {
-        newErrors.amount = `Montant insuffisant dans votre portefeuille ${selectedCurrency} pour couvrir le transfert et les frais`;
+        newErrors.total = `Solde insuffisant dans votre portefeuille ${selectedCurrency} pour couvrir tous les transferts et frais`;
+      }
+    } else {
+      // Validation pour transfert simple (existante)
+      if (
+        !transferData.amount ||
+        isNaN(transferData.amount) ||
+        parseFloat(transferData.amount) <= 0
+      ) {
+        newErrors.amount = "Veuillez entrer un montant valide";
+      }
+
+      if (!transferData.recipient_account_id) {
+        newErrors.recipient_account_id =
+          "L'identifiant du compte destinataire est requis";
+      }
+
+      if (transferData.recipient_account_id === userInfo?.account_id) {
+        newErrors.recipient_account_id =
+          "Vous ne pouvez pas vous transférer des fonds";
+      }
+
+      const transferAmount = parseFloat(transferData.amount);
+      if (!isNaN(transferAmount) && selectedCurrency) {
+        const totalAmount = transferAmount + totalFeeAmount;
+        const availableBalance =
+          selectedCurrency === "USD"
+            ? walletData?.balance_usd
+            : walletData?.balance_cdf;
+
+        if (totalAmount > availableBalance) {
+          newErrors.amount = `Montant insuffisant dans votre portefeuille ${selectedCurrency} pour couvrir le transfert et les frais`;
+        }
       }
     }
 
@@ -266,6 +384,13 @@ const FundsTransferModal = ({
   // Récupérer les informations du destinataire (pour les utilisateurs non-admin)
   const fetchRecipientInfo = async () => {
     if (!validateForm()) return;
+
+    if (isMultipleTransfer) {
+      // Pour les transferts multiples, récupérer les infos de chaque destinataire
+      await fetchMultipleRecipientsInfo();
+      setShowConfirmTransferModal(true);
+      return;
+    }
 
     setTransferLoading(true);
 
@@ -285,6 +410,54 @@ const FundsTransferModal = ({
       toast.error(
         error.response?.data?.message ||
           "Erreur lors de la récupération des informations du destinataire"
+      );
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
+  // Récupérer les informations de plusieurs destinataires
+  const fetchMultipleRecipientsInfo = async () => {
+    setTransferLoading(true);
+    
+    try {
+      const updatedRecipients = [...multipleRecipients];
+      
+      // Extraire les account_ids des destinataires qui n'ont pas de nom
+      const accountIdsToFetch = multipleRecipients
+        .filter(r => r.recipient_account_id && !r.name)
+        .map(r => r.recipient_account_id);
+
+      if (accountIdsToFetch.length === 0) {
+        // Tous les noms sont déjà récupérés
+        setTransferLoading(false);
+        return;
+      }
+
+      // Appel unique pour tous les destinataires
+      const response = await axios.post('/api/recipients-info', {
+        account_ids: accountIdsToFetch
+      });
+
+      if (response.data.success) {
+        // Mettre à jour les destinataires avec les informations récupérées
+        multipleRecipients.forEach((recipient, index) => {
+          if (recipient.recipient_account_id && !recipient.name) {
+            const recipientInfo = response.data.recipients[recipient.recipient_account_id];
+            if (recipientInfo && recipientInfo.success) {
+              updatedRecipients[index].name = recipientInfo.user?.name || '';
+            }
+          }
+        });
+        
+        setMultipleRecipients(updatedRecipients);
+      } else {
+        toast.error("Erreur lors de la récupération des informations des destinataires");
+      }
+      
+    } catch (error) {
+      toast.error(
+        "Erreur lors de la récupération des informations des destinataires"
       );
     } finally {
       setTransferLoading(false);
@@ -313,20 +486,42 @@ const FundsTransferModal = ({
 
     setTransferLoading(true);
     try {
-      // Calculer le montant total avec les frais et commissions
-      const amount = parseFloat(transferData.amount);
-      const totalAmount = amount + totalFeeAmount;
+      let apiData;
 
-      // Préparer les données pour l'API
-      const apiData = {
-        amount: amount.toFixed(2), // Montant à transférer
-        frais_de_transaction: transferFeeAmount.toFixed(2), // Montant des frais de transfert
-        frais_de_commission: transferCommissionAmount.toFixed(2), // Montant des frais de commission
-        recipient_account_id: transferData.recipient_account_id,
-        currency: finalCurrency, // Devise garantie (USD par défaut)
-        note: transferData.note || "",
-        password: transferData.password,
-      };
+      if (isMultipleTransfer) {
+        // Préparer les données pour le transfert multiple
+        const validRecipients = multipleRecipients.filter(r => r.recipient_account_id && r.amount && parseFloat(r.amount) > 0);
+        
+        apiData = {
+          is_multiple: true,
+          recipients: validRecipients.map(r => ({
+            recipient_account_id: r.recipient_account_id,
+            amount: parseFloat(r.amount).toFixed(2),
+            frais_de_transaction: r.fee_amount.toFixed(2),
+            frais_de_commission: r.commission_amount.toFixed(2),
+          })),
+          currency: finalCurrency,
+          note: transferData.note || "",
+          password: transferData.password,
+          total_amount: calculateTotalAmountTransferred().toFixed(2),
+          total_fees: calculateTotalFees().toFixed(2),
+        };
+      } else {
+        // Préparer les données pour le transfert simple (existante)
+        const amount = parseFloat(transferData.amount);
+        const totalAmount = amount + totalFeeAmount;
+
+        apiData = {
+          is_multiple: false,
+          amount: amount.toFixed(2),
+          frais_de_transaction: transferFeeAmount.toFixed(2),
+          frais_de_commission: transferCommissionAmount.toFixed(2),
+          recipient_account_id: transferData.recipient_account_id,
+          currency: finalCurrency,
+          note: transferData.note || "",
+          password: transferData.password,
+        };
+      }
 
       const response = await axios.post("/api/funds-transfer", apiData);
 
@@ -334,8 +529,11 @@ const FundsTransferModal = ({
         toast.success("Transfert effectué avec succès");
         setShowConfirmTransferModal(false);
         resetForm();
-        onClose();
-        if (onSuccess) onSuccess();
+        
+        // Retarder la fermeture pour laisser le temps au toast de s'afficher
+        setTimeout(() => {
+          
+        }, 5000); // 5 seconde de délai
       } else {
         toast.error(response.data.message || "Erreur lors du transfert");
       }
@@ -365,7 +563,7 @@ const FundsTransferModal = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`relative p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border ${
+            className={`relative p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] flex flex-col border ${
               isDarkMode
                 ? "bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700"
                 : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
@@ -411,41 +609,109 @@ const FundsTransferModal = ({
               </button>
             </div>
 
-            <div
-              className={`mb-6 p-6 rounded-xl border ${
-                isDarkMode
-                  ? "bg-gray-700/50 border-gray-600"
-                  : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
-              }`}
-            >
-              <div className="flex items-center mb-6">
-                <div
-                  className={`p-2 rounded-full mr-3 ${
-                    isDarkMode
-                      ? "bg-gray-600 text-gray-300"
-                      : "bg-white text-blue-600 shadow-sm"
-                  }`}
-                >
-                  <FaUser className="w-5 h-5" />
-                </div>
+            {/* Contenu scrollable */}
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div
+                className={`mb-6 p-6 rounded-xl border ${
+                  isDarkMode
+                    ? "bg-gray-700/50 border-gray-600"
+                    : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
+                }`}
+              >
+              {isMultipleTransfer ? (
+                // Affichage pour transfert multiple
                 <div>
-                  <p
-                    className={`text-sm font-medium ${
-                      isDarkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Destinataire
-                  </p>
-                  <p
-                    className={`font-bold text-lg ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {recipientInfo?.name ||
-                      `ID: ${transferData.recipient_account_id}`}
-                  </p>
+                  <div className="flex items-center mb-4">
+                    <div
+                      className={`p-2 rounded-full mr-3 ${
+                        isDarkMode
+                          ? "bg-gray-600 text-gray-300"
+                          : "bg-white text-blue-600 shadow-sm"
+                      }`}
+                    >
+                      <FaUser className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p
+                        className={`text-sm font-medium ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Destinataires
+                      </p>
+                      <p
+                        className={`font-bold text-lg ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {multipleRecipients.filter(r => r.amount && parseFloat(r.amount) > 0).length} destinataires
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
+                    {multipleRecipients
+                      .filter(r => r.amount && parseFloat(r.amount) > 0)
+                      .map((recipient, index) => (
+                        <div
+                          key={index}
+                          className={`p-2 rounded-lg text-sm ${
+                            isDarkMode ? "bg-gray-600/30" : "bg-white/50"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="font-medium">
+                                {recipient.name ? `${recipient.name} (ID: ${recipient.recipient_account_id})` : `ID: ${recipient.recipient_account_id}`}
+                              </span>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Montant: {parseFloat(recipient.amount).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">
+                                {(parseFloat(recipient.amount) + parseFloat(recipient.total_fee)).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Frais: {parseFloat(recipient.total_fee).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // Affichage pour transfert simple (existante)
+                <div className="flex items-center mb-6">
+                  <div
+                    className={`p-2 rounded-full mr-3 ${
+                      isDarkMode
+                        ? "bg-gray-600 text-gray-300"
+                        : "bg-white text-blue-600 shadow-sm"
+                    }`}
+                  >
+                    <FaUser className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm font-medium ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Destinataire
+                    </p>
+                    <p
+                      className={`font-bold text-lg ${
+                        isDarkMode ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {recipientInfo?.name ||
+                        `ID: ${transferData.recipient_account_id}`}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center mb-6">
                 <div
@@ -470,7 +736,10 @@ const FundsTransferModal = ({
                       isDarkMode ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {parseFloat(transferData.amount).toFixed(2)}{" "}
+                    {isMultipleTransfer 
+                      ? calculateTotalAmountTransferred().toFixed(2)
+                      : parseFloat(transferData.amount).toFixed(2)
+                    }{" "}
                     <span
                       className={`text-lg ${
                         selectedCurrency === "USD"
@@ -484,7 +753,7 @@ const FundsTransferModal = ({
                 </div>
               </div>
 
-              {totalFeeAmount > 0 && (
+              {(isMultipleTransfer ? calculateTotalFees() > 0 : totalFeeAmount > 0) && (
                 <div className="flex items-center mb-6">
                   <div
                     className={`p-2 rounded-full mr-3 ${
@@ -509,7 +778,10 @@ const FundsTransferModal = ({
                       }`}
                     >
                       <span className="text-yellow-500">
-                        {totalFeeAmount.toFixed(2)}{" "}
+                        {isMultipleTransfer 
+                          ? calculateTotalFees().toFixed(2)
+                          : totalFeeAmount.toFixed(2)
+                        }{" "}
                         {selectedCurrency === "USD" ? "$" : "FC"}
                       </span>{" "}
                       <span
@@ -551,14 +823,16 @@ const FundsTransferModal = ({
                       isDarkMode ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {(parseFloat(transferData.amount) + totalFeeAmount).toFixed(
-                      2
-                    )}{" "}
+                    {isMultipleTransfer 
+                      ? calculateMultipleTransferTotal().toFixed(2)
+                      : (parseFloat(transferData.amount) + totalFeeAmount).toFixed(2)
+                    }{" "}
                     <span className="text-red-500">
                       {selectedCurrency === "USD" ? "$" : "FC"}
                     </span>
                   </p>
                 </div>
+              </div>
               </div>
             </div>
 
@@ -738,6 +1012,47 @@ const FundsTransferModal = ({
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+              {/* Sélection du type de transfert */}
+              <div className="mb-6">
+                <label
+                  className={`block text-sm font-medium mb-3 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Type de transfert
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsMultipleTransfer(false)}
+                    className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+                      !isMultipleTransfer
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                        : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center">
+                      <FaUser className="w-4 h-4 mr-2" />
+                      <span className="font-medium">Transfert simple</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMultipleTransfer(true)}
+                    className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+                      isMultipleTransfer
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                        : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center">
+                      <FaExchangeAlt className="w-4 h-4 mr-2" />
+                      <span className="font-medium">Transfert multiple</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <form onSubmit={handleSubmit}>
                 {/* Affichage automatique de la devise selon le contexte global */}
                 <div className="mb-6">
@@ -835,67 +1150,193 @@ const FundsTransferModal = ({
                       : ""
                   }`}
                 >
-                  <div className="mb-4">
-                    <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      <FaUser className="inline-block mr-1" />
-                      ID du compte destinataire
-                    </label>
-                    <input
-                      type="text"
-                      name="recipient_account_id"
-                      value={transferData.recipient_account_id}
-                      onChange={handleTransferChange}
-                      placeholder="ID du compte destinataire"
-                      className={`w-full px-3 py-2 rounded-lg border ${
-                        isDarkMode
-                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                    {errors.recipient_account_id && (
-                      <p className="mt-1 text-sm text-red-500">
-                        {errors.recipient_account_id}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-4">
-                    <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Montant
-                    </label>
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2 font-bold dark:text-gray-300">
-                        {selectedCurrency === "USD" ? "$" : "FC"}
-                      </span>
-                      <input
-                        type="number"
-                        name="amount"
-                        value={transferData.amount}
-                        onChange={handleTransferChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        className={`w-full px-3 py-2 rounded-lg border ${
-                          isDarkMode
-                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      />
+                  {isMultipleTransfer ? (
+                    // Interface pour transfert multiple
+                    <div>
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <label
+                            className={`text-sm font-medium ${
+                              isDarkMode ? "text-gray-300" : "text-gray-700"
+                            }`}
+                          >
+                            <FaUser className="inline-block mr-1" />
+                            Destinataires multiples
+                          </label>
+                          <button
+                            type="button"
+                            onClick={addRecipient}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                              isDarkMode
+                                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                : "bg-blue-500 hover:bg-blue-600 text-white"
+                            }`}
+                          >
+                            + Ajouter un destinataire
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                          {multipleRecipients.map((recipient, index) => (
+                            <div
+                              key={index}
+                              className={`p-4 rounded-lg border ${
+                                isDarkMode
+                                  ? "bg-gray-700 border-gray-600"
+                                  : "bg-gray-50 border-gray-200"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <span className={`text-sm font-medium ${
+                                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                                }`}>
+                                  Destinataire {index + 1}
+                                </span>
+                                {multipleRecipients.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeRecipient(index)}
+                                    className={`p-1 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors`}
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                              
+                              <div className="grid grid-cols-1 gap-3">
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={recipient.recipient_account_id}
+                                    onChange={(e) => handleMultipleRecipientChange(index, 'recipient_account_id', e.target.value)}
+                                    placeholder="ID du compte destinataire"
+                                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
+                                      isDarkMode
+                                        ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                  />
+                                  {errors[`recipient_account_id_${index}`] && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                      {errors[`recipient_account_id_${index}`]}
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <div>
+                                  <div className="flex items-center">
+                                    <span className="text-gray-600 mr-2 font-bold dark:text-gray-300 text-sm">
+                                      {selectedCurrency === "USD" ? "$" : "FC"}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      value={recipient.amount}
+                                      onChange={(e) => handleMultipleRecipientChange(index, 'amount', e.target.value)}
+                                      placeholder="0.00"
+                                      step="0.01"
+                                      min="0"
+                                      className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
+                                        isDarkMode
+                                          ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                    />
+                                  </div>
+                                  {errors[`amount_${index}`] && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                      {errors[`amount_${index}`]}
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                {recipient.amount && parseFloat(recipient.amount) > 0 && (
+                                  <div className={`p-2 rounded text-xs ${
+                                    isDarkMode ? "bg-gray-600" : "bg-gray-100"
+                                  }`}>
+                                    <div className="flex justify-between">
+                                      <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                        Frais: {(parseFloat(recipient.total_fee)).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                      </span>
+                                      <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                        Total: {(parseFloat(recipient.amount) + parseFloat(recipient.total_fee)).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    {errors.amount && (
-                      <p className="mt-1 text-sm text-red-500">
-                        {errors.amount}
-                      </p>
-                    )}
-                  </div>
+                  ) : (
+                    // Interface pour transfert simple (existante)
+                    <div>
+                      <div className="mb-4">
+                        <label
+                          className={`block text-sm font-medium mb-1 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          <FaUser className="inline-block mr-1" />
+                          ID du compte destinataire
+                        </label>
+                        <input
+                          type="text"
+                          name="recipient_account_id"
+                          value={transferData.recipient_account_id}
+                          onChange={handleTransferChange}
+                          placeholder="ID du compte destinataire"
+                          className={`w-full px-3 py-2 rounded-lg border ${
+                            isDarkMode
+                              ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                              : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        />
+                        {errors.recipient_account_id && (
+                          <p className="mt-1 text-sm text-red-500">
+                            {errors.recipient_account_id}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mb-4">
+                        <label
+                          className={`block text-sm font-medium mb-1 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Montant
+                        </label>
+                        <div className="flex items-center">
+                          <span className="text-gray-600 mr-2 font-bold dark:text-gray-300">
+                            {selectedCurrency === "USD" ? "$" : "FC"}
+                          </span>
+                          <input
+                            type="number"
+                            name="amount"
+                            value={transferData.amount}
+                            onChange={handleTransferChange}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className={`w-full px-3 py-2 rounded-lg border ${
+                              isDarkMode
+                                ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                                : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          />
+                        </div>
+                        {errors.amount && (
+                          <p className="mt-1 text-sm text-red-500">
+                            {errors.amount}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mb-4">
                     <label
@@ -921,8 +1362,8 @@ const FundsTransferModal = ({
                   </div>
 
                   {/* Affichage des frais de transfert */}
-                  {transferData.amount &&
-                    parseFloat(transferData.amount) > 0 && (
+                  {((isMultipleTransfer && multipleRecipients.some(r => r.amount && parseFloat(r.amount) > 0)) || 
+                    (!isMultipleTransfer && transferData.amount && parseFloat(transferData.amount) > 0)) && (
                       <div
                         className={`mb-4 p-3 rounded-lg ${
                           isDarkMode ? "bg-gray-700" : "bg-gray-100"
@@ -933,91 +1374,108 @@ const FundsTransferModal = ({
                             isDarkMode ? "text-white" : "text-gray-900"
                           }`}
                         >
-                          <FaPercent className="inline-block mr-1" /> Détails
-                          des frais
+                          <FaPercent className="inline-block mr-1" /> Résumé
+                          {isMultipleTransfer ? " des transferts" : " du transfert"}
                         </h4>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span
-                              className={
-                                isDarkMode ? "text-gray-300" : "text-gray-600"
-                              }
-                            >
-                              Montant du transfert:
-                            </span>
-                            <span
-                              className={
-                                isDarkMode ? "text-white" : "text-gray-900"
-                              }
-                            >
-                              {parseFloat(transferData.amount).toFixed(2)}{" "}
-                              {selectedCurrency === "USD" ? "$" : "FC"}
-                            </span>
-                          </div>
-                          {transferFeePercentage > 0 && (
+                        
+                        {isMultipleTransfer ? (
+                          // Résumé pour transfert multiple
+                          <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                              <span
-                                className={
-                                  isDarkMode ? "text-gray-300" : "text-gray-600"
-                                }
-                              >
-                                Frais de transfert ({transferFeePercentage}%):
+                              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                Nombre de destinataires:
                               </span>
-                              <span
-                                className={
-                                  isDarkMode ? "text-white" : "text-gray-900"
-                                }
-                              >
-                                {transferFeeAmount.toFixed(2)}{" "}
+                              <span className={isDarkMode ? "text-white" : "text-gray-900"}>
+                                {multipleRecipients.filter(r => r.amount && parseFloat(r.amount) > 0).length}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                Montant total transféré:
+                              </span>
+                              <span className={isDarkMode ? "text-white" : "text-gray-900"}>
+                                {calculateTotalAmountTransferred().toFixed(2)}{" "}
                                 {selectedCurrency === "USD" ? "$" : "FC"}
                               </span>
                             </div>
-                          )}
-                          {transferCommissionPercentage > 0 && (
-                            <div className="flex justify-between">
-                              <span
-                                className={
-                                  isDarkMode ? "text-gray-300" : "text-gray-600"
-                                }
-                              >
-                                Commission ({transferCommissionPercentage}%):
-                              </span>
-                              <span
-                                className={
-                                  isDarkMode ? "text-white" : "text-gray-900"
-                                }
-                              >
-                                {transferCommissionAmount.toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
-                              </span>
-                            </div>
-                          )}
-                          {(transferFeePercentage > 0 ||
-                            transferCommissionPercentage > 0) && (
+                            {calculateTotalFees() > 0 && (
+                              <div className="flex justify-between">
+                                <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                  Total des frais:
+                                </span>
+                                <span className={isDarkMode ? "text-white" : "text-gray-900"}>
+                                  {calculateTotalFees().toFixed(2)}{" "}
+                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                </span>
+                              </div>
+                            )}
                             <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-600">
-                              <span
-                                className={`font-medium ${
-                                  isDarkMode ? "text-gray-300" : "text-gray-600"
-                                }`}
-                              >
+                              <span className={`font-medium ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                                 Total à débiter:
                               </span>
-                              <span
-                                className={`font-medium ${
-                                  isDarkMode ? "text-white" : "text-gray-900"
-                                }`}
-                              >
-                                {(
-                                  parseFloat(transferData.amount) +
-                                  totalFeeAmount
-                                ).toFixed(2)}{" "}
+                              <span className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                                {calculateMultipleTransferTotal().toFixed(2)}{" "}
                                 {selectedCurrency === "USD" ? "$" : "FC"}
                               </span>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          // Résumé pour transfert simple (existante)
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                Montant du transfert:
+                              </span>
+                              <span className={isDarkMode ? "text-white" : "text-gray-900"}>
+                                {parseFloat(transferData.amount).toFixed(2)}{" "}
+                                {selectedCurrency === "USD" ? "$" : "FC"}
+                              </span>
+                            </div>
+                            {transferFeePercentage > 0 && (
+                              <div className="flex justify-between">
+                                <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                  Frais de transfert ({transferFeePercentage}%):
+                                </span>
+                                <span className={isDarkMode ? "text-white" : "text-gray-900"}>
+                                  {transferFeeAmount.toFixed(2)}{" "}
+                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                </span>
+                              </div>
+                            )}
+                            {transferCommissionPercentage > 0 && (
+                              <div className="flex justify-between">
+                                <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                                  Commission ({transferCommissionPercentage}%):
+                                </span>
+                                <span className={isDarkMode ? "text-white" : "text-gray-900"}>
+                                  {transferCommissionAmount.toFixed(2)}{" "}
+                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                </span>
+                              </div>
+                            )}
+                            {(transferFeePercentage > 0 || transferCommissionPercentage > 0) && (
+                              <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-600">
+                                <span className={`font-medium ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
+                                  Total à débiter:
+                                </span>
+                                <span className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                                  {(parseFloat(transferData.amount) + totalFeeAmount).toFixed(2)}{" "}
+                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
+
+                  {errors.total && (
+                    <div className="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700">
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        {errors.total}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="mb-4">
                     <p
@@ -1075,6 +1533,23 @@ const FundsTransferModal = ({
         pauseOnHover
         theme={isDarkMode ? "dark" : "light"}
       />
+      
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: ${isDarkMode ? '#374151' : '#f3f4f6'};
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: ${isDarkMode ? '#6b7280' : '#9ca3af'};
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: ${isDarkMode ? '#9ca3af' : '#6b7280'};
+        }
+      `}</style>
     </div>,
     document.body
   );

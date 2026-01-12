@@ -19,7 +19,7 @@ class ProcessJetonEsengo extends Command
      *
      * @var string
      */
-    protected $signature = 'solifin:process-jeton-esengo';
+    protected $signature = 'solifin:process-jeton-esengo {--batch=500 : Taille du lot pour le traitement}';
 
     /**
      * La description de la commande console.
@@ -56,11 +56,25 @@ class ProcessJetonEsengo extends Command
     {
         $this->info('Début du traitement des jetons Esengo...');
         
+        // Mesurer le temps d'exécution
+        $startTime = microtime(true);
+        
         try {
-            // Traiter l'attribution hebdomadaire des jetons Esengo
-            $stats = $this->jetonEsengoService->processWeeklyJetons();
+            // Récupérer la taille du lot depuis les options
+            $batchSize = (int) $this->option('batch');
             
-            $this->info("Traitement terminé. {$stats['users_processed']} utilisateurs traités, {$stats['jetons_attributed']} jetons attribués, {$stats['errors']} erreurs.");
+            // Traiter l'attribution hebdomadaire des jetons Esengo
+            $stats = $this->jetonEsengoService->processWeeklyJetons($batchSize);
+            
+            $duration = round(microtime(true) - $startTime, 2);
+            $this->info("Traitement terminé en {$duration} secondes.");
+            $this->info("{$stats['users_processed']} utilisateurs traités, {$stats['jetons_attributed']} jetons attribués, {$stats['errors']} erreurs.");
+            
+            // Journaliser les résultats avec le temps d'exécution
+            Log::info('Traitement des jetons Esengo terminé', [
+                'duration' => $duration,
+                'stats' => $stats,
+            ]);
             
             if ($stats['errors'] > 0) {
                 return Command::FAILURE;
@@ -68,8 +82,10 @@ class ProcessJetonEsengo extends Command
             
             return Command::SUCCESS;
         } catch (\Exception $e) {
+            $duration = round(microtime(true) - $startTime, 2);
             $this->error('Erreur lors du traitement des jetons Esengo: ' . $e->getMessage());
             Log::error('Erreur lors du traitement des jetons Esengo: ' . $e->getMessage());
+            Log::error('Durée avant erreur: ' . $duration . ' secondes');
             Log::error($e->getTraceAsString());
             return Command::FAILURE;
         }

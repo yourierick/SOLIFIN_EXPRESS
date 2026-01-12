@@ -112,16 +112,28 @@ class WithdrawalService
 
         DB::beginTransaction();
         try {
+            $transaction = $withdrawal->user->wallet->transactions()
+            ->where('type', 'withdrawal')
+            ->where('metadata->withdrawal_request_id', $withdrawal->id)
+            ->first();
+
             // Rembourser le montant au wallet de l'utilisateur
+            $montantArembourser = $withdrawal->amount + $withdrawal->payment_details['frais_de_retrait'] + $withdrawal->payment_details['frais_de_commission'];
             $wallet = $withdrawal->user->wallet;
-            $wallet->addFunds($withdrawal->amount, $withdrawal->payment_details['devise'], "remboursement", self::STATUS_COMPLETED, [
+            $wallet->addFunds($montantArembourser, $withdrawal->payment_details['devise'], "remboursement", self::STATUS_COMPLETED, [
                 "user" => $withdrawal->user->name,
-                "Montant" => $withdrawal->amount,
-                "Description" => "remboursement du montant gélé " . $withdrawal->amount . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC') . " pour le retrait ID: " . $withdrawal->id . " d'un montant de " . $withdrawal->payment_details['montant_a_retirer'] . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC') ." pour cause de rejet",
+                "Montant" => $montantArembourser,
+                "Description" => "remboursement du montant gélé " . $montantArembourser . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC') . " pour le retrait ID: " . $withdrawal->id . " pour cause de rejet, transaction référencée : " . $transaction->reference,
             ]);
 
             // Mettre à jour la transaction originale
-            $this->updateUserTransaction($withdrawal, self::STATUS_REJECTED);
+            $this->updateUserTransaction($withdrawal, self::STATUS_FAILED, 'Rejeté par l\'administrateur');
+            if ($withdrawal->currency === 'USD') {
+                $withdrawal->user->wallet->total_withdrawn_usd -= $montantArembourser;
+            } else {
+                $withdrawal->user->wallet->total_withdrawn_cdf -= $montantArembourser;
+            }
+            $withdrawal->user->wallet->save();
 
             // Rejeter la demande
             $withdrawal->status = self::STATUS_REJECTED;
@@ -183,17 +195,27 @@ class WithdrawalService
 
         DB::beginTransaction();
         try {
+            $transaction = $withdrawal->user->wallet->transactions()
+            ->where('type', 'withdrawal')
+            ->where('metadata->withdrawal_request_id', $withdrawal->id)
+            ->first();
             // Rembourser le montant au wallet de l'utilisateur
+            $montantArembourser = $withdrawal->amount + $withdrawal->payment_details['frais_de_retrait'] + $withdrawal->payment_details['frais_de_commission'];
             $wallet = $user->wallet;
-            $wallet->addFunds($withdrawal->amount, $withdrawal->currency, "remboursement", self::STATUS_COMPLETED, [
+            $wallet->addFunds($montantArembourser, $withdrawal->currency, "remboursement", self::STATUS_COMPLETED, [
                 "user" => $withdrawal->user->name,
-                "Montant" => $withdrawal->amount,
-                "Description" => "remboursement du montant gélé " . $withdrawal->amount . ($withdrawal->currency === 'USD' ? '$' : 'FC') . " de votre compte suite à l'annulation de votre demande de retrait de " . $withdrawal->payment_details['montant_a_retirer'] . ($withdrawal->currency === 'USD' ? '$' : 'FC'),
+                "Montant" => $montantArembourser,
+                "Description" => "remboursement du montant gélé " . $montantArembourser . ($withdrawal->currency === 'USD' ? '$' : 'FC') . " de votre compte suite à l'annulation de votre demande de retrait de " . $withdrawal->payment_details['montant_a_retirer'] . ($withdrawal->currency === 'USD' ? '$' : 'FC') . " transaction référencée : " . $transaction->reference,
             ]);
 
             // Mettre à jour la transaction originale
-            $this->updateUserTransaction($withdrawal, self::STATUS_CANCELLED);
-
+            $this->updateUserTransaction($withdrawal, self::STATUS_FAILED, 'Annulée par l\'utilisateur');
+            if ($withdrawal->currency === 'USD') {
+                $withdrawal->user->wallet->total_withdrawn_usd -= $montantArembourser;
+            } else {
+                $withdrawal->user->wallet->total_withdrawn_cdf -= $montantArembourser;
+            }
+            $withdrawal->user->wallet->save();
             // Annuler la demande
             $withdrawal->status = self::STATUS_CANCELLED;
             $withdrawal->payment_status = self::STATUS_FAILED;
@@ -300,7 +322,7 @@ class WithdrawalService
      * @param string $status
      * @return void
      */
-    private function updateUserTransaction(WithdrawalRequest $withdrawal, string $status): void
+    private function updateUserTransaction(WithdrawalRequest $withdrawal, string $status, string $status_description = null): void
     {
         $transaction = $withdrawal->user->wallet->transactions()
             ->where('type', 'withdrawal')
@@ -309,6 +331,11 @@ class WithdrawalService
 
         if ($transaction) {
             $transaction->status = $status;
+            if ($status_description) {
+                $metadata = $transaction->metadata;
+                $metadata['Statut de paiement'] = $status_description;
+                $transaction->metadata = $metadata;
+            }
             $transaction->save();
         }
     }

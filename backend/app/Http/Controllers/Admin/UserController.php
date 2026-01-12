@@ -23,13 +23,8 @@ use App\Services\WalletService;
 
 class UserController extends BaseController
 {
-    public function __construct()
-    {
-        $this->middleware(['auth', 'admin']);
-    }
-
     /**
-     * Display a listing of the users.
+     * Affiche la liste des utilisateurs.
      */
     public function index(Request $request)
     {
@@ -38,7 +33,7 @@ class UserController extends BaseController
                 ->select('users.*') // Sélectionner explicitement les colonnes de la table users
                 ->where('is_admin', false)
                 ->withCount('referrals')
-                ->with(['packs' => function ($query) {
+                ->with(['grade', 'packs' => function ($query) {
                     $query->select('user_packs.id', 'user_packs.user_id', 'user_packs.pack_id');
                 }]);
 
@@ -67,6 +62,11 @@ class UserController extends BaseController
                 }
             }
 
+            if ($request->filled('grade_id')) {
+                $gradeId = $request->input('grade_id');
+                $query->where('users.grade_id', $gradeId);
+            }
+
             $users = $query->paginate(10);
 
             foreach ($users as $user) {
@@ -89,7 +89,7 @@ class UserController extends BaseController
     }
 
     /**
-     * Display the specified user.
+     * Affiche un utilisateur spécifique.
      * 
      * @param \Illuminate\Http\Request $request
      * @param int $id
@@ -97,9 +97,8 @@ class UserController extends BaseController
      */
     public function show(Request $request, $id)
     {
-        \Log::info([$id]);
         try {
-            $user = User::with(['packs', 'referrals'])
+            $user = User::with(['packs', 'grade', 'referrals'])
                 ->withCount('referrals')
                 ->findOrFail($id);
 
@@ -165,6 +164,7 @@ class UserController extends BaseController
             $wallet = $userWallet ? [
                 'balance_usd' => $userWallet->balance_usd,
                 'balance_cdf' => $userWallet->balance_cdf,
+                'points' => $userWallet->points,
                 'total_earned_usd' => $userWallet->total_earned_usd,
                 'total_earned_cdf' => $userWallet->total_earned_cdf,
                 'total_withdrawn_usd' => $userWallet->total_withdrawn_usd,

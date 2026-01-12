@@ -96,20 +96,22 @@ class TestimonialPromptService
             return null;
         }
         
-        // Vérifier si l'utilisateur a effectué exactement un retrait avec succès
-        $successfulWithdrawals = $user->wallet->transactions
+        // Récupérer toutes les transactions de retrait en une seule requête
+        $withdrawalTransactions = $user->wallet->transactions()
             ->where('type', 'withdrawal')
             ->where('status', 'completed')
-            ->count();
+            ->orderBy('created_at', 'asc')
+            ->get();
             
-        if ($successfulWithdrawals === 1) {
-            // Récupérer le montant du premier retrait
-            $firstWithdrawal = $user->wallet->transactions
-                ->where('type', 'withdrawal')
-                ->where('status', 'completed')
-                ->first();
-                
-            if ($firstWithdrawal && $firstWithdrawal->created_at->diffInDays(now()) <= 7) {
+        if ($withdrawalTransactions->isEmpty()) {
+            return null;
+        }
+        
+        // Vérifier si l'utilisateur a effectué exactement un retrait avec succès
+        if ($withdrawalTransactions->count() === 1) {
+            $firstWithdrawal = $withdrawalTransactions->first();
+            
+            if ($firstWithdrawal->created_at->diffInDays(now()) <= 7) {
                 return [
                     'type' => TestimonialPrompt::TRIGGER_WITHDRAWAL,
                     'data' => [
@@ -169,20 +171,20 @@ class TestimonialPromptService
      */
     private function checkReferralsTrigger(User $user): ?array
     {
-        // Vérifier le nombre de filleuls de l'utilisateur
-        $referrals = $user->referrals()->count();
+        // Récupérer le nombre de filleuls en une seule requête
+        $referralCount = $user->referrals()->count();
         
-        if ($referrals >= self::MIN_REFERRALS_THRESHOLD) {
+        if ($referralCount >= self::MIN_REFERRALS_THRESHOLD) {
             // Vérifier si l'utilisateur a atteint un palier significatif
             $significantThresholds = [20, 50, 100, 200, 500, 1000, 10000, 100000];
             
             foreach ($significantThresholds as $threshold) {
                 // Si le nombre de filleuls est exactement égal à un seuil
-                if ($referrals === $threshold) {
+                if ($referralCount === $threshold) {
                     return [
                         'type' => TestimonialPrompt::TRIGGER_REFERRALS,
                         'data' => [
-                            'count' => $referrals,
+                            'count' => $referralCount,
                             'milestone' => $threshold,
                         ],
                     ];
@@ -201,25 +203,25 @@ class TestimonialPromptService
      */
     private function checkPackUpgradeTrigger(User $user): ?array
     {
-        // Récupérer le dernier pack acheté par l'utilisateur
-        $latestPack = $user->packs()
+        // Récupérer tous les packs de l'utilisateur en une seule requête
+        $userPacks = $user->packs()
             ->orderBy('user_packs.created_at', 'desc')
-            ->first();
+            ->get();
             
-        if (!$latestPack) {
+        if ($userPacks->isEmpty()) {
             return null;
         }
         
-        // Vérifier si le pack a été acheté récemment (dans les 7 derniers jours)
+        // Récupérer le dernier pack acheté
+        $latestPack = $userPacks->first();
         $purchaseDate = $latestPack->pivot->created_at;
         
+        // Vérifier si le pack a été acheté récemment (dans les 7 derniers jours)
         if ($purchaseDate && $purchaseDate->diffInDays(now()) <= 7) {
             // Vérifier si c'est un upgrade (l'utilisateur avait déjà d'autres packs)
-            $previousPacks = $user->packs()
-                ->where('user_packs.created_at', '<', $purchaseDate)
-                ->count();
+            $previousPacksCount = $userPacks->slice(1)->count();
                 
-            if ($previousPacks > 0) {
+            if ($previousPacksCount > 0) {
                 return [
                     'type' => TestimonialPrompt::TRIGGER_PACK_UPGRADE,
                     'data' => [

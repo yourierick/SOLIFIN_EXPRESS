@@ -58,9 +58,6 @@ class TicketConsommeAdminNotification extends Notification implements ShouldQueu
             'titre' => 'Rémunération reçue',
             'message' => "Vous avez reçu {$this->montant} € pour la remise du cadeau {$this->cadeau->nom}.",
             'link' => '/admin',
-            'ticket_id' => $this->ticket->id,
-            'cadeau_id' => $this->cadeau->id,
-            'montant' => $this->montant
         ];
     }
 

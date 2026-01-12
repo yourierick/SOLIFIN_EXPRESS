@@ -30,7 +30,7 @@ class CheckExpiredTicketsGagnants extends Command
      *
      * @var int
      */
-    protected $chunkSize = 100;
+    protected $chunkSize = 500; // Augmenté pour meilleure performance
 
     /**
      * Execute the console command.
@@ -50,60 +50,63 @@ class CheckExpiredTicketsGagnants extends Command
             // Récupérer les tickets non consommés et expirés
             TicketGagnant::where('consomme', 'non consommé')
                 ->where('date_expiration', '<', now())
-                ->chunk($this->chunkSize, function ($tickets) use (&$totalExpired, &$totalNotified, &$totalErrors) {
-                    $this->info("Traitement d'un lot de " . $tickets->count() . " tickets expirés...");
+                ->with(['user', 'cadeau']) // Précharger les relations pour éviter N+1
+                ->chunk($this->chunkSize, function ($tickets) use (&$totalExpired, &$totalErrors) {
+                    $this->info("Traitement d'un lot de {$tickets->count()} tickets expirés...");
                     
-                    foreach ($tickets as $ticket) {
-                        DB::beginTransaction();
-                        
-                        try {
-                            // Récupérer les informations du ticket
-                            $userId = $ticket->user_id;
-                            $user = User::find($userId);
-                            $cadeau = $ticket->cadeau;
+                    try {
+                        DB::transaction(function () use ($tickets, &$totalExpired) {
+                            // Préparer les données pour mise à jour en masse
+                            $ticketIds = [];
+                            $updateData = [];
                             
-                            if (!$user || !$cadeau) {
-                                $this->warn("Ticket ID {$ticket->id}: Utilisateur ou cadeau introuvable.");
-                                DB::rollBack();
-                                continue;
+                            foreach ($tickets as $ticket) {
+                                $ticketIds[] = $ticket->id;
+                                
+                                // Vérifier les données requises
+                                if (!$ticket->user || !$ticket->cadeau) {
+                                    $this->warn("Ticket ID {$ticket->id}: Utilisateur ou cadeau introuvable.");
+                                    continue;
+                                }
+                                
+                                // Préparer les métadonnées pour logging
+                                $metadata = [
+                                    'Date d\'expiration' => $ticket->date_expiration->format('Y-m-d H:i:s'),
+                                    'Code de vérification' => $ticket->code_verification,
+                                    'Cadeau' => $ticket->cadeau->nom,
+                                    'Date d\'expiration dépassée de' => now()->diffForHumans($ticket->date_expiration, true)
+                                ];
+                                
+                                // Journaliser l'expiration
+                                Log::info("Ticket gagnant expiré", [
+                                    'ticket_id' => $ticket->id,
+                                    'user_id' => $ticket->user_id,
+                                    'cadeau_id' => $ticket->cadeau->id,
+                                    'date_expiration' => $ticket->date_expiration->format('Y-m-d H:i:s')
+                                ]);
+                                
+                                $this->line("Ticket ID: {$ticket->id} marqué comme expiré.");
                             }
                             
-                            // Enregistrer les métadonnées pour l'historique
-                            $metadata = [
-                                'Date d\'expiration' => $ticket->date_expiration->format('Y-m-d H:i:s'),
-                                'Code de vérification' => $ticket->code_verification,
-                                'Cadeau' => $cadeau->nom,
-                                'Date d\'expiration dépassée de' => now()->diffForHumans($ticket->date_expiration, true)
-                            ];
-                            
-                            // Marquer le ticket comme expiré
-                            $ticket->consomme = "expiré";
-                            $ticket->date_expiration = now();
-                            $ticket->save();
-                            
-                            // Journaliser l'expiration
-                            Log::info("Ticket gagnant expiré", [
-                                'ticket_id' => $ticket->id,
-                                'user_id' => $userId,
-                                'cadeau_id' => $cadeau->id,
-                                'date_expiration' => $ticket->date_expiration->format('Y-m-d H:i:s')
-                            ]);
-                            
-                            DB::commit();
-                            $totalExpired++;
-                            
-                            $this->line("Ticket ID: {$ticket->id} marqué comme expiré.");
-                            
-                        } catch (\Exception $e) {
-                            DB::rollBack();
-                            $totalErrors++;
-                            
-                            $this->error("Erreur lors du traitement du ticket ID: {$ticket->id} - {$e->getMessage()}");
-                            Log::error("Erreur lors du traitement d'un ticket gagnant expiré: {$e->getMessage()}", [
-                                'ticket_id' => $ticket->id,
-                                'exception' => $e->getTraceAsString()
-                            ]);
-                        }
+                            // Mettre à jour tous les tickets en une seule requête
+                            if (!empty($ticketIds)) {
+                                TicketGagnant::whereIn('id', $ticketIds)
+                                    ->update([
+                                        'consomme' => 'expiré',
+                                        'date_expiration' => now()
+                                    ]);
+                                
+                                $totalExpired += count($ticketIds);
+                            }
+                        });
+                        
+                    } catch (\Exception $e) {
+                        $totalErrors += $tickets->count();
+                        $this->error("Erreur lors du traitement du lot: {$e->getMessage()}");
+                        Log::error("Erreur lors du traitement d'un lot de tickets expirés", [
+                            'batch_count' => $tickets->count(),
+                            'exception' => $e->getTraceAsString()
+                        ]);
                     }
                 });
             

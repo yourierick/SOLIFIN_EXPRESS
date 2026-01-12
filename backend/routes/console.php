@@ -21,11 +21,11 @@ Schedule::command('publications:update-status')
     ->appendOutputTo(storage_path('logs/publications-status.log'))
     ->description('Met à jour le statut des publications expirées tous les jours à 00h30');
 
-Schedule::command('users:send-trial-warnings')
-    ->daily()
-    ->at('09:00')
-    ->appendOutputTo(storage_path('logs/trial-warnings.log'))
-    ->description('Envoie les avertissements d\'expiration de période d\'essai tous les jours à 9h');
+// Schedule::command('users:send-trial-warnings')
+//     ->daily()
+//     ->at('09:00')
+//     ->appendOutputTo(storage_path('logs/trial-warnings.log'))
+//     ->description('Envoie les avertissements d\'expiration de période d\'essai tous les jours à 9h');
 
 // Schedule::command('users:delete-expired-trials')
 //     ->daily()
@@ -45,6 +45,14 @@ Schedule::command('solifin:process-jeton-esengo')
     ->at('00:00')
     ->appendOutputTo(storage_path('logs/jetons-esengo.log'))
     ->description('Attribue les jetons Esengo (hebdomadaires) aux utilisateurs pour la semaine précédente');
+
+// Distribution des grades aux utilisateurs éligibles (chaque lundi à 05h00)
+Schedule::command('grades:distribute')
+    ->weekly()
+    ->mondays()
+    ->at('05:00')
+    ->appendOutputTo(storage_path('logs/grades-distribution.log'))
+    ->description('Distribue les grades aux utilisateurs ayant atteint le nombre de points requis');
 
 // Vérification des jetons Esengo expirés (tous les jours à 01:15)
 Schedule::command('solifin:check-expired-jetons-esengo')

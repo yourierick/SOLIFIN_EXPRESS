@@ -297,9 +297,10 @@ class PackController extends Controller
     {  
         try {
             $validator = Validator::make($request->all(), [
-                'type' => 'required|in:delais,esengo',
+                'type' => 'required',
                 'nombre_filleuls' => 'required|integer|min:1',
                 'points_attribues' => 'required|integer|min:1',
+                'valeur_point' => 'required|numeric|min:0'
             ]);
 
             if ($validator->fails()) {
@@ -331,6 +332,7 @@ class PackController extends Controller
                 'frequence' => "weekly",
                 'nombre_filleuls' => $request->nombre_filleuls, //Seuil de filleuls pour avoir de jeton Esengo
                 'points_attribues' => $request->points_attribues, //Nombre de jetons Esengo attribués
+                'valeur_point' => $request->valeur_point, //Nombre de points attribués par obtention de ce jeton
             ]);
 
             DB::commit();

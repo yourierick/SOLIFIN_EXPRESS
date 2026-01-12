@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Http\Controllers\Api\CurrencyController;
+use App\Services\TwilioSmsService;
+use App\Jobs\SendWithdrawalNotificationSms;
 
 class WithdrawalController extends Controller
 {
@@ -504,7 +506,11 @@ class WithdrawalController extends Controller
             $admins = User::where('is_admin', true)->get();
             
             foreach ($admins as $admin) {
+                // Notification par email
                 $admin->notify(new WithdrawalRequestCreated($withdrawalRequest));
+                
+                // Notification SMS via queue (asynchrone)
+                SendWithdrawalNotificationSms::dispatch($admin, $withdrawalRequest);
             }
 
             return response()->json([

@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\UserPack;
 use App\Models\Pack;
+use App\Notifications\FundsReceivedNotification;
+use App\Notifications\CommissionReceivedNotification;
+use App\Notifications\MultipleTransferStatusNotification;
 use App\Models\Setting;
 use App\Notifications\FundsTransferred;
 use Illuminate\Support\Facades\DB;
@@ -190,15 +193,29 @@ class WalletUserController extends Controller
     public function funds_transfer(Request $request)
     {
         try {
-            $request->validate([
-                'recipient_account_id' => 'required',
-                'amount' => 'required|numeric|min:0',
-                'currency' => 'required|in:USD,CDF',
-                'frais_de_transaction' => 'required|numeric',
-                'frais_de_commission' => 'required|numeric',
-                'password' => 'required',
-                'description' => 'nullable|string'
-            ]);
+            // Validation différente selon le type de transfert
+            if ($request->is_multiple) {
+                $request->validate([
+                    'recipients' => 'required|array|min:1',
+                    'recipients.*.recipient_account_id' => 'required|string',
+                    'recipients.*.amount' => 'required|numeric|min:0',
+                    'recipients.*.frais_de_transaction' => 'required|numeric|min:0',
+                    'recipients.*.frais_de_commission' => 'required|numeric|min:0',
+                    'currency' => 'required|in:USD,CDF',
+                    'password' => 'required',
+                    'description' => 'nullable|string'
+                ]);
+            } else {
+                $request->validate([
+                    'recipient_account_id' => 'required',
+                    'amount' => 'required|numeric|min:0',
+                    'currency' => 'required|in:USD,CDF',
+                    'frais_de_transaction' => 'required|numeric',
+                    'frais_de_commission' => 'required|numeric',
+                    'password' => 'required',
+                    'description' => 'nullable|string'
+                ]);
+            }
 
             // Vérifier le mot de passe de l'utilisateur
             $user = Auth::user();
@@ -211,97 +228,126 @@ class WalletUserController extends Controller
 
             // Initialiser le service wallet
             $walletService = new \App\Services\WalletService();
-            
-            // Récupérer les wallets
             $userWallet = $user->wallet ?? $walletService->createUserWallet($user->id);
-            $recipient = User::where("account_id", $request->recipient_account_id)->first();
-            
-            if (!$recipient) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Compte du bénéficiaire non trouvé'
-                ], 404);
-            }
-            
-            $recipientWallet = $recipient->wallet ?? $walletService->createUserWallet($recipient->id);
 
-            // Vérifications
-            if ($userWallet->id == $recipientWallet->id) {
+            if ($request->is_multiple) {
+                // Traitement du transfert multiple
+                return $this->processMultipleTransfer($request, $user, $userWallet, $walletService);
+            } else {
+                // Traitement du transfert simple (logique existante)
+                return $this->processSingleTransfer($request, $user, $userWallet, $walletService);
+            }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors du transfert de fonds', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du transfert de fonds: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Traiter un transfert simple (logique existante)
+     */
+    private function processSingleTransfer($request, $user, $userWallet, $walletService)
+    {
+        // Récupérer le destinataire
+        $recipient = User::where("account_id", $request->recipient_account_id)->first();
+        
+        if (!$recipient) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Compte du bénéficiaire non trouvé'
+            ], 404);
+        }
+        
+        $recipientWallet = $recipient->wallet ?? $walletService->createUserWallet($recipient->id);
+
+        // Vérifications
+        if ($userWallet->id == $recipientWallet->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous ne pouvez pas transférer des fonds sur votre propre compte'
+            ], 400);
+        }
+
+        $currency = $request->currency;
+        $montant_total = $request->amount + $request->frais_de_transaction + $request->frais_de_commission;
+        
+        if ($currency === "USD") {
+            if ($userWallet->balance_usd < $montant_total) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Vous ne pouvez pas transférer des fonds sur votre propre compte'
+                    'message' => 'Solde insuffisant'
                 ], 400);
             }
-
-            $currency = $request->currency;
-            $montant_total = $request->amount + $request->frais_de_transaction + $request->frais_de_commission;
-            if ($currency === "USD") {
-                if ($userWallet->balance_usd < $montant_total) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Solde insuffisant'
-                    ], 400);
-                }
-            }else {
-                if ($userWallet->balance_cdf < $montant_total) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Solde insuffisant'
-                    ], 400);
-                }
+        } else {
+            if ($userWallet->balance_cdf < $montant_total) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solde insuffisant'
+                ], 400);
             }
+        }
 
-            // Préparer les métadonnées pour l'expéditeur
-            $senderMetadata = [
-                "Bénéficiaire" => $recipientWallet->user->name,
-                "Opération" => "Transfert des fonds",
-                "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-                "Frais de transaction" => number_format($request->frais_de_transaction, 2) . ($currency === 'USD' ? " $" : " FC"),
-                "Frais de commission" => number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC"),
-                "Description" => $request->description ?? 'Transfert de fonds',
-                "Détails" => "Vous avez transféré " . number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC") . " au compte " . $recipientWallet->user->account_id
-            ];
+        // Préparer les métadonnées pour l'expéditeur
+        $senderMetadata = [
+            "Bénéficiaire" => $recipientWallet->user->name,
+            "Opération" => "Transfert des fonds",
+            "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Frais de transaction" => number_format($request->frais_de_transaction, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Frais de commission" => number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Description" => $request->description ?? 'Transfert de fonds',
+            "Détails" => "Vous avez transféré " . number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC") . " au compte " . $recipientWallet->user->account_id
+        ];
 
-            // Préparer les métadonnées pour le destinataire
-            $recipientMetadata = [
-                "Expéditeur" => $userWallet->user->name,
-                "Opération" => "Réception des fonds",
-                "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-                "Description" => $request->description ?? 'Transfert de fonds',
-                "Détails" => "Vous avez reçu " . number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC") . " du compte " . $userWallet->user->account_id
-            ];
+        // Préparer les métadonnées pour le destinataire
+        $recipientMetadata = [
+            "Expéditeur" => $userWallet->user->name,
+            "Opération" => "Réception des fonds",
+            "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Description" => $request->description ?? 'Transfert de fonds',
+            "Détails" => "Vous avez reçu " . number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC") . " du compte " . $userWallet->user->account_id
+        ];
 
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            // Gestion des commissions
-            $sponsorWallet = null;
-            $sponsorName = null;
-            $frais_de_commission = 0;
-            if ($request->frais_de_commission > 0) {
-                // Gestion du parrain avec vérification de l'existence du pack et du parrain
-                $firstUserPack = UserPack::where('user_id', $user->id)->first();
-                $sponsor = $firstUserPack ? User::find($firstUserPack->sponsor_id) : null;
+        // Gestion des commissions (logique existante)
+        $sponsorWallet = null;
+        $sponsorName = null;
+        $frais_de_commission = 0;
+        if ($request->frais_de_commission > 0) {
+            // Gestion du parrain avec vérification de l'existence du pack et du parrain
+            $firstUserPack = UserPack::where('user_id', $user->id)->first();
+            $sponsor = $firstUserPack ? User::find($firstUserPack->sponsor_id) : null;
+            
+            if ($sponsor && $firstUserPack) {
+                $pack = Pack::find($firstUserPack->pack_id);
+                $isActivePackSponsor = $sponsor->packs()
+                    ->where('pack_id', $pack->id)
+                    ->where('user_packs.status', 'active')
+                    ->exists();
                 
-                if ($sponsor && $firstUserPack) {
-                    $pack = Pack::find($firstUserPack->pack_id);
-                    $isActivePackSponsor = $sponsor->packs()
-                        ->where('pack_id', $pack->id)
-                        ->where('user_packs.status', 'active')
-                        ->exists();
+                if ($isActivePackSponsor) {
+                    $sponsorWallet = $sponsor->wallet ?? $walletService->createUserWallet($sponsor->id);
+                    $sponsorName = $sponsor->name;
                     
-                    if ($isActivePackSponsor) {
-                        $sponsorWallet = $sponsor->wallet ?? $walletService->createUserWallet($sponsor->id);
-                        $sponsorName = $sponsor->name;
-                        
-                        $sponsorMetadata = [
-                            "Source" => $user->name, 
-                            "Opération" => "commission de transfert",
-                            "Montant" => number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC"),
-                            "Description" => "Vous avez gagné une commission de ". number_format($request->frais_de_commission, 2) . 
-                                            ($currency === 'USD' ? ' $' : ' FC') . " pour le transfert d'un montant de ". number_format($request->amount, 2) .
-                                            ($currency === 'USD' ? ' $' : ' FC') . " par votre filleul " . $user->name,
-                        ];
-                        
+                    $sponsorMetadata = [
+                        "Source" => $user->name, 
+                        "Opération" => "commission de transfert",
+                        "Montant" => number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC"),
+                        "Description" => "Vous avez gagné une commission de ". number_format($request->frais_de_commission, 2) . 
+                                        ($currency === 'USD' ? ' $' : ' FC') . " pour le transfert d'un montant de ". number_format($request->amount, 2) .
+                                        ($currency === 'USD' ? ' $' : ' FC') . " par votre filleul " . $user->name,
+                    ];
+
+                    if ($sponsorWallet->id !== $recipientWallet->id) {
                         $sponsorWallet->addFunds(
                             $request->frais_de_commission,
                             $currency, 
@@ -309,98 +355,371 @@ class WalletUserController extends Controller
                             self::STATUS_COMPLETED, 
                             $sponsorMetadata
                         );
-
                         $frais_de_commission = $request->frais_de_commission;
                     }
                 }
             }
+        }
 
-            //Récalculer le montant total
-            $montant_total = $request->amount + $request->frais_de_transaction + $frais_de_commission;
+        //Récalculer le montant total
+        $montant_total = $request->amount + $request->frais_de_transaction + $frais_de_commission;
 
-            // Effectuer les transactions
-            $userWallet->withdrawFunds(
-                $montant_total, 
+        // // Effectuer les transactions
+        $userWallet->withdrawFunds(
+            $montant_total, 
+            $currency,
+            "transfer", 
+            self::STATUS_COMPLETED, 
+            $senderMetadata
+        );
+        
+        $recipientWallet->addFunds(
+            $request->amount, 
+            $currency,
+            "reception", 
+            self::STATUS_COMPLETED, 
+            $recipientMetadata
+        );
+
+        // Enregistrer la transaction système
+        $systemMetadata = [
+            "User_ID" => $user->id,
+            "user" => $user->name, 
+            "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Dévise" => $currency,
+            "Frais de transaction" => number_format($request->frais_de_transaction, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Frais de commission" => $sponsorWallet ? 
+                "Paiement d'une commission de " . number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC") . " à " . $sponsorName : 
+                "Aucune commission payée pour cause de non activation du pack ou d'inexistance du parrain",
+            "Description" => "Transfert de ". number_format($request->amount, 2) . 
+                            ($currency === 'USD' ? " $" : " FC") . " par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
+        ];
+
+        $transactionData = [
+            'amount' => number_format($request->amount, 2),
+            'currency' => $currency,
+            'mouvment' => 'out',
+            'type' => 'transfer',
+            'status' => 'completed',
+            'metadata' => $systemMetadata,
+        ];
+
+        $walletService = app(\App\Services\WalletService::class);
+        $walletService->recordSystemTransaction($transactionData);
+
+        DB::commit();
+
+        // Notifier le destinataire et le parrain
+        try {
+            // Notification destinataire
+            $recipient->notify(new FundsReceivedNotification(
+                $request->amount,
                 $currency,
-                "transfer", 
-                self::STATUS_COMPLETED, 
-                $senderMetadata
-            );
+                $user->name,
+                $user->account_id,
+                'transfer'
+            ));
+
+            // Notification parrain
+            if ($sponsorWallet && $frais_de_commission > 0) {
+                $sponsor->notify(new CommissionReceivedNotification(
+                    $frais_de_commission,
+                    $currency,
+                    $user->name,
+                    $user->account_id
+                ));
+            }
+
+            // Notifier l'expéditeur du succès du transfert
+            $user->notify(new MultipleTransferStatusNotification(
+                true, // Succès
+                $request->amount,
+                $currency,
+                1, // 1 transfert réussi
+                0, // 0 transfert échoué
+                [] // Aucun transfert échoué
+            ));
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'envoi des notifications de transfert simple', [
+                'error' => $e->getMessage(),
+                'recipient_id' => $recipient->id,
+                'sponsor_id' => $sponsor ? $sponsor->id : null
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transfert effectué avec succès',
+            'data' => [
+                'amount' => $request->amount,
+                'currency' => $currency,
+                'transaction_id' => uniqid(),
+                'recipient' => $recipient->name,
+                'fees' => $request->frais_de_transaction + $frais_de_commission
+            ]
+        ]);
+    }
+
+    /**
+     * Traiter un transfert multiple
+     */
+    private function processMultipleTransfer($request, $user, $userWallet, $walletService)
+    {
+        $currency = $request->currency;
+        $totalAmount = $request->total_amount;
+        $totalFees = $request->total_fees;
+        $grandTotal = $totalAmount + $totalFees;
+
+        // Vérifier le solde
+        if ($currency === "USD") {
+            if ($userWallet->balance_usd < $grandTotal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solde insuffisant pour tous les transferts'
+                ], 400);
+            }
+        } else {
+            if ($userWallet->balance_cdf < $grandTotal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solde insuffisant pour tous les transferts'
+                ], 400);
+            }
+        }
+
+        DB::beginTransaction();
+
+        $successfulTransfers = [];
+        $failedTransfers = [];
+        $totalCommission = 0;
+
+        $sponsorWallet = null;
+        $sponsorName = null;
+        $firstUserPack = UserPack::where('user_id', $user->id)->first();
+        $sponsor = $firstUserPack ? User::find($firstUserPack->sponsor_id) : null;
+        
+        if ($sponsor && $firstUserPack) {
+            $pack = Pack::find($firstUserPack->pack_id);
+            $isActivePackSponsor = $sponsor->packs()
+                ->where('pack_id', $pack->id)
+                ->where('user_packs.status', 'active')
+                ->exists();
             
-            $recipientWallet->addFunds(
-                $request->amount, 
-                $currency,
-                "reception", 
-                self::STATUS_COMPLETED, 
-                $recipientMetadata
-            );
+            if ($isActivePackSponsor) {
+                $sponsorWallet = $sponsor->wallet ?? $walletService->createUserWallet($sponsor->id);
+                $sponsorName = $sponsor->name;
+            }
+        }
 
-            // Enregistrer la transaction système
-            $systemMetadata = [
-                "User_ID" => $user->id,
-                "user" => $user->name, 
-                "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-                "Dévise" => $currency,
-                "Frais de transaction" => number_format($request->frais_de_transaction, 2) . ($currency === 'USD' ? " $" : " FC"),
-                "Frais de commission" => $sponsorWallet ? 
-                    "Paiement d'une commission de " . number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC") . " à " . $sponsorName : 
-                    "Aucune commission payée pour cause de non activation du pack ou d'inexistance du parrain",
-                "Description" => "Transfert de ". number_format($request->amount, 2) . 
-                                ($currency === 'USD' ? " $" : " FC") . " par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
+        // Traiter chaque destinataire
+        foreach ($request->recipients as $recipientData) {
+            try {
+                $recipient = User::where("account_id", $recipientData['recipient_account_id'])->first();
+                
+                if (!$recipient) {
+                    $failedTransfers[] = [
+                        'recipient_account_id' => $recipientData['recipient_account_id'],
+                        'reason' => 'Compte non trouvé'
+                    ];
+                    continue;
+                }
+
+                $recipientWallet = $recipient->wallet ?? $walletService->createUserWallet($recipient->id);
+
+                // Vérifier que ce n'est pas le même utilisateur
+                if ($userWallet->id == $recipientWallet->id) {
+                    $failedTransfers[] = [
+                        'recipient_account_id' => $recipientData['recipient_account_id'],
+                        'reason' => 'Transfert vers son propre compte non autorisé'
+                    ];
+                    continue;
+                }
+
+                $amount = $recipientData['amount'];
+                $transactionFee = $recipientData['frais_de_transaction'];
+                $commissionFee = $recipientWallet->id !== $sponsorWallet->id ? $recipientData['frais_de_commission'] : 0;
+                $recipientTotal = $amount + $transactionFee + $commissionFee;
+
+                // Préparer les métadonnées
+                $senderMetadata = [
+                    "Bénéficiaire" => $recipientWallet->user->name,
+                    "Opération" => "Transfert multiple des fonds",
+                    "Montant" => number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC"),
+                    "Frais de transaction" => number_format($transactionFee, 2) . ($currency === 'USD' ? " $" : " FC"),
+                    "Frais de commission" => number_format($commissionFee, 2) . ($currency === 'USD' ? " $" : " FC"),
+                    "Description" => $request->description ?? 'Transfert multiple de fonds',
+                    "Détails" => "Vous avez transféré " . number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC") . " au compte " . $recipientWallet->user->account_id . 
+                        ($sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? 
+                            " (votre parrain - commission incluse dans le transfert)" : 
+                            " (Transfert multiple)")
+                ];
+
+                $recipientMetadata = [
+                    "Expéditeur" => $userWallet->user->name,
+                    "Opération" => "Réception des fonds (transfert multiple)",
+                    "Montant" => number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC"),
+                    "Description" => $request->description ?? 'Transfert multiple de fonds',
+                    "Détails" => "Vous avez reçu " . number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC") . " du compte " . $userWallet->user->account_id . 
+                        ($sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? 
+                            " (votre filleul)" : 
+                            " (Transfert multiple)")
+                ];
+
+                // Effectuer le transfert
+                $userWallet->withdrawFunds(
+                    $recipientTotal, 
+                    $currency,
+                    "transfer", 
+                    self::STATUS_COMPLETED, 
+                    $senderMetadata
+                );
+                
+                $recipientWallet->addFunds(
+                    $amount, 
+                    $currency,
+                    "reception", 
+                    self::STATUS_COMPLETED, 
+                    $recipientMetadata
+                );
+
+                //Ajouter le total de la commission pour paiement du premier sponsor
+                if ($sponsorWallet) {
+                    if ($recipientWallet->id == $sponsorWallet->id) {
+                        $sponsorWallet = $recipientWallet;
+                    }else {
+                        $totalCommission += $commissionFee;
+                    }
+                }
+
+                $successfulTransfers[] = [
+                    'recipient_account_id' => $recipientData['recipient_account_id'],
+                    'recipient_name' => $recipient->name,
+                    'amount' => $amount,
+                    'fees' => $transactionFee + $commissionFee,
+                    'is_sponsor' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id,
+                    'commission_paid' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? $commissionFee : 0,
+                    'total_received' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? $amount + $commissionFee : $amount,
+                    'operation_type' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? 'reception_avec_commission' : 'reception'
+                ];
+
+            } catch (\Exception $e) {
+                $failedTransfers[] = [
+                    'recipient_account_id' => $recipientData['recipient_account_id'],
+                    'reason' => 'Erreur lors du traitement: ' . $e->getMessage()
+                ];
+            }
+        }
+
+        // Payer les commissions au parrain si applicable
+        if ($sponsorWallet && $totalCommission > 0) {
+            $sponsorMetadata = [
+                "Source" => $user->name, 
+                "Opération" => "Commission de transfert",
+                "Montant" => number_format($totalCommission, 2) . ($currency === 'USD' ? " $" : " FC"),
+                "Description" => "Vous avez gagné une commission de ". number_format($totalCommission, 2) . 
+                                ($currency === 'USD' ? ' $' : ' FC') . " pour un transfert de fonds effectué par votre filleul" . $user->name,
             ];
             
-            $walletService->recordSystemTransaction([
-                'amount' => $request->amount,
-                'currency' => $request->currency,
-                'type' => "transfer",
-                'status' => self::STATUS_COMPLETED,
-                'metadata' => $systemMetadata
-            ]);
-
-            DB::commit();
-
-            // Notifications
-            $user->notify(new FundsTransferred(
-                $request->amount . ($currency === 'USD' ? " $" : " FC"),
-                $user->name,
-                $recipient->name,
-                false,
-                $request->description ?? 'Transfert de fonds',
-            ));
-            
-            $recipient->notify(new FundsTransferred(
-                $request->amount . ($currency === 'USD' ? " $" : " FC"),
-                $user->name,
-                $recipient->name,
-                true,
-                $request->description ?? 'Transfert de fonds',
-                $user->is_admin
-            ));
-            
-            // Récupérer le nouveau solde selon la devise
-            $newBalance = $request->currency === 'USD' 
-                ? number_format($userWallet->fresh()->balance_usd, 2) . ' $'
-                : number_format($userWallet->fresh()->balance_cdf, 2) . ' FC';
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Transfert effectué avec succès',
-                'new_balance' => $newBalance
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors du transfert de fonds: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'recipient' => $request->recipient_account_id ?? null,
-                'amount' => $request->amount ?? null
-            ]);
-            \Log::error($e->getTraceAsString());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du transfert'
-            ], 500);
+            $sponsorWallet->addFunds(
+                $totalCommission,
+                $currency, 
+                "commission de transfert", 
+                self::STATUS_COMPLETED, 
+                $sponsorMetadata
+            );
         }
+
+        // Enregistrer la transaction système
+        $systemMetadata = [
+            "User_ID" => $user->id,
+            "user" => $user->name,
+            "Type" => "Transfert multiple",
+            "Montant total" => number_format($totalAmount, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Dévise" => $currency,
+            "Frais totaux" => number_format($totalFees, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Commission totale" => $sponsorWallet ? 
+                "Paiement d'une commission totale de " . number_format($totalCommission, 2) . ($currency === 'USD' ? " $" : " FC") . " à " . $sponsorName : 
+                "Aucune commission payée",
+            "Nombre de destinataires" => count($successfulTransfers),
+            "Transferts réussis" => count($successfulTransfers),
+            "Transferts échoués" => count($failedTransfers),
+            "Description" => "Transfert multiple de ". number_format($totalAmount, 2) . 
+                            ($currency === 'USD' ? " $" : " FC") . " vers " . count($successfulTransfers) . " destinataires",
+        ];
+
+        $transactionData = [
+            'amount' => number_format($totalAmount, 2),
+            'currency' => $currency,
+            'mouvment' => 'out',
+            'type' => 'transfer',
+            'status' => 'completed',
+            'metadata' => $systemMetadata,
+        ];
+
+        $walletService = app(\App\Services\WalletService::class);
+        $walletService->recordSystemTransaction($transactionData);
+
+        DB::commit();
+
+        // Notifier tous les destinataires et le parrain
+        try {
+            // Notifications destinataires
+            foreach ($successfulTransfers as $transfer) {
+                $recipient = User::where('account_id', $transfer['recipient_account_id'])->first();
+                if ($recipient) {
+                    $recipient->notify(new FundsReceivedNotification(
+                        $transfer['amount'],
+                        $currency,
+                        $user->name,
+                        $user->account_id,
+                        'transfer_multiple'
+                    ));
+                }
+            }
+
+            // Notification parrain
+            if ($sponsorWallet && $totalCommission > 0) {
+                $sponsor->notify(new CommissionReceivedNotification(
+                    $totalCommission,
+                    $currency,
+                    $user->name,
+                    $user->account_id
+                ));
+            }
+
+            // Notifier l'expéditeur du statut du transfert multiple
+            $user->notify(new MultipleTransferStatusNotification(
+                count($successfulTransfers) > 0, // Succès si au moins un transfert réussi
+                $totalAmount,
+                $currency,
+                count($successfulTransfers),
+                count($failedTransfers),
+                $failedTransfers
+            ));
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'envoi des notifications de transfert multiple', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+                'sponsor_id' => $sponsor ? $sponsor->id : null,
+                'successful_transfers_count' => count($successfulTransfers)
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($successfulTransfers) > 0 ? 
+                'Transferts multiples traités avec succès' : 
+                'Aucun transfert n\'a pu être effectué',
+            'data' => [
+                'successful_transfers' => $successfulTransfers,
+                'failed_transfers' => $failedTransfers,
+                'total_amount' => $totalAmount,
+                'total_fees' => $totalFees,
+                'currency' => $currency,
+                'commission_paid' => $totalCommission,
+                'sponsor_name' => $sponsorName
+            ]
+        ]);
     }
 
     /**
@@ -426,6 +745,66 @@ class WalletUserController extends Controller
                 'address' => $recipient->address,
             ]
         ]);
+    }
+
+    /**
+     * Récupérer les informations de plusieurs destinataires en une seule requête
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getMultipleRecipientsInfo(Request $request)
+    {
+        $request->validate([
+            'account_ids' => 'required|array|min:1|max:20', // Limiter à 20 destinataires pour éviter la surcharge
+            'account_ids.*' => 'required|string'
+        ]);
+
+        try {
+            $recipients = \App\Models\User::whereIn('account_id', $request->account_ids)
+                ->select('account_id', 'name', 'phone', 'whatsapp', 'email', 'address')
+                ->get()
+                ->keyBy('account_id'); // Organiser par account_id pour un accès facile
+
+            $results = [];
+            foreach ($request->account_ids as $accountId) {
+                if (isset($recipients[$accountId])) {
+                    $recipient = $recipients[$accountId];
+                    $results[$accountId] = [
+                        'success' => true,
+                        'user' => [
+                            'account_id' => $recipient->account_id,
+                            'name' => $recipient->name,
+                            'phone' => $recipient->phone,
+                            'whatsapp' => $recipient->whatsapp,
+                            'email' => $recipient->email,
+                            'address' => $recipient->address,
+                        ]
+                    ];
+                } else {
+                    $results[$accountId] = [
+                        'success' => false,
+                        'message' => 'Destinataire introuvable'
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'recipients' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des informations des destinataires multiples', [
+                'error' => $e->getMessage(),
+                'account_ids' => $request->account_ids
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des informations des destinataires'
+            ], 500);
+        }
     }
 
     /**

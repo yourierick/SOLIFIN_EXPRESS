@@ -460,6 +460,7 @@ class DashboardController extends BaseController
                         'wallet' => [
                             'balance_usd' => $user->wallet->balance_usd,
                             'balance_cdf' => $user->wallet->balance_cdf,
+                            'points' => $user->wallet->points
                         ],
                         'total_referrals' => $totalReferralsCount,
                         'referrals_by_generation' => $referralsByGeneration,
@@ -590,6 +591,41 @@ class DashboardController extends BaseController
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des données du carrousel',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Marquer la notification de grade comme vue
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function markGradeNotificationAsSeen()
+    {
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Utilisateur non authentifié'
+                ], 401);
+            }
+
+            $user->seen_grade_notif = true;
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification de grade marquée comme vue'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors du marquage de la notification de grade: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du marquage de la notification de grade',
                 'error' => $e->getMessage()
             ], 500);
         }

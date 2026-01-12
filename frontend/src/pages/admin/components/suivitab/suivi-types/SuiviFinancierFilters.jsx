@@ -281,51 +281,6 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
               transition: 'all 0.5s ease',
             }}
           >
-            {/* Header des filtres */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box sx={{ position: 'relative', mr: 2 }}>
-                  <FilterIcon sx={{ 
-                    fontSize: { xs: 20, sm: 24 },
-                    color: 'primary.main',
-                    transition: 'transform 0.3s ease',
-                    '&:hover': { transform: 'rotate(12deg)' }
-                  }} />
-                </Box>
-                <Box>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight={700}
-                    sx={{ 
-                      fontSize: { xs: '1rem', sm: '1.125rem' },
-                      background: isDarkMode 
-                        ? 'linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%)' 
-                        : 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
-                  >
-                    Filtres avancés
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                    Affinez votre recherche
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ 
-                  width: 2, 
-                  height: 2, 
-                  bgcolor: 'success.main', 
-                  borderRadius: '50%',
-                  animation: 'pulse 2s infinite'
-                }} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                  Actifs
-                </Typography>
-              </Box>
-            </Box>
 
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {/* Recherche par référence */}
@@ -359,7 +314,7 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                   </Typography>
                   <TextField
                     fullWidth
-                    size={isMobile ? 'small' : 'medium'}
+                    size='small'
                     placeholder="Référence de transaction"
                     value={filters.search || ''}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -419,7 +374,7 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                       Mouvement
                     </Box>
                   </Typography>
-                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                  <FormControl fullWidth size='small'>
                     <Select
                       value={filters.mouvment || ''}
                       onChange={(e) => handleFilterChange('mouvment', e.target.value)}
@@ -492,7 +447,7 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                       Statut
                     </Box>
                   </Typography>
-                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                  <FormControl fullWidth size='small'>
                     <Select
                       value={filters.status || ''}
                       onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -577,7 +532,7 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                       Pack
                     </Box>
                   </Typography>
-                  <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
+                  <FormControl fullWidth size='small'>
                     <Select
                       value={filters.pack_id || ''}
                       onChange={(e) => handleFilterChange('pack_id', e.target.value)}
@@ -648,14 +603,14 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                   </Typography>
                   <Box
                     sx={{
-                      p: { xs: 2, sm: 3 },
+                      p: { xs: 1.5, sm: 2 },
                       border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
                       borderRadius: { xs: 1.5, md: 2 },
                       bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.4)',
                       backdropFilter: 'blur(10px)',
                     }}
                   >
-                    <Grid container spacing={{ xs: 2, sm: 3 }}>
+                    <Grid container spacing={{ xs: 1, sm: 1.5 }}>
                       <Grid item xs={12} sm={6}>
                         <DatePicker
                           label="Date de début"
@@ -664,6 +619,11 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                           enableAccessibleFieldDOMStructure={false}
                           slots={{
                             textField: CustomTextField,
+                          }}
+                          slotProps={{
+                            textField: {
+                              size: 'small'
+                            }
                           }}
                         />
                       </Grid>
@@ -675,6 +635,11 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                           enableAccessibleFieldDOMStructure={false}
                           slots={{
                             textField: CustomTextField,
+                          }}
+                          slotProps={{
+                            textField: {
+                              size: 'small'
+                            }
                           }}
                         />
                       </Grid>

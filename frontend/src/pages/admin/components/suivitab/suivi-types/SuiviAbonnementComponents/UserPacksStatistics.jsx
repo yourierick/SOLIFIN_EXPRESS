@@ -6,6 +6,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Avatar,
   useTheme,
   useMediaQuery,
   CircularProgress,
@@ -143,96 +144,96 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
           {!showChartsOnly && (
             <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: showCardsOnly ? 0 : 3 }}>
               <Grid item xs={12} sm={6}>
-                <Card
-                  sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 2,
+                <Card 
+                  sx={{ 
                     background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: 'none',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
+                    height: 120,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                    }
                   }}
                 >
-                  <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        mr: 2,
-                      }}>
-                        <UsersIcon sx={{ fontSize: 20 }} />
-                      </Box>
-                      <Typography 
-                        variant="h4" 
-                        fontWeight={600}
-                        sx={{ 
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        }}
-                      >
+                  <Box sx={{ 
+                    backgroundColor: isDarkMode ? 'transparent' : '#eff6ff',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    flex: 1
+                  }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#3b82f6',
+                        width: 36,
+                        height: 36
+                      }}
+                    >
+                      <UsersIcon sx={{ fontSize: 18, color: 'white' }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 500 }}>
+                        Abonnements totaux
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 700, lineHeight: 1.2 }}>
                         {formatNumber(statistics.total)}
                       </Typography>
                     </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      }}
-                    >
-                      Abonnements totaux
-                    </Typography>
-                  </CardContent>
+                  </Box>
                 </Card>
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <Card
-                  sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 2,
+                <Card 
+                  sx={{ 
                     background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: 'none',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
+                    height: 120,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                    }
                   }}
                 >
-                  <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'success.main',
-                        color: 'white',
-                        mr: 2,
-                      }}>
-                        <TrendingUpIcon sx={{ fontSize: 20 }} />
-                      </Box>
-                      <Typography 
-                        variant="h4" 
-                        fontWeight={600}
-                        sx={{ 
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        }}
-                      >
+                  <Box sx={{ 
+                    backgroundColor: isDarkMode ? 'transparent' : '#f0fdf4',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    flex: 1
+                  }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#10b981',
+                        width: 36,
+                        height: 36
+                      }}
+                    >
+                      <TrendingUpIcon sx={{ fontSize: 18, color: 'white' }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 500 }}>
+                        Abonnements actifs
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 700, lineHeight: 1.2 }}>
                         {formatNumber(statistics.active)}
                       </Typography>
                     </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      }}
-                    >
-                      Abonnements actifs
-                    </Typography>
-                  </CardContent>
+                  </Box>
                 </Card>
               </Grid>
             </Grid>

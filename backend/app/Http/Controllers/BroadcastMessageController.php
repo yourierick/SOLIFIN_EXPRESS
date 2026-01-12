@@ -34,8 +34,11 @@ class BroadcastMessageController extends Controller
                 && !$message->isSeenByUser($user->id);
         });
         
+        // Ne renvoyer que le premier message (le plus récent)
+        $firstMessage = $filteredMessages->first();
+        
         return response()->json([
-            'data' => $filteredMessages->values()
+            'data' => $firstMessage ? [$firstMessage] : []
         ]);
     }
 

@@ -103,127 +103,78 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
       {/* Première ligne : Solde Total seul occupe toute la largeur */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
         <Grid item xs={12}>
-          <Card
-            sx={{
-              height: "100%",
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              borderRadius: { xs: 2, md: 3 },
-              borderLeft: "4px solid #3B82F6",
-              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              position: 'relative',
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
               overflow: 'hidden',
-              "&:hover": {
-                transform: "translateY(-4px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 12px 40px rgba(0, 0, 0, 0.4)" : "0 12px 40px rgba(0, 0, 0, 0.15)",
-                borderLeftWidth: '6px',
-              },
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '100px',
-                height: '100px',
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
-                borderRadius: '0 0 0 100%',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
               }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 }, position: 'relative', zIndex: 1 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 3,
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#eff6ff',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#3b82f6',
+                  width: 36,
+                  height: 36
                 }}
               >
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: isDarkMode ? "#94a3b8" : "#64748b",
-                        fontWeight: 600,
-                        fontSize: "0.875rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      Solde Total Des Comptes
-                    </Typography>
-                    <Chip 
-                      icon={<TrendingUpIcon sx={{ fontSize: 12 }} />}
-                      label="Live" 
-                      size="small" 
-                      color="success" 
-                      variant="outlined"
-                      sx={{ height: 20, fontSize: '0.65rem' }}
-                    />
-                  </Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: isDarkMode ? "#64748b" : "#94a3b8",
-                      fontSize: "0.75rem",
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <SpeedIcon sx={{ fontSize: 14 }} />
-                      Gagné: {formatAmount(
-                        selectedCurrency === 'CDF' && isCDFEnabled 
-                          ? statistics.wallets.total_earned_cdf 
-                          : statistics.wallets.total_earned_usd, 
-                        selectedCurrency
-                      )}
-                    </Box>
-                    <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <WithdrawalIcon sx={{ fontSize: 14 }} />
-                      Retiré: {formatAmount(
-                        selectedCurrency === 'CDF' && isCDFEnabled 
-                          ? statistics.wallets.total_withdrawn_cdf 
-                          : statistics.wallets.total_withdrawn_usd, 
-                        selectedCurrency
-                      )}
-                    </Box>
+                <WalletIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 500 }}>
+                    Solde Total
                   </Typography>
+                  <Chip 
+                    icon={<TrendingUpIcon sx={{ fontSize: 12 }} />}
+                    label="Live" 
+                    size="small" 
+                    color="success" 
+                    variant="outlined"
+                    sx={{ height: 16, fontSize: '0.6rem' }}
+                  />
                 </Box>
-                <Avatar
-                  sx={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                    width: 40,
-                    height: 40,
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                  }}
-                >
-                  <WalletIcon sx={{ fontSize: "1.2rem" }} />
-                </Avatar>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 700, lineHeight: 1.2 }}>
+                  {formatAmount(
+                    selectedCurrency === 'CDF' && isCDFEnabled 
+                      ? statistics.wallets.total_balance_cdf 
+                      : statistics.wallets.total_balance_usd, 
+                    selectedCurrency
+                  )}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Gagné: {formatAmount(
+                    selectedCurrency === 'CDF' && isCDFEnabled 
+                      ? statistics.wallets.total_earned_cdf 
+                      : statistics.wallets.total_earned_usd, 
+                    selectedCurrency
+                  )}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Retiré: {formatAmount(
+                    selectedCurrency === 'CDF' && isCDFEnabled 
+                      ? statistics.wallets.total_withdrawn_cdf 
+                      : statistics.wallets.total_withdrawn_usd, 
+                    selectedCurrency
+                  )}</Box>
+                </Typography>
               </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                sx={{
-                  fontSize: { xs: "1.5rem", sm: "2rem" },
-                  fontWeight: 500,
-                  color: isDarkMode ? "#ffffff" : "#0f172a",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {formatAmount(
-                  selectedCurrency === 'CDF' && isCDFEnabled 
-                    ? statistics.wallets.total_balance_cdf 
-                    : statistics.wallets.total_balance_usd, 
-                  selectedCurrency
-                )}
-              </Typography>
-            </CardContent>
+            </Box>
           </Card>
         </Grid>
       </Grid>
@@ -232,389 +183,212 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
         {/* Statistique des utilisateurs */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              height: "100%",
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
-              borderRadius: "16px",
-              position: "relative",
-              overflow: "hidden",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%)",
-                backgroundSize: "200% 100%",
-                animation: "gradient 3s ease infinite",
-              },
-              "&:hover": {
-                transform: "translateY(-4px)",
-                border: isDarkMode ? "1px solid #475569" : "1px solid #cbd5e1",
-                background: isDarkMode ? "#1f2937" : "#f8fafc",
-              },
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+              }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 3,
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#f0fdf4',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#10b981',
+                  width: 36,
+                  height: 36
                 }}
               >
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: isDarkMode ? "#94a3b8" : "#64748b",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      mb: 1,
-                    }}
-                  >
-                    Utilisateurs
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: isDarkMode ? "#64748b" : "#94a3b8",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Actifs: {statistics.users.active.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>Inactifs: {statistics.users.inactive.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#6366f1', fontWeight: 600 }}>Essais: {statistics.users.trial.toLocaleString()}</Box>
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    color: "white",
-                    width: 30,
-                    height: 30,
-                    borderRadius: "12px",
-                    position: "relative",
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      inset: "-2px",
-                      borderRadius: "12px",
-                      padding: "2px",
-                      background: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
-                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      maskComposite: "xor",
-                      opacity: 0.3,
-                    },
-                  }}
-                >
-                  <PeopleIcon sx={{ fontSize: "1rem" }} />
-                </Box>
+                <PeopleIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 500 }}>
+                  Utilisateurs
+                </Typography>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 700, lineHeight: 1.2 }}>
+                  {statistics.users.total.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Actifs: {statistics.users.active.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Inactifs: {statistics.users.inactive.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#6366f1', fontWeight: 600, display: 'block' }}>Essais: {statistics.users.trial.toLocaleString()}</Box>
+                </Typography>
               </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                sx={{
-                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                  fontWeight: 500,
-                  color: isDarkMode ? "#ffffff" : "#0f172a",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {statistics.users.total.toLocaleString()}
-              </Typography>
-            </CardContent>
+            </Box>
           </Card>
         </Grid>
 
         {/* Statistique des jetons */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              height: "100%",
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              borderRadius: { xs: 2, md: 3 },
-              borderLeft: "4px solid #F59E0B",
-              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-2px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
               }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 3,
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#fefce8',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#f59e0b',
+                  width: 36,
+                  height: 36
                 }}
               >
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: isDarkMode ? "#94a3b8" : "#64748b",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      mb: 1,
-                    }}
-                  >
-                    Jetons Esengo
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: isDarkMode ? "#64748b" : "#94a3b8",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Disponibles: {statistics.jetons.total_unused.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>Utilisés: {statistics.jetons.total_used.toLocaleString()}</Box>
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                    color: "white",
-                    width: 30,
-                    height: 30,
-                    borderRadius: "12px",
-                    position: "relative",
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      inset: "-2px",
-                      borderRadius: "12px",
-                      padding: "2px",
-                      background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
-                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      maskComposite: "xor",
-                      opacity: 0.3,
-                    },
-                  }}
-                >
-                  <TokenIcon sx={{ fontSize: "1rem" }} />
-                </Box>
+                <TokenIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: isDarkMode ? '#f59e0b' : '#92400e', fontWeight: 500 }}>
+                  Jetons Esengo
+                </Typography>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#f59e0b' : '#78350f', fontWeight: 700, lineHeight: 1.2 }}>
+                  {(statistics.jetons.total_unused + statistics.jetons.total_used).toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Disponibles: {statistics.jetons.total_unused.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Utilisés: {statistics.jetons.total_used.toLocaleString()}</Box>
+                </Typography>
               </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                sx={{
-                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                  fontWeight: 500,
-                  color: isDarkMode ? "#ffffff" : "#0f172a",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {(statistics.jetons.total_unused + statistics.jetons.total_used).toLocaleString()}
-              </Typography>
-            </CardContent>
+            </Box>
           </Card>
         </Grid>
 
         {/* Statistique des retraits */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              height: "100%",
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              borderRadius: { xs: 2, md: 3 },
-              borderLeft: "4px solid #EF4444",
-              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-2px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
               }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 3,
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#fef2f2',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#ef4444',
+                  width: 36,
+                  height: 36
                 }}
               >
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: isDarkMode ? "#94a3b8" : "#64748b",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      mb: 1,
-                    }}
-                  >
-                    Retraits
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: isDarkMode ? "#64748b" : "#94a3b8",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Approuvés: {statistics.withdrawals.approved.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>En attente: {statistics.withdrawals.pending.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#ef4444', fontWeight: 600 }}>Rejetés: {statistics.withdrawals.rejected.toLocaleString()}</Box>
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    color: "white",
-                    width: 30,
-                    height: 30,
-                    borderRadius: "12px",
-                    position: "relative",
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      inset: "-2px",
-                      borderRadius: "12px",
-                      padding: "2px",
-                      background: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
-                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      maskComposite: "xor",
-                      opacity: 0.3,
-                    },
-                  }}
-                >
-                  <WithdrawalIcon sx={{ fontSize: "1rem" }} />
-                </Box>
+                <WithdrawalIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: isDarkMode ? '#ef4444' : '#991b1b', fontWeight: 500 }}>
+                  Retraits
+                </Typography>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#ef4444' : '#991b1b', fontWeight: 700, lineHeight: 1.2 }}>
+                  {statistics.withdrawals.total.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Approuvés: {statistics.withdrawals.approved.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>En attente: {statistics.withdrawals.pending.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#ef4444', fontWeight: 600, display: 'block' }}>Rejetés: {statistics.withdrawals.rejected.toLocaleString()}</Box>
+                </Typography>
               </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                sx={{
-                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                  fontWeight: 500,
-                  color: isDarkMode ? "#ffffff" : "#0f172a",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {statistics.withdrawals.total.toLocaleString()}
-              </Typography>
-            </CardContent>
+            </Box>
           </Card>
         </Grid>
 
         {/* Statistique des abonnements */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              height: "100%",
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              borderRadius: { xs: 2, md: 3 },
-              borderLeft: "4px solid #8B5CF6",
-              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-2px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
+              overflow: 'hidden',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
               }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 3,
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#f5f3ff',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#8b5cf6',
+                  width: 36,
+                  height: 36
                 }}
               >
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: isDarkMode ? "#94a3b8" : "#64748b",
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      mb: 1,
-                    }}
-                  >
-                    Abonnements
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: isDarkMode ? "#64748b" : "#94a3b8",
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    <Box component="span" sx={{ color: '#10b981', fontWeight: 600 }}>Actifs: {statistics.subscriptions.active.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600 }}>Inactifs: {statistics.subscriptions.inactive.toLocaleString()}</Box> • <Box component="span" sx={{ color: '#ef4444', fontWeight: 600 }}>Expirés: {statistics.subscriptions.expired.toLocaleString()}</Box>
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                    color: "white",
-                    width: 30,
-                    height: 30,
-                    borderRadius: "12px",
-                    position: "relative",
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      inset: "-2px",
-                      borderRadius: "12px",
-                      padding: "2px",
-                      background: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
-                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      maskComposite: "xor",
-                      opacity: 0.3,
-                    },
-                  }}
-                >
-                  <SubscriptionIcon sx={{ fontSize: "1rem" }} />
-                </Box>
+                <SubscriptionIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: isDarkMode ? '#8b5cf6' : '#5b21b6', fontWeight: 500 }}>
+                  Abonnements
+                </Typography>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#8b5cf6' : '#5b21b6', fontWeight: 700, lineHeight: 1.2 }}>
+                  {statistics.subscriptions.total.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Actifs: {statistics.subscriptions.active.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Inactifs: {statistics.subscriptions.inactive.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#ef4444', fontWeight: 600, display: 'block' }}>Expirés: {statistics.subscriptions.expired.toLocaleString()}</Box>
+                </Typography>
               </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                sx={{
-                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                  fontWeight: 500,
-                  color: isDarkMode ? "#ffffff" : "#0f172a",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {statistics.subscriptions.total.toLocaleString()}
-              </Typography>
-            </CardContent>
+            </Box>
           </Card>
         </Grid>
       </Grid>

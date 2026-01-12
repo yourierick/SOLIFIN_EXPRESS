@@ -281,7 +281,7 @@ export default function NotificationsDropdown() {
                                 isDarkMode ? "text-white" : "text-gray-900"
                               }`}
                             >
-                              {notification.data?.titre || "Notification"}
+                              {notification.data?.titre || notification.data?.title || "Notification"}
                             </p>
                             <p
                               className={`text-xs sm:text-sm ${

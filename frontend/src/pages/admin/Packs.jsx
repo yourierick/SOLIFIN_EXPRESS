@@ -84,6 +84,7 @@ const FormulaireAjoutBonus = ({
     type: "esengo",
     nombre_filleuls: "",
     points_attribues: "",
+    valeur_point: "",
   });
 
   const handleBonusChange = (e) => {
@@ -122,6 +123,7 @@ const FormulaireAjoutBonus = ({
           type: "esengo",
           nombre_filleuls: "",
           points_attribues: "",
+          valeur_point: "",
         });
         onBonusAdded();
       }
@@ -163,9 +165,6 @@ const FormulaireAjoutBonus = ({
             name="nombre_filleuls"
             value={formBonus.nombre_filleuls}
             onChange={handleBonusChange}
-            onFocus={() => console.log("Input focused: nombre_filleuls")}
-            onBlur={() => console.log("Input blurred: nombre_filleuls")}
-            onKeyDown={(e) => console.log("Key pressed:", e.key)}
             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
             min="1"
             required
@@ -200,7 +199,29 @@ const FormulaireAjoutBonus = ({
           />
         </div>
 
-        {/* Champ valeur_point supprimé car non nécessaire pour les jetons Esengo */}
+        {/* Champ valeur_point */}
+        <div className="mb-4">
+          <label
+            htmlFor="points_attribues"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Nombre de points attribués par obtention de ce jeton
+          </label>
+          <input
+            type="number"
+            id="valeur_point"
+            name="valeur_point"
+            value={formBonus.valeur_point}
+            onChange={handleBonusChange}
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            min="0"
+            step="any"
+            required
+            placeholder="Ex: 1 (1 point par jeton obtenu)"
+            disabled={false}
+            readOnly={false}
+          />
+        </div>
 
         <button
           type="submit"
@@ -1111,6 +1132,9 @@ export default function Packs() {
                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
                               Jetons attribués
                             </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Points attribués
+                            </th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
                               Actions
                             </th>
@@ -1143,6 +1167,11 @@ export default function Packs() {
                               <td className="px-4 py-4">
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                                   {rate.points_attribues} jetons
+                                </span>
+                              </td>
+                               <td className="px-4 py-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                  {rate.valeur_point} point(s)
                                 </span>
                               </td>
                               <td className="px-4 py-4 text-center">
@@ -1239,7 +1268,7 @@ export default function Packs() {
                         <p>
                           <strong>Utilisation :</strong> Ces jetons permettent
                           de participer aux tirages au sort pour gagner des
-                          cadeaux de valeur variable.
+                          cadeaux de valeur variable mais également de gagner des points pour débloquer des grades dans le système
                         </p>
                       </div>
                       <div className="flex items-start space-x-2">

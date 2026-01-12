@@ -579,79 +579,107 @@ const SuiviFinancier = ({ period }) => {
         {/* Cards statistiques */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: { xs: 2, sm: 3 }, mb: { xs: 3, sm: 4 } }}>
           {/* Card 1: Nombre de transactions */}
-          <Card
-            sx={{
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              borderRadius: { xs: 2, md: 3 },
-              borderLeft: "4px solid #3B82F6",
-              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-2px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1a2636c4' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
               }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box sx={{ 
-                  p: 2, 
-                  borderRadius: '50%', 
-                  background: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
-                  color: isDarkMode ? '#93C5FD' : '#2563EB'
-                }}>
-                  <TotalIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
-                </Box>
-                {loading && (
-                  <CircularProgress size={20} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
-                )}
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#eff6ff',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#3b82f6',
+                  width: 36,
+                  height: 36
+                }}
+              >
+                <TotalIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 500 }}>
+                  Transactions
+                </Typography>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 700, lineHeight: 1.2 }}>
+                  {statistics.totalTransactions.toLocaleString('fr-FR')}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : 'cette année'}
+                </Typography>
               </Box>
-              <Typography variant="h4" fontWeight={700} sx={{ mb: 1, fontSize: { xs: '1.8rem', sm: '2.2rem' }, color: isDarkMode ? '#FFFFFF' : '#111827' }}>
-                {statistics.totalTransactions.toLocaleString('fr-FR')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
-                Transactions {period === 'day' ? 'aujourd\'hui' : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : 'cette année'}
-              </Typography>
-            </CardContent>
+              {loading && (
+                <CircularProgress size={20} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </Box>
           </Card>
 
           {/* Card 2: Montant total */}
-          <Card
-            sx={{
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              borderRadius: { xs: 2, md: 3 },
-              borderLeft: "4px solid #10B981",
-              boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-2px) scale(1.02)",
-                boxShadow: isDarkMode ? "0 8px 25px rgba(0, 0, 0, 0.3)" : "0 8px 25px rgba(0, 0, 0, 0.1)",
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1a2636c4' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 3,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 120,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-4px)',
               }
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box sx={{ 
-                  p: 2, 
-                  borderRadius: '50%', 
-                  bgcolor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)',
-                  color: isDarkMode ? '#6EE7B7' : '#059669'
-                }}>
-                  <AmountIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
-                </Box>
-                {loading && (
-                  <CircularProgress size={20} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
-                )}
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#f0fdf4',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#10b981',
+                  width: 36,
+                  height: 36
+                }}
+              >
+                <AmountIcon sx={{ fontSize: 18, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 500 }}>
+                  Montant total
+                </Typography>
+                <Typography variant="h4" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 700, lineHeight: 1.2 }}>
+                  {formatAmount(statistics.totalAmount)} {selectedCurrency}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : 'cette année'}
+                </Typography>
               </Box>
-              <Typography variant="h4" fontWeight={700} sx={{ mb: 1, fontSize: { xs: '1.8rem', sm: '2.2rem' }, color: isDarkMode ? '#FFFFFF' : '#111827' }}>
-                {formatAmount(statistics.totalAmount)} {selectedCurrency}
-              </Typography>
-              <Typography variant="body2" sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
-                Montant total {period === 'day' ? 'aujourd\'hui' : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : 'cette année'}
-              </Typography>
-            </CardContent>
+              {loading && (
+                <CircularProgress size={20} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </Box>
           </Card>
         </Box>
 
@@ -1071,7 +1099,7 @@ const SuiviFinancier = ({ period }) => {
           borderRadius: { xs: 2, md: 3 },
           background: isDarkMode
             ? "#1f2937"
-            : "rgba(249, 250, 251, 0.8)",
+            : "rgba(219, 237, 255, 0.8)",
           backdropFilter: "blur(20px)",
           border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
           boxShadow: "none",

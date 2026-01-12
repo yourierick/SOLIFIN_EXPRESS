@@ -18,6 +18,7 @@ class Wallet extends Model
         'total_earned_cdf',
         'total_withdrawn_usd',
         'total_withdrawn_cdf',
+        'points',
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class Wallet extends Model
         'total_earned_cdf' => 'decimal:2',
         'total_withdrawn_usd' => 'decimal:2',
         'total_withdrawn_cdf' => 'decimal:2',
+        'points' => 'decimal:2',
     ];
 
     // Relation avec l'utilisateur

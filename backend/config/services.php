@@ -42,12 +42,13 @@ return [
         ],
     ],
 
-    'vonage' => [
-        'key' => env('VONAGE_KEY'),
-        'secret' => env('VONAGE_SECRET'),
-        'sms_from' => env('VONAGE_SMS_FROM', 'SOLIFIN'),
+    'twilio' => [
+        'sid' => env('TWILIO_ACCOUNT_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        'from' => env('TWILIO_FROM_NUMBER'),
     ],
 
+    
     'transaction_fees' => [
         'api_url' => env('TRANSACTION_FEES_API_URL'),
         'api_key' => env('TRANSACTION_FEES_API_KEY'),

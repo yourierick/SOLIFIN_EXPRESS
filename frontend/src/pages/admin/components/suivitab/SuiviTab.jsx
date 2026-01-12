@@ -37,6 +37,7 @@ import {
 } from './suivi-types';
 import SuiviAbonnement from './SuiviAbonnement';
 import SuiviFinancier from './SuiviFinancier';
+import GradeHistory from './GradeHistory';
 import PeriodFilter from './PeriodFilter';
 import { useCurrency } from "../../../../contexts/CurrencyContext";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -104,7 +105,7 @@ const SuiviTab = () => {
                 p: { xs: 1.5, sm: 2, md: 3 },
                 mb: { xs: 2, sm: 3, md: 4 },
                 borderRadius: { xs: 2, md: 3 },
-                background: isDarkMode ? "#1f2937" : "#ffffff",
+                background: isDarkMode ? "#1f2937" : "rgba(219, 237, 255, 0.8)",
                 backdropFilter: "blur(20px)",
                 border: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                 boxShadow: "none",
@@ -192,7 +193,8 @@ const SuiviTab = () => {
                   gap: 1,
                   width: { xs: '100%', sm: 'auto' },
                   justifyContent: { xs: 'space-between', sm: 'flex-start' }
-                }}>
+                }}
+                >
                   <Box
                     sx={{
                       display: 'flex',
@@ -496,6 +498,8 @@ const SuiviTab = () => {
         );
       case 1:
         return <SuiviFinancier period={period} />;
+      case 2:
+        return <GradeHistory period={period} />;
       default:
         return null;
     }
@@ -631,9 +635,9 @@ const SuiviTab = () => {
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
-            variant={isMobile ? "scrollable" : "standard"}
-            scrollButtons={isMobile ? "auto" : false}
-            allowScrollButtonsMobile
+            variant="fullWidth"
+            scrollButtons={false}
+            allowScrollButtonsMobile={false}
             centered={false}
             sx={{
               minHeight: 64,
@@ -645,6 +649,8 @@ const SuiviTab = () => {
                 color: isDarkMode ? '#9ca3af' : '#6b7280',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
+                flex: 1,
+                maxWidth: 'none',
                 '&:hover': {
                   color: isDarkMode ? '#e5e7eb' : '#374151',
                   bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
@@ -684,6 +690,13 @@ const SuiviTab = () => {
             />
             <Tab
               label="Suivi financier"
+              iconPosition="start"
+              sx={{
+                px: { xs: 2, sm: 3 },
+              }}
+            />
+            <Tab
+              label="Suivi des grades"
               iconPosition="start"
               sx={{
                 px: { xs: 2, sm: 3 },

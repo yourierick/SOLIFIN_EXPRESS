@@ -7,6 +7,7 @@ import axios from "axios";
 import Notification from "../../../components/Notification";
 import WithdrawalForm from "../../../components/WithdrawalForm";
 import FundsTransferModal from "../../../components/FundsTransferModal";
+import VirtualPurchaseForm from "../../../components/VirtualPurchaseForm";
 import AdminTransactionsTable from "./AdminTransactionsTable";
 import AdminExportButtons from "./AdminExportButtons";
 import { ToastContainer, toast } from "react-toastify";
@@ -78,6 +79,7 @@ export default function AdminStandardWallet() {
   const [exportLoading, setExportLoading] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
+  const [showVirtualPurchaseForm, setShowVirtualPurchaseForm] = useState(false);
   // Fonction pour formater les dates (sans l'heure)
   const formatDate = (dateString) => {
     try {
@@ -543,6 +545,10 @@ export default function AdminStandardWallet() {
     setShowWithdrawalForm(true);
   };
 
+  const handleVirtualPurchaseClick = () => {
+    setShowVirtualPurchaseForm(true);
+  };
+
   const handleTransferClick = () => {
     setShowTransferModal(true);
   };
@@ -565,38 +571,10 @@ export default function AdminStandardWallet() {
 
   return (
     <div className="space-y-3">
-      {/* En-tête */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex justify-between items-center mb-4 sm:mb-6"
-      >
-        <h5 className="text-lg sm:text-2xl font-semibold text-gray-900 dark:text-white">
-          Mon portefeuille
-        </h5>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleRefresh}
-          className={`p-2 rounded-lg transition-all duration-200 ${
-            isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-          }`}
-        >
-          <ArrowPathIcon
-            className={`h-4 w-4 sm:h-5 sm:w-5 ${(initialLoading || tableLoading) ? "animate-spin" : ""}`}
-          />
-        </motion.button>
-      </motion.div>
       {/* Portefeuille utilisateur */}
       <div className="mb-8">
         {userWallet ? (
           <>
-            {/* Debug temporaire */}
-            {console.log("userWallet dans AdminStandardWallet:", userWallet)}
-            {console.log("balance_usd:", userWallet.balance_usd)}
-            {console.log("balance_cdf:", userWallet.balance_cdf)}
-            {console.log("selectedCurrency:", selectedCurrency)}
             <motion.div
             initial={{ opacity: 1, y: 20 }}
             transition={{ duration: 0.5 }}
@@ -608,6 +586,25 @@ export default function AdminStandardWallet() {
           >
             <div className="sm:flex-row sm:items-start sm:justify-between gap-6">
               {/* En-tête du wallet */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex justify-between items-center mb-4 sm:mb-6"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleRefresh}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                  }`}
+                >
+                  <ArrowPathIcon
+                    className={`h-4 w-4 sm:h-5 sm:w-5 ${(initialLoading || tableLoading) ? "animate-spin" : ""}`}
+                  />
+                </motion.button>
+              </motion.div>
               <div className="flex items-center gap-4 mb-3">
                 <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
                   <FaWallet className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
@@ -751,13 +748,13 @@ export default function AdminStandardWallet() {
                 <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                   <button
                     onClick={() => handleWithdrawalClick(userWallet)}
-                    className={`p-2.5 sm:p-3 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
+                    className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
                       isDarkMode
                         ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-blue-500"
                         : "border-gray-300 text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-500"
                     }`}
                   >
-                    <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <BanknotesIcon className="h-6 w-6 sm:h-7 sm:w-7" />
                   </button>
                   <span className="tooltip-text">Faire un retrait</span>
                 </div>
@@ -765,15 +762,29 @@ export default function AdminStandardWallet() {
                 <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                   <button
                     onClick={() => setShowTransferModal(true)}
-                    className={`p-2.5 sm:p-3 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
+                    className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
                       isDarkMode
                         ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-purple-500"
                         : "border-gray-300 text-gray-700 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-500"
                     }`}
                   >
-                    <FaExchangeAlt className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <FaExchangeAlt className="h-6 w-6 sm:h-7 sm:w-7" />
                   </button>
                   <span className="tooltip-text">Transférer des fonds</span>
+                </div>
+
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={() => setShowVirtualPurchaseForm(true)}
+                    className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
+                      isDarkMode
+                        ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-green-500"
+                        : "border-gray-300 text-gray-700 hover:bg-green-50 hover:text-green-600 hover:border-green-500"
+                    }`}
+                  >
+                    <CurrencyDollarIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+                  </button>
+                  <span className="tooltip-text">Acheter du virtuel</span>
                 </div>
               </div>
             </div>
@@ -1636,6 +1647,20 @@ export default function AdminStandardWallet() {
         userInfo={null}
         isAdmin={true}
       />
+
+      {/* Modal d'achat de virtuel */}
+      {showVirtualPurchaseForm &&
+        createPortal(
+          <VirtualPurchaseForm
+            onClose={() => {
+              setShowVirtualPurchaseForm(false);
+              // Rafraîchir les données du wallet après un achat réussi
+              fetchWalletData();
+            }}
+          />,
+          document.body
+        )}
+
       {/* Notifications */}
       <ToastContainer
         position="top-right"

@@ -5,6 +5,7 @@ import axios from "axios";
 import Notification from "../../components/Notification";
 import WithdrawalForm from "../../components/WithdrawalForm";
 import FundsTransferModal from "../../components/FundsTransferModal";
+import VirtualPurchaseForm from "../../components/VirtualPurchaseForm";
 import TransactionsTable from "./components/TransactionsTable";
 import WalletExportButtons from "./components/WalletExportButtons";
 import { ToastContainer, toast } from "react-toastify";
@@ -208,6 +209,7 @@ export default function Wallets() {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showVirtualPurchaseForm, setShowVirtualPurchaseForm] = useState(false);
 
   // Styles CSS pour l'ascenseur personnalisé
   const scrollbarStyles = {
@@ -439,6 +441,10 @@ export default function Wallets() {
   const handleWithdrawalClick = (walletId, type) => {
     setSelectedWalletForWithdrawal({ id: walletId, type, adminWallet });
     setShowWithdrawalForm(true);
+  };
+
+  const handleVirtualPurchaseClick = () => {
+    setShowVirtualPurchaseForm(true);
   };
 
   const handleTransactionClick = (transaction) => {
@@ -880,27 +886,42 @@ export default function Wallets() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <button
-                  onClick={() => handleWithdrawalClick(adminWallet.id, "admin")}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  <BanknotesIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  <span className="hidden sm:inline">Faire un retrait</span>
-                  <span className="sm:hidden">Retrait</span>
-                </button>
-                <button
-                  onClick={() => setShowTransferModal(true)}
-                  className={`flex-1 inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${
-                    isDarkMode
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                      : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
-                  }`}
-                >
-                  <FaExchangeAlt className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Transférer</span>
-                  <span className="sm:hidden">Transférer</span>
-                </button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={() => handleWithdrawalClick(adminWallet.id, "admin")}
+                    className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium rounded-full shadow-md hover:shadow-lg transition-all duration-200"
+                  >
+                    <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                  <span className="tooltip-text">Faire un retrait</span>
+                </div>
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={() => setShowTransferModal(true)}
+                    className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 text-sm font-medium rounded-full shadow-md hover:shadow-lg transition-all duration-200 ${
+                      isDarkMode
+                        ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                        : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+                    }`}
+                  >
+                    <FaExchangeAlt className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                  <span className="tooltip-text">Transférer des fonds</span>
+                </div>
+                <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
+                  <button
+                    onClick={handleVirtualPurchaseClick}
+                    className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 text-sm font-medium rounded-full shadow-md hover:shadow-lg transition-all duration-200 ${
+                      isDarkMode
+                        ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                        : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
+                    }`}
+                  >
+                    <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                  <span className="tooltip-text">Acheter du virtuel</span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1695,6 +1716,19 @@ export default function Wallets() {
           isAdmin={true}
         />
       )}
+
+      {/* Modal d'achat de virtuel */}
+      {showVirtualPurchaseForm &&
+        createPortal(
+          <VirtualPurchaseForm
+            onClose={() => {
+              setShowVirtualPurchaseForm(false);
+              // Rafraîchir les données du wallet après un achat réussi
+              fetchWallets();
+            }}
+          />,
+          document.body
+        )}
 
       <ToastContainer
         position="top-right"

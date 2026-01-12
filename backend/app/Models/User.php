@@ -46,6 +46,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'role_id',
         'email_verified_at',
         'acquisition_source', // Comment l'utilisateur a connu SOLIFIN
+        'grade_id',
+        'seen_grade_notif', //Champs pour afficher le boudin et l'animation dans le dashboard de l'utilisateur lors de l'atteinte d'un nouveau grade
         'last_seen', // Dernière fois que l'utilisateur a été vu en ligne
     ];
 
@@ -67,6 +69,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_admin' => 'boolean',
+        'seen_grade_notif' => 'boolean',
         'status' => 'string',
         'last_seen' => 'datetime',
     ];
@@ -78,6 +81,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $appends = [
         'role',
+        'grade',
     ];
 
     /**
@@ -94,7 +98,27 @@ class User extends Authenticatable implements MustVerifyEmail
         // Compatibilité avec l'ancien système
         return $this->is_admin ? 'admin' : 'user';
     }
-    
+
+    /**
+     * Relation avec le grade de l'utilisateur
+     */
+    public function grade()
+    {
+        return $this->belongsTo(Grade::class, 'grade_id');
+    }
+
+    /**
+     * Accessor pour le grade de l'utilisateur
+     */
+    public function getGradeAttribute()
+    {
+        // Éviter la récursion en chargeant la relation si elle n'est pas déjà chargée
+        if (!$this->relationLoaded('grade')) {
+            $this->load('grade');
+        }
+        return $this->getRelationValue('grade');
+    }
+
     /**
      * Relation avec le rôle de l'utilisateur.
      *

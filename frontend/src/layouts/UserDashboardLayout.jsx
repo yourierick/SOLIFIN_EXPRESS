@@ -619,18 +619,20 @@ export default function UserDashboardLayout() {
                   <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg py-2 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5">
                     <div className="px-4 py-3 flex flex-col items-center border-b border-gray-200 dark:border-gray-700">
                       {user?.picture ? (
-                        <img
-                          className="h-16 w-16 rounded-full object-cover mb-3"
-                          src={user.picture}
-                          alt={`Photo de profil de ${
-                            user.name || "l'utilisateur"
-                          }`}
-                        />
+                        <div className="relative mb-3">
+                          <img
+                            className="h-16 w-16 rounded-full object-cover"
+                            src={user.picture}
+                            alt={`Photo de profil de ${
+                              user.name || "l'utilisateur"
+                            }`}
+                          />
+                                                  </div>
                       ) : (
                         <UserCircleIcon
                           className={`h-16 w-16 ${
                             isDarkMode ? "text-gray-400" : "text-gray-600"
-                          } mb-3`}
+                          }`}
                           aria-hidden="true"
                         />
                       )}
@@ -641,6 +643,26 @@ export default function UserDashboardLayout() {
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {user.email}
                         </p>
+                        {user.grade?.designation && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-yellow-400 dark:text-yellow-300 mb-1">
+                              {user.grade.designation}
+                            </p>
+                            {user.grade?.niveau && (
+                              <div className="flex justify-center gap-1">
+                                {Array.from({ length: parseInt(user.grade.niveau) }).map((_, index) => (
+                                  <span
+                                    key={index}
+                                    className="text-yellow-400 text-lg font-bold"
+                                    title={`Niveau ${user.grade.niveau}`}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 

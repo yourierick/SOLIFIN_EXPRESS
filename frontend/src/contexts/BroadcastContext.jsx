@@ -46,10 +46,15 @@ export const BroadcastProvider = ({ children }) => {
         const filteredMessages = filterMessagesForUser(response.data.data, user);
         setMessages(filteredMessages);
 
-        // Si des messages sont disponibles, les afficher
-        if (filteredMessages.length > 0) {
-          setMessagesToShow(filteredMessages);
+        // Ajouter seulement les messages non encore affichés à la file d'attente
+        const existingMessageIds = messagesToShow.map(msg => msg.id);
+        const newMessages = filteredMessages.filter(msg => !existingMessageIds.includes(msg.id));
+        
+        if (newMessages.length > 0 && !modalOpen) {
+          setMessagesToShow(prev => [...prev, ...newMessages]);
           setModalOpen(true);
+        } else if (newMessages.length > 0) {
+          setMessagesToShow(prev => [...prev, ...newMessages]);
         }
       }
     } catch (error) {
@@ -121,7 +126,19 @@ export const BroadcastProvider = ({ children }) => {
   // Fermer le modal
   const closeModal = () => {
     setModalOpen(false);
+    // Retirer le message affiché de la liste
+    setMessagesToShow(prev => prev.slice(1));
   };
+
+  // Vérifier s'il y a des messages en attente à afficher
+  useEffect(() => {
+    if (!modalOpen && messagesToShow.length > 0) {
+      const timer = setTimeout(() => {
+        setModalOpen(true);
+      }, 500); // Petit délai pour éviter l'affichage immédiat
+      return () => clearTimeout(timer);
+    }
+  }, [modalOpen, messagesToShow.length]);
 
   // Démarrer le polling
   const startPolling = () => {
@@ -199,7 +216,7 @@ export const BroadcastProvider = ({ children }) => {
       <BroadcastMessageModal
         open={modalOpen}
         onClose={closeModal}
-        messages={messagesToShow}
+        message={messagesToShow[0] || null}
         onMessageSeen={markMessageAsSeen}
       />
     </BroadcastContext.Provider>

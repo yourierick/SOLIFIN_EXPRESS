@@ -31,7 +31,7 @@ class UpdatePublicationStatus extends Command
      *
      * @var int
      */
-    protected $chunkSize = 100;
+    protected $chunkSize = 500; // Augmenté pour meilleure performance
 
     /**
      * Execute the console command.
@@ -135,55 +135,71 @@ class UpdatePublicationStatus extends Command
         // Ajouter la condition pour la durée d'affichage
         $query->whereNotNull('duree_affichage');
         
-        // Traitement par lots
+        // Traitement par lots optimisé
         $query->chunk($this->chunkSize, function ($publications) use (&$stats, $modelClass) {
-            DB::beginTransaction();
+            $this->info("Traitement d'un lot de {$publications->count()} publications...");
             
             try {
-                $now = Carbon::now();
-                
-                foreach ($publications as $publication) {
-                    $isExpired = false;
-                    $stats['processed']++;
+                DB::transaction(function () use ($publications, &$stats) {
+                    $now = Carbon::now();
                     
-                    // Vérifier si la durée d'affichage est dépassée
-                    if (!$isExpired) {
+                    // Préparer les données pour mises à jour en masse
+                    $expiredIds = [];
+                    $updateData = [];
+                    
+                    foreach ($publications as $publication) {
+                        $stats['processed']++;
+                        
+                        // Vérifier si la durée d'affichage est dépassée
                         $dateExpiration = $publication->expiry_date;
                         
                         if ($now->gt($dateExpiration)) {
-                            $isExpired = true;
+                            // Publication expirée
+                            $expiredIds[] = $publication->id;
                             $stats['expired']++;
                             $stats['expired_duree']++;
                         } else {
                             // Calculer les jours restants
                             $joursRestants = $now->diffInDays($dateExpiration, false);
                             
-                            // Si la durée d'affichage est différente des jours restants, mettre à jour
+                            // Si la durée d'affichage est différente des jours restants, préparer pour mise à jour
                             if ($publication->duree_affichage != $joursRestants && $joursRestants >= 0) {
-                                $publication->duree_affichage = $joursRestants;
-                                $publication->save();
+                                $updateData[] = [
+                                    'id' => $publication->id,
+                                    'duree_affichage' => $joursRestants
+                                ];
                                 $stats['updated']++;
                             }
                         }
                     }
                     
-                    // Marquer comme expiré si nécessaire
-                    if ($isExpired) {
-                        $publication->statut = 'expiré';
-                        $publication->duree_affichage = 0;
-                        $publication->save();
+                    // Mettre à jour les publications expirées en une seule requête
+                    if (!empty($expiredIds)) {
+                        $modelClass::whereIn('id', $expiredIds)
+                            ->update([
+                                'statut' => 'expiré',
+                                'duree_affichage' => 0,
+                                'updated_at' => $now
+                            ]);
                     }
-                }
+                    
+                    // Mettre à jour les durées d'affichage en une seule requête
+                    if (!empty($updateData)) {
+                        foreach ($updateData as $data) {
+                            $modelClass::where('id', $data['id'])
+                                ->update(['duree_affichage' => $data['duree_affichage']]);
+                        }
+                    }
+                });
                 
-                DB::commit();
                 $this->info("Lot traité: {$publications->count()} publications");
             } catch (\Exception $e) {
-                DB::rollBack();
                 $stats['errors']++;
-                $this->error("Erreur lors du traitement d'un lot: {$e->getMessage()}");
-                Log::error("Erreur lors du traitement d'un lot de publications: {$e->getMessage()}", [
+                $this->error("Erreur lors du traitement du lot: {$e->getMessage()}");
+                Log::error("Erreur lors du traitement d'un lot de publications", [
                     'model' => $modelClass,
-                    'trace' => $e->getTraceAsString()
+                    'batch_count' => $publications->count(),
+                    'exception' => $e->getTraceAsString()
                 ]);
             }
         });

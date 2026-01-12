@@ -148,7 +148,6 @@ const AdminBroadcastMessages = () => {
             search: searchTerm,
           },
         });
-        console.log(response);
         setMessages(response.data.data);
         setTotalItems(response.data.total);
       } catch (error) {

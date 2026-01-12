@@ -63,7 +63,7 @@ class BroadcastMessageController extends Controller
             
             if ($request->type === 'image') {
                 // 1Mo pour les images
-                $rules['media_file'] = 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:1024';
+                $rules['media_file'] = 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048';
             } else { // type vidéo
                 // 5Mo pour les vidéos
                 $rules['media_file'] = 'nullable|file|mimes:mp4,webm,ogg|max:5120';

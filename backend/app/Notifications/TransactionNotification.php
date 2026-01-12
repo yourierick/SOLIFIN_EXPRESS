@@ -108,6 +108,7 @@ class TransactionNotification extends Notification implements ShouldQueue
         
         return [
             'title' => "{$typeLabel} {$status}",
+            'icon' => 'info',
             'amount' => $this->amount,
             'currency' => $this->currency,
             'transaction_type' => $this->transactionType,

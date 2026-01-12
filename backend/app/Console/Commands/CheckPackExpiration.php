@@ -14,11 +14,11 @@ class CheckPackExpiration extends Command
     protected $description = 'Vérifie et met à jour le statut des packs expirés';
 
     /**
-     * Taille du lot pour le traitement des jetons
+     * Taille du lot pour le traitement des packs
      *
      * @var int
      */
-    protected $chunkSize = 100;
+    protected $chunkSize = 500; // Augmenté pour meilleure performance
 
     public function handle()
     {
@@ -32,22 +32,44 @@ class CheckPackExpiration extends Command
                 ->whereNotNull('expiry_date')
                 ->where('expiry_date', '<', Carbon::now())
                 ->chunk($this->chunkSize, function ($expiredPacks) use (&$processedCount) {
-                    DB::beginTransaction();
+                    $this->info("Traitement d'un lot de {$expiredPacks->count()} packs expirés...");
+                    
                     try {
-                        foreach ($expiredPacks as $pack) {
-                            // Enregistrer l'expiration
-                            $pack->status = "expired";
-                            $pack->save();
+                        DB::transaction(function () use ($expiredPacks, &$processedCount) {
+                            // Préparer les IDs pour mise à jour en masse
+                            $packIds = $expiredPacks->pluck('id')->toArray();
                             
-                            $this->line("Pack ID: {$pack->id} marqué comme expiré");
-                            $processedCount++;
-                        }
+                            // Journaliser les expirations
+                            foreach ($expiredPacks as $pack) {
+                                Log::info("Pack expiré", [
+                                    'pack_id' => $pack->id,
+                                    'user_id' => $pack->user_id,
+                                    'expiry_date' => $pack->expiry_date->format('Y-m-d H:i:s'),
+                                    'expired_at' => Carbon::now()->format('Y-m-d H:i:s')
+                                ]);
+                                
+                                $this->line("Pack ID: {$pack->id} marqué comme expiré");
+                            }
+                            
+                            // Mettre à jour tous les packs en une seule requête
+                            if (!empty($packIds)) {
+                                UserPack::whereIn('id', $packIds)
+                                    ->update([
+                                        'status' => 'expired',
+                                        'updated_at' => Carbon::now()
+                                    ]);
+                                
+                                $processedCount += count($packIds);
+                            }
+                        });
                         
-                        DB::commit();
                         $this->info("Lot traité: {$expiredPacks->count()} packs");
                     } catch (\Exception $e) {
-                        DB::rollBack();
-                        throw $e;
+                        $this->error("Erreur lors du traitement du lot: {$e->getMessage()}");
+                        Log::error("Erreur lors du traitement d'un lot de packs expirés", [
+                            'batch_count' => $expiredPacks->count(),
+                            'exception' => $e->getTraceAsString()
+                        ]);
                     }
                 });
 

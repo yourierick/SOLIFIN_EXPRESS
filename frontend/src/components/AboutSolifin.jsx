@@ -99,26 +99,26 @@ export default function AboutSolifin() {
             {/* Mission et Vision - sur la même ligne sur grand écran */}
             <div className="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Mission */}
-              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+              <div className={`p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
                 isDarkMode
                   ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
                   : "bg-gradient-to-r from-green-50 to-green-100 border border-green-200"
               }`}>
-                <div className="flex items-center mb-4">
-                  <div className={`p-3 rounded-xl mr-4 ${
+                <div className="flex items-start sm:items-center mb-3 sm:mb-4">
+                  <div className={`p-2 sm:p-3 rounded-xl mr-3 sm:mr-4 flex-shrink-0 ${
                     isDarkMode ? "bg-gray-600/40" : "bg-green-200"
                   }`}>
-                    <FlagIcon className={`h-6 w-6 ${
+                    <FlagIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                       isDarkMode ? "text-green-400/70" : "text-green-600"
                     }`} />
                   </div>
-                  <h3 className={`text-xl font-bold ${
+                  <h3 className={`text-lg sm:text-xl font-bold ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     NOTRE MISSION
                   </h3>
                 </div>
-                <p className={`ml-16 leading-relaxed ${
+                <p className={`leading-relaxed text-sm sm:text-base ${
                   isDarkMode ? "text-gray-300" : "text-gray-700"
                 }`}>
                   SOLIFIN est un programme visant à garantir à toute personne son autonomie financière 
@@ -127,26 +127,26 @@ export default function AboutSolifin() {
               </div>
 
               {/* Vision */}
-              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+              <div className={`p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
                 isDarkMode
                   ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
                   : "bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200"
               }`}>
-                <div className="flex items-center mb-4">
-                  <div className={`p-3 rounded-xl mr-4 ${
+                <div className="flex items-start sm:items-center mb-3 sm:mb-4">
+                  <div className={`p-2 sm:p-3 rounded-xl mr-3 sm:mr-4 flex-shrink-0 ${
                     isDarkMode ? "bg-gray-600/40" : "bg-blue-200"
                   }`}>
-                    <EyeIcon className={`h-6 w-6 ${
+                    <EyeIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                       isDarkMode ? "text-blue-400/70" : "text-blue-600"
                     }`} />
                   </div>
-                  <h3 className={`text-xl font-bold ${
+                  <h3 className={`text-lg sm:text-xl font-bold ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     NOTRE VISION
                   </h3>
                 </div>
-                <p className={`ml-16 leading-relaxed ${
+                <p className={`leading-relaxed text-sm sm:text-base ${
                   isDarkMode ? "text-gray-300" : "text-gray-700"
                 }`}>
                   Contribuer à une société où chaque personne est financièrement autonome et contribue ainsi 
@@ -158,59 +158,59 @@ export default function AboutSolifin() {
             {/* Valeurs et Principes - sur la même ligne sur grand écran */}
             <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Valeurs */}
-              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+              <div className={`p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
                 isDarkMode
                   ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
                   : "bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200"
               }`}>
-                <div className="flex items-center mb-4">
-                  <div className={`p-3 rounded-xl mr-4 ${
+                <div className="flex items-start sm:items-center mb-3 sm:mb-4">
+                  <div className={`p-2 sm:p-3 rounded-xl mr-3 sm:mr-4 flex-shrink-0 ${
                     isDarkMode ? "bg-gray-600/40" : "bg-purple-200"
                   }`}>
-                    <HeartIcon className={`h-6 w-6 ${
+                    <HeartIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                       isDarkMode ? "text-purple-400/70" : "text-purple-600"
                     }`} />
                   </div>
-                  <h3 className={`text-xl font-bold ${
+                  <h3 className={`text-lg sm:text-xl font-bold ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     NOS VALEURS
                   </h3>
                 </div>
-                <div className="space-y-4">
-                  <div className={`p-4 rounded-lg ${
+                <div className="space-y-3 sm:space-y-4">
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-purple-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-purple-300/70" : "text-purple-700"
                     }`}>ACCESSIBILITÉ:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       SOLIFIN s'engage à desservir ses abonnés même dans les zones les moins accessibles 
                       à travers la digitalisation de ses services, le partenariat local...
                     </p>
                   </div>
-                  <div className={`p-4 rounded-lg ${
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-purple-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-purple-300/70" : "text-purple-700"
                     }`}>TRANSPARENCE:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       Les données financières sont partagées à temps réel à travers les comptes abonnés 
                       par Solifin et les opinions des abonnés sont prises en compte...
                     </p>
                   </div>
-                  <div className={`p-4 rounded-lg ${
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-purple-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-purple-300/70" : "text-purple-700"
                     }`}>CRÉDIBILITÉ:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       SOLIFIN s'engage de fournir les services de qualité dans le strict respect 
@@ -221,72 +221,72 @@ export default function AboutSolifin() {
               </div>
 
               {/* Principes */}
-              <div className={`p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
+              <div className={`p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
                 isDarkMode
                   ? "bg-gradient-to-r from-gray-700/40 to-gray-600/20 border border-gray-600/40"
                   : "bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200"
               }`}>
-                <div className="flex items-center mb-4">
-                  <div className={`p-3 rounded-xl mr-4 ${
+                <div className="flex items-start sm:items-center mb-3 sm:mb-4">
+                  <div className={`p-2 sm:p-3 rounded-xl mr-3 sm:mr-4 flex-shrink-0 ${
                     isDarkMode ? "bg-gray-600/40" : "bg-orange-200"
                   }`}>
-                    <LightBulbIcon className={`h-6 w-6 ${
+                    <LightBulbIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                       isDarkMode ? "text-orange-400/70" : "text-orange-600"
                     }`} />
                   </div>
-                  <h3 className={`text-xl font-bold ${
+                  <h3 className={`text-lg sm:text-xl font-bold ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}>
                     NOS PRINCIPES
                   </h3>
                 </div>
-                <div className="space-y-4">
-                  <div className={`p-4 rounded-lg ${
+                <div className="space-y-3 sm:space-y-4">
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-orange-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-orange-300/70" : "text-orange-700"
                     }`}>AUTONOMIE FINANCIÈRE:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       La vision de SOLIFIN est de contribuer à la société où chaque personne est 
                       financièrement autonome et participe ainsi au processus de consolidation...
                     </p>
                   </div>
-                  <div className={`p-4 rounded-lg ${
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-orange-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-orange-300/70" : "text-orange-700"
                     }`}>NOS ABONNÉS D'ABORD:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       Les services Solifin sont prioritairement fournis à la satisfaction des abonnés 
                       à travers la prise en charge à temps réel de leur requêtes...
                     </p>
                   </div>
-                  <div className={`p-4 rounded-lg ${
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-orange-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-orange-300/70" : "text-orange-700"
                     }`}>DIGITALISATION:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       Solifin offre la solution numérique flexible par rapport aux besoins actuels 
                       des abonnés, un de facteur de croissance de taux d'inclusion numérique.
                     </p>
                   </div>
-                  <div className={`p-4 rounded-lg ${
+                  <div className={`p-3 sm:p-4 rounded-lg ${
                     isDarkMode ? "bg-gray-600/20" : "bg-orange-50"
                   }`}>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold text-sm sm:text-base ${
                       isDarkMode ? "text-orange-300/70" : "text-orange-700"
                     }`}>TRAVAIL EN ÉQUIPE:</span>
-                    <p className={`mt-1 ${
+                    <p className={`mt-1 text-sm sm:text-base leading-relaxed ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}>
                       Solifin favorise le travail en équipe entre abonnés à travers son programme 
