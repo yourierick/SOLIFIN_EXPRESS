@@ -19,6 +19,7 @@ import {
   TrashIcon,
   CurrencyDollarIcon,
   GiftIcon,
+  EllipsisVerticalIcon,
 } from "@heroicons/react/24/outline";
 import { Menu, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -288,6 +289,7 @@ export default function Packs() {
     nombre_filleuls: 5,
     taux_bonus: 50,
   });
+  const [actionDropdown, setActionDropdown] = useState({});
   const [formData, setFormData] = useState({
     nom: "",
     description: "",
@@ -470,6 +472,13 @@ export default function Packs() {
     } catch (err) {
       Notification.error("Erreur lors de la mise à jour du statut");
     }
+  }, []);
+
+  const toggleActionDropdown = useCallback((packId) => {
+    setActionDropdown(prev => ({
+      ...prev,
+      [packId]: !prev[packId]
+    }));
   }, []);
 
   const showDeleteModal = useCallback((packId, packName) => {
@@ -936,39 +945,93 @@ export default function Packs() {
                               </button>
                             </td>
                             <td className="px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm text-center">
-                              <div className="flex items-center justify-center">
-                                <div className="flex gap-1 sm:gap-2">
+                              <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                                {/* Dropdown pour mobile */}
+                                <div className="relative md:hidden">
+                                  <button
+                                    onClick={() => toggleActionDropdown(pack.id)}
+                                    className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                                  >
+                                    <EllipsisVerticalIcon className="h-4 w-4" />
+                                  </button>
+                                  
+                                  {/* Menu dropdown */}
+                                  {actionDropdown[pack.id] && (
+                                    <div className="fixed inset-0 z-50" onClick={() => toggleActionDropdown(pack.id)}>
+                                      <div className="absolute right-4 top-1/2 -translate-y-1/2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+                                        <div className="py-1">
+                                          <button
+                                            onClick={() => {
+                                              toggleActionDropdown(pack.id);
+                                              showCommissionModal(pack.id);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                          >
+                                            <CurrencyDollarIcon className="h-4 w-4" />
+                                            Commissions
+                                          </button>
+                                          <Link
+                                            to={`/admin/packs/edit/${pack.id}`}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                          >
+                                            <PencilIcon className="h-4 w-4" />
+                                            Modifier
+                                          </Link>
+                                          <button
+                                            onClick={() => {
+                                              toggleActionDropdown(pack.id);
+                                              showBonusModal(pack.id, pack.name);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                          >
+                                            <GiftIcon className="h-4 w-4" />
+                                            Bonus
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              toggleActionDropdown(pack.id);
+                                              showDeleteModal(pack.id, pack.name);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 transition-colors duration-200 flex items-center gap-2"
+                                          >
+                                            <TrashIcon className="h-4 w-4" />
+                                            Supprimer
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Boutons séparés pour desktop */}
+                                <div className="hidden md:flex items-center justify-center gap-2">
                                   <button
                                     onClick={() => showCommissionModal(pack.id)}
-                                    className="p-1 sm:p-1.5 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    className="p-1.5 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Gérer les commissions"
                                   >
-                                    <CurrencyDollarIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    <CurrencyDollarIcon className="h-4 w-4" />
                                   </button>
                                   <Link
                                     to={`/admin/packs/edit/${pack.id}`}
-                                    className="p-1 sm:p-1.5 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    className="p-1.5 rounded-md text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Modifier ce pack"
                                   >
-                                    <PencilIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    <PencilIcon className="h-4 w-4" />
                                   </Link>
                                   <button
-                                    onClick={() =>
-                                      showBonusModal(pack.id, pack.name)
-                                    }
-                                    className="p-1 sm:p-1.5 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    onClick={() => showBonusModal(pack.id, pack.name)}
+                                    className="p-1.5 rounded-md text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Configurer les bonus"
                                   >
-                                    <GiftIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    <GiftIcon className="h-4 w-4" />
                                   </button>
                                   <button
-                                    onClick={() =>
-                                      showDeleteModal(pack.id, pack.name)
-                                    }
-                                    className="p-1 sm:p-1.5 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                                    onClick={() => showDeleteModal(pack.id, pack.name)}
+                                    className="p-1.5 rounded-md text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                                     title="Supprimer ce pack"
                                   >
-                                    <TrashIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    <TrashIcon className="h-4 w-4" />
                                   </button>
                                 </div>
                               </div>

@@ -429,10 +429,10 @@ export default function AddPack() {
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {avantages.map((avantage, index) => (
-                    <div key={index} className="flex gap-3 items-start">
-                      <div className="flex-shrink-0 mt-1">
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex-shrink-0">
                         <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                           <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">
                             {index + 1}
@@ -446,7 +446,7 @@ export default function AddPack() {
                           handleAvantageChange(index, e.target.value)
                         }
                         placeholder="Ex: Accès illimité aux formations"
-                        className="block flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 sm:text-sm"
+                        className="flex-1 min-w-0 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 text-sm"
                       />
                       {index > 0 && (
                         <button

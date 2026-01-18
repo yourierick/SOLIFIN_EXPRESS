@@ -1066,14 +1066,15 @@ export default function MyPacks() {
             justifyContent: "space-between",
             alignItems: "center",
             mb: 4,
-            p: 3,
+            p: 4,
             borderRadius: "16px",
-            background: isDarkMode
-              ? "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%)"
-              : "linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, rgba(139, 92, 246, 0.02) 100%)",
+            background: isDarkMode ? "#1f2937" : "#ffffff",
             border: isDarkMode
-              ? "1px solid rgba(99, 102, 241, 0.15)"
-              : "1px solid rgba(99, 102, 241, 0.1)",
+              ? "1px solid rgba(255, 255, 255, 0.06)"
+              : "1px solid rgba(0, 0, 0, 0.04)",
+            boxShadow: isDarkMode
+              ? "0 1px 3px rgba(0, 0, 0, 0.1)"
+              : "0 1px 3px rgba(0, 0, 0, 0.05)",
           }}
         >
           <Box>
@@ -1081,8 +1082,10 @@ export default function MyPacks() {
               variant="h4"
               sx={{
                 fontWeight: 700,
-                color: isDarkMode ? "#fff" : "#1f2937",
-                mb: 1,
+                color: isDarkMode ? "#f8fafc" : "#1e293b",
+                mb: 0.5,
+                fontSize: "1.875rem",
+                lineHeight: 1.2,
               }}
             >
               Mes Packs
@@ -1090,7 +1093,9 @@ export default function MyPacks() {
             <Typography
               variant="body2"
               sx={{
-                color: "text.secondary",
+                color: isDarkMode ? "#94a3b8" : "#64748b",
+                fontSize: "0.875rem",
+                fontWeight: 500,
               }}
             >
               Gérez vos packs et suivez vos performances
@@ -1102,16 +1107,20 @@ export default function MyPacks() {
             startIcon={<PlusIcon className="h-5 w-5" />}
             onClick={() => navigate("../packs")}
             sx={{
-              borderRadius: "10px",
+              borderRadius: "12px",
               fontWeight: 600,
-              py: 1.2,
-              px: 2.5,
+              py: 1.25,
+              px: 3,
               textTransform: "none",
-              fontSize: "0.95rem",
+              fontSize: "0.9rem",
+              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
               "&:hover": {
+                background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
+                boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
                 transform: "translateY(-1px)",
               },
-              transition: "all 0.2s ease",
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
             Acheter un nouveau pack
@@ -1128,17 +1137,20 @@ export default function MyPacks() {
           <Paper
             elevation={0}
             sx={{
-              p: 5,
+              p: 6,
               textAlign: "center",
               borderRadius: "16px",
               border: isDarkMode
-                ? "1px solid rgba(255, 255, 255, 0.1)"
-                : "1px solid rgba(0, 0, 0, 0.05)",
+                ? "1px solid rgba(255, 255, 255, 0.06)"
+                : "1px solid rgba(0, 0, 0, 0.04)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 3,
-              bgcolor: isDarkMode ? "#1f2937" : "#fff",
+              gap: 4,
+              background: isDarkMode ? "#1f2937" : "#ffffff",
+              boxShadow: isDarkMode
+                ? "0 1px 3px rgba(0, 0, 0, 0.1)"
+                : "0 1px 3px rgba(0, 0, 0, 0.05)",
             }}
           >
             <motion.div
@@ -1148,17 +1160,17 @@ export default function MyPacks() {
             >
               <Box
                 sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: "primary.main",
+                  width: 100,
+                  height: 100,
+                  borderRadius: "20px",
+                  background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  mb: 2,
+                  boxShadow: "0 8px 24px rgba(59, 130, 246, 0.3)",
                 }}
               >
-                <GiftIcon style={{ width: 32, height: 32, color: "white" }} />
+                <GiftIcon style={{ width: 40, height: 40, color: "white" }} />
               </Box>
             </motion.div>
 
@@ -1168,11 +1180,13 @@ export default function MyPacks() {
               transition={{ delay: 0.4 }}
             >
               <Typography
-                variant="h5"
-                gutterBottom
+                variant="h4"
                 sx={{
-                  fontWeight: 600,
+                  fontWeight: 700,
                   mb: 2,
+                  color: isDarkMode ? "#f8fafc" : "#1e293b",
+                  fontSize: "1.5rem",
+                  lineHeight: 1.3,
                 }}
               >
                 Aucun pack disponible
@@ -1181,8 +1195,10 @@ export default function MyPacks() {
                 variant="body1"
                 sx={{
                   maxWidth: "500px",
-                  mb: 3,
-                  color: "text.secondary",
+                  mb: 4,
+                  color: isDarkMode ? "#94a3b8" : "#64748b",
+                  fontSize: "1rem",
+                  lineHeight: 1.6,
                 }}
               >
                 Vous n'avez souscrit à aucun pack. Cliquez sur le bouton
@@ -1194,9 +1210,20 @@ export default function MyPacks() {
                 startIcon={<PlusIcon className="h-5 w-5" />}
                 onClick={() => navigate("../packs")}
                 sx={{
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   fontWeight: 600,
+                  py: 1.25,
+                  px: 3,
                   textTransform: "none",
+                  fontSize: "0.9rem",
+                  background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
+                    boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
+                    transform: "translateY(-1px)",
+                  },
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
                 Acheter un pack
@@ -1229,65 +1256,70 @@ export default function MyPacks() {
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
-                      borderRadius: "20px",
+                      borderRadius: "16px",
                       overflow: "hidden",
                       border: isDarkMode
-                        ? "1px solid rgba(255, 255, 255, 0.08)"
-                        : "1px solid rgba(0, 0, 0, 0.06)",
+                        ? "1px solid rgba(255, 255, 255, 0.06)"
+                        : "1px solid rgba(0, 0, 0, 0.04)",
                       background: isDarkMode 
-                        ? "linear-gradient(145deg, #1e293b 0%, #0f172a 100%)"
-                        : "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+                        ? "#1f2937"
+                        : "#f6f6f6ff",
                       transition:
-                        "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                       position: "relative",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: "4px",
-                        background: isPackExpired(userPack.expiry_date, userPack.status)
-                          ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
-                          : isPackExpiringSoon(userPack.expiry_date)
-                          ? "linear-gradient(90deg, #f59e0b 0%, #d97706 100%)"
-                          : userPack.status === "active"
-                          ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
-                          : "linear-gradient(90deg, #6b7280 0%, #4b5563 100%)",
-                        zIndex: 2,
-                      },
                       "&:hover": {
-                        transform: "translateY(-8px) scale(1.02)",
+                        transform: "translateY(-4px)",
                         boxShadow: isPackExpired(userPack.expiry_date, userPack.status)
-                          ? "0 20px 40px rgba(239, 68, 68, 0.2), 0 0 20px rgba(239, 68, 68, 0.1)"
+                          ? "0 12px 24px rgba(239, 68, 68, 0.15), 0 0 0 1px rgba(239, 68, 68, 0.1)"
                           : isPackExpiringSoon(userPack.expiry_date)
-                          ? "0 20px 40px rgba(245, 158, 11, 0.2), 0 0 20px rgba(245, 158, 11, 0.1)"
-                          : "0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(59, 130, 246, 0.08)",
+                          ? "0 12px 24px rgba(245, 158, 11, 0.15), 0 0 0 1px rgba(245, 158, 11, 0.1)"
+                          : "0 12px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(59, 130, 246, 0.05)",
                       },
                     }}
                   >
-                    {/* En-tête amélioré avec gradient */}
+                    {/* Bandeau de statut minimaliste */}
                     <Box
                       sx={{
-                        p: 4,
-                        pb: 3,
-                        position: "relative",
-                        overflow: "hidden",
-                        background: isDarkMode
-                          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)"
-                          : "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)",
-                        borderBottom: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"}`,
+                        height: "3px",
+                        background: isPackExpired(userPack.expiry_date, userPack.status)
+                          ? "#ef4444"
+                          : isPackExpiringSoon(userPack.expiry_date)
+                          ? "#f59e0b"
+                          : userPack.status === "active"
+                          ? "#10b981"
+                          : "#6b7280",
                       }}
-                    >
-                      {/* Badge de statut flottant */}
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          top: 16,
-                          right: 16,
-                          zIndex: 3,
-                        }}
-                      >
+                    />
+
+                    {/* En-tête épuré */}
+                    <Box sx={{ p: 3, pb: 2 }}>
+                      {/* Badge de statut moderne */}
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ 
+                              fontWeight: 700, 
+                              mb: 1,
+                              color: isDarkMode ? "#f8fafc" : "#1e293b",
+                              lineHeight: 1.3,
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            {userPack.pack.name}
+                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ 
+                                color: isDarkMode ? "#94a3b8" : "#64748b",
+                                fontWeight: 500,
+                              }}
+                            >
+                              /{userPack.pack.abonnement}
+                            </Typography>
+                          </Box>
+                        </Box>
                         <Chip
                           label={
                             isPackExpired(userPack.expiry_date, userPack.status)
@@ -1298,372 +1330,324 @@ export default function MyPacks() {
                           }
                           size="small"
                           sx={{
-                            fontWeight: 700,
-                            fontSize: "0.75rem",
-                            letterSpacing: "0.025em",
-                            borderRadius: "20px",
-                            px: 2,
-                            py: 1,
+                            fontWeight: 600,
+                            fontSize: "0.7rem",
+                            borderRadius: "6px",
+                            px: 1,
+                            height: "24px",
                             background: isPackExpired(userPack.expiry_date, userPack.status)
-                              ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                              ? isDarkMode ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)"
                               : isPackExpiringSoon(userPack.expiry_date)
-                              ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                              ? isDarkMode ? "rgba(245, 158, 11, 0.15)" : "rgba(245, 158, 11, 0.1)"
                               : userPack.status === "active"
-                              ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                              : "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
-                            color: "#ffffff",
-                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                            "& .MuiChip-label": {
-                              px: 1,
-                            },
+                              ? isDarkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)"
+                              : isDarkMode ? "rgba(107, 114, 128, 0.15)" : "rgba(107, 114, 128, 0.1)",
+                            color: isPackExpired(userPack.expiry_date, userPack.status)
+                              ? "#ef4444"
+                              : isPackExpiringSoon(userPack.expiry_date)
+                              ? "#f59e0b"
+                              : userPack.status === "active"
+                              ? "#10b981"
+                              : "#6b7280",
+                            border: `1px solid ${
+                              isPackExpired(userPack.expiry_date, userPack.status)
+                                ? isDarkMode ? "rgba(239, 68, 68, 0.3)" : "rgba(239, 68, 68, 0.2)"
+                                : isPackExpiringSoon(userPack.expiry_date)
+                                ? isDarkMode ? "rgba(245, 158, 11, 0.3)" : "rgba(245, 158, 11, 0.2)"
+                                : userPack.status === "active"
+                                ? isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(16, 185, 129, 0.2)"
+                                : isDarkMode ? "rgba(107, 114, 128, 0.3)" : "rgba(107, 114, 128, 0.2)"
+                            }`,
                           }}
                         />
                       </Box>
-
-                      {/* Icône décorative */}
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          top: -20,
-                          right: -20,
-                          width: "120px",
-                          height: "120px",
-                          borderRadius: "50%",
-                          background: isDarkMode
-                            ? "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)"
-                            : "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)",
-                          zIndex: 1,
-                        }}
-                      />
-
-                      <Box sx={{ position: "relative", zIndex: 2 }}>
-                        <Typography
-                          variant="h4"
-                          sx={{ 
-                            fontWeight: 800, 
-                            mb: 1,
-                            background: isDarkMode
-                              ? "linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)"
-                              : "linear-gradient(135deg, #1f2937 0%, #374151 100%)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            backgroundClip: "text",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {userPack.pack.name}
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ 
-                              color: isDarkMode ? "#94a3b8" : "#64748b",
-                              fontWeight: 500,
-                            }}
-                          >
-                            /{userPack.pack.abonnement}
-                          </Typography>
-                        </Box>
-                      </Box>
                     </Box>
-                    {/* Description améliorée */}
-                    <Box sx={{ p: 4, pb: 3 }}>
-                      <Box
+                    {/* Description complète */}
+                    <Box sx={{ px: 3, pb: 2 }}>
+                      <Typography
+                        variant="body2"
                         sx={{
-                          p: 3,
-                          borderRadius: "16px",
-                          background: isDarkMode
-                            ? "rgba(59, 130, 246, 0.08)"
-                            : "rgba(59, 130, 246, 0.04)",
-                          border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)"}`,
-                          position: "relative",
-                          transition: "all 0.2s ease",
-                          "&:hover": {
-                            background: isDarkMode
-                              ? "rgba(59, 130, 246, 0.12)"
-                              : "rgba(59, 130, 246, 0.08)",
-                            transform: "translateX(4px)",
-                          },
+                          color: isDarkMode ? "#94a3b8" : "#64748b",
+                          lineHeight: 1.5,
+                          fontSize: "0.85rem",
                         }}
                       >
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: isDarkMode ? "#cbd5e1" : "#475569",
-                            fontWeight: 500,
-                            lineHeight: 1.6,
-                            fontSize: "0.9rem",
-                            height: "63px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical",
-                          }}
-                        >
-                          {userPack.pack.description}
-                        </Typography>
-                      </Box>
+                        {userPack.pack.description}
+                      </Typography>
                     </Box>
-                    {/* Informations */}
+                    {/* Informations structurées */}
                     <Box sx={{ px: 3, pb: 2, flexGrow: 1 }}>
-                      {/* ALERTE SI INACTIF */}
-                      {userPack.status === "inactive" && (
-                        <Alert
-                          severity="warning"
-                          sx={{ borderRadius: 2, mb: 2, fontWeight: 500 }}
-                        >
-                          Ce pack a été désactivé, contactez notre équipe pour
-                          sa réactivation.
-                        </Alert>
-                      )}
-
-                      {/* ALERTE SI EXPIRÉ */}
-                      {isPackExpired(userPack.expiry_date, userPack.status) && (
-                        <Alert
-                          severity="error"
-                          sx={{
-                            borderRadius: 2,
-                            mb: 2,
-                            fontWeight: 500,
-                            backgroundColor: isDarkMode
-                              ? "rgba(239, 68, 68, 0.1)"
-                              : "rgba(254, 226, 226, 0.5)",
-                            border: "1px solid rgba(239, 68, 68, 0.2)",
-                          }}
-                          icon={<ExclamationTriangleIcon className="h-5 w-5" />}
-                        >
-                          Ce pack est expiré. Vous pouvez le renouveler pour
-                          continuer à bénéficier de ses avantages.
-                        </Alert>
-                      )}
-
-                      {/* ALERTE SI SUR LE POINT D'EXPIRER */}
-                      {isPackExpiringSoon(userPack.expiry_date) &&
-                        !isPackExpired(
-                          userPack.expiry_date,
-                          userPack.status
-                        ) && (
-                          <Alert
-                            severity="warning"
-                            sx={{
-                              borderRadius: 2,
-                              mb: 2,
-                              fontWeight: 500,
-                              backgroundColor: isDarkMode
-                                ? "rgba(245, 158, 11, 0.1)"
-                                : "rgba(254, 243, 199, 0.5)",
-                              border: "1px solid rgba(245, 158, 11, 0.2)",
-                            }}
-                            icon={<ClockIcon className="h-5 w-5" />}
-                          >
-                            Ce pack expire dans moins de 7 jours. Pensez à le
-                            renouveler pour ne pas perdre vos avantages.
-                          </Alert>
-                        )}
-                      <List disablePadding>
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                        
                         {/* Code de parrainage */}
-                        <ListItem
-                          disablePadding
+                        <Box
                           sx={{
-                            py: 1.5,
-                            borderBottom: "1px solid",
-                            borderColor: isDarkMode
-                              ? "rgba(255, 255, 255, 0.05)"
-                              : "rgba(0, 0, 0, 0.05)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            p: 2,
+                            borderRadius: "8px",
+                            background: isDarkMode
+                              ? "rgba(59, 130, 246, 0.05)"
+                              : "rgba(59, 130, 246, 0.02)",
+                            border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(59, 130, 246, 0.08)"}`,
                           }}
                         >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <ContentCopy fontSize="small" color="action" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary="Code de parrainage"
-                            secondary={userPack.referral_code}
-                            primaryTypographyProps={{
-                              variant: "caption",
-                              color: "text.secondary",
-                              component: "span",
-                            }}
-                            secondaryTypographyProps={{
-                              variant: "body2",
-                              fontWeight: 600,
-                              sx: { mt: 0.5 },
-                              component: "span",
-                            }}
-                          />
-                          <Tooltip title="Copier le code" placement="top">
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0 }}>
+                            <Box
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "6px",
+                                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <ContentCopy sx={{ fontSize: 16, color: "#ffffff" }} />
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: isDarkMode ? "#64748b" : "#6b7280",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                  fontSize: "0.7rem",
+                                  display: "block",
+                                }}
+                              >
+                                Code
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {userPack.referral_code}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Tooltip title="Copier">
                             <IconButton
-                              edge="end"
                               size="small"
                               onClick={() => handleCopy(userPack.referral_code)}
+                              sx={{
+                                color: isDarkMode ? "#3b82f6" : "#2563eb",
+                                "&:hover": {
+                                  background: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                                },
+                              }}
                             >
                               <ContentCopy fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                        </ListItem>
+                        </Box>
 
                         {/* Date d'expiration */}
                         {userPack.expiry_date && (
-                          <ListItem
-                            disablePadding
+                          <Box
                             sx={{
-                              py: 1.5,
-                              borderBottom: "1px solid",
-                              borderColor: isDarkMode
-                                ? "rgba(255, 255, 255, 0.05)"
-                                : "rgba(0, 0, 0, 0.05)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              p: 2,
+                              borderRadius: "8px",
+                              background: isPackExpired(userPack.expiry_date, userPack.status)
+                                ? isDarkMode ? "rgba(239, 68, 68, 0.05)" : "rgba(239, 68, 68, 0.02)"
+                                : isPackExpiringSoon(userPack.expiry_date)
+                                ? isDarkMode ? "rgba(245, 158, 11, 0.05)" : "rgba(245, 158, 11, 0.02)"
+                                : isDarkMode ? "rgba(16, 185, 129, 0.05)" : "rgba(16, 185, 129, 0.02)",
+                              border: isPackExpired(userPack.expiry_date, userPack.status)
+                                ? `1px solid ${isDarkMode ? "rgba(239, 68, 68, 0.1)" : "rgba(239, 68, 68, 0.08)"}`
+                                : isPackExpiringSoon(userPack.expiry_date)
+                                ? `1px solid ${isDarkMode ? "rgba(245, 158, 11, 0.1)" : "rgba(245, 158, 11, 0.08)"}`
+                                : `1px solid ${isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.08)"}`,
                             }}
                           >
-                            <ListItemIcon sx={{ minWidth: 36 }}>
-                              <CalendarMonth
-                                fontSize="small"
-                                color={
-                                  userPack.status === "expired"
-                                    ? "error"
-                                    : "action"
-                                }
-                              />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={
-                                userPack.status === "expired"
-                                  ? "Expiré le"
-                                  : "Expire le"
-                              }
-                              secondary={
-                                <>
-                                  {new Date(
-                                    userPack.expiry_date
-                                  ).toLocaleDateString()}
-                                  {userPack.status !== "expired" && (
-                                    <Typography
-                                      variant="caption"
-                                      component="span"
-                                      sx={{
-                                        mt: 0.5,
-                                        display: "block",
-                                        color: getRemainingTimeColor(
-                                          userPack.expiry_date
-                                        ),
-                                      }}
-                                    >
-                                      {formatRemainingTime(
-                                        userPack.expiry_date
-                                      )}
-                                    </Typography>
-                                  )}
-                                </>
-                              }
-                              primaryTypographyProps={{
-                                variant: "caption",
-                                color:
-                                  userPack.status === "expired"
-                                    ? "error.main"
-                                    : "text.secondary",
+                            <Box
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "6px",
+                                background: isPackExpired(userPack.expiry_date, userPack.status)
+                                  ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                                  : isPackExpiringSoon(userPack.expiry_date)
+                                  ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                                  : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
                               }}
-                              secondaryTypographyProps={{
-                                variant: "body2",
-                                fontWeight: 600,
-                                color:
-                                  userPack.status === "expired"
-                                    ? "error.main"
-                                    : undefined,
-                                sx: { mt: 0.5 },
-                                component: "span",
-                              }}
-                            />
-                          </ListItem>
-                        )}
-                        {/* Utilisateur */}
-                        {userPack.user && (
-                          <ListItem disablePadding sx={{ py: 1.5 }}>
-                            <ListItemAvatar sx={{ minWidth: 50 }}>
-                              <Avatar
+                            >
+                              <CalendarMonth sx={{ fontSize: 16, color: "#ffffff" }} />
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography
+                                variant="caption"
                                 sx={{
-                                  bgcolor: "primary.main",
-                                  width: 36,
-                                  height: 36,
+                                  color: isPackExpired(userPack.expiry_date, userPack.status)
+                                    ? "#ef4444"
+                                    : isPackExpiringSoon(userPack.expiry_date)
+                                    ? "#f59e0b"
+                                    : "#10b981",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                  fontSize: "0.7rem",
+                                  display: "block",
                                 }}
                               >
-                                {userPack.user.name.charAt(0).toUpperCase()}
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary="Utilisateur"
-                              secondary={userPack.user.name}
-                              primaryTypographyProps={{
-                                variant: "caption",
-                                color: "text.secondary",
-                                component: "span",
-                              }}
-                              secondaryTypographyProps={{
-                                variant: "body2",
-                                fontWeight: 600,
-                                component: "span",
-                              }}
-                            />
-                          </ListItem>
+                                {isPackExpired(userPack.expiry_date, userPack.status) ? "Expiré le" : "Expire le"}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: isPackExpired(userPack.expiry_date, userPack.status)
+                                    ? "#ef4444"
+                                    : isPackExpiringSoon(userPack.expiry_date)
+                                    ? "#f59e0b"
+                                    : isDarkMode ? "#f1f5f9" : "#1e293b",
+                                }}
+                              >
+                                {new Date(userPack.expiry_date).toLocaleDateString()}
+                              </Typography>
+                              {userPack.status !== "expired" && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: "block",
+                                    mt: 0.5,
+                                    color: getRemainingTimeColor(userPack.expiry_date),
+                                    fontSize: "0.65rem",
+                                  }}
+                                >
+                                  {formatRemainingTime(userPack.expiry_date)}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
                         )}
-                      </List>
+
+                        {/* Utilisateur */}
+                        {userPack.user && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              p: 2,
+                              borderRadius: "8px",
+                              background: isDarkMode
+                                ? "rgba(139, 92, 246, 0.05)"
+                                : "rgba(139, 92, 246, 0.02)",
+                              border: `1px solid ${isDarkMode ? "rgba(139, 92, 246, 0.1)" : "rgba(139, 92, 246, 0.08)"}`,
+                            }}
+                          >
+                            <Avatar
+                              sx={{
+                                background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                                width: 28,
+                                height: 28,
+                                fontWeight: 700,
+                                fontSize: "0.85rem",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {userPack.user.name.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: isDarkMode ? "#64748b" : "#6b7280",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                  fontSize: "0.7rem",
+                                  display: "block",
+                                }}
+                              >
+                                Utilisateur
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {userPack.user.name}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
                     </Box>
-                    {/* Actions */}
-                    <CardActions
+                    {/* Actions minimalistes */}
+                    <Box
                       sx={{
-                        px: 3,
-                        pb: 3,
-                        pt: 2,
-                        mt: "auto",
+                        p: 2,
+                        borderTop: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"}`,
+                        display: "flex",
                         justifyContent: "space-between",
-                        borderTop: "1px solid",
-                        borderColor: isDarkMode
-                          ? "rgba(255, 255, 255, 0.08)"
-                          : "rgba(0, 0, 0, 0.04)",
-                        background: isDarkMode
-                          ? "rgba(99, 102, 241, 0.02)"
-                          : "rgba(99, 102, 241, 0.01)",
+                        alignItems: "center",
                       }}
                     >
-                      {/* Groupe d'actions à gauche : stats, filleuls */}
                       <Box sx={{ display: "flex", gap: 1 }}>
-                        <Tooltip
-                          title="Statistiques détaillées"
-                          placement="top"
-                        >
+                        <Tooltip title="Statistiques détaillées">
                           <IconButton
                             size="small"
                             onClick={() => handleStatsClick(userPack.pack.id)}
                             sx={{
-                              color: "primary.main",
+                              background: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                              color: isDarkMode ? "#3b82f6" : "#2563eb",
+                              width: 36,
+                              height: 36,
+                              borderRadius: "8px",
                               "&:hover": {
-                                background: isDarkMode
-                                  ? "rgba(99, 102, 241, 0.1)"
-                                  : "rgba(99, 102, 241, 0.05)",
+                                background: isDarkMode ? "rgba(59, 130, 246, 0.15)" : "rgba(37, 99, 235, 0.1)",
                               },
                             }}
                           >
-                            <ChartBarIcon className="h-5 w-5" />
+                            <ChartBarIcon className="h-4 w-4" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Voir les filleuls" placement="top">
+
+                        <Tooltip title="Voir les filleuls">
                           <IconButton
                             size="small"
-                            onClick={() =>
-                              handleReferralsClick(userPack.pack.id)
-                            }
+                            onClick={() => handleReferralsClick(userPack.pack.id)}
                             sx={{
-                              color: "#10b981",
+                              background: isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.05)",
+                              color: isDarkMode ? "#10b981" : "#059669",
+                              width: 36,
+                              height: 36,
+                              borderRadius: "8px",
                               "&:hover": {
-                                background: isDarkMode
-                                  ? "rgba(16, 185, 129, 0.1)"
-                                  : "rgba(16, 185, 129, 0.05)",
+                                background: isDarkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)",
                               },
                             }}
                           >
-                            <UsersIcon className="h-5 w-5" />
+                            <UsersIcon className="h-4 w-4" />
                           </IconButton>
                         </Tooltip>
                       </Box>
-                      {/* Bouton renouveler visible seulement si le pack est expiré ou sur le point d'expirer */}
+
+                      {/* Bouton renouveler */}
                       {(isPackExpired(userPack.expiry_date, userPack.status) ||
                         isPackExpiringSoon(userPack.expiry_date)) && (
                         <Button
@@ -1679,26 +1663,19 @@ export default function MyPacks() {
                           }
                           onClick={() => handleRenewClick(userPack)}
                           sx={{
-                            borderRadius: "10px",
+                            borderRadius: "8px",
                             fontWeight: 600,
                             textTransform: "none",
                             px: 2,
-                            ...(isPackExpired(
-                              userPack.expiry_date,
-                              userPack.status
-                            ) && {
-                              background:
-                                "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                            fontSize: "0.85rem",
+                            ...(isPackExpired(userPack.expiry_date, userPack.status) && {
+                              background: "#ef4444",
                               "&:hover": {
-                                background:
-                                  "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                                background: "#dc2626",
                               },
                             }),
                             ...(isPackExpiringSoon(userPack.expiry_date) &&
-                              !isPackExpired(
-                                userPack.expiry_date,
-                                userPack.status
-                              ) && {
+                              !isPackExpired(userPack.expiry_date, userPack.status) && {
                                 borderColor: "#f59e0b",
                                 color: "#f59e0b",
                                 "&:hover": {
@@ -1708,22 +1685,17 @@ export default function MyPacks() {
                               }),
                           }}
                           startIcon={
-                            isPackExpired(
-                              userPack.expiry_date,
-                              userPack.status
-                            ) ? (
+                            isPackExpired(userPack.expiry_date, userPack.status) ? (
                               <ExclamationTriangleIcon className="h-4 w-4" />
                             ) : (
                               <ClockIcon className="h-4 w-4" />
                             )
                           }
                         >
-                          {isPackExpired(userPack.expiry_date, userPack.status)
-                            ? "Renouveler"
-                            : "Renouveler"}
+                          Renouveler
                         </Button>
                       )}
-                    </CardActions>
+                    </Box>
                   </Paper>
                 </motion.div>
               </Grid>
@@ -1772,6 +1744,7 @@ export default function MyPacks() {
         packId={selectedPackId}
       />
 
+      {/* Dialog pour les filleuls*/}
       <Dialog
         open={referralsDialog}
         onClose={() => setReferralsDialog(false)}
@@ -2271,43 +2244,49 @@ export default function MyPacks() {
                   variant="scrollable"
                   scrollButtons="auto"
                   sx={{
-                    borderBottom: isDarkMode
-                      ? "1px solid rgba(255, 255, 255, 0.08)"
-                      : "1px solid rgba(0, 0, 0, 0.08)",
-                    bgcolor: isDarkMode
-                      ? "rgba(30, 41, 59, 0.6)"
-                      : "rgba(255, 255, 255, 0.8)",
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
+                    background: isDarkMode ? "#1f2937" : "#ffffff",
+                    borderRadius: "12px",
+                    p: 1,
+                    boxShadow: isDarkMode
+                      ? "0 1px 3px rgba(0, 0, 0, 0.1)"
+                      : "0 1px 3px rgba(0, 0, 0, 0.05)",
+                    border: isDarkMode
+                      ? "1px solid rgba(255, 255, 255, 0.06)"
+                      : "1px solid rgba(0, 0, 0, 0.04)",
                     "& .MuiTab-root": {
-                      color: isDarkMode ? "grey.400" : "text.secondary",
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
                       fontWeight: 500,
                       fontSize: "0.875rem",
                       textTransform: "none",
-                      minHeight: 48,
-                      px: 2,
-                      transition: "all 0.3s ease",
+                      minHeight: 40,
+                      px: 2.5,
+                      py: 1,
+                      borderRadius: "8px",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                       "&:hover": {
-                        color: isDarkMode ? "primary.light" : "primary.main",
-                        bgcolor: isDarkMode
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.04)",
+                        color: isDarkMode ? "#3b82f6" : "#2563eb",
+                        background: isDarkMode
+                          ? "rgba(59, 130, 246, 0.08)"
+                          : "rgba(37, 99, 235, 0.04)",
                       },
                       "&.Mui-selected": {
-                        color: isDarkMode ? "primary.light" : "primary.main",
+                        color: "#ffffff",
+                        background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                         fontWeight: 600,
+                        boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
                       },
                     },
                     "& .MuiTabs-indicator": {
-                      background: isDarkMode
-                        ? "linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%)"
-                        : "linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%)",
-                      height: 3,
-                      borderRadius: "3px 3px 0 0",
-                      boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+                      display: "none",
                     },
                     "& .MuiTabs-scrollButtons": {
-                      color: isDarkMode ? "grey.400" : "text.secondary",
+                      color: isDarkMode ? "#94a3b8" : "#64748b",
+                      borderRadius: "6px",
+                      "&:hover": {
+                        background: isDarkMode
+                          ? "rgba(148, 163, 184, 0.1)"
+                          : "rgba(100, 116, 139, 0.1)",
+                      },
                     },
                   }}
                 >
@@ -2323,7 +2302,7 @@ export default function MyPacks() {
                         fontWeight: 500,
                         textTransform: "none",
                         minWidth: "auto",
-                        px: 3,
+                        px: 2,
                       }}
                     />
                   ))}
@@ -2362,26 +2341,24 @@ export default function MyPacks() {
                         px: 2.5,
                         py: 1,
                         borderColor: isDarkMode
-                          ? "rgba(255, 255, 255, 0.2)"
-                          : "rgba(0, 0, 0, 0.2)",
-                        color: isDarkMode ? "grey.200" : "text.primary",
+                          ? "rgba(59, 130, 246, 0.3)"
+                          : "rgba(37, 99, 235, 0.3)",
+                        color: isDarkMode ? "#3b82f6" : "#2563eb",
                         background: isDarkMode
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.02)",
-                        backdropFilter: "blur(5px)",
-                        WebkitBackdropFilter: "blur(5px)",
-                        transition: "all 0.3s ease",
+                          ? "rgba(59, 130, 246, 0.05)"
+                          : "rgba(37, 99, 235, 0.02)",
+                        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                         "&:hover": {
                           borderColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.3)"
-                            : "rgba(0, 0, 0, 0.3)",
+                            ? "rgba(59, 130, 246, 0.5)"
+                            : "rgba(37, 99, 235, 0.5)",
                           background: isDarkMode
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.05)",
+                            ? "rgba(59, 130, 246, 0.1)"
+                            : "rgba(37, 99, 235, 0.05)",
                           transform: "translateY(-1px)",
                           boxShadow: isDarkMode
-                            ? "0 4px 12px rgba(0, 0, 0, 0.3)"
-                            : "0 4px 12px rgba(0, 0, 0, 0.1)",
+                            ? "0 4px 12px rgba(59, 130, 246, 0.2)"
+                            : "0 4px 12px rgba(37, 99, 235, 0.1)",
                         },
                       }}
                     >
@@ -2398,37 +2375,18 @@ export default function MyPacks() {
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
                       >
-                        {/* Section des filtres avec design moderne */}
                         <Box
                           sx={{
-                            background: isDarkMode
-                              ? "linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)"
-                              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%)",
-                            borderRadius: "20px",
+                            background: isDarkMode ? "#1f2937" : "#ffffff",
+                            borderRadius: "12px",
                             border: isDarkMode
-                              ? "1px solid rgba(255, 255, 255, 0.1)"
-                              : "1px solid rgba(0, 0, 0, 0.08)",
+                              ? "1px solid rgba(255, 255, 255, 0.06)"
+                              : "1px solid rgba(0, 0, 0, 0.04)",
                             boxShadow: isDarkMode
-                              ? "0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
-                              : "0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
-                            backdropFilter: "blur(20px)",
-                            WebkitBackdropFilter: "blur(20px)",
+                              ? "0 1px 3px rgba(0, 0, 0, 0.1)"
+                              : "0 1px 3px rgba(0, 0, 0, 0.05)",
                             p: 3,
                             mt: 2,
-                            position: "relative",
-                            overflow: "hidden",
-                            "&::before": {
-                              content: '""',
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              height: "3px",
-                              background: isDarkMode
-                                ? "linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)"
-                                : "linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)",
-                              borderRadius: "20px 20px 0 0",
-                            },
                           }}
                         >
                           {/* Header de la section filtres */}

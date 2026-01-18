@@ -242,7 +242,7 @@ const PackStatsModal = ({ open, onClose, packId, userId }) => {
     if (!isCDFEnabled && selectedCurrency !== "USD") {
       setSelectedCurrency("USD");
     }
-  }, [isCDFEnabled, selectedCurrency, setSelectedCurrency]);
+  }, [isCDFEnabled, selectedCurrency]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -314,785 +314,774 @@ const PackStatsModal = ({ open, onClose, packId, userId }) => {
     return `$${numAmount.toFixed(2)}`;
   };
 
-  // Composant pour les statistiques générales
-  const GeneralStats = () => {
-    if (!stats?.general_stats) return null;
+  // Composant optimisé pour les statistiques générales
+const GeneralStats = React.memo(({ stats, selectedCurrency, formatAmount, isDarkMode, hasAnimated, containerVariants, itemVariants, cardStyle, packId, userId }) => {
+  if (!stats?.general_stats) return null;
 
-    const { general_stats } = stats;
+  const { general_stats } = stats;
 
-    // Calculer les statistiques dérivées
-    const activationRate =
-      general_stats.total_referrals > 0
-        ? (
-            (general_stats.active_referrals / general_stats.total_referrals) *
-            100
-          ).toFixed(1)
-        : 0;
+  // Calculer les statistiques dérivées
+  const activationRate =
+    general_stats.total_referrals > 0
+      ? (
+          (general_stats.active_referrals / general_stats.total_referrals) *
+          100
+        ).toFixed(1)
+      : 0;
 
-    const bestGenerationIndex = general_stats.referrals_by_generation.findIndex(
-      (count, index) =>
-        count === Math.max(...general_stats.referrals_by_generation)
-    );
+  const bestGenerationIndex = general_stats.referrals_by_generation.findIndex(
+    (count, index) =>
+      count === Math.max(...general_stats.referrals_by_generation)
+  );
 
-    const statsCards = [
-      {
-        title: "Total Réseau",
-        value: general_stats.total_referrals,
-        icon: <PeopleIcon />,
-        color: "#3b82f6",
-        subtitle: `${general_stats.active_referrals} actifs, ${general_stats.inactive_referrals} inactifs`,
-      },
-      {
-        title: "Taux d'activation",
-        value: `${activationRate}%`,
-        icon: <TrendingUpIcon />,
-        color: "#10b981",
-        subtitle: "Performance du réseau",
-      },
-      {
-        title: "Commission Totale",
-        value: formatAmount(
-          selectedCurrency === "USD"
-            ? general_stats.total_commission_usd
-            : general_stats.total_commission_cdf,
-          selectedCurrency
-        ),
-        icon: <AttachMoneyIcon />,
-        color: "#f59e0b",
-        subtitle:
-          selectedCurrency === "USD"
-            ? "Dollars américains"
-            : "Francs congolais",
-      },
-      {
-        title: "Meilleure Génération",
-        value: `G${bestGenerationIndex + 1}`,
-        icon: <StarIcon />,
-        color: "#8b5cf6",
-        subtitle: `${general_stats.referrals_by_generation[bestGenerationIndex]} filleuls`,
-      },
-    ];
+  const statsCards = [
+    {
+      title: "Total Réseau",
+      value: general_stats.total_referrals,
+      icon: <PeopleIcon />,
+      color: "#3b82f6",
+      subtitle: `${general_stats.active_referrals} actifs, ${general_stats.inactive_referrals} inactifs`,
+    },
+    {
+      title: "Taux d'activation",
+      value: `${activationRate}%`,
+      icon: <TrendingUpIcon />,
+      color: "#10b981",
+      subtitle: "Performance du réseau",
+    },
+    {
+      title: "Commission Totale",
+      value: formatAmount(
+        selectedCurrency === "USD"
+          ? general_stats.total_commission_usd
+          : general_stats.total_commission_cdf,
+        selectedCurrency
+      ),
+      icon: <AttachMoneyIcon />,
+      color: "#f59e0b",
+      subtitle:
+        selectedCurrency === "USD"
+          ? "Dollars américains"
+          : "Francs congolais",
+    },
+    {
+      title: "Meilleure Génération",
+      value: `G${bestGenerationIndex + 1}`,
+      icon: <StarIcon />,
+      color: "#8b5cf6",
+      subtitle: `${general_stats.referrals_by_generation[bestGenerationIndex]} filleuls`,
+    },
+  ];
 
-    return (
-      <motion.div
-        key={`overview-${packId}-${userId}`}
-        variants={containerVariants}
-        initial={hasAnimated ? "visible" : "hidden"}
-        animate={hasAnimated ? "visible" : "hidden"}
-      >
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 700 }}>
-          Vue d'ensemble du réseau
-        </Typography>
+  return (
+    <motion.div
+      key="overview"
+      variants={containerVariants}
+      initial={hasAnimated ? "visible" : "hidden"}
+      animate={hasAnimated ? "visible" : "hidden"}
+    >
+      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 700 }}>
+        Vue d'ensemble du réseau
+      </Typography>
 
-        <Grid container spacing={3}>
-          {statsCards.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={3} key={`stat-${index}-${packId}-${userId}`}>
-              <motion.div variants={itemVariants}>
-                <Card sx={cardStyle}>
-                  <CardContent>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: "12px",
-                          bgcolor: `${stat.color}15`,
-                          color: stat.color,
-                          mr: 2,
-                        }}
-                      >
-                        {stat.icon}
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        fontWeight={500}
-                      >
-                        {stat.title}
-                      </Typography>
+      <Grid container spacing={3}>
+        {statsCards.map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={`stat-${index}`}>
+            <motion.div variants={itemVariants}>
+              <Card sx={cardStyle}>
+                <CardContent>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: "12px",
+                        bgcolor: `${stat.color}15`,
+                        color: stat.color,
+                        mr: 2,
+                      }}
+                    >
+                      {stat.icon}
                     </Box>
                     <Typography
-                      variant="h4"
-                      sx={{ fontWeight: 700, color: stat.color, mb: 0.5 }}
+                      variant="body2"
+                      color="text.secondary"
+                      fontWeight={500}
                     >
-                      {stat.value}
+                      {stat.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {stat.subtitle}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* Section des commissions par génération */}
-        <Grid container spacing={3} sx={{ mt: 3 }}>
-          <Grid item xs={12}>
-            <motion.div 
-              key={`generation-section-${packId}-${userId}`}
-              variants={itemVariants}
-              initial={hasAnimated ? "visible" : "hidden"}
-              animate={hasAnimated ? "visible" : "hidden"}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card sx={cardStyle}>
-                <CardContent>
+                  </Box>
                   <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: 600, mb: 3 }}
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: stat.color, mb: 0.5 }}
                   >
-                    Répartition des commissions par génération
+                    {stat.value}
                   </Typography>
-                  <Grid container spacing={2}>
-                    {general_stats.referrals_by_generation.map(
-                      (count, index) => {
-                        const commissionUSD =
-                          general_stats.commissions_by_generation_usd[index];
-                        const commissionCDF =
-                          general_stats.commissions_by_generation_cdf[index];
-                        const isActive = count > 0;
-                        const generationColors = [
-                          "#3b82f6",
-                          "#10b981",
-                          "#f59e0b",
-                          "#ef4444",
-                        ];
-                        const color = generationColors[index];
+                  <Typography variant="caption" color="text.secondary">
+                    {stat.subtitle}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </Grid>
+        ))}
+      </Grid>
 
-                        return (
-                          <Grid item xs={12} sm={6} md={3} key={`generation-${index}-${packId}-${userId}`}>
-                            <Box
+      {/* Section des commissions par génération */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12}>
+          <motion.div 
+            key="generation-section"
+            variants={itemVariants}
+            initial={hasAnimated ? "visible" : "hidden"}
+            animate={hasAnimated ? "visible" : "hidden"}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ fontWeight: 600, mb: 3 }}
+                >
+                  Répartition des commissions par génération
+                </Typography>
+                <Grid container spacing={2}>
+                  {general_stats.referrals_by_generation.map(
+                    (count, index) => {
+                      const commissionUSD =
+                        general_stats.commissions_by_generation_usd[index];
+                      const commissionCDF =
+                        general_stats.commissions_by_generation_cdf[index];
+                      const isActive = count > 0;
+                      const generationColors = [
+                        "#3b82f6",
+                        "#10b981",
+                        "#f59e0b",
+                        "#ef4444",
+                      ];
+                      const color = generationColors[index];
+
+                      return (
+                        <Grid item xs={12} sm={6} md={3} key={`generation-${index}`}>
+                          <Box
+                            sx={{
+                              p: 2.5,
+                              borderRadius: "12px",
+                              border: `2px solid ${
+                                isActive ? color : "transparent"
+                              }`,
+                              bgcolor: isActive
+                                ? `${color}08`
+                                : isDarkMode
+                                ? "rgba(255, 255, 255, 0.02)"
+                                : "rgba(0, 0, 0, 0.02)",
+                              textAlign: "center",
+                              transition: "all 0.3s ease",
+                              "&:hover": isActive
+                                ? {
+                                    bgcolor: `${color}12`,
+                                    transform: "translateY(-2px)",
+                                  }
+                                : {},
+                            }}
+                          >
+                            <Typography
+                              variant="h3"
                               sx={{
-                                p: 2.5,
-                                borderRadius: "12px",
-                                border: `2px solid ${
-                                  isActive ? color : "transparent"
-                                }`,
-                                bgcolor: isActive
-                                  ? `${color}08`
-                                  : isDarkMode
-                                  ? "rgba(255, 255, 255, 0.02)"
-                                  : "rgba(0, 0, 0, 0.02)",
-                                textAlign: "center",
-                                transition: "all 0.3s ease",
-                                "&:hover": isActive
-                                  ? {
-                                      bgcolor: `${color}12`,
-                                      transform: "translateY(-2px)",
-                                    }
-                                  : {},
+                                fontWeight: 800,
+                                color: isActive ? color : "text.secondary",
+                                mb: 1,
                               }}
                             >
-                              <Typography
-                                variant="h3"
-                                sx={{
-                                  fontWeight: 800,
-                                  color: isActive ? color : "text.secondary",
-                                  mb: 1,
-                                }}
-                              >
-                                {count}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: isActive ? color : "text.secondary",
-                                  mb: 1,
-                                }}
-                              >
-                                Génération {index + 1}
-                              </Typography>
-                              {isActive && (
-                                <>
-                                  {selectedCurrency === "USD" && (
-                                    <Typography
-                                      variant="caption"
-                                      display="block"
-                                      color="text.secondary"
-                                      sx={{ mb: 0.5 }}
-                                    >
-                                      {formatAmount(commissionUSD, "USD")}
-                                    </Typography>
-                                  )}
-                                  {selectedCurrency === "CDF" && (
-                                    <Typography
-                                      variant="caption"
-                                      display="block"
-                                      color="text.secondary"
-                                      sx={{ mb: 0.5 }}
-                                    >
-                                      {formatAmount(commissionCDF, "CDF")}
-                                    </Typography>
-                                  )}
-                                  {isCDFEnabled && selectedCurrency === "" && (
-                                    <>
-                                      <Typography
-                                        variant="caption"
-                                        display="block"
-                                        color="text.secondary"
-                                        sx={{ mb: 0.5 }}
-                                      >
-                                        {formatAmount(commissionUSD, "USD")}
-                                      </Typography>
-                                      <Typography
-                                        variant="caption"
-                                        display="block"
-                                        color="text.secondary"
-                                      >
-                                        {formatAmount(commissionCDF, "CDF")}
-                                      </Typography>
-                                    </>
-                                  )}
-                                </>
-                              )}
-                            </Box>
-                          </Grid>
-                        );
-                      }
-                    )}
-                  </Grid>
+                              {count}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color: isActive ? color : "text.secondary",
+                                mb: 1,
+                              }}
+                            >
+                              Génération {index + 1}
+                            </Typography>
+                            {isActive && (
+                              <>
+                                {selectedCurrency === "USD" && (
+                                  <Typography
+                                    variant="caption"
+                                    display="block"
+                                    color="text.secondary"
+                                    sx={{ mb: 0.5 }}
+                                  >
+                                    {formatAmount(commissionUSD, "USD")}
+                                  </Typography>
+                                )}
+                                {selectedCurrency === "CDF" && (
+                                  <Typography
+                                    variant="caption"
+                                    display="block"
+                                    color="text.secondary"
+                                    sx={{ mb: 0.5 }}
+                                  >
+                                    {formatAmount(commissionCDF, "CDF")}
+                                  </Typography>
+                                )}
+                              </>
+                            )}
+                          </Box>
+                        </Grid>
+                      );
+                    }
+                  )}
+                </Grid>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </Grid>
+      </Grid>
+    </motion.div>
+  );
+});
+
+GeneralStats.displayName = 'GeneralStats';
+
+  // Composant optimisé pour la progression et les performances
+const ProgressionStats = React.memo(({ stats, selectedCurrency, formatAmount, isDarkMode, hasAnimated, containerVariants, itemVariants, cardStyle, chartOptions }) => {
+  if (!stats?.progression) return null;
+
+  const { progression } = stats;
+
+  // Préparer les données pour les graphiques mensuels
+  const monthlySignupsData = useMemo(
+    () => ({
+      labels: Object.keys(progression.monthly_signups || {}),
+      datasets: [
+        {
+          label: "Nouveaux filleuls",
+          data: Object.values(progression.monthly_signups || {}),
+          backgroundColor: "rgba(59, 130, 246, 0.5)",
+          borderColor: "#3b82f6",
+          borderWidth: 2,
+          tension: 0.3,
+          pointBackgroundColor: "#3b82f6",
+          pointBorderColor: isDarkMode ? "#1f2937" : "#ffffff",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    }),
+    [progression.monthly_signups, isDarkMode]
+  );
+
+  const monthlyCommissionsData = useMemo(
+    () => ({
+      labels: Object.keys(
+        selectedCurrency === "USD"
+          ? progression.monthly_commissions_usd || {}
+          : progression.monthly_commissions_cdf || {}
+      ),
+      datasets: [
+        {
+          label:
+            selectedCurrency === "USD"
+              ? "Commissions ($)"
+              : "Commissions (FC)",
+          data: Object.values(
+            selectedCurrency === "USD"
+              ? progression.monthly_commissions_usd || {}
+              : progression.monthly_commissions_cdf || {}
+          ).map((val) => parseFloat(val) || 0),
+          backgroundColor:
+            selectedCurrency === "USD"
+              ? "rgba(16, 185, 129, 0.5)"
+              : "rgba(245, 158, 11, 0.5)",
+          borderColor: selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
+          borderWidth: 2,
+          tension: 0.3,
+          pointBackgroundColor:
+            selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
+          pointBorderColor: isDarkMode ? "#1f2937" : "#ffffff",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    }),
+    [
+      progression.monthly_commissions_usd,
+      progression.monthly_commissions_cdf,
+      selectedCurrency,
+      isDarkMode,
+    ]
+  );
+
+  return (
+    <motion.div
+      key="progression"
+      variants={containerVariants}
+      initial={hasAnimated ? "visible" : "hidden"}
+      animate={hasAnimated ? "visible" : "hidden"}
+    >
+      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 700 }}>
+        Progression et performances
+      </Typography>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <motion.div variants={itemVariants}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "12px",
+                      bgcolor: "#3b82f615",
+                      color: "#3b82f6",
+                      mr: 2,
+                    }}
+                  >
+                    <TimelineIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" fontWeight={600}>
+                      Évolution des inscriptions
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Nouveaux filleuls par mois
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ height: 300 }}>
+                  <Line data={monthlySignupsData} options={chartOptions} />
+                </Box>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <motion.div variants={itemVariants}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "12px",
+                      bgcolor:
+                        selectedCurrency === "USD"
+                          ? "#10b98115"
+                          : "#f59e0b15",
+                      color:
+                        selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
+                      mr: 2,
+                    }}
+                  >
+                    <ShowChartIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" fontWeight={600}>
+                      Évolution des commissions
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Tendance des gains en {selectedCurrency}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ height: 300 }}>
+                  <Line
+                    data={monthlyCommissionsData}
+                    options={chartOptions}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </Grid>
+
+        {/* Top filleul */}
+        {progression.top_referral && (
+          <Grid item xs={12}>
+            <motion.div variants={itemVariants}>
+              <Card sx={cardStyle}>
+                <CardContent>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: "12px",
+                        bgcolor: "#f59e0b15",
+                        color: "#f59e0b",
+                        mr: 2,
+                      }}
+                    >
+                      <StarIcon />
+                    </Box>
+                    <Typography variant="h6" fontWeight={600}>
+                      Meilleur filleul
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      p: 3,
+                      borderRadius: "12px",
+                      bgcolor: isDarkMode
+                        ? "rgba(245, 158, 11, 0.05)"
+                        : "rgba(245, 158, 11, 0.02)",
+                      border: `1px solid ${
+                        isDarkMode
+                          ? "rgba(245, 158, 11, 0.1)"
+                          : "rgba(245, 158, 11, 0.05)"
+                      }`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 700, mb: 1 }}
+                      >
+                        {progression.top_referral.name}
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        Génération {progression.top_referral.generation || 1}{" "}
+                        • {progression.top_referral.recruit_count} recrutement
+                        {progression.top_referral.recruit_count > 1
+                          ? "s"
+                          : ""}
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          USD:{" "}
+                          {formatAmount(
+                            progression.top_referral.commission_usd,
+                            "USD"
+                          )}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          CDF:{" "}
+                          {formatAmount(
+                            progression.top_referral.commission_cdf,
+                            "CDF"
+                          )}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Avatar
+                      sx={{
+                        width: 64,
+                        height: 64,
+                        bgcolor: "#f59e0b",
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {progression.top_referral.name?.charAt(0) || "U"}
+                    </Avatar>
+                  </Box>
                 </CardContent>
               </Card>
             </motion.div>
           </Grid>
-        </Grid>
-      </motion.div>
-    );
-  };
+        )}
+      </Grid>
+    </motion.div>
+  );
+});
 
-  // Composant pour la progression et les performances
-  const ProgressionStats = () => {
-    if (!stats?.progression) return null;
+ProgressionStats.displayName = 'ProgressionStats';
 
-    const { progression } = stats;
+  // Composant optimisé pour les activités des filleuls
+const ReferralActivities = React.memo(({ stats, searchTerm, isDarkMode, hasAnimated, containerVariants, itemVariants, cardStyle, tableStyle, setSearchTerm }) => {
+  if (!stats?.latest_referrals) return null;
 
-    // Préparer les données pour les graphiques mensuels
-    const monthlySignupsData = useMemo(
-      () => ({
-        labels: Object.keys(progression.monthly_signups || {}),
-        datasets: [
-          {
-            label: "Nouveaux filleuls",
-            data: Object.values(progression.monthly_signups || {}),
-            backgroundColor: "rgba(59, 130, 246, 0.5)",
-            borderColor: "#3b82f6",
-            borderWidth: 2,
-            tension: 0.3,
-            pointBackgroundColor: "#3b82f6",
-            pointBorderColor: isDarkMode ? "#1f2937" : "#ffffff",
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-          },
-        ],
-      }),
-      [progression.monthly_signups, isDarkMode]
-    );
+  // Utiliser directement les données (limitées à 10 par le backend)
+  const referralsData = stats.latest_referrals;
+  const filteredReferrals = referralsData.filter((referral) =>
+    referral.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    const monthlyCommissionsData = useMemo(
-      () => ({
-        labels: Object.keys(
-          selectedCurrency === "USD"
-            ? progression.monthly_commissions_usd || {}
-            : progression.monthly_commissions_cdf || {}
-        ),
-        datasets: [
-          {
-            label:
-              selectedCurrency === "USD"
-                ? "Commissions ($)"
-                : "Commissions (FC)",
-            data: Object.values(
-              selectedCurrency === "USD"
-                ? progression.monthly_commissions_usd || {}
-                : progression.monthly_commissions_cdf || {}
-            ).map((val) => parseFloat(val) || 0),
-            backgroundColor:
-              selectedCurrency === "USD"
-                ? "rgba(16, 185, 129, 0.5)"
-                : "rgba(245, 158, 11, 0.5)",
-            borderColor: selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
-            borderWidth: 2,
-            tension: 0.3,
-            pointBackgroundColor:
-              selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
-            pointBorderColor: isDarkMode ? "#1f2937" : "#ffffff",
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-          },
-        ],
-      }),
-      [
-        progression.monthly_commissions_usd,
-        progression.monthly_commissions_cdf,
-        selectedCurrency,
-        isDarkMode,
-      ]
-    );
-
-    return (
-      <motion.div
-        key={`progression-${packId}-${userId}`}
-        variants={containerVariants}
-        initial={hasAnimated ? "visible" : "hidden"}
-        animate={hasAnimated ? "visible" : "hidden"}
+  return (
+    <motion.div
+      key="referrals"
+      variants={containerVariants}
+      initial={hasAnimated ? "visible" : "hidden"}
+      animate={hasAnimated ? "visible" : "hidden"}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+        }}
       >
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 700 }}>
-          Progression et performances
+        <Typography variant="h5" fontWeight={700}>
+          Activités récentes
         </Typography>
-
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <motion.div variants={itemVariants}>
-              <Card sx={cardStyle}>
-                <CardContent>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: "12px",
-                        bgcolor: "#3b82f615",
-                        color: "#3b82f6",
-                        mr: 2,
-                      }}
-                    >
-                      <TimelineIcon />
-                    </Box>
-                    <Box>
-                      <Typography variant="h6" fontWeight={600}>
-                        Évolution des inscriptions
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Nouveaux filleuls par mois
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ height: 300 }}>
-                    <Line data={monthlySignupsData} options={chartOptions} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <motion.div variants={itemVariants}>
-              <Card sx={cardStyle}>
-                <CardContent>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: "12px",
-                        bgcolor:
-                          selectedCurrency === "USD"
-                            ? "#10b98115"
-                            : "#f59e0b15",
-                        color:
-                          selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
-                        mr: 2,
-                      }}
-                    >
-                      <ShowChartIcon />
-                    </Box>
-                    <Box>
-                      <Typography variant="h6" fontWeight={600}>
-                        Évolution des commissions
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Tendance des gains en {selectedCurrency}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ height: 300 }}>
-                    <Line
-                      data={monthlyCommissionsData}
-                      options={chartOptions}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-
-          {/* Top filleul */}
-          {progression.top_referral && (
-            <Grid item xs={12}>
-              <motion.div variants={itemVariants}>
-                <Card sx={cardStyle}>
-                  <CardContent>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: "12px",
-                          bgcolor: "#f59e0b15",
-                          color: "#f59e0b",
-                          mr: 2,
-                        }}
-                      >
-                        <StarIcon />
-                      </Box>
-                      <Typography variant="h6" fontWeight={600}>
-                        Meilleur filleul
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        p: 3,
-                        borderRadius: "12px",
-                        bgcolor: isDarkMode
-                          ? "rgba(245, 158, 11, 0.05)"
-                          : "rgba(245, 158, 11, 0.02)",
-                        border: `1px solid ${
-                          isDarkMode
-                            ? "rgba(245, 158, 11, 0.1)"
-                            : "rgba(245, 158, 11, 0.05)"
-                        }`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          sx={{ fontWeight: 700, mb: 1 }}
-                        >
-                          {progression.top_referral.name}
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          color="text.secondary"
-                          sx={{ mb: 1 }}
-                        >
-                          Génération {progression.top_referral.generation || 1}{" "}
-                          • {progression.top_referral.recruit_count} recrutement
-                          {progression.top_referral.recruit_count > 1
-                            ? "s"
-                            : ""}
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 2 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            USD:{" "}
-                            {formatAmount(
-                              progression.top_referral.commission_usd,
-                              "USD"
-                            )}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            CDF:{" "}
-                            {formatAmount(
-                              progression.top_referral.commission_cdf,
-                              "CDF"
-                            )}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Avatar
-                        sx={{
-                          width: 64,
-                          height: 64,
-                          bgcolor: "#f59e0b",
-                          fontSize: "1.5rem",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {progression.top_referral.name?.charAt(0) || "U"}
-                      </Avatar>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
-          )}
-        </Grid>
-      </motion.div>
-    );
-  };
-
-  // Composant pour les activités des filleuls
-  const ReferralActivities = () => {
-    if (!stats?.latest_referrals) return null;
-
-    // Utiliser directement les données (limitées à 10 par le backend)
-    const referralsData = stats.latest_referrals;
-    const filteredReferrals = referralsData.filter((referral) =>
-      referral.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    return (
-      <motion.div
-        key={`referrals-${packId}-${userId}`}
-        variants={containerVariants}
-        initial={hasAnimated ? "visible" : "hidden"}
-        animate={hasAnimated ? "visible" : "hidden"}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 3,
+        <TextField
+          size="small"
+          placeholder="Rechercher..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
+            ),
           }}
-        >
-          <Typography variant="h5" fontWeight={700}>
-            Activités récentes
-          </Typography>
-          <TextField
-            size="small"
-            placeholder="Rechercher..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
-              ),
-            }}
-            sx={{ minWidth: 250 }}
-          />
-        </Box>
+          sx={{ minWidth: 250 }}
+        />
+      </Box>
 
-        <motion.div variants={itemVariants}>
-          <Card sx={cardStyle}>
-            <CardContent>
-              <TableContainer>
-                <Table sx={tableStyle}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Filleul</TableCell>
-                      <TableCell>Pack</TableCell>
-                      <TableCell>Génération</TableCell>
-                      <TableCell>Date d'achat</TableCell>
-                      <TableCell>Expiration</TableCell>
-                      <TableCell>Durée</TableCell>
-                      <TableCell>Statut</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredReferrals.length > 0 ? (
-                      filteredReferrals.map((referral, index) => (
-                        <TableRow key={referral.id} hover>
-                          <TableCell>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Avatar
-                                sx={{
-                                  width: 32,
-                                  height: 32,
-                                  mr: 2,
-                                  bgcolor: `hsl(${index * 45}, 70%, ${
-                                    isDarkMode ? "60%" : "45%"
-                                  })`,
-                                  fontSize: "0.875rem",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {referral.name?.charAt(0) || "U"}
-                              </Avatar>
-                              <Typography variant="body2" fontWeight={500}>
-                                {referral.name}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>{referral.pack_name}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={`G${referral.generation}`}
-                              size="small"
-                              color="primary"
-                            />
-                          </TableCell>
-                          <TableCell>{referral.purchase_date}</TableCell>
-                          <TableCell>{referral.expiry_date}</TableCell>
-                          <TableCell>
-                            {referral.validity_months
-                              ? `${referral.validity_months.toFixed(1)} mois`
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={
-                                referral.status === "active"
-                                  ? "Actif"
-                                  : "Expiré"
-                              }
-                              color={
-                                referral.status === "active"
-                                  ? "success"
-                                  : "error"
-                              }
-                              size="small"
-                              sx={{ fontWeight: 500 }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                          <Typography color="text.secondary">
-                            {searchTerm
-                              ? "Aucun résultat trouvé"
-                              : "Aucune activité récente"}
-                          </Typography>
+      <motion.div variants={itemVariants}>
+        <Card sx={cardStyle}>
+          <CardContent>
+            <TableContainer>
+              <Table sx={tableStyle}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Filleul</TableCell>
+                    <TableCell>Pack</TableCell>
+                    <TableCell>Génération</TableCell>
+                    <TableCell>Date d'achat</TableCell>
+                    <TableCell>Expiration</TableCell>
+                    <TableCell>Durée</TableCell>
+                    <TableCell>Statut</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredReferrals.length > 0 ? (
+                    filteredReferrals.map((referral, index) => (
+                      <TableRow key={referral.id} hover>
+                        <TableCell>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Avatar
+                              sx={{
+                                width: 32,
+                                height: 32,
+                                mr: 2,
+                                bgcolor: `hsl(${index * 45}, 70%, ${
+                                  isDarkMode ? "60%" : "45%"
+                                })`,
+                                fontSize: "0.875rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {referral.name?.charAt(0) || "U"}
+                            </Avatar>
+                            <Typography variant="body2" fontWeight={500}>
+                              {referral.name}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>{referral.pack_name}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={`G${referral.generation}`}
+                            size="small"
+                            color="primary"
+                          />
+                        </TableCell>
+                        <TableCell>{referral.purchase_date}</TableCell>
+                        <TableCell>{referral.expiry_date}</TableCell>
+                        <TableCell>
+                          {referral.validity_months
+                            ? `${referral.validity_months.toFixed(1)} mois`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={
+                              referral.status === "active"
+                                ? "Actif"
+                                : "Expiré"
+                            }
+                            color={
+                              referral.status === "active"
+                                ? "success"
+                                : "error"
+                            }
+                            size="small"
+                            sx={{ fontWeight: 500 }}
+                          />
                         </TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          {searchTerm
+                            ? "Aucun résultat trouvé"
+                            : "Aucune activité récente"}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
       </motion.div>
-    );
-  };
+    </motion.div>
+  );
+});
 
-  // Composant pour les graphiques et visualisations
-  const Visualizations = () => {
-    if (!stats?.general_stats) return null;
+ReferralActivities.displayName = 'ReferralActivities';
 
-    const { general_stats } = stats;
+  // Composant optimisé pour les graphiques et visualisations
+const Visualizations = React.memo(({ stats, selectedCurrency, isDarkMode, hasAnimated, containerVariants, itemVariants, cardStyle, chartOptions }) => {
+  if (!stats?.general_stats) return null;
 
-    // Données pour le graphique de répartition par génération
-    const generationData = useMemo(
-      () => ({
-        labels: [
-          "Génération 1",
-          "Génération 2",
-          "Génération 3",
-          "Génération 4",
-        ],
-        datasets: [
-          {
-            label: "Nombre de filleuls",
-            data: general_stats.referrals_by_generation,
-            backgroundColor: [
-              "rgba(59, 130, 246, 0.7)",
-              "rgba(16, 185, 129, 0.7)",
-              "rgba(245, 158, 11, 0.7)",
-              "rgba(239, 68, 68, 0.7)",
-            ],
-            borderColor: isDarkMode ? "#1f2937" : "#ffffff",
-            borderWidth: 2,
-          },
-        ],
-      }),
-      [general_stats.referrals_by_generation, isDarkMode]
-    );
+  const { general_stats } = stats;
 
-    // Données pour les commissions par génération
-    const commissionData = useMemo(
-      () => ({
-        labels: [
-          "Génération 1",
-          "Génération 2",
-          "Génération 3",
-          "Génération 4",
-        ],
-        datasets: [
-          {
-            label: `Commissions (${selectedCurrency})`,
-            data:
-              selectedCurrency === "USD"
-                ? general_stats.commissions_by_generation_usd
-                : general_stats.commissions_by_generation_cdf,
-            backgroundColor:
-              selectedCurrency === "USD"
-                ? "rgba(16, 185, 129, 0.7)"
-                : "rgba(245, 158, 11, 0.7)",
-            borderColor: isDarkMode ? "#1f2937" : "#ffffff",
-            borderWidth: 2,
-          },
-        ],
-      }),
-      [
-        general_stats.commissions_by_generation_usd,
-        general_stats.commissions_by_generation_cdf,
-        selectedCurrency,
-        isDarkMode,
-      ]
-    );
+  // Données pour le graphique de répartition par génération
+  const generationData = useMemo(
+    () => ({
+      labels: [
+        "Génération 1",
+        "Génération 2",
+        "Génération 3",
+        "Génération 4",
+      ],
+      datasets: [
+        {
+          label: "Nombre de filleuls",
+          data: general_stats.referrals_by_generation,
+          backgroundColor: [
+            "rgba(59, 130, 246, 0.7)",
+            "rgba(16, 185, 129, 0.7)",
+            "rgba(245, 158, 11, 0.7)",
+            "rgba(239, 68, 68, 0.7)",
+          ],
+          borderColor: isDarkMode ? "#1f2937" : "#ffffff",
+          borderWidth: 2,
+        },
+      ],
+    }),
+    [general_stats.referrals_by_generation, isDarkMode]
+  );
 
-    return (
-      <motion.div
-        key={`visualizations-${packId}-${userId}`}
-        variants={containerVariants}
-        initial={hasAnimated ? "visible" : "hidden"}
-        animate={hasAnimated ? "visible" : "hidden"}
-      >
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 700 }}>
-          Visualisations des données
-        </Typography>
+  // Données pour les commissions par génération
+  const commissionData = useMemo(
+    () => ({
+      labels: [
+        "Génération 1",
+        "Génération 2",
+        "Génération 3",
+        "Génération 4",
+      ],
+      datasets: [
+        {
+          label: `Commissions (${selectedCurrency})`,
+          data:
+            selectedCurrency === "USD"
+              ? general_stats.commissions_by_generation_usd
+              : general_stats.commissions_by_generation_cdf,
+          backgroundColor:
+            selectedCurrency === "USD"
+              ? "rgba(16, 185, 129, 0.7)"
+              : "rgba(245, 158, 11, 0.7)",
+          borderColor: isDarkMode ? "#1f2937" : "#ffffff",
+          borderWidth: 2,
+        },
+      ],
+    }),
+    [
+      general_stats.commissions_by_generation_usd,
+      general_stats.commissions_by_generation_cdf,
+      selectedCurrency,
+      isDarkMode,
+    ]
+  );
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <motion.div variants={itemVariants}>
-              <Card sx={cardStyle}>
-                <CardContent>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: "12px",
-                        bgcolor: "#3b82f615",
-                        color: "#3b82f6",
-                        mr: 2,
-                      }}
-                    >
-                      <PeopleIcon />
-                    </Box>
-                    <Typography variant="h6" fontWeight={600}>
-                      Répartition par génération
-                    </Typography>
+  return (
+    <motion.div
+      key="visualizations"
+      variants={containerVariants}
+      initial={hasAnimated ? "visible" : "hidden"}
+      animate={hasAnimated ? "visible" : "hidden"}
+    >
+      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 700 }}>
+        Visualisations des données
+      </Typography>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <motion.div variants={itemVariants}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "12px",
+                      bgcolor: "#3b82f615",
+                      color: "#3b82f6",
+                      mr: 2,
+                    }}
+                  >
+                    <PeopleIcon />
                   </Box>
-                  <Box sx={{ height: 300 }}>
-                    <Bar data={generationData} options={chartOptions} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <motion.div variants={itemVariants}>
-              <Card sx={cardStyle}>
-                <CardContent>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: "12px",
-                        bgcolor:
-                          selectedCurrency === "USD"
-                            ? "#10b98115"
-                            : "#f59e0b15",
-                        color:
-                          selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
-                        mr: 2,
-                      }}
-                    >
-                      <AccountBalanceIcon />
-                    </Box>
-                    <Typography variant="h6" fontWeight={600}>
-                      Commissions par génération ({selectedCurrency})
-                    </Typography>
-                  </Box>
-                  <Box sx={{ height: 300 }}>
-                    <Bar data={commissionData} options={chartOptions} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
+                  <Typography variant="h6" fontWeight={600}>
+                    Répartition par génération
+                  </Typography>
+                </Box>
+                <Box sx={{ height: 300 }}>
+                  <Bar data={generationData} options={chartOptions} />
+                </Box>
+              </CardContent>
+            </Card>
+          </motion.div>
         </Grid>
-      </motion.div>
-    );
-  };
+
+        <Grid item xs={12} md={6}>
+          <motion.div variants={itemVariants}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: "12px",
+                      bgcolor:
+                        selectedCurrency === "USD"
+                          ? "#10b98115"
+                          : "#f59e0b15",
+                      color:
+                        selectedCurrency === "USD" ? "#10b981" : "#f59e0b",
+                      mr: 2,
+                    }}
+                  >
+                    <AccountBalanceIcon />
+                  </Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    Commissions par génération ({selectedCurrency})
+                  </Typography>
+                </Box>
+                <Box sx={{ height: 300 }}>
+                  <Bar data={commissionData} options={chartOptions} />
+                </Box>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </Grid>
+      </Grid>
+    </motion.div>
+  );
+});
+
+Visualizations.displayName = 'Visualizations';
 
   // État de chargement
   if (loading) {
@@ -1224,10 +1213,58 @@ const PackStatsModal = ({ open, onClose, packId, userId }) => {
         </Tabs>
 
         <Box sx={{ p: 3 }}>
-          {currentTab === 0 && <GeneralStats />}
-          {currentTab === 1 && <ProgressionStats />}
-          {currentTab === 2 && <ReferralActivities />}
-          {currentTab === 3 && <Visualizations />}
+          {currentTab === 0 && (
+            <GeneralStats 
+              stats={stats}
+              selectedCurrency={selectedCurrency}
+              formatAmount={formatAmount}
+              isDarkMode={isDarkMode}
+              hasAnimated={hasAnimated}
+              containerVariants={containerVariants}
+              itemVariants={itemVariants}
+              cardStyle={cardStyle}
+              packId={packId}
+              userId={userId}
+            />
+          )}
+          {currentTab === 1 && (
+            <ProgressionStats 
+              stats={stats}
+              selectedCurrency={selectedCurrency}
+              formatAmount={formatAmount}
+              isDarkMode={isDarkMode}
+              hasAnimated={hasAnimated}
+              containerVariants={containerVariants}
+              itemVariants={itemVariants}
+              cardStyle={cardStyle}
+              chartOptions={chartOptions}
+            />
+          )}
+          {currentTab === 2 && (
+            <ReferralActivities 
+              stats={stats}
+              searchTerm={searchTerm}
+              isDarkMode={isDarkMode}
+              hasAnimated={hasAnimated}
+              containerVariants={containerVariants}
+              itemVariants={itemVariants}
+              cardStyle={cardStyle}
+              tableStyle={tableStyle}
+              setSearchTerm={setSearchTerm}
+            />
+          )}
+          {currentTab === 3 && (
+            <Visualizations 
+              stats={stats}
+              selectedCurrency={selectedCurrency}
+              isDarkMode={isDarkMode}
+              hasAnimated={hasAnimated}
+              containerVariants={containerVariants}
+              itemVariants={itemVariants}
+              cardStyle={cardStyle}
+              chartOptions={chartOptions}
+            />
+          )}
         </Box>
       </DialogContent>
 

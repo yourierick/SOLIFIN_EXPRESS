@@ -504,6 +504,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
 // Routes admin
 Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')->group(function () {
+    Route::get('/packs/{id}/stats', [PackController::class, 'getDetailedPackStats']);
     Route::middleware('permission:manage-packs')->group(function () {
         // Gestion des packs
         Route::apiResource('packs', \App\Http\Controllers\Admin\PackController::class);

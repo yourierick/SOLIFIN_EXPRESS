@@ -65,6 +65,7 @@ import {
   MagnifyingGlassIcon,
   CurrencyEuroIcon,
   CurrencyDollarIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { Bar, Pie } from "react-chartjs-2";
 import {
@@ -139,7 +140,7 @@ const WithdrawalRequests = () => {
   // États pour les actions
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isRetryingPayment, setIsRetryingPayment] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
   // États pour les modals
@@ -171,6 +172,7 @@ const WithdrawalRequests = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     status: "",
+    payment_status: "",
     payment_method: "",
     start_date: "",
     end_date: "",
@@ -415,6 +417,10 @@ const WithdrawalRequests = () => {
         url += `&status=${filters.status}`;
       }
 
+      if (filters.payment_status) {
+        url += `&payment_status=${filters.payment_status}`;
+      }
+
       if (filters.payment_method) {
         url += `&payment_method=${filters.payment_method}`;
       }
@@ -597,6 +603,31 @@ const WithdrawalRequests = () => {
     setShowCancelConfirmation(true);
   };
 
+  const handleRetryPayment = async (request, note = null) => {
+    try {
+      setIsRetryingPayment(true);
+      const payload = note ? { admin_note: note } : {};
+      const response = await axios.post(`/api/admin/withdrawal/requests/${request.id}/approve`, payload);
+      
+      if (response.data.success) {
+        toast.success("La demande de retrait a été renvoyée pour paiement avec succès");
+        // Rafraîchir les données
+        fetchWithdrawalRequests();
+        // Fermer le modal si c'est depuis le modal
+        if (selectedRequest) {
+          setSelectedRequest(null);
+        }
+      } else {
+        toast.error(response.data.message || "Erreur lors du renvoi de la demande");
+      }
+    } catch (error) {
+      console.error("Erreur lors du retry du paiement:", error);
+      toast.error(error.response?.data?.message || "Une erreur est survenue lors du renvoi de la demande");
+    } finally {
+      setIsRetryingPayment(false);
+    }
+  };
+
   const confirmCancelRequest = async () => {
     if (!requestToCancel) return;
     
@@ -636,36 +667,6 @@ const WithdrawalRequests = () => {
     }
   };
 
-  const handleSaveAdminNote = async () => {
-    if (!selectedRequest) return;
-
-    try {
-      setIsSavingNote(true);
-      const response = await axios.post(
-        `/api/admin/withdrawal/requests/${selectedRequest.id}/note`,
-        {
-          admin_note: adminNote,
-        }
-      );
-
-      if (response.data.success) {
-        toast.success("Note enregistrée avec succès");
-
-        // Mettre à jour la note dans l'objet sélectionné
-        setSelectedRequest({
-          ...selectedRequest,
-          admin_note: adminNote,
-        });
-      } else {
-        toast.error("Erreur lors de l'enregistrement de la note");
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'enregistrement de la note:", error);
-      toast.error("Erreur lors de l'enregistrement de la note");
-    } finally {
-      setIsSavingNote(false);
-    }
-  };
   // Fonctions pour les filtres
   const applyFilters = () => {
     fetchAllRequests(1); // Réinitialiser à la première page lors de l'application des filtres
@@ -674,12 +675,13 @@ const WithdrawalRequests = () => {
   const resetFilters = () => {
     setFilters({
       status: "",
+      payment_status: "",
       payment_method: "",
       start_date: "",
       end_date: "",
       search: "",
     });
-    fetchAllRequests(1);
+    fetchAllRequests(1); // Réinitialiser à la première page lors de l'application des filtres
   };
 
   // Fonction pour gérer le changement de page dans les deux onglets
@@ -849,7 +851,7 @@ const WithdrawalRequests = () => {
         'Statut': request.status === 'pending' ? 'En attente' : 
                  request.status === 'approved' ? 'Approuvé' : 
                  request.status === 'rejected' ? 'Rejeté' : 
-                 request.status === 'failed' ? 'Échoué' : request.status,
+                 request.status === 'cancelled' ? 'Annulé' : request.status,
         'Date de demande': format(new Date(request.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
         'Date de traitement': request.processed_at ? 
           format(new Date(request.processed_at), 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A',
@@ -1480,6 +1482,17 @@ const WithdrawalRequests = () => {
                                 </button>
                               )}
                               
+                              {/* Bouton réessayer le paiement - seulement pour les demandes approuvées mais échouées */}
+                              {request.status === 'approved' && request.payment_status === 'failed' && (
+                                <button
+                                  onClick={() => handleRetryPayment(request)}
+                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                  title="Réessayer le paiement"
+                                >
+                                  <ArrowPathIcon className="w-5 h-5" />
+                                </button>
+                              )}
+                              
                               <button
                                 onClick={() => {
                                   setRequestToDelete(request);
@@ -1574,8 +1587,8 @@ const WithdrawalRequests = () => {
               </div>
             </div>
 
-            {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Statut
@@ -1592,6 +1605,23 @@ const WithdrawalRequests = () => {
                     <option value="approved">Approuvé</option>
                     <option value="rejected">Rejeté</option>
                     <option value="cancelled">Annulé</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Statut de paiement
+                  </label>
+                  <select
+                    value={filters.payment_status}
+                    onChange={(e) =>
+                      setFilters({ ...filters, payment_status: e.target.value })
+                    }
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Tous</option>
+                    <option value="pending">En attente</option>
+                    <option value="paid">Payé</option>
                     <option value="failed">Échoué</option>
                   </select>
                 </div>
@@ -1617,36 +1647,42 @@ const WithdrawalRequests = () => {
                     <option value="american-express">American Express</option>
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date de début
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.start_date}
-                    onChange={(e) =>
-                      setFilters({ ...filters, start_date: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date de fin
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.end_date}
-                    onChange={(e) =>
-                      setFilters({ ...filters, end_date: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
               </div>
             )}
+
+            {/* Ligne 2 pour les filtres de dates */}
+            {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Date de début
+                </label>
+                <input
+                  type="date"
+                  value={filters.start_date}
+                  onChange={(e) =>
+                    setFilters({ ...filters, start_date: e.target.value })
+                  }
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Date de fin
+                </label>
+                <input
+                  type="date"
+                  value={filters.end_date}
+                  onChange={(e) =>
+                    setFilters({ ...filters, end_date: e.target.value })
+                  }
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            )}
+            
 
             <div className="flex flex-col sm:flex-row justify-between items-center">
               <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
@@ -2170,6 +2206,17 @@ const WithdrawalRequests = () => {
                                       ) : (
                                         <XMarkIcon className="w-5 h-5" />
                                       )}
+                                    </button>
+                                  )}
+                                  
+                                  {/* Bouton réessayer le paiement - seulement pour les demandes approuvées mais échouées */}
+                                  {request.status === 'approved' && request.payment_status === 'failed' && (
+                                    <button
+                                      onClick={() => handleRetryPayment(request)}
+                                      className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                      title="Réessayer le paiement"
+                                    >
+                                      <ArrowPathIcon className="w-5 h-5" />
                                     </button>
                                   )}
                                   
@@ -3137,42 +3184,44 @@ const WithdrawalRequests = () => {
                     </Button>
                   </>
                 )}
-                <Button
-                  onClick={handleSaveAdminNote}
-                  variant="contained"
-                  disabled={isSavingNote || !adminNote.trim()}
-                  startIcon={<Save />}
-                  sx={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                    color: "#ffffff",
-                    fontWeight: 600,
-                    px: { xs: 2, sm: 2.5 },
-                    py: { xs: 1.5, sm: 1.25 },
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    minWidth: { xs: "48px", sm: "auto" },
-                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.3)",
-                    "&:hover": {
-                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 8px 25px rgba(59, 130, 246, 0.4)",
-                    },
-                    "&:disabled": {
-                      background: isDarkMode ? "#374151" : "#e5e7eb",
-                      color: isDarkMode ? "#9ca3af" : "#9ca3af",
-                    },
-                    transition: "all 0.2s ease-in-out",
-                    "& .MuiButton-startIcon": {
-                      display: { xs: "flex", sm: "none" },
-                      margin: 0,
-                    },
-                  }}
-                >
-                  <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                    {isSavingNote ? "Enregistrement..." : "Enregistrer"}
-                  </Box>
-                </Button>
+                {selectedRequest.status === 'approved' && selectedRequest.payment_status === 'failed' && (
+                  <Button
+                    onClick={() => handleRetryPayment(selectedRequest, adminNote)}
+                    variant="contained"
+                    disabled={isRetryingPayment}
+                    startIcon={<Save />}
+                    sx={{
+                      background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                      px: { xs: 2, sm: 2.5 },
+                      py: { xs: 1.5, sm: 1.25 },
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      minWidth: { xs: "48px", sm: "auto" },
+                      boxShadow: "0 4px 14px rgba(59, 130, 246, 0.3)",
+                      "&:hover": {
+                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 8px 25px rgba(59, 130, 246, 0.4)",
+                      },
+                      "&:disabled": {
+                        background: isDarkMode ? "#374151" : "#e5e7eb",
+                        color: isDarkMode ? "#9ca3af" : "#9ca3af",
+                      },
+                      transition: "all 0.2s ease-in-out",
+                      "& .MuiButton-startIcon": {
+                        display: { xs: "flex", sm: "none" },
+                        margin: 0,
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                      {isRetryingPayment ? "Requête en cours..." : "Réessayer le paiement"}
+                    </Box>
+                  </Button>
+                )}
                 <Button
                   variant="outlined"
                   onClick={() => setSelectedRequest(null)}

@@ -346,12 +346,6 @@ class WithdrawalController extends Controller
                 'account_number' => 'required_if:payment_type,credit-card',
             ]);
 
-            \Log::info('Validation terminée', [
-                'passes' => !$validator->fails(),
-                'errors_count' => count($validator->errors()),
-                'errors' => $validator->errors()->toArray()
-            ]);
-
             if ($validator->fails()) {
                 \Log::error('Validation error', [
                     'errors' => $validator->errors()->toArray()
@@ -794,6 +788,10 @@ class WithdrawalController extends Controller
      */
     public function approve(Request $request, $id)
     {
+        \Log::info($request->all());
+        return response()->json([
+            'success' => false
+        ]);
         try {
             // Validation des entrées utilisateur
             $validator = Validator::make($request->all(), [

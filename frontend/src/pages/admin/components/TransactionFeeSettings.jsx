@@ -579,28 +579,6 @@ const TransactionFeeSettings = () => {
                     )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">Frais fixe:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {fee.fixed_fee} XOF
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">Frais variable:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {fee.variable_fee}%
-                    </span>
-                  </div>
-                  {fee.fee_cap && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500 dark:text-gray-400">Plafond:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {fee.fee_cap} XOF
-                      </span>
-                    </div>
-                  )}
-                </div>
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                   <button
                     onClick={() => handleOpenDialog("edit", fee)}

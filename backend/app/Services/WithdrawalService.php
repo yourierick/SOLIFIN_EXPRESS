@@ -38,10 +38,10 @@ class WithdrawalService
         try {
             DB::beginTransaction();
             
-            if ($withdrawal->status !== self::STATUS_PENDING && $withdrawal->payment_status !== self::STATUS_FAILED) {
+            if ($withdrawal->payment_status !== self::STATUS_FAILED || $withdrawal->payment_status !== self::STATUS_PENDING) {
                 return [
                     'success' => false,
-                    'message' => 'Cette demande ne peut pas être approuvée ou réessayée car elle n\'est pas en attente ou échouée',
+                    'message' => 'Cette demande ne peut pas être approuvée ou réessayée',
                     'status_code' => 400
                 ];
             }

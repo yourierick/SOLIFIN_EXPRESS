@@ -55,6 +55,27 @@ class PackController extends Controller
         }
     }
 
+    /**
+     * Convertit une méthode de paiement du format Serdipay au format Frontend
+     *
+     * @param string $method Méthode de paiement du Serdipay
+     * @return string|null Code SerdiPay correspondant ou null si non supporté
+     */
+    private function mapPaymentMethodToSerdiPay($method)
+    {
+        $mapping = [
+            'OM' => 'orange-money',
+            'AM' => 'airtel-money',
+            'MP' => 'm-pesa',
+            'AF' => 'afrimoney',
+            'VISA' => 'visa',
+            'MC' => 'mastercard',
+            'AE' => 'american-express'
+        ];
+        
+        return $mapping[$method] ?? null;
+    }
+
     // La méthode processCommissions a été déplacée dans le PackService
 
     //Récupérer tous les packs actifs que l'utilisateur peut acheter
@@ -214,7 +235,12 @@ class PackController extends Controller
     public function purchase_a_new_pack(Request $request)
     {
         try {
-            $user = isset($request->user_id) ? User::findOrFail($request->user_id) : Auth::user();
+            $user = null;
+            if (isset($request->user_id)) {
+                $user = User::findOrFail($request->user_id);
+            }else {
+                \Log::warning('user_id manquant dans purchase_a_new_pack');
+            }
         
             if (!$user) {
                 return response()->json([
@@ -247,7 +273,7 @@ class PackController extends Controller
             
             // Préparer les données de paiement
             $paymentData = [
-                'payment_method' => $request->payment_method,
+                'payment_method' => $this->mapPaymentMethodToSerdiPay($request->payment_method),
                 'payment_type' => $request->payment_type,
                 'amount' => $request->amount,
                 'currency' => $request->currency,

@@ -168,7 +168,7 @@ const TransactionsTable = ({
                   onClick={() => onTransactionClick && onTransactionClick(transaction)}
                 >
                   <TableCell>
-                    {transaction.mouvment === "withdrawal"
+                    {transaction.type === "withdrawal"
                       ? "Retrait"
                       : transaction.type === "purchase"
                       ? "Achat"

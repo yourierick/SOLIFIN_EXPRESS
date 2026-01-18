@@ -49,6 +49,7 @@ import {
   AdminPanelSettings as AdminPanelSettingsIcon,
   Person as PersonIcon,
   School as SchoolIcon,
+  MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 import { useTheme } from "@mui/material/styles";
@@ -82,6 +83,7 @@ const FormationManagement = () => {
 
   const [currentFormation, setCurrentFormation] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [actionDropdown, setActionDropdown] = useState({});
 
   // Fonction pour récupérer la liste des formations
   const fetchFormations = async () => {
@@ -238,6 +240,14 @@ const FormationManagement = () => {
           "Erreur lors de la publication de la formation"
       );
     }
+  };
+
+  // Fonction pour gérer le dropdown d'actions
+  const toggleActionDropdown = (formationId) => {
+    setActionDropdown(prev => ({
+      ...prev,
+      [formationId]: !prev[formationId]
+    }));
   };
 
   // Fonction pour gérer la soumission du formulaire
@@ -851,75 +861,171 @@ const FormationManagement = () => {
                         {new Date(formation.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell align="center" sx={{ py: 2, px: 1 }}>
-                        <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
-                          <Tooltip title="Voir les détails" arrow placement="top">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewDetails(formation)}
-                              sx={{ color: isDarkMode ? "#90caf9" : "#1976d2" }}
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2">
+                          {/* Dropdown pour mobile */}
+                          <div className="relative md:hidden">
+                            <button
+                              onClick={() => toggleActionDropdown(formation.id)}
+                              className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                             >
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          {formation.creator.id === user.id && (
-                            <Tooltip title="Modifier" arrow placement="top">
+                              <MoreVertIcon className="h-4 w-4" />
+                            </button>
+                            
+                            {/* Menu dropdown */}
+                            {actionDropdown[formation.id] && (
+                              <div className="fixed inset-0 z-50" onClick={() => toggleActionDropdown(formation.id)}>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+                                  <div className="py-1">
+                                    <button
+                                      onClick={() => {
+                                        toggleActionDropdown(formation.id);
+                                        handleViewDetails(formation);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                    >
+                                      <VisibilityIcon className="h-4 w-4" />
+                                      Voir les détails
+                                    </button>
+                                    
+                                    {formation.creator.id === user.id && (
+                                      <button
+                                        onClick={() => {
+                                          toggleActionDropdown(formation.id);
+                                          handleEditFormation(formation);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                      >
+                                        <EditIcon className="h-4 w-4" />
+                                        Modifier
+                                      </button>
+                                    )}
+                                    
+                                    <button
+                                      onClick={() => {
+                                        toggleActionDropdown(formation.id);
+                                        handleDeleteClick(formation);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 transition-colors duration-200 flex items-center gap-2"
+                                    >
+                                      <DeleteIcon className="h-4 w-4" />
+                                      Supprimer
+                                    </button>
+                                    
+                                    {formation.status === "pending" && (
+                                      <button
+                                        onClick={() => {
+                                          toggleActionDropdown(formation.id);
+                                          handleReviewClick(formation);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                      >
+                                        <CheckCircleIcon className="h-4 w-4" />
+                                        Valider/Rejeter
+                                      </button>
+                                    )}
+                                    
+                                    {formation.status === "published" && (
+                                      <button
+                                        onClick={() => {
+                                          toggleActionDropdown(formation.id);
+                                          handlePublishClick(formation);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                      >
+                                        <CancelIcon className="h-4 w-4" />
+                                        Dépublier
+                                      </button>
+                                    )}
+                                    
+                                    {formation.status === "draft" && (
+                                      <button
+                                        onClick={() => {
+                                          toggleActionDropdown(formation.id);
+                                          handlePublishClick(formation);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                                      >
+                                        <PublishIcon className="h-4 w-4" />
+                                        Publier
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Boutons séparés pour desktop */}
+                          <div className="hidden md:flex items-center justify-center gap-2">
+                            <Tooltip title="Voir les détails" arrow placement="top">
                               <IconButton
                                 size="small"
-                                onClick={() => handleEditFormation(formation)}
-                                sx={{ color: isDarkMode ? "#b0b0b0" : "#666666" }}
+                                onClick={() => handleViewDetails(formation)}
+                                sx={{ color: isDarkMode ? "#90caf9" : "#1976d2" }}
                               >
-                                <EditIcon fontSize="small" />
+                                <VisibilityIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          )}
 
-                          <Tooltip title="Supprimer" arrow placement="top">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteClick(formation)}
-                              sx={{ color: isDarkMode ? "#ef5350" : "#d32f2f" }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                            {formation.creator.id === user.id && (
+                              <Tooltip title="Modifier" arrow placement="top">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEditFormation(formation)}
+                                  sx={{ color: isDarkMode ? "#b0b0b0" : "#666666" }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
 
-                          {formation.status === "pending" && (
-                            <Tooltip title="Valider/Rejeter" arrow placement="top">
+                            <Tooltip title="Supprimer" arrow placement="top">
                               <IconButton
                                 size="small"
-                                onClick={() => handleReviewClick(formation)}
-                                sx={{ color: isDarkMode ? "#66bb6a" : "#388e3c" }}
+                                onClick={() => handleDeleteClick(formation)}
+                                sx={{ color: isDarkMode ? "#ef5350" : "#d32f2f" }}
                               >
-                                <CheckCircleIcon fontSize="small" />
+                                <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          )}
 
-                          {formation.status === "published" && (
-                            <Tooltip title="Dépublier" arrow placement="top">
-                              <IconButton
-                                size="small"
-                                onClick={() => handlePublishClick(formation)}
-                                sx={{ color: isDarkMode ? "#ffa726" : "#f57c00" }}
-                              >
-                                <CancelIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+                            {formation.status === "pending" && (
+                              <Tooltip title="Valider/Rejeter" arrow placement="top">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleReviewClick(formation)}
+                                  sx={{ color: isDarkMode ? "#66bb6a" : "#388e3c" }}
+                                >
+                                  <CheckCircleIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
 
-                          {formation.status === "draft" && (
-                            <Tooltip title="Publier" arrow placement="top">
-                              <IconButton
-                                size="small"
-                                onClick={() => handlePublishClick(formation)}
-                                sx={{ color: isDarkMode ? "#66bb6a" : "#388e3c" }}
-                              >
-                                <PublishIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Box>
+                            {formation.status === "published" && (
+                              <Tooltip title="Dépublier" arrow placement="top">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handlePublishClick(formation)}
+                                  sx={{ color: isDarkMode ? "#ffa726" : "#f57c00" }}
+                                >
+                                  <CancelIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            {formation.status === "draft" && (
+                              <Tooltip title="Publier" arrow placement="top">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handlePublishClick(formation)}
+                                  sx={{ color: isDarkMode ? "#66bb6a" : "#388e3c" }}
+                                >
+                                  <PublishIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

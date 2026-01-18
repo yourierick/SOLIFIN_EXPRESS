@@ -759,7 +759,7 @@ export default function Register() {
                           style={{ color: "white" }}
                         />
                       ) : (
-                        "Continuer vers le paiement"
+                        "Créer mon compte"
                       )}
                     </Button>
                   </motion.div>

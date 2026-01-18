@@ -10,6 +10,7 @@ import TransactionsTable from "./components/TransactionsTable";
 import WalletExportButtons from "./components/WalletExportButtons";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../../styles/tooltip.css";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -886,7 +887,7 @@ export default function Wallets() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+              <div className="flex flex-row sm:flex-row gap-2 sm:gap-3 justify-center">
                 <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                   <button
                     onClick={() => handleWithdrawalClick(adminWallet.id, "admin")}

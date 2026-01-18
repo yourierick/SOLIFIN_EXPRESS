@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Log;
 use App\Notifications\PaymentStatusNotification;
 use App\Notifications\TransactionNotification;
 use App\Notifications\WithdrawalRequestPaid;
+use App\Notifications\WithdrawalRequestFailed;
 use App\Services\WithdrawalService;
 
 class SerdiPayController extends Controller
@@ -431,15 +432,18 @@ class SerdiPayController extends Controller
             }
             
             // Vérifier le code de parrainage seulement s'il est fourni
-            if (!empty($validated['referralCode']) && $validated['referralCode'] !== 'ADMIN') {
+            if (!empty($validated['referralCode'])) {
                 // Vérifier que le code existe
-                $request->validate([
-                    'referralCode' => 'exists:user_packs,referral_code',
-                ]);
+                $sponsorPack = UserPack::where('referral_code', $validated['referralCode'])->first();
+                if (!$sponsorPack) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Code de parrainage invalide ou non trouvé'
+                    ], 404);
+                }
                 
                 // Vérifier que l'utilisateur ne s'auto-parraine pas
-                $sponsorPack = UserPack::where('referral_code', $validated['referralCode'])->first();
-                if ($sponsorPack && $sponsorPack->user_id === $user->id) {
+                if ($sponsorPack->user_id === $user->id) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Vous ne pouvez pas utiliser votre propre code de parrainage'
@@ -534,6 +538,7 @@ class SerdiPayController extends Controller
             $paymentType = $validated['payment_type']; // Type général (credit-card, mobile-money, etc.)
             $paymentAmount = $validated['amount']; // Montant sans les frais
             $paymentCurrency = $validated['currency'] ?? 'USD';
+            $referralCode = $validated['referralCode'] ?? null;
             
             // Calculer les frais de transaction (globaux et spécifiques à l'API)
             $feesResult = $this->calculateFees($paymentMethod, $paymentAmount, $paymentCurrency);
@@ -655,18 +660,18 @@ class SerdiPayController extends Controller
                     'user_id' => $user->id,
                     'pack_id' => isset($pack) ? $pack->id : null,
                     'duration_months' => $validated['duration_months'] ?? null,
-                    'referral_code' => $validated['referralCode'] ?? null,
+                    'referral_code' => $referralCode ?? null,
                     'amount' => $totalAmount,
                     'fees' => $frais_de_transaction,
                     'currency' => $validated['currency'],
-                    'payment_method' => $validated['payment_method'],
+                    'payment_method' => $methode_paiement,
                     'payment_type' => $validated['payment_type'],
                     'payment_details' => $validated['payment_details'],
                     'phoneNumber' => $validated['payment_details']['phoneNumber'],
                     'email' => $user->email,
                     'wallet_id' => $user->wallet->id,
                 ];
-                
+
                 // Créer une entrée dans la table purchase_temp
                 $id = DB::table('purchase_temp')->insertGetId([
                     'temp_id' => $tempPurchaseId,
@@ -759,7 +764,7 @@ class SerdiPayController extends Controller
     {
         try {
             // Récupérer les données d'achat
-            $purchaseData = json_decode($tempPurchase->purchase_data, true);
+            $purchaseData = $tempPurchase->purchase_data;
             if (!$purchaseData) {
                 throw new \Exception('Données d\'achat invalides');
                 \Log::error('Données d\'achat invalides');
@@ -869,7 +874,7 @@ class SerdiPayController extends Controller
 
             if ($type === 'payment') {
                 // Envoyer notification de statut de paiement
-                $this->sendPaymentStatusNotification($status, $paymentStatus, $sessionId);   
+                $this->sendPaymentStatusNotification($status, $paymentStatus, $sessionId);
             }
 
             // Si le paiement est réussi, finaliser l'achat
@@ -915,9 +920,10 @@ class SerdiPayController extends Controller
                         ]);
                     }
 
-                    $withdrawal->user->wallet->transaction->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->update([
+                    $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->update([
                         'status' => 'completed'
                     ]);
+
 
                     $transaction_system = WalletSystemTransaction::where('type', 'withdrawal')->where('metadata->withdrawal_id', $withdrawal->id)->first();
                     if ($transaction_system) {
@@ -934,6 +940,61 @@ class SerdiPayController extends Controller
                     //c'est le premier sponsor de l'utilisateur qui touche la commission de retrait
                     $firstuserpack = UserPack::where('user_id', $withdrawal->user->id)->first();
                     $withdrawalService->paySponsorCommission($firstuserpack->sponsor, $withdrawal->payment_details['frais_de_commission'], $withdrawal);
+                }
+            }else {
+                if ($type === 'payment') {
+                    $tempPurchase = PurchaseTemp::where('session_id', $sessionId)->first();
+                    if ($tempPurchase) {
+                        $user = User::findOrFail($tempPurchase->user_id);
+                        if ($tempPurchase->transaction_type === "purchase_pack") {
+                            $operation = 'Achat de pack';
+                        }elseif ($tempPurchase->transaction_type === "purchase_virtual") {
+                            $operation = 'Achat de virtuel';
+                        }else {
+                            $operation = 'Renouvellement de pack';
+                        }
+                        $user->wallet->transactions()->create([
+                            'wallet_id' => $user->wallet->id,
+                            'amount' => $tempPurchase->purchase_data['amount'] ?? 0,
+                            'currency' => $tempPurchase->purchase_data['currency'] ?? 'USD',
+                            'mouvment' => 'out', // Sortie d'argent
+                            'type' => 'purchase',
+                            'status' => 'failed',
+                            'metadata' => [
+                                'Opération' => $operation,
+                                'User' => $tempPurchase->user->name,
+                                'Pack' => $tempPurchase->pack->name,
+                                'Montant' => $tempPurchase->purchase_data['amount'] ?? 0,
+                                'Dévise' => $tempPurchase->purchase_data['currency'] ?? 'USD',
+                                'Statut' => 'Echoué',
+                                'Session ID' => $tempPurchase->session_id,
+                                'Transaction ID' => $tempPurchase->transaction_id,
+                            ]
+                        ]);
+                    }
+                }else {
+                    // Échec du retrait
+                    $withdrawal = WithdrawalRequest::where('session_id', $sessionId)->whereNull('paid_at')->first();
+                    if ($withdrawal) {
+                        $withdrawal->update([
+                            'payment_status' => 'failed'
+                        ]);
+
+                        $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->update([
+                            'status' => 'failed'
+                        ]);
+
+
+                        $transaction_system = WalletSystemTransaction::where('type', 'withdrawal')->where('metadata->withdrawal_id', $withdrawal->id)->first();
+                        if ($transaction_system) {
+                            $transaction_system->update([
+                                'status' => 'failed'
+                            ]);
+                        }
+
+                        //Envoyer la notification d'échec de retrait à l'admin qui a validé
+                        $withdrawal->processor->notify(new WithdrawalRequestFailed($withdrawal, $status, $message, $sessionId, $transactionId));
+                    }
                 }
             }
 

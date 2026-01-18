@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pack;
 use App\Models\User;
 use App\Models\CommissionRate;
+use App\Models\Commission;
 use App\Models\UserPack;
 use App\Models\BonusRates;
 use App\Models\Role;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 
 #[\Illuminate\Routing\Middleware\Authenticate]
@@ -35,6 +37,333 @@ class PackController extends Controller
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des packs',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupère les statistiques détaillées d'un pack admin
+     * 
+     * @param Request $request
+     * @param int $id ID du pack
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getDetailedPackStats(Request $request, $id)
+    {
+        try {
+            $userpack = UserPack::with('pack')->find($id);
+            $pack = $userpack->pack;
+            
+            $userId = Auth::user()->id;
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID utilisateur requis'
+                ], 400);
+            }
+            
+            $user = User::findOrFail($userId);
+            
+            $userPack = UserPack::where('user_id', $userId)
+                ->where('pack_id', $pack->id)
+                ->first();
+
+            if (!$userPack) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pack non trouvé pour cet utilisateur'
+                ], 404);
+            }
+
+            // Récupérer tous les filleuls (toutes générations confondues)
+            $allReferrals = [];
+            $totalReferralsCount = 0;
+            $referralsByGeneration = [0, 0, 0, 0]; // Compteur pour chaque génération
+            $commissionsByGenerationUSD = [0, 0, 0, 0]; // Commissions USD pour chaque génération
+            $commissionsByGenerationCDF = [0, 0, 0, 0]; // Commissions CDF pour chaque génération
+            $activeReferralsCount = 0;
+            $inactiveReferralsCount = 0;
+            $totalCommissionUSD = 0;
+            $totalCommissionCDF = 0;
+            $failedCommissionUSD = 0;
+            $failedCommissionCDF = 0;
+
+            // Récupérer les filleuls de première génération
+            $firstGenReferrals = UserPack::with(['user', 'pack'])
+                ->where('sponsor_id', $userId)
+                ->where('pack_id', $pack->id)
+                ->get();
+
+            $referralsByGeneration[0] = $firstGenReferrals->count();
+            $totalReferralsCount += $referralsByGeneration[0];
+            
+            // Compter les actifs/inactifs de première génération
+            foreach ($firstGenReferrals as $referral) {
+                if ($referral->status === 'active') {
+                    $activeReferralsCount++;
+                } else {
+                    $inactiveReferralsCount++;
+                }
+                
+                // Ajouter à la liste complète des filleuls
+                $allReferrals[] = [
+                    'id' => $referral->user->id,
+                    'name' => $referral->user->name,
+                    'generation' => 1,
+                    'purchase_date' => $referral->purchase_date,
+                    'expiry_date' => $referral->expiry_date,
+                    'status' => $referral->status,
+                    'pack_name' => $referral->pack->name
+                ];
+            }
+
+            // Récupérer les commissions de première génération
+            $gen1Commissions = Commission::where('user_id', $userId)
+                ->where('pack_id', $pack->id)
+                ->where('level', 1)
+                ->get();
+                
+            $commissionsByGenerationUSD[0] = $gen1Commissions->where('status', 'completed')->where('currency', 'USD')->sum('amount');
+            $commissionsByGenerationCDF[0] = $gen1Commissions->where('status', 'completed')->where('currency', 'CDF')->sum('amount');
+            $totalCommissionUSD += $commissionsByGenerationUSD[0];
+            $totalCommissionCDF += $commissionsByGenerationCDF[0];
+            $failedCommissionUSD += $gen1Commissions->where('status', 'failed')->where('currency', 'USD')->sum('amount');
+            $failedCommissionCDF += $gen1Commissions->where('status', 'failed')->where('currency', 'CDF')->sum('amount');
+
+            // Récupérer les filleuls et commissions des générations 2 à 4
+            $currentGenReferrals = $firstGenReferrals->pluck('user_id')->toArray();
+            
+            for ($generation = 2; $generation <= 4; $generation++) {
+                $nextGenReferrals = [];
+                
+                foreach ($currentGenReferrals as $sponsorId) {
+                    $referrals = UserPack::with(['user', 'pack'])
+                        ->where('sponsor_id', $sponsorId)
+                        ->where('pack_id', $pack->id)
+                        ->get();
+                        
+                    foreach ($referrals as $referral) {
+                        $nextGenReferrals[] = $referral->user_id;
+                        
+                        // Compter par statut
+                        if ($referral->status === 'active') {
+                            $activeReferralsCount++;
+                        } else {
+                            $inactiveReferralsCount++;
+                        }
+                        
+                        // Ajouter à la liste complète des filleuls
+                        $allReferrals[] = [
+                            'id' => $referral->user->id,
+                            'name' => $referral->user->name,
+                            'generation' => $generation,
+                            'purchase_date' => $referral->purchase_date,
+                            'expiry_date' => $referral->expiry_date,
+                            'status' => $referral->status,
+                            'pack_name' => $referral->pack->name
+                        ];
+                    }
+                    
+                    $referralsByGeneration[$generation-1] += $referrals->count();
+                    $totalReferralsCount += $referrals->count();
+                }
+                
+                // Récupérer les commissions pour cette génération
+                $genCommissions = Commission::where('user_id', $userId)
+                    ->where('pack_id', $pack->id)
+                    ->where('level', $generation)
+                    ->get();
+                    
+                $commissionsByGenerationUSD[$generation-1] = $genCommissions->where('status', 'completed')->where('currency', 'USD')->sum('amount');
+                $commissionsByGenerationCDF[$generation-1] = $genCommissions->where('status', 'completed')->where('currency', 'CDF')->sum('amount');
+                $totalCommissionUSD += $commissionsByGenerationUSD[$generation-1];
+                $totalCommissionCDF += $commissionsByGenerationCDF[$generation-1];
+                $failedCommissionUSD += $genCommissions->where('status', 'failed')->where('currency', 'USD')->sum('amount');
+                $failedCommissionCDF += $genCommissions->where('status', 'failed')->where('currency', 'CDF')->sum('amount');
+                
+                $currentGenReferrals = $nextGenReferrals;
+            }
+
+            // Récupérer les données pour les graphiques d'évolution
+            $sixMonthsAgo = now()->subMonths(6);
+            
+            // Inscriptions mensuelles
+            $monthlySignups = [];
+            for ($i = 0; $i < 6; $i++) {
+                $month = now()->subMonths($i);
+                $count = collect($allReferrals)
+                    ->filter(function ($referral) use ($month) {
+                        return $referral['purchase_date'] && 
+                               date('Y-m', strtotime($referral['purchase_date'])) === $month->format('Y-m');
+                    })
+                    ->count();
+                    
+                $monthlySignups[$month->format('Y-m')] = $count;
+            }
+            
+            // Commissions mensuelles
+            $monthlyCommissionsUSD = [];
+            $monthlyCommissionsCDF = [];
+            for ($i = 0; $i < 6; $i++) {
+                $month = now()->subMonths($i);
+                $startOfMonth = $month->copy()->startOfMonth();
+                $endOfMonth = $month->copy()->endOfMonth();
+                
+                $amountUSD = Commission::where('user_id', $userId)
+                    ->where('pack_id', $pack->id)
+                    ->where('status', 'completed')
+                    ->where('currency', 'USD')
+                    ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                    ->sum('amount');
+                    
+                $amountCDF = Commission::where('user_id', $userId)
+                    ->where('pack_id', $pack->id)
+                    ->where('status', 'completed')
+                    ->where('currency', 'CDF')
+                    ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                    ->sum('amount');
+                    
+                $monthlyCommissionsUSD[$month->format('Y-m')] = $amountUSD;
+                $monthlyCommissionsCDF[$month->format('Y-m')] = $amountCDF;
+            }
+            
+            // Trouver le top filleul (celui qui a recruté le plus de personnes)
+            $topReferral = null;
+            $maxRecruits = 0;
+            
+            foreach ($firstGenReferrals as $referral) {
+                $recruitCount = UserPack::where('sponsor_id', $referral->user_id)
+                    ->where('pack_id', $pack->id)
+                    ->count();
+                    
+                if ($recruitCount > $maxRecruits) {
+                    $maxRecruits = $recruitCount;
+                    
+                    // Calculer les commissions générées par ce referral
+                    $referralCommissionsUSD = Commission::where('user_id', $userId)
+                        ->where('pack_id', $pack->id)
+                        ->where('source_user_id', $referral->user_id)
+                        ->where('currency', 'USD')
+                        ->where('status', 'completed')
+                        ->sum('amount');
+                        
+                    $referralCommissionsCDF = Commission::where('user_id', $userId)
+                        ->where('pack_id', $pack->id)
+                        ->where('source_user_id', $referral->user_id)
+                        ->where('currency', 'CDF')
+                        ->where('status', 'completed')
+                        ->sum('amount');
+                    
+                    $topReferral = [
+                        'id' => $referral->user->id,
+                        'name' => $referral->user->name,
+                        'recruit_count' => $recruitCount,
+                        'commission_usd' => $referralCommissionsUSD,
+                        'commission_cdf' => $referralCommissionsCDF
+                    ];
+                }
+            }
+
+            // Récupérer les derniers paiements reçus
+            $latestPayments = Commission::with('source_user')
+                ->where('user_id', $userId)
+                ->where('pack_id', $pack->id)
+                ->where('status', 'completed')
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function ($commission) {
+                    return [
+                        'id' => $commission->id,
+                        'amount' => $commission->amount,
+                        'currency' => $commission->currency,
+                        'date' => $commission->created_at->format('d/m/Y'),
+                        'source' => $commission->source_user->name ?? 'Inconnu',
+                        'status' => $commission->status,
+                        'level' => $commission->level
+                    ];
+                });
+
+            // Modifier la structure des données pour les filleuls (limité à 10)
+            $latestReferrals = collect($allReferrals)
+                ->sortByDesc('purchase_date')
+                ->take(10)
+                ->map(function ($referral) {
+                    $validityMonths = $referral['purchase_date'] && $referral['expiry_date'] 
+                        ? $referral['purchase_date']->diffInMonths($referral['expiry_date'])
+                        : 0;
+                    
+                    return [
+                        'id' => $referral['id'],
+                        'name' => $referral['name'],
+                        'generation' => $referral['generation'],
+                        'pack_name' => $referral['pack_name'],
+                        'purchase_date' => $referral['purchase_date'] ? $referral['purchase_date']->format('d/m/Y') : 'N/A',
+                        'expiry_date' => $referral['expiry_date'] ? $referral['expiry_date']->format('d/m/Y') : 'N/A',
+                        'validity_months' => $validityMonths,
+                        'status' => $referral['status']
+                    ];
+                })
+                ->values()
+                ->toArray();
+
+            // Modifier la structure pour tous les filleuls
+            $allReferrals = collect($allReferrals)
+                ->map(function ($referral) {
+                    $validityMonths = $referral['purchase_date'] && $referral['expiry_date'] 
+                        ? $referral['purchase_date']->diffInMonths($referral['expiry_date'])
+                        : 0;
+                    
+                    return [
+                        'id' => $referral['id'],
+                        'name' => $referral['name'],
+                        'generation' => $referral['generation'],
+                        'pack_name' => $referral['pack_name'],
+                        'purchase_date' => $referral['purchase_date'] ? $referral['purchase_date']->format('d/m/Y') : 'N/A',
+                        'expiry_date' => $referral['expiry_date'] ? $referral['expiry_date']->format('d/m/Y') : 'N/A',
+                        'validity_months' => $validityMonths,
+                        'status' => $referral['status']
+                    ];
+                })
+                ->values()
+                ->toArray();
+           
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'general_stats' => [
+                        'total_referrals' => $totalReferralsCount,
+                        'referrals_by_generation' => $referralsByGeneration,
+                        'active_referrals' => $activeReferralsCount,
+                        'inactive_referrals' => $inactiveReferralsCount,
+                        'total_commission_usd' => $totalCommissionUSD,
+                        'total_commission_cdf' => $totalCommissionCDF,
+                        'failed_commission_usd' => $failedCommissionUSD,
+                        'failed_commission_cdf' => $failedCommissionCDF,
+                        'commissions_by_generation_usd' => $commissionsByGenerationUSD,
+                        'commissions_by_generation_cdf' => $commissionsByGenerationCDF,
+                    ],
+                    'progression' => [
+                        'monthly_signups' => $monthlySignups,
+                        'monthly_commissions_usd' => $monthlyCommissionsUSD,
+                        'monthly_commissions_cdf' => $monthlyCommissionsCDF,
+                        'top_referral' => $topReferral
+                    ],
+                    'latest_referrals' => $latestReferrals,
+                    'financial_info' => [
+                        'total_commission_usd' => $totalCommissionUSD,
+                        'total_commission_cdf' => $totalCommissionCDF,
+                        'latest_payments' => $latestPayments
+                    ],
+                    'all_referrals' => $allReferrals,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des statistiques détaillées: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des statistiques détaillées: ' . $e->getMessage()
             ], 500);
         }
     }

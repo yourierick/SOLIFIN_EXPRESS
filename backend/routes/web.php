@@ -14,15 +14,15 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id) {
     }
 
     if ($user->hasVerifiedEmail()) {
-        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?already_verified=1');
+        return redirect(config('app.frontend_url') . '/login?already_verified=1');
     }
 
     $user->markEmailAsVerified();
     
     \Log::info('Email vérifié pour l\'utilisateur ' . $user->email);
     $redirectPath = $user->is_admin ? '/admin' : '/dashboard';
-    \Log::info('Redirection vers ' . env('FRONTEND_URL') . $redirectPath);
-    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?verified=1');
+    \Log::info('Redirection vers ' . config('app.frontend_url') . $redirectPath);
+    return redirect(config('app.frontend_url') . '/login?verified=1');
 })->middleware(['throttle:6,1'])->name('verification.verify');
 
 // Route pour renvoyer l'email de vérification
@@ -30,12 +30,12 @@ Route::get('/email/resend-verification/{email}', function ($email) {
     $user = \App\Models\User::where('email', $email)->firstOrFail();
     $user->sendEmailVerificationNotification();
     
-    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?verification=sent');
+    return redirect(config('app.frontend_url') . '/login?verification=sent');
 })->middleware(['throttle:6,1'])->name('verification.resend');
 
 // Routes pour la réinitialisation de mot de passe
 Route::get('/reset-password/{token}', function (string $token, Request $request) {
-    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/reset-password/' . $token . '?email=' . $request->email);
+    return redirect(config('app.frontend_url') . '/reset-password/' . $token . '?email=' . $request->email);
 })->middleware('guest')->name('password.reset');
 
 Route::post('/reset-password', function (Request $request) {
@@ -57,6 +57,6 @@ Route::post('/reset-password', function (Request $request) {
     );
 
     return $status === Password::PASSWORD_RESET
-                ? redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?reset=success')
+                ? redirect(config('app.frontend_url') . '/login?reset=success')
                 : back()->withErrors(['email' => [__($status)]]);
 })->middleware('guest')->name('password.update');

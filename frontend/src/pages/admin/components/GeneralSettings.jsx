@@ -27,6 +27,7 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+    isPourcentage: true
   },
   {
     key: "withdrawal_commission",
@@ -36,6 +37,7 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+    isPourcentage: true
   },
   {
     key: "transfer_fee_percentage",
@@ -45,6 +47,7 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+    isPourcentage: true
   },
   {
     key: "transfer_commission",
@@ -54,6 +57,7 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+    isPourcentage: true
   },
   {
     key: "purchase_fee_percentage",
@@ -63,6 +67,7 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+    isPourcentage: true
   },
   {
     key: "purchase_commission_system",
@@ -72,6 +77,7 @@ const FIXED_SETTINGS = [
     placeholder: "1.5%",
     category: "finance",
     isNumber: true,
+    isPourcentage: true
   },
   {
     key: "jeton_expiration_months",
@@ -81,6 +87,7 @@ const FIXED_SETTINGS = [
     placeholder: "10",
     category: "period",
     isNumber: true,
+    isPourcentage: false
   },
   {
     key: "ticket_expiration_months",
@@ -90,6 +97,7 @@ const FIXED_SETTINGS = [
     placeholder: "10",
     category: "period",
     isNumber: true,
+    isPourcentage: false
   },
   {
     key: "essai_duration_days",
@@ -98,6 +106,7 @@ const FIXED_SETTINGS = [
     placeholder: "10",
     category: "period",
     isNumber: true,
+    isPourcentage: false
   },
   {
     key: "dual_currency",
@@ -106,6 +115,7 @@ const FIXED_SETTINGS = [
     placeholder: "oui ou non",
     category: "period",
     isSelect: true,
+    isPourcentage: false
   },
   // Réseaux sociaux
   {
@@ -1163,7 +1173,7 @@ const GeneralSettings = () => {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                                   {setting ? setting.value : "Non défini"}{" "}
-                                  {fixedSetting.isNumber ? "%" : ""}
+                                  {fixedSetting.isPourcentage ? "%" : ""}
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">

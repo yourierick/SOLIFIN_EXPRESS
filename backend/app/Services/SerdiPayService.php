@@ -382,6 +382,12 @@ class SerdiPayService
             Log::info('SerdiPay callback processing', $callbackData);
             
             $status = $callbackData['payment']['status'] ?? null;
+            if ($status === 'failed') {
+                $status = "failed";
+            } elseif ($status === 'success') {
+                $status = "completed";
+            }
+
             $message = $callbackData['message'] ?? null;
             $sessionId = $callbackData['payment']['sessionId'] ?? null;
             $paymentStatus = $callbackData['payment']['status'] ?? null;
@@ -405,7 +411,7 @@ class SerdiPayService
             }
             
             // Mettre à jour la transaction avec les informations du callback
-            $transaction->status = $paymentStatus;
+            $transaction->status = $status;
             if ($transactionId) {
                 $transaction->transaction_id = $transactionId;
             }
