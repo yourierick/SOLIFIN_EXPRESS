@@ -307,6 +307,38 @@ export default function NotificationsDropdown() {
                 </div>
               )}
             </div>
+            
+            <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700">
+              {user.is_admin ? (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/admin/notifications');
+                  }}
+                  className={`w-full text-sm font-medium px-3 py-2 rounded transition-colors ${
+                    isDarkMode
+                      ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  Centre de notifications
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/dashboard/notifications');
+                  }}
+                  className={`w-full text-sm font-medium px-3 py-2 rounded transition-colors ${
+                    isDarkMode
+                      ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  Centre de notifications
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

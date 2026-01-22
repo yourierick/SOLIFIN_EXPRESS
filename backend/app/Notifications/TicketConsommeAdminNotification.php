@@ -56,7 +56,7 @@ class TicketConsommeAdminNotification extends Notification implements ShouldQueu
             'type' => 'success',
             'icon' => 'cash',
             'titre' => 'Rémunération reçue',
-            'message' => "Vous avez reçu {$this->montant} € pour la remise du cadeau {$this->cadeau->nom}.",
+            'message' => "Vous avez reçu {$this->montant} $ pour la remise du cadeau {$this->cadeau->nom}.",
             'link' => '/admin',
         ];
     }
@@ -73,8 +73,8 @@ class TicketConsommeAdminNotification extends Notification implements ShouldQueu
             'type' => 'success',
             'icon' => 'cash',
             'titre' => 'Rémunération reçue',
-            'message' => "Vous avez reçu {$this->montant} € pour la remise du cadeau {$this->cadeau->nom}.",
-            'link' => '/admin/wallet',
+            'message' => "Vous avez reçu {$this->montant} $ pour la remise du cadeau {$this->cadeau->nom}.",
+            'link' => '/admin',
         ]);
     }
     
@@ -92,10 +92,10 @@ class TicketConsommeAdminNotification extends Notification implements ShouldQueu
             ->line('Vous avez reçu une rémunération pour la remise d\'un cadeau.')
             ->line('Détails de la transaction :')
             ->line('Cadeau remis : ' . $this->cadeau->nom)
-            ->line('Montant reçu : ' . $this->montant . ' €')
+            ->line('Montant reçu : ' . $this->montant . ' $')
             ->line('Code du ticket : ' . $this->ticket->code_verification)
             ->line('Date de remise : ' . now()->format('d/m/Y H:i'))
-            ->action('Voir mon wallet', env('FRONTEND_URL') . '/admin/wallet')
+            ->action('Voir mon compte', env('FRONTEND_URL') . '/admin/finances')
             ->line('Merci pour votre travail !');
     }
 }

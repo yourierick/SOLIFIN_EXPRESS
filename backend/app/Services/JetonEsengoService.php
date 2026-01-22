@@ -64,10 +64,11 @@ class JetonEsengoService
             
             // Traiter les utilisateurs par lots pour éviter les problèmes de mémoire
             User::whereHas('packs', function($query) {
-                $query->where('user_packs.status', 'active')
+                $query->where('is_admin', false)
+                      ->where('user_packs.status', 'active')
                       ->where('user_packs.payment_status', 'completed');
             })
-            ->with(['packs.pack']) // Précharger les relations pour éviter N+1
+            ->with(['packs']) // Précharger les relations pour éviter N+1
             ->chunk($batchSize, function($users) use ($startDate, $endDate, &$stats) {
                 foreach ($users as $user) {
                     $this->processJetonsForUser($user, $startDate, $endDate, $stats);
@@ -144,7 +145,7 @@ class JetonEsengoService
         try {
             // Compter les filleuls parrainés durant la période
             $filleulsCount = $this->countReferralsInPeriod($user->id, $startDate, $endDate);
-            
+
             // Si l'utilisateur n'a pas de filleuls pour cette période, terminer
             if ($filleulsCount <= 0) {
                 return;
@@ -273,10 +274,10 @@ class JetonEsengoService
     private function countReferralsInPeriod($userId, Carbon $startDate, Carbon $endDate)
     {
         return UserPack::where('sponsor_id', $userId)
-            ->where('payment_status', 'completed')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->distinct('user_id')
             ->count('user_id');
+
     }
     
     /**
@@ -392,22 +393,33 @@ class JetonEsengoService
                 }
                 
                 // Insérer les jetons en masse
-                $insertedJetons = DB::table('user_jeton_esengos')->insertGetId($jetonsData);
+                DB::table('user_jeton_esengos')->insert($jetonsData);
+                
+                // Récupérer les IDs des jetons insérés pour l'historique
+                $insertedJetonIds = DB::table('user_jeton_esengos')
+                    ->where('user_id', $user->id)
+                    ->where('pack_id', $packId)
+                    ->where('created_at', now())
+                    ->pluck('id')
+                    ->toArray();
                 
                 // Mettre à jour les points du wallet
                 $user->wallet->increment('points', $totalPoints);
                 
                 // Préparer les données d'historique pour insertion en masse
-                foreach ($jetonsData as $jetonDatum) {
-                    $historyData[] = [
-                        'user_id' => $user->id,
-                        'jeton_esengo_id' => $insertedJetons,
-                        'action' => 'attribution',
-                        'description' => $description,
-                        'metadata' => json_encode($metadata),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+                foreach ($jetonsData as $index => $jetonDatum) {
+                    if (isset($insertedJetonIds[$index])) {
+                        $historyData[] = [
+                            'user_id' => $user->id,
+                            'jeton_id' => $insertedJetonIds[$index],
+                            'code_unique' => $jetonDatum['code_unique'],
+                            'action_type' => 'attribution',
+                            'description' => $description,
+                            'metadata' => json_encode($metadata),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
                 }
                 
                 // Insérer l'historique en masse

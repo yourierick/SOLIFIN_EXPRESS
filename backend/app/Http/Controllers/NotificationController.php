@@ -13,10 +13,11 @@ class NotificationController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $notifications = $user->notifications()->paginate(15);
+        $page = $request->get('page', 1);
+        $notifications = $user->notifications()->orderBy('created_at', 'desc')->paginate(30, ['*'], 'page', $page);
 
         return response()->json([
             'success' => true,

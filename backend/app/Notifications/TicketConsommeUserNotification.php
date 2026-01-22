@@ -80,7 +80,6 @@ class TicketConsommeUserNotification extends Notification implements ShouldQueue
             'icon' => 'gift',
             'titre' => 'Cadeau remis',
             'message' => "Votre cadeau {$this->cadeau->nom} a été remis avec succès.",
-            'link' => '/dashboard/tickets',
         ]);
     }
     

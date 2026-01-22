@@ -398,7 +398,7 @@ export default function Navbar() {
                   Dashboard
                 </RouterLink>
                 <RouterLink
-                  to="/user/packs"
+                  to="/dashboard/packs/:id"
                   className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     isDarkMode
                       ? "text-gray-200 hover:text-white hover:bg-gray-800"

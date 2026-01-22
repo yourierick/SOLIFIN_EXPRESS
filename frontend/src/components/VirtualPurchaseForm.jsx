@@ -308,7 +308,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
       // Préparer les données pour l'API selon le format attendu par le backend
       const requestData = {
         payment_method: selectedPaymentOption.id,
-        currency: selectedCurrency.code,
+        currency: selectedCurrency,  // selectedCurrency est déjà "USD" ou "CDF"
       };
 
       requestData.amount = amount.toFixed(2);

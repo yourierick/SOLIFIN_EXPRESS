@@ -51,7 +51,7 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
      * @param  mixed  $notifiable
      * @return array
      */
-    public function toDatabase($notifiable)
+    public function toArray($notifiable)
     {
         $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         
@@ -60,7 +60,6 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
             'icon' => 'cash',
             'title' => 'Commission reçue',
             'message' => "Vous avez reçu une commission de {$this->amount} {$currencySymbol} de la part de votre filleul {$this->filleulName}.",
-            'link' => '/wallet',
         ];
     }
 
@@ -83,7 +82,6 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
             'currency' => $this->currency,
             'transaction_type' => 'commission',
             'filleul_name' => $this->filleulName,
-            'link' => '/wallet'
         ]);
     }
 
@@ -105,7 +103,7 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
             ->line("Filleul concerné : {$this->filleulName}")
             ->line("ID du compte du filleul : {$this->filleulAccountId}")
             ->line("Date et heure : " . now()->format('d/m/Y H:i'))
-            ->action('Voir mon wallet', env('FRONTEND_URL') . '/wallet')
+            ->action('Me connecter à mon compte', env('FRONTEND_URL') . '/login')
             ->line('Continuez à accompagner vos filleuls pour recevoir plus de commissions !');
     }
 }

@@ -112,6 +112,9 @@ const ChatPollingTest = lazy(() => import("./pages/ChatPollingTest"));
 const WithdrawalRequests = lazy(() =>
   import("./components/WithdrawalRequests")
 );
+const NotificationCenter = lazy(() =>
+  import("./components/NotificationCenter")
+);
 import PrefetchManager from "./components/PrefetchManager";
 import ServiceWorkerUpdater from "./components/ServiceWorkerUpdater";
 import AdBlockDetector from "./components/AdBlockDetector";
@@ -237,6 +240,17 @@ function App() {
                       </Suspense>
                     }
                   />
+                  {/* Route protégée pour le centre de notifications */}
+                  <Route
+                    path="notifications"
+                    element={
+                      <PrivateRoute>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <NotificationCenter />
+                        </Suspense>
+                      </PrivateRoute>
+                    }
+                  />
                   <Route
                     path="users"
                     element={
@@ -344,10 +358,6 @@ function App() {
                       </Suspense>
                     }
                   />
-                  {/* <Route
-              path="tickets-verification"
-              element={<Suspense fallback={<LoadingSpinner />}><TicketVerification /></Suspense>}
-            /> */}
                 </Route>
 
                 <Route
@@ -372,6 +382,17 @@ function App() {
                       <Suspense fallback={<LoadingSpinner />}>
                         <Profile />
                       </Suspense>
+                    }
+                  />
+                  {/* Route protégée pour le centre de notifications */}
+                  <Route
+                    path="notifications"
+                    element={
+                      <PrivateRoute>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <NotificationCenter />
+                        </Suspense>
+                      </PrivateRoute>
                     }
                   />
                   {/* <Route path="wallet" element={<Suspense fallback={<LoadingSpinner />}><Wallet /></Suspense>} /> */}

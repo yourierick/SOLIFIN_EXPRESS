@@ -152,17 +152,19 @@ class TestimonialPromptController extends Controller
         // Mettre à jour le statut de l'invitation
         $prompt->markAsSubmitted($testimonial->id);
         
-        // Envoyer une notification aux administrateurs
+        // Envoyer une notification aux administrateurs avec la permission manage-content
         $admins = User::where('is_admin', 1)->get();
         
         foreach ($admins as $admin) {
-            $admin->notify(new TestimonialSubmitted([
-                'titre' => "Temoignage de ". $user->name,
-                'id' => $testimonial->id,
-                'rating' => $testimonial->rating,
-                'user_id' => $user->id,
-                'user_name' => $user->name
-            ]));
+            if ($admin->hasPermission('manage-content')) {
+                $admin->notify(new TestimonialSubmitted([
+                    'titre' => "Temoignage de ". $user->name,
+                    'id' => $testimonial->id,
+                    'rating' => $testimonial->rating,
+                    'user_id' => $user->id,
+                    'user_name' => $user->name
+                ]));
+            }
         }
         
         Log::info('Notification de nouveau témoignage envoyée aux administrateurs', [

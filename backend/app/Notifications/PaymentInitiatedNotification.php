@@ -84,7 +84,7 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
      * @param  mixed  $notifiable
      * @return array
      */
-    public function toDatabase($notifiable)
+    public function toArray($notifiable)
     {
         $typeLabel = $this->getTransactionTypeLabel();
         
@@ -92,7 +92,6 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
             'title' => "Paiement initié",
             'icon' => 'exclamation-circle',
             'type' => 'info',
-            'link' => '/admin/transactions',
             'message' => "Votre paiement de {$this->amount} {$this->currency} a été initié et est en attente de validation."
         ];
     }

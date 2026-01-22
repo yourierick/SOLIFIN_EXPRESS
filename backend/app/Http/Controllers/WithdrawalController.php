@@ -496,15 +496,17 @@ class WithdrawalController extends Controller
 
             DB::commit();
 
-            // Notifier l'administrateur
+            // Notifier les administrateurs avec la permission manage-withdrawals
             $admins = User::where('is_admin', true)->get();
             
             foreach ($admins as $admin) {
-                // Notification par email
-                $admin->notify(new WithdrawalRequestCreated($withdrawalRequest));
-                
-                // Notification SMS via queue (asynchrone)
-                SendWithdrawalNotificationSms::dispatch($admin, $withdrawalRequest);
+                if ($admin->hasPermission('manage-withdrawals')) {
+                    // Notification par email
+                    $admin->notify(new WithdrawalRequestCreated($withdrawalRequest));
+                    
+                    // Notification SMS via queue (asynchrone)
+                    SendWithdrawalNotificationSms::dispatch($admin, $withdrawalRequest);
+                }
             }
 
             return response()->json([

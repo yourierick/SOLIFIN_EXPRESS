@@ -39,7 +39,7 @@ class CommissionReceived extends Notification implements ShouldQueue
             ->line('- Montant: ' . number_format($this->commission, 2) . $this->currency === "USD" ? ' $' : ' FC')
             ->line('- Pack: ' . $this->pack->name)
             ->line('- Génération: ' . $this->generation)
-            ->line('Merci de votre participation au programme de parrainage!');
+            ->line('Merci de votre participation au programme de fidélité Solifin!');
     }
 
     public function toArray($notifiable)
@@ -47,7 +47,7 @@ class CommissionReceived extends Notification implements ShouldQueue
         return [
             'type' => 'info',
             'titre' => 'Commission de parrainage',
-            'message' => 'Vous avez reçu une nouvelle commission!',
+            'message' => 'Vous avez reçu une nouvelle commission sur votre pack ' . $this->pack->name . ' d\'un montant de ' . number_format($this->commission, 2) . $this->currency === "USD" ? ' $' : ' FC',
             'icon' => 'exclamation-circle',
         ];
     }

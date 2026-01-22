@@ -371,6 +371,8 @@ class SerdiPayController extends Controller
                 'fees' => 'required|numeric|min:0',
                 'currency' => 'required|string',
             ]);
+
+            \Log::info('ça passe');
             
             // Ajouter des validations conditionnelles manuellement
             if ($request->input('payment_type') === 'mobile-money') {
@@ -409,6 +411,8 @@ class SerdiPayController extends Controller
             
             // Exécuter la validation et récupérer les données validées
             if ($validator->fails()) {
+                \Log::info($request->all());
+                \Log::info($validator->errors());
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation échouée',

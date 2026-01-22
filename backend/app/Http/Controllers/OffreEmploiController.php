@@ -170,17 +170,19 @@ class OffreEmploiController extends Controller
         $offre->expiry_date = $now->addDays($data['duree_affichage']);
         $offre->save();
         
-        // Créer une notification pour l'administrateur
+        // Créer une notification pour les administrateurs avec la permission manage-content
         $admins = \App\Models\User::where('is_admin', true)->get();
         foreach ($admins as $admin) {
-            $admin->notify(new \App\Notifications\PublicationSubmitted([
-                'type' => $offre->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
-                'id' => $offre->id,
-                'titre' => "Offre d'emploi, référence : " . $offre->reference,
-                'message' => 'est en attente d\'approbation.',
-                'user_id' => $user->id,
-                'user_name' => $user->name
-            ]));
+            if ($admin->hasPermission('manage-content')) {
+                $admin->notify(new \App\Notifications\PublicationSubmitted([
+                    'type' => $offre->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
+                    'id' => $offre->id,
+                    'titre' => "Offre d'emploi, référence : " . $offre->reference,
+                    'message' => 'est en attente d\'approbation.',
+                    'user_id' => $user->id,
+                    'user_name' => $user->name
+                ]));
+            }
         }
         
         return response()->json([

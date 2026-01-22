@@ -104,7 +104,7 @@ class GradeAttributedNotification extends Notification implements ShouldQueue
             'type' => "info",
             'icon' => "exclamation-circle",
             'message' => "Félicitations ! Vous avez atteint le grade de {$this->grade->designation}",
-            'title' => "Nouveau grade atteint"
+            'title' => "🎉 Nouveau grade atteint"
         ];
     }
 }

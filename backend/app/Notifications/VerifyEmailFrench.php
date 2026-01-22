@@ -29,7 +29,7 @@ class VerifyEmailFrench extends Notification implements ShouldQueue
             ->line('Veuillez cliquer sur le bouton ci-dessous pour vérifier votre adresse e-mail.')
             ->action('Vérifier l\'adresse e-mail', $verificationUrl)
             ->line('Si vous n\'avez pas créé de compte, aucune action supplémentaire n\'est requise.')
-            ->salutation('Cordialement,<br>L\'équipe SOLIFIN');
+            ->salutation('Cordialement, L\'équipe SOLIFIN');
     }
 
     protected function verificationUrl($notifiable)

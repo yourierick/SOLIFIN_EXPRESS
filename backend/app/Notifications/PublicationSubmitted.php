@@ -48,7 +48,7 @@ class PublicationSubmitted extends Notification
             ->subject(Lang::get('Nouvelle publication en attente d\'approbation'))
             ->line(Lang::get('Une nouvelle publication a été soumise et est en attente d\'approbation.'))
             ->line(Lang::get('Titre: :titre', ['titre' => $this->data['titre']]))
-            ->line(Lang::get('Soumise par: :user', ['user' => $this->data['user_name']]))
+            ->line(Lang::get('Soumise par l\'utilisateur', ['utilisateur' => $this->data['user_name']]))
             ->action(Lang::get('Voir la publication'), env('FRONTEND_URL') . '/admin/content-management');
     }
 

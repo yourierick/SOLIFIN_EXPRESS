@@ -166,20 +166,22 @@ class OpportuniteAffaireController extends Controller
         $opportunite->expiry_date = $now->addDays($data['duree_affichage']);
         $opportunite->save();
 
-        // Créer une notification pour l'administrateur
+        // Créer une notification pour les administrateurs avec la permission manage-content
         $admins = \App\Models\User::where('is_admin', true)->get();
         foreach ($admins as $admin) {
-            $admin->notify(new \App\Notifications\PublicationSubmitted([
-                'type' => [
-                    'partenariat' => 'Opportunité de partenariat',
-                    'appel_projet' => 'Appel à projet',
-                ][$opportunite->type] ?? 'Opportunité d\'affaire',
-                'id' => $opportunite->id,
-                'titre' => "Opportunité d'affaire, Secteur: " . $opportunite->secteur,
-                'message' => 'est en attente d\'approbation.',
-                'user_id' => $user->id,
-                'user_name' => $user->name
-            ]));
+            if ($admin->hasPermission('manage-content')) {
+                $admin->notify(new \App\Notifications\PublicationSubmitted([
+                    'type' => [
+                        'partenariat' => 'Opportunité de partenariat',
+                        'appel_projet' => 'Appel à projet',
+                    ][$opportunite->type] ?? 'Opportunité d\'affaire',
+                    'id' => $opportunite->id,
+                    'titre' => "Opportunité d'affaire, Secteur: " . $opportunite->secteur,
+                    'message' => 'est en attente d\'approbation.',
+                    'user_id' => $user->id,
+                    'user_name' => $user->name
+                ]));
+            }
         }
         
         return response()->json([

@@ -19,6 +19,7 @@ import {
   FunnelIcon,
   DocumentArrowDownIcon,
   ChevronDownIcon,
+  CheckCircleIcon,
   ExclamationTriangleIcon,
   ChartBarIcon,
   CurrencyDollarIcon,

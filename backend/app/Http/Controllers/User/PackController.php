@@ -70,7 +70,8 @@ class PackController extends Controller
             'AF' => 'afrimoney',
             'VISA' => 'visa',
             'MC' => 'mastercard',
-            'AE' => 'american-express'
+            'AE' => 'american-express',
+            'solifin-wallet' => 'solifin-wallet',
         ];
         
         return $mapping[$method] ?? null;
@@ -236,6 +237,8 @@ class PackController extends Controller
     {
         try {
             $user = null;
+            \Log::info("ici c'est la ligne 239 Pack Controller");
+            \Log::info($request->all());
             if (isset($request->user_id)) {
                 $user = User::findOrFail($request->user_id);
             }else {

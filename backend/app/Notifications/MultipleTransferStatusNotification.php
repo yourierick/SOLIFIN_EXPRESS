@@ -57,7 +57,7 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
      * @param  mixed  $notifiable
      * @return array
      */
-    public function toDatabase($notifiable)
+    public function toArray($notifiable)
     {
         $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         $status = $this->success ? 'réussi' : 'échoué';
@@ -70,34 +70,9 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
             'message' => $this->success 
                 ? "Votre transfert multiple de {$this->totalAmount} {$currencySymbol} a été effectué avec succès ({$this->successfulCount} réussis, {$this->failedCount} échoués)."
                 : "Votre transfert multiple a rencontré des problèmes ({$this->successfulCount} réussis, {$this->failedCount} échoués).",
-            'total_amount' => $this->totalAmount,
-            'currency' => $this->currency,
-            'successful_count' => $this->successfulCount,
-            'failed_count' => $this->failedCount,
-            'transaction_type' => 'multiple_transfer_status',
-            'failed_transfers' => $this->failedTransfers,
-            'data' => json_encode([
-                'total_amount' => $this->totalAmount,
-                'currency' => $this->currency,
-                'successful_count' => $this->successfulCount,
-                'failed_count' => $this->failedCount,
-                'failed_transfers' => $this->failedTransfers,
-                'transaction_type' => 'multiple_transfer_status'
-            ]),
-            'link' => '/wallet',
-            'created_at' => now()->toISOString()
+            'link' => '/dashboard/finances',
         ];
-
-        // Ajouter les détails des transferts échoués si présents
-        if (!empty($this->failedTransfers)) {
-            $data['failed_details'] = array_map(function($failed) {
-                return [
-                    'recipient_account_id' => $failed['recipient_account_id'],
-                    'reason' => $failed['reason']
-                ];
-            }, $this->failedTransfers);
-        }
-
+        
         return $data;
     }
 

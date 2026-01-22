@@ -56,7 +56,6 @@ class FundsReceivedNotification extends Notification implements ShouldQueue
      */
     public function toArray($notifiable): array
     {
-        $typeLabel = $this->transactionType === 'transfer_multiple' ? 'Transfert multiple' : 'Transfert';
         $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         
         return [
@@ -64,7 +63,6 @@ class FundsReceivedNotification extends Notification implements ShouldQueue
             'icon' => 'cash',
             'title' => 'Fonds reçus',
             'message' => "Vous avez reçu {$this->amount} {$currencySymbol} de la part de {$this->senderName}.",
-            'link' => '/wallet',
         ];
     }
 
@@ -84,7 +82,6 @@ class FundsReceivedNotification extends Notification implements ShouldQueue
             'icon' => 'cash',
             'title' => 'Fonds reçus',
             'message' => "Vous avez reçu {$this->amount} {$currencySymbol} de la part de {$this->senderName}.",
-            'link' => '/wallet'
         ]);
     }
 
@@ -107,7 +104,7 @@ class FundsReceivedNotification extends Notification implements ShouldQueue
             ->line("Expéditeur : {$this->senderName}")
             ->line("ID du compte expéditeur : {$this->senderAccountId}")
             ->line("Date et heure : " . now()->format('d/m/Y H:i'))
-            ->action('Voir mon wallet', env('FRONTEND_URL') . '/wallet')
+            ->action('Me connecter à mon compte', env('FRONTEND_URL') . '/login')
             ->line('Merci pour votre confiance dans nos services !');
     }
 }

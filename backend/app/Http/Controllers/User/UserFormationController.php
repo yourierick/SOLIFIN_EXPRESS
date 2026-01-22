@@ -469,6 +469,21 @@ class UserFormationController extends Controller
         $formation->status = 'pending';
         $formation->rejection_reason = null; // Effacer la raison du rejet précédent
         $formation->save();
+
+        // Créer une notification pour les administrateurs avec la permission manage-content
+        $admins = \App\Models\User::where('is_admin', true)->get();
+        foreach ($admins as $admin) {
+            if ($admin->hasPermission('manage-content')) {
+                $admin->notify(new \App\Notifications\PublicationSubmitted([
+                    'type' => 'Formation',
+                    'id' => $formation->id,
+                    'titre' => "Formation, titre: " . $formation->title,
+                    'message' => 'est en attente d\'approbation.',
+                    'user_id' => $user->id,
+                    'user_name' => $user->name
+                ]));
+            }
+        }
         
         return response()->json([
             'success' => true,

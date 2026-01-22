@@ -51,7 +51,7 @@ class TestimonialSubmitted extends Notification
         return (new MailMessage)
                     ->line('Un nouveau témoignage a été soumis par ' . $this->data['user_name'])
                     ->line('Note: ' . $this->data['rating'] . '/5')
-                    ->action('Voir le témoignage', url('/admin/testimonials'))
+                    ->action('Voir le témoignage', url('/admin/content-management'))
                     ->line('Merci d\'utiliser SOLIFIN!');
     }
 

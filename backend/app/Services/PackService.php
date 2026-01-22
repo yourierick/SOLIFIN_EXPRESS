@@ -213,7 +213,7 @@ class PackService
             ]);
         }
 
-        $amount = $paymentData['amount'] + $paymentData['fees'];
+        $amount = $paymentData['amount'];
         
         $walletSystem->addFunds(
             $amount, 

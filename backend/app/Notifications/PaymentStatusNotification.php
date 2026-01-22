@@ -88,7 +88,7 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
      * @param  mixed  $notifiable
      * @return array
      */
-    public function toDatabase($notifiable)
+    public function toArray($notifiable)
     {
         $status = $this->status === 'success' ? 'réussi' : 'échoué';
         $typeLabel = $this->getTransactionTypeLabel();
