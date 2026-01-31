@@ -1074,7 +1074,7 @@ class SerdiPayController extends Controller
                 return;
             }
             
-            $transactionData = json_decode($tempPurchase->purchase_data);
+            $transactionData = $tempPurchase->purchase_data;
             $amount = $tempPurchase->purchase_data['amount'] ?? 0;
             $currency = $tempPurchase->purchase_data['currency'] ?? 'USD';
             $transactionType = $tempPurchase->transaction_type;

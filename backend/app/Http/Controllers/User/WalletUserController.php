@@ -467,6 +467,7 @@ class WalletUserController extends Controller
     {
         $currency = $request->currency;
         $totalAmount = $request->total_amount;
+        $totalAmountSucceed = 0; // pour stocker le montant total des transferts réussis
         $totalFees = $request->total_fees;
         $grandTotal = $totalAmount + $totalFees;
 
@@ -591,6 +592,8 @@ class WalletUserController extends Controller
                     }
                 }
 
+                $totalAmountSucceed += $amount;
+
                 $successfulTransfers[] = [
                     'recipient_account_id' => $recipientData['recipient_account_id'],
                     'recipient_name' => $recipient->name,
@@ -634,25 +637,27 @@ class WalletUserController extends Controller
             "User_ID" => $user->id,
             "user" => $user->name,
             "Type" => "Transfert multiple",
-            "Montant total" => number_format($totalAmount, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Nombre de destinataires" => count($successfulTransfers),
+            "Transferts réussis" => count($successfulTransfers),
+            "Transferts échoués" => count($failedTransfers),
+            "Montant total du transfert" => number_format($totalAmount, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Montant total transferé" => number_format($totalAmountSucceed, 2) . ($currency === 'USD' ? " $" : " FC"),
+            "Montant total echoué" => (number_format($totalAmountSucceed, 2) - number_format($totalAmount, 2)) . ($currency === 'USD' ? " $" : " FC"),
             "Dévise" => $currency,
             "Frais totaux" => number_format($totalFees, 2) . ($currency === 'USD' ? " $" : " FC"),
             "Commission totale" => $sponsorWallet ? 
                 "Paiement d'une commission totale de " . number_format($totalCommission, 2) . ($currency === 'USD' ? " $" : " FC") . " à " . $sponsorName : 
                 "Aucune commission payée",
-            "Nombre de destinataires" => count($successfulTransfers),
-            "Transferts réussis" => count($successfulTransfers),
-            "Transferts échoués" => count($failedTransfers),
             "Description" => "Transfert multiple de ". number_format($totalAmount, 2) . 
                             ($currency === 'USD' ? " $" : " FC") . " vers " . count($successfulTransfers) . " destinataires",
         ];
 
         $transactionData = [
-            'amount' => number_format($totalAmount, 2),
+            'amount' => number_format($totalAmountSucceed, 2),
             'currency' => $currency,
             'mouvment' => 'out',
             'type' => 'transfer',
-            'status' => 'completed',
+            'status' => $totalAmountSucceed > 0 ? 'completed' : 'failed',
             'metadata' => $systemMetadata,
         ];
 

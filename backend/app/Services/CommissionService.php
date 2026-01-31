@@ -131,6 +131,8 @@ class CommissionService
                 ]
             ]);
 
+            \Log::info('commission distribuée de ' . $commission->amount);
+
             return true;
         } catch (\Exception $e) {
             // En cas d'erreur, marquer la commission comme échouée
