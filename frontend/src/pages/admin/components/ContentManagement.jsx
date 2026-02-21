@@ -14,9 +14,8 @@ import {
   VerifiedUser as VerifiedUserIcon,
 } from "@mui/icons-material";
 import { useTheme } from "../../../contexts/ThemeContext";
-import usePendingFormations from "../../../hooks/usePendingFormations";
-import usePendingTestimonials from "../../../hooks/usePendingTestimonials";
-import usePendingPublications from "../../../hooks/usePendingPublications";
+import useDashboardCounters from "../../../hooks/useDashboardCounters";
+import { useAuth } from "../../../contexts/AuthContext";
 
 // Importation des composants pour chaque onglet
 const FormationManagement = lazy(() => import("./FormationManagement"));
@@ -35,14 +34,14 @@ const ContentManagement = () => {
   const { isDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [tabHover, setTabHover] = useState(null);
+  const { user } = useAuth();
 
-  // Utilisation des hooks pour récupérer les compteurs d'éléments en attente
-  const { pendingCount: pendingFormations, loading: loadingFormations } =
-    usePendingFormations();
-  const { pendingCount: pendingTestimonials, loading: loadingTestimonials } =
-    usePendingTestimonials();
-  const { pendingCount: pendingPublications, loading: loadingPublications } =
-    usePendingPublications();
+  // Utilisation du hook centralisé pour récupérer tous les compteurs d'éléments en attente
+  const { 
+    pendingFormationsCount, 
+    pendingTestimonialsCount, 
+    pendingPublicationsCount 
+  } = useDashboardCounters(user.is_admin);
 
   // Gestionnaire de changement d'onglet
   const handleTabChange = (event, newValue) => {
@@ -162,10 +161,10 @@ const ContentManagement = () => {
           <Tab
             icon={
               <Badge
-                badgeContent={pendingFormations}
+                badgeContent={pendingFormationsCount}
                 color="error"
                 max={99}
-                invisible={loadingFormations || pendingFormations === 0}
+                invisible={pendingFormationsCount === 0}
                 sx={{
                   "& .MuiBadge-badge": {
                     right: -3,
@@ -192,10 +191,10 @@ const ContentManagement = () => {
           <Tab
             icon={
               <Badge
-                badgeContent={pendingTestimonials}
+                badgeContent={pendingTestimonialsCount}
                 color="error"
                 max={99}
-                invisible={loadingTestimonials || pendingTestimonials === 0}
+                invisible={pendingTestimonialsCount === 0}
                 sx={{
                   "& .MuiBadge-badge": {
                     right: -3,
@@ -222,10 +221,10 @@ const ContentManagement = () => {
           <Tab
             icon={
               <Badge
-                badgeContent={pendingPublications}
+                badgeContent={pendingPublicationsCount}
                 color="error"
                 max={99}
-                invisible={loadingPublications || pendingPublications === 0}
+                invisible={pendingPublicationsCount === 0}
                 sx={{
                   "& .MuiBadge-badge": {
                     right: -3,

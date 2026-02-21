@@ -23,10 +23,6 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('grade_id')->nullable()->after('acquisition_source')->constrained();
         });
-
-        Schema::table('wallets', function (Blueprint $table) {
-            $table->decimal('points')->default(0)->after('total_withdrawn_cdf');
-        });
     }
 
     /**
@@ -34,10 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('wallets', function (Blueprint $table) {
-            $table->dropColumn('points');
-        });
-
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['grade_id']);
             $table->dropColumn('grade_id');

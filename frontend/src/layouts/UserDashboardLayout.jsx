@@ -43,10 +43,8 @@ import { motion } from "framer-motion";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
-import { useCurrency } from "../contexts/CurrencyContext";
 import GlobalStatsModal from "../components/GlobalStatsModal";
 import TestimonialPromptWrapper from "../components/TestimonialPromptWrapper";
-import CurrencySwitcher from "../components/CurrencySwitcher";
 import {
   HomeIcon,
   UserIcon,
@@ -583,14 +581,6 @@ export default function UserDashboardLayout() {
                 )}
               </button>
 
-              {/* Sélecteur de devise */}
-              <CurrencySwitcher 
-                size="small"
-                showLabels={true}
-                showIcons={false}
-                className="ml-2"
-              />
-
               {/* Profile dropdown */}
               <div className="relative ml-3" ref={dropdownRef}>
                 <button
@@ -673,7 +663,7 @@ export default function UserDashboardLayout() {
                         onClick={() => setShowProfileMenu(false)}
                       >
                         <UserCircleIcon className="h-5 w-5" />
-                        Mon profil
+                        Mon profile
                       </Link>
                       <button
                         onClick={() => {

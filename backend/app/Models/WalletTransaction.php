@@ -13,16 +13,31 @@ class WalletTransaction extends Model
     protected $fillable = [
         'wallet_id',
         'reference',
-        'amount',
-        'currency',
-        'mouvment',
+        'session_id', // Pour Serdipay (nullable)
+        'transaction_id', // Pour Serdipay (nullable)
+        'flow',
+        'nature',
         'type',
+        'amount',
+        'fee_amount',
+        'commission_amount',
         'status',
+        'balance_before',
+        'balance_after',
+        'description',
         'metadata',
+        'processed_by',
+        'processed_at',
+        'rejection_reason',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'fee_amount' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'balance_before' => 'decimal:2',
+        'balance_after' => 'decimal:2',
+        'processed_at' => 'datetime',
         'metadata' => 'array',
     ];
 
@@ -68,27 +83,20 @@ class WalletTransaction extends Model
         return $this->belongsTo(Wallet::class);
     }
 
-    // Scope pour les crédits
-    public function scopeCreditsUSD($query)
+    public function processor()
     {
-        return $query->where('mouvment', 'in');
-    }
-
-    // Scope pour les débits
-    public function scopeDebitsUSD($query)
-    {
-        return $query->where('mouvment', 'out');
+        return $this->belongsTo(User::class, 'processed_by');
     }
 
     // Scope pour les crédits
-    public function scopeCreditsCDF($query)
+    public function scopeCredits($query)
     {
-        return $query->where('mouvment', 'in');
+        return $query->where('flow', 'in');
     }
 
     // Scope pour les débits
-    public function scopeDebitsCDF($query)
+    public function scopeDebits($query)
     {
-        return $query->where('mouvment', 'out');
+        return $query->where('flow', 'out');
     }
 } 

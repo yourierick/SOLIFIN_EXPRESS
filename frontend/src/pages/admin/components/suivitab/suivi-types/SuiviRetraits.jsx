@@ -27,12 +27,15 @@ import {
   Collapse,
   useMediaQuery,
   Stack,
+  Avatar,
 } from '@mui/material';
 import {
   Wallet as WalletIcon,
-  TrendingUp as PaidIcon,
-  Schedule as PendingIcon,
-  Cancel as RejectedIcon,
+  Paid as PaidIcon,
+  Pending as PendingIcon,
+  Cancel as CancelIcon,
+  TrendingUp,
+  Check,
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
   ExpandMore as ExpandMoreIcon,
@@ -46,7 +49,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { fr } from 'date-fns/locale';
 import axios from 'axios';
-import { useCurrency } from '../../../../../contexts/CurrencyContext';
 import { useTheme } from '../../../../../contexts/ThemeContext';
 import ExportButtons from './SuiviJetonComponents/ExportButtons';
 
@@ -54,7 +56,6 @@ const SuiviRetraits = ({ period }) => {
   const { isDarkMode } = useTheme();
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
-  const { selectedCurrency, isCDFEnabled } = useCurrency();
 
   // État pour l'expansion des filtres
   const [expanded, setExpanded] = useState(false);
@@ -74,7 +75,6 @@ const SuiviRetraits = ({ period }) => {
   // États pour les filtres
   const [filters, setFilters] = useState({
     status: '',
-    payment_status: '',
     payment_method: '',
     user_search: '',
     created_date_start: null,
@@ -94,16 +94,10 @@ const SuiviRetraits = ({ period }) => {
   // Options pour les filtres
   const statusOptions = [
     { value: 'pending', label: 'En attente' },
-    { value: 'approved', label: 'Approuvé' },
+    { value: 'processing', label: 'En cours de traitement' },
     { value: 'rejected', label: 'Rejeté' },
     { value: 'failed', label: 'Echoué' },
     { value: 'cancelled', label: 'Annulé' },
-  ];
-
-  const paymentStatusOptions = [
-    { value: 'pending', label: 'En attente' },
-    { value: 'failed', label: 'Echoué' },
-    { value: 'initiated', label: 'Initié' },
     { value: 'paid', label: 'Payé' },
   ];
 
@@ -156,12 +150,6 @@ const SuiviRetraits = ({ period }) => {
     return option ? option.label : status;
   };
 
-  // Obtenir le texte du statut de paiement
-  const getPaymentStatusText = (paymentStatus) => {
-    const option = paymentStatusOptions.find(opt => opt.value === paymentStatus);
-    return option ? option.label : paymentStatus;
-  };
-
   // Obtenir le texte de la méthode de paiement
   const getPaymentMethodText = (paymentMethod) => {
     const option = paymentMethodOptions.find(opt => opt.value === paymentMethod);
@@ -174,7 +162,6 @@ const SuiviRetraits = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
       };
       
       const response = await axios.get('/api/admin/tableau-de-suivi/retraits/statistics', { params });
@@ -192,7 +179,6 @@ const SuiviRetraits = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         page: page + 1,
         per_page: rowsPerPage,
         ...filters,
@@ -223,7 +209,6 @@ const SuiviRetraits = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         page: page + 1,
         per_page: rowsPerPage,
         user_search: debouncedSearch,
@@ -287,7 +272,6 @@ const SuiviRetraits = ({ period }) => {
   const resetFilters = () => {
     setFilters({
       status: '',
-      payment_status: '',
       payment_method: '',
       user_search: '',
       created_date_start: null,
@@ -306,7 +290,6 @@ const SuiviRetraits = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         ...filters,
       };
 
@@ -327,9 +310,7 @@ const SuiviRetraits = ({ period }) => {
         'Utilisateur': retrait.user?.name || 'N/A',
         'Email': retrait.user?.email || 'N/A',
         'Montant': formatAmount(retrait.amount),
-        'Devise': retrait.currency,
         'Statut': getStatusText(retrait.status),
-        'Statut Paiement': getPaymentStatusText(retrait.payment_status),
         'Méthode Paiement': getPaymentMethodText(retrait.payment_method),
         'Détails Paiement': retrait.payment_details ? JSON.stringify(retrait.payment_details) : 'N/A',
         'Note Admin': retrait.admin_note || 'N/A',
@@ -354,9 +335,7 @@ const SuiviRetraits = ({ period }) => {
       'Utilisateur': retrait.user?.name || 'N/A',
       'Email': retrait.user?.email || 'N/A',
       'Montant': formatAmount(retrait.amount),
-      'Devise': retrait.currency,
       'Statut': getStatusText(retrait.status),
-      'Statut Paiement': getPaymentStatusText(retrait.payment_status),
       'Méthode Paiement': getPaymentMethodText(retrait.payment_method),
       'Détails Paiement': retrait.payment_details ? JSON.stringify(retrait.payment_details) : 'N/A',
       'Note Admin': retrait.admin_note || 'N/A',
@@ -373,7 +352,6 @@ const SuiviRetraits = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         export_all: true
       };
       
@@ -385,9 +363,7 @@ const SuiviRetraits = ({ period }) => {
         'Utilisateur': retrait.user?.name || 'N/A',
         'Email': retrait.user?.email || 'N/A',
         'Montant': formatAmount(retrait.amount),
-        'Devise': retrait.currency,
         'Statut': getStatusText(retrait.status),
-        'Statut Paiement': getPaymentStatusText(retrait.payment_status),
         'Méthode Paiement': getPaymentMethodText(retrait.payment_method),
         'Détails Paiement': retrait.payment_details ? JSON.stringify(retrait.payment_details) : 'N/A',
         'Note Admin': retrait.admin_note || 'N/A',
@@ -417,24 +393,24 @@ const SuiviRetraits = ({ period }) => {
 
   // Charger les retraits (déclenché par les filtres sauf la recherche)
   useEffect(() => {
-    if (period && selectedCurrency) {
+    if (period) {
       fetchRetraits();
     }
-  }, [period, selectedCurrency, page, rowsPerPage, filters.status, filters.payment_status, filters.payment_method, filters.created_date_start, filters.created_date_end, filters.paid_date_start, filters.paid_date_end, filters.refund_date_start, filters.refund_date_end]);
+  }, [period, page, rowsPerPage, filters.status, filters.payment_method, filters.created_date_start, filters.created_date_end, filters.paid_date_start, filters.paid_date_end, filters.refund_date_start, filters.refund_date_end]);
 
   // Charger les retraits spécifiquement pour la recherche
   useEffect(() => {
-    if (period && selectedCurrency) {
+    if (period) {
       fetchRetraitsSearch();
     }
   }, [debouncedSearch]);
 
   // Charger les statistiques
   useEffect(() => {
-    if (period && selectedCurrency) {
+    if (period) {
       fetchStatistics();
     }
-  }, [period, selectedCurrency]);
+  }, [period]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
@@ -574,235 +550,376 @@ const SuiviRetraits = ({ period }) => {
         {!statisticsLoading && !loading && (
           <>
             {/* Cartes de statistiques */}
-            <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 3 }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: { xs: 1.5, sm: 2, md: 3 } }}>
               {/* Carte Total des retraits */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 2,
+              <Grid item xs={12} md={3}>
+                <Card 
+                  sx={{ 
                     background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: 'none',
+                    borderRadius: { xs: 2, sm: 3 },
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    height: { xs: 110, sm: 120, md: 140 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    }
                   }}
                 >
-                  <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        mr: 2,
-                      }}>
-                        <WalletIcon sx={{ fontSize: 20 }} />
+                  <CardContent sx={{ 
+                    backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+                    p: { xs: 1.5, sm: 2 },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 1.5, sm: 2 },
+                    flex: 1
+                  }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#3b82f6',
+                        width: { xs: 32, sm: 36 },
+                        height: { xs: 32, sm: 36 }
+                      }}
+                    >
+                      <WalletIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}>
+                          Total retraits
+                        </Typography>
+                        <Chip 
+                          icon={<TrendingUp sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                          label={statistics ? formatNumber(statistics.total) : '0'} 
+                          size="small" 
+                          color="default" 
+                          variant="outlined"
+                          sx={{ 
+                            height: { xs: 14, sm: 16 }, 
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                            color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                          }}
+                        />
                       </Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={600}
-                        sx={{ 
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        }}
-                      >
-                        {statistics ? formatNumber(statistics.total) : '0'}
+                      <Typography variant="h4" sx={{ 
+                        color: '#3b82f6', 
+                        fontWeight: 700, 
+                        lineHeight: 1.2,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                      }}>
+                        {statistics ? formatAmount(statistics.total_amount) : '0'} $
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#6b7280', 
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                        lineHeight: 1.2 
+                      }}>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 600, 
+                          display: 'block' 
+                        }}>
+                          Toutes demandes
+                        </Box>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 400, 
+                          display: 'block' 
+                        }}>
+                          Confondues
+                        </Box>
                       </Typography>
                     </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      }}
-                    >
-                      Total retraits
-                    </Typography>
-                    <Typography 
-                      variant="h6" 
-                      fontWeight={500}
-                      sx={{ 
-                        color: isDarkMode ? '#d1d5db' : '#4b5563',
-                        mt: 1,
-                      }}
-                    >
-                      {statistics ? formatAmount(statistics.total_amount) : '0'} {selectedCurrency}
-                    </Typography>
+                    {statisticsLoading && (
+                      <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
 
               {/* Carte Retraits payés */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 2,
+              <Grid item xs={12} md={3}>
+                <Card 
+                  sx={{ 
                     background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: 'none',
+                    borderRadius: { xs: 2, sm: 3 },
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    height: { xs: 110, sm: 120, md: 140 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    }
                   }}
                 >
-                  <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'success.main',
-                        color: 'white',
-                        mr: 2,
-                      }}>
-                        <PaidIcon sx={{ fontSize: 20 }} />
+                  <CardContent sx={{ 
+                    backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+                    p: { xs: 1.5, sm: 2 },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 1.5, sm: 2 },
+                    flex: 1
+                  }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#10b981',
+                        width: { xs: 32, sm: 36 },
+                        height: { xs: 32, sm: 36 }
+                      }}
+                    >
+                      <PaidIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}>
+                          Retraits payés
+                        </Typography>
+                        <Chip 
+                          icon={<Check sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                          label={statistics ? formatNumber(statistics.paid) : '0'} 
+                          size="small" 
+                          color="default" 
+                          variant="outlined"
+                          sx={{ 
+                            height: { xs: 14, sm: 16 }, 
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                            color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                          }}
+                        />
                       </Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={600}
-                        sx={{ 
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        }}
-                      >
-                        {statistics ? formatNumber(statistics.paid) : '0'}
+                      <Typography variant="h4" sx={{ 
+                        color: '#10b981', 
+                        fontWeight: 700, 
+                        lineHeight: 1.2,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                      }}>
+                        {statistics ? formatAmount(statistics.paid_amount) : '0'} $
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#6b7280', 
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                        lineHeight: 1.2 
+                      }}>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 600, 
+                          display: 'block' 
+                        }}>
+                          Succès
+                        </Box>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 400, 
+                          display: 'block' 
+                        }}>
+                          Traités
+                        </Box>
                       </Typography>
                     </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      }}
-                    >
-                      Retraits payés
-                    </Typography>
-                    <Typography 
-                      variant="h6" 
-                      fontWeight={500}
-                      sx={{ 
-                        color: isDarkMode ? '#d1d5db' : '#4b5563',
-                        mt: 1,
-                      }}
-                    >
-                      {statistics ? formatAmount(statistics.paid_amount) : '0'} {selectedCurrency}
-                    </Typography>
+                    {statisticsLoading && (
+                      <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
 
               {/* Carte Retraits en attente */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 2,
+              <Grid item xs={12} md={3}>
+                <Card 
+                  sx={{ 
                     background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: 'none',
+                    borderRadius: { xs: 2, sm: 3 },
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    height: { xs: 110, sm: 120, md: 140 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    }
                   }}
                 >
-                  <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'warning.main',
-                        color: 'white',
-                        mr: 2,
-                      }}>
-                        <PendingIcon sx={{ fontSize: 20 }} />
+                  <CardContent sx={{ 
+                    backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+                    p: { xs: 1.5, sm: 2 },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 1.5, sm: 2 },
+                    flex: 1
+                  }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#f59e0b',
+                        width: { xs: 32, sm: 36 },
+                        height: { xs: 32, sm: 36 }
+                      }}
+                    >
+                      <PendingIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}>
+                          En attente
+                        </Typography>
+                        <Chip 
+                          icon={<PendingIcon sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                          label={statistics ? formatNumber(statistics.pending) : '0'} 
+                          size="small" 
+                          color="default" 
+                          variant="outlined"
+                          sx={{ 
+                            height: { xs: 14, sm: 16 }, 
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                            color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                          }}
+                        />
                       </Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={600}
-                        sx={{ 
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        }}
-                      >
-                        {statistics ? formatNumber(statistics.pending) : '0'}
+                      <Typography variant="h4" sx={{ 
+                        color: '#f59e0b', 
+                        fontWeight: 700, 
+                        lineHeight: 1.2,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                      }}>
+                        {statistics ? formatAmount(statistics.pending_amount) : '0'} $
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#6b7280', 
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                        lineHeight: 1.2 
+                      }}>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 600, 
+                          display: 'block' 
+                        }}>
+                          En traitement
+                        </Box>
                       </Typography>
                     </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      }}
-                    >
-                      Retraits en attente
-                    </Typography>
-                    <Typography 
-                      variant="h6" 
-                      fontWeight={500}
-                      sx={{ 
-                        color: isDarkMode ? '#d1d5db' : '#4b5563',
-                        mt: 1,
-                      }}
-                    >
-                      {statistics ? formatAmount(statistics.pending_amount) : '0'} {selectedCurrency}
-                    </Typography>
+                    {statisticsLoading && (
+                      <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
 
               {/* Carte Retraits rejetés/annulés */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card
-                  sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 2,
+              <Grid item xs={12} md={3}>
+                <Card 
+                  sx={{ 
                     background: isDarkMode ? '#1f2937' : '#ffffff',
                     border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    boxShadow: 'none',
+                    borderRadius: { xs: 2, sm: 3 },
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    height: { xs: 110, sm: 120, md: 140 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    }
                   }}
                 >
-                  <CardContent sx={{ p: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        bgcolor: 'error.main',
-                        color: 'white',
-                        mr: 2,
-                      }}>
-                        <RejectedIcon sx={{ fontSize: 20 }} />
+                  <CardContent sx={{ 
+                    backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+                    p: { xs: 1.5, sm: 2 },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 1.5, sm: 2 },
+                    flex: 1
+                  }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#ef4444',
+                        width: { xs: 32, sm: 36 },
+                        height: { xs: 32, sm: 36 }
+                      }}
+                    >
+                      <CancelIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                        <Typography variant="body2" sx={{ 
+                          color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}>
+                          Rejetés
+                        </Typography>
+                        <Chip 
+                          icon={<CancelIcon sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                          label={statistics ? formatNumber(statistics.rejected) : '0'} 
+                          size="small" 
+                          color="default" 
+                          variant="outlined"
+                          sx={{ 
+                            height: { xs: 14, sm: 16 }, 
+                            fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                            color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                          }}
+                        />
                       </Box>
-                      <Typography 
-                        variant="h5" 
-                        fontWeight={600}
-                        sx={{ 
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        }}
-                      >
-                        {statistics ? formatNumber(statistics.rejected) : '0'}
+                      <Typography variant="h4" sx={{ 
+                        color: '#ef4444', 
+                        fontWeight: 700, 
+                        lineHeight: 1.2,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                      }}>
+                        {statistics ? formatAmount(statistics.rejected_amount) : '0'} $
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#6b7280', 
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                        lineHeight: 1.2 
+                      }}>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 600, 
+                          display: 'block' 
+                        }}>
+                          Échecs
+                        </Box>
+                        <Box component="span" sx={{ 
+                          color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                          fontWeight: 400, 
+                          display: 'block' 
+                        }}>
+                          Annulés
+                        </Box>
                       </Typography>
                     </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                      }}
-                    >
-                      Retraits rejetés/annulés
-                    </Typography>
-                    <Typography 
-                      variant="h6" 
-                      fontWeight={500}
-                      sx={{ 
-                        color: isDarkMode ? '#d1d5db' : '#4b5563',
-                        mt: 1,
-                      }}
-                    >
-                      {statistics ? formatAmount(statistics.rejected_amount) : '0'} {selectedCurrency}
-                    </Typography>
+                    {statisticsLoading && (
+                      <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
@@ -919,21 +1036,6 @@ const SuiviRetraits = ({ period }) => {
                         }} />
                       </Box>
                       <Box>
-                        <Typography 
-                          variant="h6" 
-                          fontWeight={700}
-                          sx={{ 
-                            fontSize: { xs: '1rem', sm: '1.125rem' },
-                            background: isDarkMode 
-                              ? 'linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%)' 
-                              : 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)',
-                            backgroundClip: 'text',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}
-                        >
-                          Filtres avancés
-                        </Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
                           Affinez votre recherche
                         </Typography>
@@ -955,7 +1057,7 @@ const SuiviRetraits = ({ period }) => {
 
                   <Grid container spacing={{ xs: 2, sm: 3 }}>
                     {/* Recherche utilisateur */}
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={12} md={4}>
                       <Box sx={{ mb: 2 }}>
                         <Typography 
                           variant="caption" 
@@ -1020,7 +1122,7 @@ const SuiviRetraits = ({ period }) => {
                     </Grid>
 
                     {/* Statut */}
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={23} md={4}>
                       <Box sx={{ mb: 2 }}>
                         <Typography 
                           variant="caption" 
@@ -1083,7 +1185,7 @@ const SuiviRetraits = ({ period }) => {
                                     height: 8, 
                                     borderRadius: '50%', 
                                     bgcolor: option.value === 'pending' ? 'warning.main' : 
-                                              option.value === 'approved' ? 'info.main' :
+                                              option.value === 'processing' || option.value === 'paid' ? 'info.main' :
                                               option.value === 'rejected' ? 'error.main' :
                                               option.value === 'failed' ? 'error.main' :
                                               option.value === 'cancelled' ? 'error.main' : 'default.main'
@@ -1097,85 +1199,8 @@ const SuiviRetraits = ({ period }) => {
                       </Box>
                     </Grid>
 
-                    {/* Statut de paiement */}
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box sx={{ mb: 2 }}>
-                        <Typography 
-                          variant="caption" 
-                          fontWeight={600} 
-                          sx={{ 
-                            mb: 1, 
-                            display: 'block',
-                            color: 'text.secondary',
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                          }}
-                        >
-                          <Box sx={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center',
-                            mr: 1
-                          }}>
-                            <Box sx={{ 
-                              width: 2, 
-                              height: 2, 
-                              bgcolor: 'success.main',
-                              borderRadius: '50%',
-                              mr: 1,
-                              animation: 'pulse 2s infinite'
-                            }} />
-                            Paiement
-                          </Box>
-                        </Typography>
-                        <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                          <Select
-                            value={filters.payment_status || ''}
-                            onChange={(e) => handleFilterChange('payment_status', e.target.value)}
-                            displayEmpty
-                            sx={{ 
-                              borderRadius: { xs: 1.5, md: 2 },
-                              bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                              backdropFilter: 'blur(10px)',
-                              border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
-                              transition: 'all 0.3s ease',
-                              '&:hover': {
-                                bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                                borderColor: muiTheme.palette.primary.main,
-                                transform: 'translateY(-1px)',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                              },
-                              '&.Mui-focused': {
-                                bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
-                                borderColor: muiTheme.palette.primary.main,
-                                boxShadow: `0 0 0 2px ${muiTheme.palette.primary.main}20`,
-                              },
-                            }}
-                          >
-                            <MenuItem value="">
-                              <em>Tous les paiements</em>
-                            </MenuItem>
-                            {paymentStatusOptions.map(option => (
-                              <MenuItem key={option.value} value={option.value}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Box sx={{ 
-                                    width: 8, 
-                                    height: 8, 
-                                    borderRadius: '50%', 
-                                    bgcolor: option.value === 'pending' ? 'warning.main' : 
-                                              option.value === 'failed' ? 'error.main' :
-                                              option.value === 'initiated' ? 'info.main' :
-                                              option.value === 'paid' ? 'success.main' : 'default.main'
-                                  }} />
-                                  {option.label}
-                                </Box>
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </Grid>
-
                     {/* Méthode de paiement */}
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={12} md={4}>
                       <Box sx={{ mb: 2 }}>
                         <Typography 
                           variant="caption" 
@@ -1554,7 +1579,6 @@ const SuiviRetraits = ({ period }) => {
                       <TableCell>Utilisateur</TableCell>
                       <TableCell>Montant</TableCell>
                       <TableCell>Statut</TableCell>
-                      <TableCell>Statut Paiement</TableCell>
                       <TableCell>Méthode Paiement</TableCell>
                       <TableCell>Date Création</TableCell>
                       <TableCell>Date Paiement</TableCell>
@@ -1591,20 +1615,13 @@ const SuiviRetraits = ({ period }) => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" fontWeight={600}>
-                              {formatAmount(retrait.amount)} {retrait.currency}
+                              {formatAmount(retrait.amount)} $
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Chip
                               label={getStatusText(retrait.status)}
                               color={getStatusColor(retrait.status)}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={getPaymentStatusText(retrait.payment_status)}
-                              color={getStatusColor(retrait.payment_status)}
                               size="small"
                             />
                           </TableCell>

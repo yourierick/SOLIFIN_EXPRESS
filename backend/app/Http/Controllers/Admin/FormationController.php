@@ -341,27 +341,4 @@ class FormationController extends Controller
             ], 500);
         }
     }
-    
-    /**
-     * Compter le nombre de formations en attente de validation.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function pendingCount()
-    {
-        try {
-            // Compter les formations en attente (status = pending)
-            $count = Formation::where('status', 'pending')->count();
-            
-            return response()->json([
-                'success' => true,
-                'count' => $count
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du comptage des formations en attente: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 }

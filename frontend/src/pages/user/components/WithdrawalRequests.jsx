@@ -44,6 +44,7 @@ import {
   Zoom,
   alpha,
   ButtonGroup,
+  Drawer,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -58,7 +59,7 @@ import {
   MoneyOff as MoneyOffIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
-  AccountBalanceWallet as WalletIcon,
+  AccountBalanceWallet as AccountBalanceWallet,
   TrendingUp as TrendingUpIcon,
   Schedule as ScheduleIcon,
   Phone as PhoneIcon,
@@ -83,8 +84,11 @@ const WithdrawalRequests = () => {
   const [statistics, setStatistics] = useState({
     total: 0,
     pending: 0,
-    approved: 0,
+    processing: 0,
+    failed: 0,
+    paid: 0,
     rejected: 0,
+    cancelled: 0,
   });
 
   // États pour la pagination
@@ -114,7 +118,6 @@ const WithdrawalRequests = () => {
   // États pour les filtres
   const [filters, setFilters] = useState({
     status: "",
-    payment_status: "",
     payment_method: "",
     start_date: "", // Changé de date_from
     end_date: "", // Changé de date_to
@@ -132,17 +135,10 @@ const WithdrawalRequests = () => {
   // Options pour les filtres
   const statusOptions = [
     { value: "pending", label: "En attente" },
-    { value: "approved", label: "Approuvé" },
+    { value: "processing", label: "En cours de traitement" },
     { value: "rejected", label: "Rejeté" },
-    { value: "cancelled", label: "Annulé" },
+    { value: "reversed", label: "Annulé" },
     { value: "failed", label: "Échoué" },
-  ];
-
-  const paymentStatusOptions = [
-    { value: "initiated", label: "Initié" },
-    { value: "pending", label: "En attente" },
-    { value: "failed", label: "Échoué" },
-    { value: "paid", label: "Payé" },
   ];
 
   const paymentMethodOptions = [
@@ -154,6 +150,7 @@ const WithdrawalRequests = () => {
     { value: "mastercard", label: "Mastercard" },
     { value: "americanexpress", label: "American Express" },
   ];
+    
 
   const getPaymentMethodIcon = (paymentMethod) => {
     const mobileMoneyMethods = [
@@ -193,12 +190,11 @@ const WithdrawalRequests = () => {
   };
 
   // Fonction pour formater les montants
-  const formatAmount = (amount, currency) => {
-    if (amount === undefined || amount === null) return "0,00";
-    if (!currency) return amount;
+  const formatAmount = (amount) => {
+    if (amount === undefined || amount === null) return "0,00 $";
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
-      currency: currency,
+      currency: "USD",
     }).format(amount);
   };
 
@@ -220,11 +216,7 @@ const WithdrawalRequests = () => {
         currency: selectedCurrency, // Utiliser la devise du contexte
         ...filters,
       };
-
-      console.log("Filters envoyés à l'API:", { ...params, currency: selectedCurrency });
-
       const response = await axios.get("/api/withdrawal/requests", { params });
-
       if (!response.data || !response.data.success) {
         throw new Error(
           "Erreur lors de la récupération des demandes de retrait"
@@ -246,8 +238,11 @@ const WithdrawalRequests = () => {
       setStatistics({
         total: requests.length,
         pending: requests.filter((r) => r.status === "pending").length,
-        approved: requests.filter((r) => r.status === "approved").length,
+        processing: requests.filter((r) => r.status === "processing").length,
+        cancelled: requests.filter((r) => r.status === "cancelled").length,
+        failed: requests.filter((r) => r.status === "failed").length,
         rejected: requests.filter((r) => r.status === "rejected").length,
+        paid: requests.filter((r) => r.status === "paid").length,
       });
     } catch (err) {
       console.error("Erreur lors de la récupération des demandes de retrait");
@@ -286,31 +281,6 @@ const WithdrawalRequests = () => {
     }
   };
 
-  // Fonction pour supprimer une demande de retrait
-  const deleteWithdrawalRequest = async () => {
-    try {
-      setLoading(true);
-
-      const response = await axios.delete(
-        `/api/withdrawal/requests/${selectedRequestId}`
-      );
-
-      if (!response.data || !response.data.success) {
-        throw new Error("Erreur lors de la suppression de la demande");
-      }
-
-      toast.success("Demande de retrait supprimée avec succès");
-      fetchWithdrawalRequests();
-    } catch (err) {
-      console.error("Erreur lors de la suppression de la demande");
-      toast.error("Impossible de supprimer la demande. Veuillez réessayer.");
-    } finally {
-      setLoading(false);
-      setDeleteDialogOpen(false);
-      setSelectedRequestId(null);
-    }
-  };
-
   // Gestionnaire de changement de page (remplacé par les gestionnaires Material-UI)
   // La fonction handleChangePage est déjà déclarée plus haut
 
@@ -326,7 +296,6 @@ const WithdrawalRequests = () => {
   const resetFilters = () => {
     setFilters({
       status: "",
-      payment_status: "",
       payment_method: "",
       currency: "", // Ajout du filtre de monnaie
       start_date: "", // Changé de date_from
@@ -358,9 +327,7 @@ const WithdrawalRequests = () => {
     switch (status) {
       case "pending":
         return "warning";
-      case "approved":
-        return "success";
-      case "initiated":
+      case "processing":
         return "success";
       case "paid":
         return "info";
@@ -380,8 +347,8 @@ const WithdrawalRequests = () => {
     switch (status) {
       case "pending":
         return "En attente";
-      case "approved":
-        return "Approuvé";
+      case "processing":
+        return "En cours de traitement";
       case "rejected":
         return "Rejeté";
       case "cancelled":
@@ -390,8 +357,6 @@ const WithdrawalRequests = () => {
         return "Échoué";
       case "paid":
         return "Payé";
-      case "initiated":
-        return "Initialisé";
       default:
         return status;
     }
@@ -536,37 +501,6 @@ const WithdrawalRequests = () => {
                   >
                     <MenuItem value="">Tous</MenuItem>
                     {statusOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Statut de paiement</InputLabel>
-                  <Select
-                    value={filters.payment_status}
-                    onChange={(e) =>
-                      handleFilterChange("payment_status", e.target.value)
-                    }
-                    label="Statut de paiement"
-                    sx={{
-                      borderRadius: 2,
-                      "& .MuiOutlinedInput-root": {
-                        transition: "all 0.3s ease",
-                        "&:hover": {
-                          boxShadow: `0 4px 12px ${alpha(
-                            theme.palette.primary.main,
-                            0.15
-                          )}`,
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="">Tous</MenuItem>
-                    {paymentStatusOptions.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
                         {option.label}
                       </MenuItem>
@@ -864,7 +798,7 @@ const WithdrawalRequests = () => {
                             WebkitTextFillColor: "transparent",
                           }}
                         >
-                          {formatAmount(request.amount, request.currency)}
+                          {formatAmount(request.amount)}
                         </Typography>
                       </Grid>
                       <Grid item xs={6}>
@@ -876,7 +810,7 @@ const WithdrawalRequests = () => {
                           Méthode
                         </Typography>
                         <Box sx={{ display: "flex", alignItems: "center" }}>
-                          {request.payment_method === "mobile-money" ? (
+                          {request.payment_details['payment_type'] === "mobile-money" ? (
                             <PhoneIcon
                               sx={{
                                 mr: 1,
@@ -890,11 +824,51 @@ const WithdrawalRequests = () => {
                             />
                           )}
                           <Typography variant="body2" fontWeight={600}>
-                            {request.payment_method === "mobile-money"
-                              ? "Mobile Money"
-                              : "Carte de crédit"}
+                            {request.payment_method}
                           </Typography>
                         </Box>
+                        <Grid item xs={12}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mb: 0.5 }}
+                          >
+                            Session ID
+                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <InfoIcon
+                              sx={{
+                                mr: 1,
+                                color: "text.secondary",
+                                fontSize: 18,
+                              }}
+                            />
+                            <Typography variant="body2">
+                              {request.session_id}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mb: 0.5 }}
+                          >
+                            Transaction ID
+                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <AccountBalanceWallet
+                              sx={{
+                                mr: 1,
+                                color: "text.secondary",
+                                fontSize: 18,
+                              }}
+                            />
+                            <Typography variant="body2">
+                              {request.transaction_id}
+                            </Typography>
+                          </Box>
+                        </Grid>
                       </Grid>
                       <Grid item xs={12}>
                         <Typography
@@ -964,28 +938,6 @@ const WithdrawalRequests = () => {
                           aria-label={`Annuler la demande ${request.id}`}
                         >
                           Annuler
-                        </Button>
-                      )}
-
-                      {request.status === "pending" && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleOpenDeleteDialog(request.id)}
-                          sx={{
-                            borderRadius: 2,
-                            textTransform: "none",
-                            fontWeight: 600,
-                            "&:focus": {
-                              outline: `2px solid ${theme.palette.error.main}`,
-                              outlineOffset: "2px",
-                            },
-                          }}
-                          aria-label={`Supprimer définitivement la demande ${request.id}`}
-                        >
-                          Supprimer
                         </Button>
                       )}
                     </Box>
@@ -1132,11 +1084,13 @@ const WithdrawalRequests = () => {
                   }}
                 >
                   <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
-                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Date</TableCell>
+                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>ID Session</TableCell>
+                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>ID Transaction</TableCell>
                   <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
-                  <TableCell sx={{ width: { xs: "140px", sm: "160px" } }}>Méthode</TableCell>
+                  <TableCell sx={{ width: { xs: "140px", sm: "160px" } }}>Méthode de paiement</TableCell>
                   <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
-                  <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut paiement</TableCell>
+                  <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Date</TableCell>
+                  <TableCell sx={{ width: { xs: "140px", sm: "160px" } }}>Traité par</TableCell>
                   <TableCell sx={{ width: { xs: "120px", sm: "140px" } }} align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -1189,10 +1143,13 @@ const WithdrawalRequests = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        {formatDate(request.created_at)}
+                        {request.session_id || '-'}
                       </TableCell>
                       <TableCell>
-                        {formatAmount(request.amount, request.currency)}
+                        {request.transaction_id || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {formatAmount(request.amount)}
                       </TableCell>
                       <TableCell>
                         {getPaymentMethodLabel(request.payment_method)}
@@ -1211,17 +1168,10 @@ const WithdrawalRequests = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={getStatusLabel(request.payment_status)}
-                          color={getStatusColor(request.payment_status)}
-                          size="small"
-                          sx={{
-                            fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                            height: { xs: 20, sm: 24 },
-                            fontWeight: 600,
-                            borderRadius: { xs: 1, sm: 1.5 },
-                          }}
-                        />
+                        {formatDate(request.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        {request.processor?.name || '-'}
                       </TableCell>
                       <TableCell align="center">
                         <Box
@@ -1295,41 +1245,6 @@ const WithdrawalRequests = () => {
                               </IconButton>
                             </Tooltip>
                           )}
-
-                          {request.status === "pending" && (
-                            <Tooltip title="Supprimer définitivement" arrow>
-                              <IconButton
-                                size="small"
-                                onClick={() =>
-                                  handleOpenDeleteDialog(request.id)
-                                }
-                                sx={{
-                                  p: { xs: 0.5, sm: 1 },
-                                  background: alpha(
-                                    theme.palette.error.main,
-                                    0.1
-                                  ),
-                                  "&:hover": {
-                                    background: alpha(
-                                      theme.palette.error.main,
-                                      0.2
-                                    ),
-                                    transform: "scale(1.1)",
-                                  },
-                                  "&:focus": {
-                                    outline: `2px solid ${theme.palette.error.main}`,
-                                    outlineOffset: "2px",
-                                  },
-                                }}
-                                aria-label={`Supprimer définitivement la demande ${request.id}`}
-                              >
-                                <DeleteIcon
-                                  sx={{ fontSize: { xs: 18, sm: 20 } }}
-                                  color="error"
-                                />
-                              </IconButton>
-                            </Tooltip>
-                          )}
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1385,24 +1300,16 @@ const WithdrawalRequests = () => {
     if (!selectedRequest) return null;
 
     return (
-      <Dialog
+      <Drawer
+        anchor="right"
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-        TransitionComponent={Zoom}
         sx={{
-          "& .MuiBackdrop-root": {
-            backdropFilter: "blur(4px)",
-            backgroundColor: isDarkMode
-              ? "rgba(0, 0, 0, 0.85)"
-              : "rgba(0, 0, 0, 0.3)",
-          },
-          "& .MuiDialog-paper": {
-            borderRadius: 3,
+          "& .MuiDrawer-paper": {
+            width: { xs: "100%", sm: 480, md: 600 },
             background: isDarkMode
-              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%)"
-              : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%)",
+              ? "linear-gradient(135deg, rgba(31, 41, 55, 0.98) 0%, rgba(17, 24, 39, 0.98) 100%)"
+              : "linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.98) 100%)",
             backdropFilter: "blur(12px)",
             border: isDarkMode
               ? "1px solid rgba(255, 255, 255, 0.1)"
@@ -1413,250 +1320,302 @@ const WithdrawalRequests = () => {
           },
         }}
       >
-        <DialogTitle
-          sx={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            color: "white",
-            position: "relative",
-            py: 3,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Avatar
-              sx={{
-                bgcolor: "rgba(255, 255, 255, 0.2)",
-                mr: 2,
-              }}
-            >
-              <WalletIcon />
-            </Avatar>
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                Détails de la demande de retrait
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                ID #{selectedRequest.id}
-              </Typography>
-            </Box>
-          </Box>
-          <IconButton
-            onClick={() => setDetailsDialogOpen(false)}
+        <Box sx={{ height: '100%', overflowY: 'auto', position: 'relative' }}>
+          {/* Header du drawer */}
+          <Box 
             sx={{
-              position: "absolute",
-              right: 8,
-              top: 8,
+              p: 3,
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               color: "white",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-              },
+              position: 'relative'
             }}
           >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          {/* Section principale avec informations de base */}
-          <Box sx={{ p: 3 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Card
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar
                   sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    background: isDarkMode
-                      ? "linear-gradient(135deg, rgba(55, 65, 81, 0.3) 0%, rgba(31, 41, 55, 0.3) 100%)"
-                      : "linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%)",
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.1
-                    )}`,
+                    bgcolor: "rgba(255, 255, 255, 0.2)",
+                    mr: 2,
                   }}
-                  elevation={0}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <ScheduleIcon
-                      sx={{ mr: 1, color: "primary.main", fontSize: 20 }}
-                    />
-                    <Typography
-                      variant="subtitle2"
-                      color="text.secondary"
-                      fontWeight={600}
-                    >
-                      Date de création
-                    </Typography>
-                  </Box>
-                  <Typography variant="body1" fontWeight={600}>
-                    {formatDate(selectedRequest.created_at)}
+                  <AccountBalanceWallet />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>
+                    Détails de la demande
                   </Typography>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Card
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    background: isDarkMode
-                      ? "linear-gradient(135deg, rgba(55, 65, 81, 0.3) 0%, rgba(31, 41, 55, 0.3) 100%)"
-                      : "linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%)",
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.1
-                    )}`,
-                  }}
-                  elevation={0}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <TrendingUpIcon
-                      sx={{ mr: 1, color: "success.main", fontSize: 20 }}
-                    />
-                    <Typography
-                      variant="subtitle2"
-                      color="text.secondary"
-                      fontWeight={600}
-                    >
-                      Montant demandé
-                    </Typography>
-                  </Box>
-                  <Typography
-                    variant="h6"
-                    fontWeight={700}
-                    sx={{
-                      background:
-                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    {formatAmount(
-                      selectedRequest.amount,
-                      selectedRequest.currency
-                    )}
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    ID #{selectedRequest.id}
                   </Typography>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Card
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    background: isDarkMode
-                      ? "linear-gradient(135deg, rgba(55, 65, 81, 0.3) 0%, rgba(31, 41, 55, 0.3) 100%)"
-                      : "linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%)",
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.1
-                    )}`,
-                  }}
-                  elevation={0}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    {getPaymentMethodIcon(selectedRequest.payment_method)}
-                    <Typography variant="body2" color="text.secondary">
-                      Méthode de paiement
-                    </Typography>
-                  </Box>
-                  <Typography variant="body1" fontWeight={600}>
-                    {getPaymentMethodLabel(selectedRequest.payment_method)}
-                  </Typography>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Card
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    background: isDarkMode
-                      ? "linear-gradient(135deg, rgba(55, 65, 81, 0.3) 0%, rgba(31, 41, 55, 0.3) 100%)"
-                      : "linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%)",
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.1
-                    )}`,
-                  }}
-                  elevation={0}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <Typography
-                      variant="subtitle2"
-                      color="text.secondary"
-                      fontWeight={600}
-                    >
-                      Statut actuel
-                    </Typography>
-                  </Box>
-                  <Chip
-                    label={getStatusLabel(selectedRequest.status)}
-                    color={getStatusColor(selectedRequest.status)}
-                    variant="filled"
-                    sx={{
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      boxShadow: `0 4px 12px ${alpha(
-                        theme.palette[getStatusColor(selectedRequest.status)]
-                          ?.main || theme.palette.grey[500],
-                        0.3
-                      )}`,
-                    }}
-                  />
-                </Card>
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Section détails de paiement */}
-          {selectedRequest.payment_details && (
-            <Box
-              sx={{
-                background: isDarkMode
-                  ? "linear-gradient(135deg, rgba(55, 65, 81, 0.2) 0%, rgba(31, 41, 55, 0.2) 100%)"
-                  : "linear-gradient(135deg, rgba(243, 244, 246, 0.5) 0%, rgba(229, 231, 235, 0.5) 100%)",
-                p: 3,
-                borderTop: `1px solid ${alpha(
-                  theme.palette.primary.main,
-                  0.1
-                )}`,
-              }}
-            >
-              <Typography
-                variant="h6"
-                fontWeight={700}
+                </Box>
+              </Box>
+              <IconButton
+                onClick={() => setDetailsDialogOpen(false)}
                 sx={{
-                  mb: 3,
-                  display: "flex",
-                  alignItems: "center",
-                  background:
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  backgroundClip: "text",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  },
                 }}
               >
-                <PaymentIcon sx={{ mr: 1, color: "primary.main" }} />
-                Détails de paiement
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </Box>
+
+          {/* Contenu du drawer */}
+          <Box sx={{ p: 3 }}>
+            {/* Section principale avec informations de base */}
+            <Box sx={{ mb: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 3, 
+                  color: isDarkMode ? '#ffffff' : '#111827',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                <Box sx={{ 
+                  width: 4, 
+                  height: 20, 
+                  borderRadius: 2,
+                  background: isDarkMode ? '#667eea' : '#764ba2'
+                }} />
+                Informations principales
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: isDarkMode 
+                          ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                          : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <ScheduleIcon
+                        sx={{ mr: 1, color: "primary.main", fontSize: 20 }}
+                      />
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        fontWeight={600}
+                      >
+                        Date de création
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight={600}>
+                      {formatDate(selectedRequest.created_at)}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: isDarkMode 
+                          ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                          : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <TrendingUpIcon
+                        sx={{ mr: 1, color: "success.main", fontSize: 20 }}
+                      />
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        fontWeight={600}
+                      >
+                        Montant demandé
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="h6"
+                      fontWeight={700}
+                      sx={{
+                        background:
+                          "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      {formatAmount(
+                        selectedRequest.amount,
+                        selectedRequest.currency
+                      )}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: isDarkMode 
+                          ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                          : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      {getPaymentMethodIcon(selectedRequest.payment_method)}
+                      <Typography variant="body2" color="text.secondary">
+                        Méthode de paiement
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight={600}>
+                      {getPaymentMethodLabel(selectedRequest.payment_method)}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: isDarkMode 
+                          ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                          : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        fontWeight={600}
+                      >
+                        Statut actuel
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={getStatusLabel(selectedRequest.status)}
+                      color={getStatusColor(selectedRequest.status)}
+                      variant="filled"
+                      sx={{
+                        fontWeight: 600,
+                        borderRadius: 2,
+                        boxShadow: `0 4px 12px ${alpha(
+                          theme.palette[getStatusColor(selectedRequest.status)]
+                            ?.main || theme.palette.grey[500],
+                          0.3
+                        )}`,
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Informations supplémentaires */}
+            <Box sx={{ mb: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 3, 
+                  color: isDarkMode ? '#ffffff' : '#111827',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                <Box sx={{ 
+                  width: 4, 
+                  height: 20, 
+                  borderRadius: 2,
+                  background: isDarkMode ? '#f59e0b' : '#d97706'
+                }} />
+                Informations supplémentaires
               </Typography>
 
               <Grid container spacing={2}>
-                {selectedRequest.payment_details.phoneNumber && (
+                {selectedRequest.processed_at && (
                   <Grid item xs={12} sm={6}>
-                    <Card
+                    <Paper
                       sx={{
                         p: 2,
+                        background: isDarkMode ? '#1e293b' : '#f8fafc',
+                        border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
                         borderRadius: 2,
-                        background: isDarkMode
-                          ? "rgba(31, 41, 55, 0.5)"
-                          : "rgba(255, 255, 255, 0.8)",
-                        border: `1px solid ${alpha(
-                          theme.palette.success.main,
-                          0.2
-                        )}`,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: isDarkMode 
+                            ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                            : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                        }
                       }}
-                      elevation={0}
                     >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                      >
-                        <PhoneIcon
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                        <ScheduleIcon
+                          sx={{ mr: 1, color: "primary.main", fontSize: 18 }}
+                        />
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          fontWeight={600}
+                        >
+                          Date de traitement
+                        </Typography>
+                      </Box>
+                      <Typography variant="body1" fontWeight={600}>
+                        {formatDate(selectedRequest.processed_at)}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                )}
+
+                {selectedRequest.paid_at && (
+                  <Grid item xs={12} sm={6}>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        background: isDarkMode ? '#1e293b' : '#f8fafc',
+                        border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                        borderRadius: 2,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: isDarkMode 
+                            ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                            : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                        }
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                        <CheckCircleIcon
                           sx={{ mr: 1, color: "success.main", fontSize: 18 }}
                         />
                         <Typography
@@ -1664,212 +1623,347 @@ const WithdrawalRequests = () => {
                           color="text.secondary"
                           fontWeight={600}
                         >
-                          Numéro de téléphone
+                          Date de paiement
                         </Typography>
                       </Box>
                       <Typography variant="body1" fontWeight={600}>
-                        {selectedRequest.payment_details.phoneNumber}
+                        {formatDate(selectedRequest.paid_at)}
                       </Typography>
-                    </Card>
+                    </Paper>
                   </Grid>
                 )}
 
-                {selectedRequest.payment_details.payment_method && (
+                {selectedRequest.refund_at && (
                   <Grid item xs={12} sm={6}>
-                    <Card
+                    <Paper
                       sx={{
                         p: 2,
+                        background: isDarkMode ? '#1e293b' : '#f8fafc',
+                        border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
                         borderRadius: 2,
-                        background: isDarkMode
-                          ? "rgba(31, 41, 55, 0.5)"
-                          : "rgba(255, 255, 255, 0.8)",
-                        border: `1px solid ${alpha(
-                          theme.palette.info.main,
-                          0.2
-                        )}`,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: isDarkMode 
+                            ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                            : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                        }
                       }}
-                      elevation={0}
                     >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                      >
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                        <CancelIcon
+                          sx={{ mr: 1, color: "warning.main", fontSize: 18 }}
+                        />
                         <Typography
                           variant="subtitle2"
                           color="text.secondary"
                           fontWeight={600}
                         >
-                          Opérateur
+                          Date de remboursement
                         </Typography>
                       </Box>
                       <Typography variant="body1" fontWeight={600}>
-                        {selectedRequest.payment_details.payment_method}
+                        {formatDate(selectedRequest.refund_at)}
                       </Typography>
-                    </Card>
+                    </Paper>
                   </Grid>
                 )}
 
-                {selectedRequest.session_id && (
-                  <Grid item xs={12}>
-                    <Card
+                {selectedRequest.processed_by && (
+                  <Grid item xs={12} sm={6}>
+                    <Paper
                       sx={{
                         p: 2,
+                        background: isDarkMode ? '#1e293b' : '#f8fafc',
+                        border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
                         borderRadius: 2,
-                        background: isDarkMode
-                          ? "rgba(31, 41, 55, 0.5)"
-                          : "rgba(255, 255, 255, 0.8)",
-                        border: `1px solid ${alpha(
-                          theme.palette.primary.main,
-                          0.2
-                        )}`,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: isDarkMode 
+                            ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                            : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                        }
                       }}
-                      elevation={0}
                     >
-                      <Typography
-                        variant="subtitle2"
-                        color="text.secondary"
-                        fontWeight={600}
-                        sx={{ mb: 1 }}
-                      >
-                        ID de session
+                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                        <AccountBalanceWallet
+                          sx={{ mr: 1, color: "info.main", fontSize: 18 }}
+                        />
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          fontWeight={600}
+                        >
+                          Traité par
+                        </Typography>
+                      </Box>
+                      <Typography variant="body1" fontWeight={600}>
+                        {selectedRequest.processed_by?.name || 'Non spécifié'}
                       </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          wordBreak: "break-all",
-                          fontFamily: "monospace",
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.1
-                          ),
-                          p: 1,
-                          borderRadius: 1,
-                        }}
-                      >
-                        {selectedRequest.session_id}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                )}
-
-                {selectedRequest.transaction_id && (
-                  <Grid item xs={12}>
-                    <Card
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        background: isDarkMode
-                          ? "rgba(31, 41, 55, 0.5)"
-                          : "rgba(255, 255, 255, 0.8)",
-                        border: `1px solid ${alpha(
-                          theme.palette.primary.main,
-                          0.2
-                        )}`,
-                      }}
-                      elevation={0}
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        color="text.secondary"
-                        fontWeight={600}
-                        sx={{ mb: 1 }}
-                      >
-                        ID de transaction
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          wordBreak: "break-all",
-                          fontFamily: "monospace",
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.1
-                          ),
-                          p: 1,
-                          borderRadius: 1,
-                        }}
-                      >
-                        {selectedRequest.transaction_id}
-                      </Typography>
-                    </Card>
+                    </Paper>
                   </Grid>
                 )}
               </Grid>
             </Box>
-          )}
 
-          {/* Section notes administratives */}
-          {selectedRequest.admin_note && (
-            <Box
-              sx={{
-                background: isDarkMode
-                  ? "linear-gradient(135deg, rgba(55, 65, 81, 0.2) 0%, rgba(31, 41, 55, 0.2) 100%)"
-                  : "linear-gradient(135deg, rgba(243, 244, 246, 0.5) 0%, rgba(229, 231, 235, 0.5) 100%)",
-                p: 3,
-                borderTop: `1px solid ${alpha(
-                  theme.palette.primary.main,
-                  0.1
-                )}`,
-              }}
-            >
-              <Typography
-                variant="h6"
-                fontWeight={700}
-                sx={{
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  color: "text.primary",
-                }}
-              >
-                <InfoIcon sx={{ mr: 1, color: "info.main" }} />
-                Notes administratives
-              </Typography>
-              <Card
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  background: isDarkMode
-                    ? "rgba(31, 41, 55, 0.5)"
-                    : "rgba(255, 255, 255, 0.8)",
-                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-                }}
-                elevation={0}
-              >
-                <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                  {selectedRequest.admin_note}
+            {/* Section détails de paiement */}
+            {selectedRequest.payment_details && (
+              <Box sx={{ mb: 4 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mb: 3, 
+                    color: isDarkMode ? '#ffffff' : '#111827',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <Box sx={{ 
+                    width: 4, 
+                    height: 20, 
+                    borderRadius: 2,
+                    background: isDarkMode ? '#10b981' : '#059669'
+                  }} />
+                  Détails de paiement
                 </Typography>
-              </Card>
+
+                <Grid container spacing={2}>
+                  {selectedRequest.payment_details.phoneNumber && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper
+                        sx={{
+                          p: 2,
+                          background: isDarkMode ? '#1e293b' : '#f8fafc',
+                          border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: isDarkMode 
+                              ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                              : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                          }
+                        }}
+                      >
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
+                          <PhoneIcon
+                            sx={{ mr: 1, color: "success.main", fontSize: 18 }}
+                          />
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            fontWeight={600}
+                          >
+                            Numéro de téléphone
+                          </Typography>
+                        </Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          {selectedRequest.payment_details.phoneNumber}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {selectedRequest.payment_details.payment_method && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper
+                        sx={{
+                          p: 2,
+                          background: isDarkMode ? '#1e293b' : '#f8fafc',
+                          border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: isDarkMode 
+                              ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                              : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                          }
+                        }}
+                      >
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            fontWeight={600}
+                          >
+                            Opérateur
+                          </Typography>
+                        </Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          {selectedRequest.payment_details.payment_method}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {selectedRequest.session_id && (
+                    <Grid item xs={12}>
+                      <Paper
+                        sx={{
+                          p: 2,
+                          background: isDarkMode ? '#1e293b' : '#f8fafc',
+                          border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: isDarkMode 
+                              ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                              : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                          }
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          fontWeight={600}
+                          sx={{ mb: 1 }}
+                        >
+                          ID de session
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            wordBreak: "break-all",
+                            fontFamily: "monospace",
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.1
+                            ),
+                            p: 1,
+                            borderRadius: 1,
+                          }}
+                        >
+                          {selectedRequest.session_id}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {selectedRequest.transaction_id && (
+                    <Grid item xs={12}>
+                      <Paper
+                        sx={{
+                          p: 2,
+                          background: isDarkMode ? '#1e293b' : '#f8fafc',
+                          border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: isDarkMode 
+                              ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                              : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                          }
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          fontWeight={600}
+                          sx={{ mb: 1 }}
+                        >
+                          ID de transaction
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            wordBreak: "break-all",
+                            fontFamily: "monospace",
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.1
+                            ),
+                            p: 1,
+                            borderRadius: 1,
+                          }}
+                        >
+                          {selectedRequest.transaction_id}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            )}
+
+            {/* Section notes administratives */}
+            {selectedRequest.admin_note && (
+              <Box sx={{ mb: 4 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mb: 3, 
+                    color: isDarkMode ? '#ffffff' : '#111827',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <Box sx={{ 
+                    width: 4, 
+                    height: 20, 
+                    borderRadius: 2,
+                    background: isDarkMode ? '#f59e0b' : '#d97706'
+                  }} />
+                  Notes administratives
+                </Typography>
+                <Paper
+                  sx={{
+                    p: 2,
+                    background: isDarkMode ? '#1e293b' : '#f8fafc',
+                    border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                    borderRadius: 2,
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: isDarkMode 
+                        ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                        : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                    }
+                  }}
+                >
+                  <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
+                    {selectedRequest.admin_note}
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
+
+            {/* Bouton de fermeture */}
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Button
+                onClick={() => setDetailsDialogOpen(false)}
+                variant="contained"
+                fullWidth
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 4,
+                  py: 1.5,
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)",
+                    transform: "translateY(-1px)",
+                  },
+                }}
+              >
+                Fermer
+              </Button>
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions
-          sx={{
-            p: 3,
-            background: isDarkMode
-              ? "linear-gradient(135deg, rgba(55, 65, 81, 0.3) 0%, rgba(31, 41, 55, 0.3) 100%)"
-              : "linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(243, 244, 246, 0.8) 100%)",
-            borderTop: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-          }}
-        >
-          <Button
-            onClick={() => setDetailsDialogOpen(false)}
-            variant="contained"
-            sx={{
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: 600,
-              px: 4,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)",
-                transform: "translateY(-1px)",
-              },
-            }}
-          >
-            Fermer
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </Box>
+        </Box>
+      </Drawer>
     );
   };
 
@@ -1971,17 +2065,6 @@ const WithdrawalRequests = () => {
           <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">
             Annuler
           </Button>
-          <Button
-            onClick={deleteWithdrawalRequest}
-            color="error"
-            variant="contained"
-            disabled={loading}
-            startIcon={
-              loading ? <CircularProgress size={20} /> : <DeleteIcon />
-            }
-          >
-            Supprimer
-          </Button>
         </DialogActions>
       </Dialog>
     );
@@ -2013,7 +2096,7 @@ const WithdrawalRequests = () => {
                   boxShadow: "0 8px 24px rgba(102, 126, 234, 0.3)",
                 }}
               >
-                <WalletIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
+                <AccountBalanceWallet sx={{ fontSize: { xs: 24, sm: 28 } }} />
               </Avatar>
               <Box>
                 <Typography
@@ -2233,7 +2316,7 @@ const WithdrawalRequests = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}
                     >
-                      Approuvés
+                      En cours
                     </Typography>
                   </Box>
                   <Typography
@@ -2241,7 +2324,7 @@ const WithdrawalRequests = () => {
                     fontWeight={700}
                     color="success.main"
                   >
-                    {statistics.approved}
+                    {statistics.processing}
                   </Typography>
                 </Card>
               </Zoom>

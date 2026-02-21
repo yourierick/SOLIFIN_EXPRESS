@@ -13,7 +13,6 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected $amount;
-    protected $currency;
     protected $sessionId;
     protected $status;
     protected $transactionType;
@@ -22,16 +21,14 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
      * Create a new notification instance.
      *
      * @param float $amount
-     * @param string $currency
      * @param string $sessionId
      * @param string $status
      * @param string|null $transactionType
      * @return void
      */
-    public function __construct($amount, $currency, $sessionId, $status, $transactionType = null)
+    public function __construct($amount, $sessionId, $status, $transactionType = null)
     {
         $this->amount = $amount;
-        $this->currency = $currency;
         $this->sessionId = $sessionId;
         $this->status = $status;
         $this->transactionType = $transactionType;
@@ -57,14 +54,14 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
     public function toMail($notifiable)
     {
         $status = $this->status === 'success' ? 'réussi' : 'échoué';
-        $subject = "Paiement {$status} - {$this->amount} {$this->currency}";
+        $subject = "Paiement {$status} - {$this->amount} $";
         
         $mailMessage = (new MailMessage)
             ->subject($subject)
             ->greeting('Bonjour,');
             
         if ($this->status === 'success') {
-            $mailMessage->line("Votre paiement de {$this->amount} {$this->currency} a été traité avec succès.")
+            $mailMessage->line("Votre paiement de {$this->amount} $ a été traité avec succès.")
                 ->line("Référence de transaction: {$this->sessionId}");
                 
             if ($this->transactionType) {
@@ -74,7 +71,7 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
             
             $mailMessage->line('Merci pour votre confiance!');
         } else {
-            $mailMessage->line("Votre paiement de {$this->amount} {$this->currency} n'a pas pu être traité.")
+            $mailMessage->line("Votre paiement de {$this->amount} $ n'a pas pu être traité.")
                 ->line("Référence de transaction: {$this->sessionId}")
                 ->line("Veuillez réessayer ou contacter notre service client si le problème persiste.");
         }
@@ -98,8 +95,8 @@ class PaymentStatusNotification extends Notification implements ShouldQueue
             'icon' => 'exclamation-circle',
             'type' => 'info',
             'message' => $this->status === 'success' 
-                ? "Votre paiement de {$this->amount} {$this->currency} a été traité avec succès."
-                : "Votre paiement de {$this->amount} {$this->currency} n'a pas pu être traité."
+                ? "Votre paiement de {$this->amount} $ a été traité avec succès."
+                : "Votre paiement de {$this->amount} $ n'a pas pu être traité."
         ];
     }
 

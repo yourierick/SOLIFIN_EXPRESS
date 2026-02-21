@@ -18,7 +18,6 @@ class DigitalProductPurchase extends Model
         'prix',
         'frais',
         'montant_total',
-        'devise',
         'transaction_id',
         'statut', // 'en_cours', 'complete', 'annule'
     ];

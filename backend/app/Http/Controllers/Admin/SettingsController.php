@@ -17,6 +17,7 @@ class SettingsController extends Controller
     protected $allowedKeys = [
         // Paramètres financiers
         'withdrawal_commission',
+        'serdipay_fees',
         'boost_price',
         'withdrawal_fee_percentage',
         'sending_fee_percentage',
@@ -122,6 +123,7 @@ class SettingsController extends Controller
             'transfer_commission',
             'transfer_fee_percentage',
             'purchase_fee_percentage',
+            'serdipay_fees',
             'purchase_commission_system',
             'essai_duration_days',
         ])) {

@@ -46,7 +46,6 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import axios from "../../utils/axios";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useCurrency } from "../../contexts/CurrencyContext";
 import {
   ArrowDownTrayIcon,
   ChartBarIcon,
@@ -74,23 +73,8 @@ import { Fade } from "@mui/material";
 import { toast } from "react-toastify";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
-const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => {
+const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
   const [isHovered, setIsHovered] = useState(false);
-
-  // Fonction pour extraire uniquement la devise sélectionnée
-  const getCommissionForSelectedCurrency = (commissionString) => {
-    if (!commissionString) return "0";
-    
-    if (selectedCurrency === "USD") {
-      // Extraire la valeur USD: "USD: $25.50 | CDF: 50,000 FC" -> "$25.50"
-      const usdMatch = commissionString.match(/USD:\s*(\$[\d,.-]+)/);
-      return usdMatch ? usdMatch[1] : "$0.00";
-    } else {
-      // Extraire la valeur CDF: "USD: $25.50 | CDF: 50,000 FC" -> "50,000 FC"
-      const cdfMatch = commissionString.match(/CDF:\s*([\d\s.,]+FC)/);
-      return cdfMatch ? cdfMatch[1] : "0 FC";
-    }
-  };
 
   const colors = {
     background: isDarkMode
@@ -202,7 +186,7 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => 
               transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
             }}
           >
-            {selectedCurrency}: {getCommissionForSelectedCurrency(nodeDatum.attributes.commission)}
+            {nodeDatum.attributes.commission}
           </div>
           <div
             style={{
@@ -231,7 +215,6 @@ export default function MyPacks() {
   const [duration, setDuration] = useState(1);
   const [renewing, setRenewing] = useState(false);
   const { isDarkMode } = useTheme();
-  const { selectedCurrency, setSelectedCurrency, canUseCDF } = useCurrency();
   
   // États pour la pagination backend
   const [referralsPage, setReferralsPage] = useState(0);
@@ -344,7 +327,6 @@ export default function MyPacks() {
       const response = await axios.get(
         `/api/packs/${packId}/referrals?${queryParams.toString()}`
       );
-      console.log(response);
       if (response.data && response.data.success) {
         setCurrentPackReferrals(response.data.data);
         setReferralsPaginationMeta(response.data.pagination || []);
@@ -376,7 +358,7 @@ export default function MyPacks() {
     if (referralsDialog && selectedPackId) {
       handleReferralsClick(selectedPackId, referralsPage + 1);
     }
-  }, [referralsPage, referralsRowsPerPage, selectedCurrency]);
+  }, [referralsPage, referralsRowsPerPage]);
 
   // Fonction pour appliquer les filtres manuellement
   const applyFilters = () => {
@@ -536,10 +518,11 @@ export default function MyPacks() {
   }, [currentPackReferrals, currentTab]);
 
   const transformDataToTree = (referrals) => {
+    console.log(referrals);
     const rootNode = {
       name: "Vous",
       attributes: {
-        commission: "USD: $0.00 | CDF: 0 FC",
+        commission: "$0.00",
         status: "active",
         generation: 0,
       },
@@ -551,12 +534,7 @@ export default function MyPacks() {
       rootNode.children = referrals[0].map((ref) => ({
         name: ref.name,
         attributes: {
-          commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)} | CDF: ${new Intl.NumberFormat("fr-CD", {
-            style: "currency",
-            currency: "CDF",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(parseFloat(ref.total_commission_cdf || 0))}`,
+          commission: `$${parseFloat(ref.total_commission).toFixed(2)}`,
           status: ref.pack_status,
           generation: 1,
           userId: ref.id,
@@ -594,12 +572,7 @@ export default function MyPacks() {
               parentNode.children.push({
                 name: ref.name,
                 attributes: {
-                  commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)} | CDF: ${new Intl.NumberFormat("fr-CD", {
-                    style: "currency",
-                    currency: "CDF",
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(parseFloat(ref.total_commission_cdf || 0))}`,
+                  commission: `$${parseFloat(ref.total_commission || 0).toFixed(2)}`,
                   status: ref.pack_status,
                   generation: gen,
                   userId: ref.id,
@@ -730,69 +703,6 @@ export default function MyPacks() {
       </div>
     );
   }
-
-  const filteredReferrals = getFilteredReferrals();
-
-  const getColumnsForGeneration = (generation) => {
-    const baseColumns = [
-      { field: "name", headerName: "Nom", flex: 1, minWidth: 150 },
-      {
-        field: "purchase_date",
-        headerName: "Date d'achat",
-        flex: 1,
-        minWidth: 120,
-      },
-      { field: "pack_name", headerName: "Pack acheté", flex: 1, minWidth: 150 },
-      {
-        field: "pack_price",
-        headerName: "Prix du pack",
-        flex: 1,
-        minWidth: 120,
-      },
-      {
-        field: "expiry_date",
-        headerName: "Date d'expiration",
-        flex: 1,
-        minWidth: 120,
-      },
-      {
-        field: "referral_code",
-        headerName: "Code parrain",
-        flex: 1,
-        minWidth: 120,
-      },
-      {
-        field: "pack_status",
-        headerName: "Statut",
-        flex: 1,
-        minWidth: 100,
-        renderCell: ({ value }) => (
-          <Chip
-            label={value === "active" ? "Actif" : "Inactif"}
-            color={value === "active" ? "success" : "default"}
-            size="small"
-          />
-        ),
-      },
-      {
-        field: "total_commission",
-        headerName: "Commission totale",
-        flex: 1,
-        minWidth: 130,
-      },
-    ];
-
-    if (generation >= 1) {
-      baseColumns.splice(1, 0, {
-        field: "sponsor_name",
-        headerName: "Parrain",
-        flex: 1,
-        minWidth: 150,
-      });
-    }
-
-    return baseColumns;
-  };
 
   return (
     <Container sx={{ py: 4, bgcolor: isDarkMode ? "#1f2937" : "#fff" }}>
@@ -940,19 +850,6 @@ export default function MyPacks() {
                     >
                       {userPack.pack.price}$
                     </Typography>
-                    {canUseCDF && userPack.pack.cdf_price && (
-                      <Typography
-                        variant="h6"
-                        sx={{ 
-                          color: isDarkMode ? "#10b981" : "#059669",
-                          fontWeight: 700,
-                          fontSize: "1.25rem",
-                          lineHeight: 1,
-                        }}
-                      >
-                        {userPack.pack.cdf_price} FC
-                      </Typography>
-                    )}
                     <Typography
                       variant="body2"
                       sx={{ 
@@ -1186,25 +1083,6 @@ export default function MyPacks() {
                     gap: 1,
                   }}
                 >
-                  <Tooltip title="Statistiques">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleStatsClick(userPack.pack.id)}
-                      sx={{
-                        background: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
-                        color: isDarkMode ? "#3b82f6" : "#2563eb",
-                        width: 36,
-                        height: 36,
-                        borderRadius: "8px",
-                        "&:hover": {
-                          background: isDarkMode ? "rgba(59, 130, 246, 0.15)" : "rgba(37, 99, 235, 0.1)",
-                        },
-                      }}
-                    >
-                      <ChartBarIcon className="h-4 w-4" />
-                    </IconButton>
-                  </Tooltip>
-
                   <Tooltip title="Filleuls">
                     <IconButton
                       size="small"
@@ -1229,16 +1107,6 @@ export default function MyPacks() {
           ))}
         </Grid>
       )}
-
-      {/* Dialogs for Stats and Referrals */}
-      <PackStatsModal
-        open={statsDialog}
-        onClose={() => {
-          setStatsDialog(false);
-          setSelectedPackId(null);
-        }}
-        packId={selectedPackId}
-      />
 
       <Dialog
         open={referralsDialog}
@@ -1382,7 +1250,7 @@ export default function MyPacks() {
                     fontWeight: 500,
                   }}
                 >
-                  Génération 1 à 4 • {selectedCurrency === "USD" ? "Dollars" : "Francs Congolais"}
+                  Génération 1 à 4
                 </Typography>
               </Box>
             </Box>
@@ -1413,15 +1281,12 @@ export default function MyPacks() {
                 sx={{
                   fontWeight: 700,
                   fontSize: "0.8rem",
-                  color:
-                    selectedCurrency === "USD"
-                      ? isDarkMode ? "#34d399" : "#10b981"
-                      : isDarkMode ? "#fbbf24" : "#f59e0b",
+                  color:isDarkMode ? "#34d399" : "#10b981",
                   textTransform: "uppercase",
                   letterSpacing: "0.8px",
                 }}
               >
-                {selectedCurrency}
+                USD
               </Typography>
             </Box>
           </Box>
@@ -1647,15 +1512,12 @@ export default function MyPacks() {
                   sx={{
                     fontWeight: 800,
                     fontSize: "0.85rem",
-                    color:
-                      selectedCurrency === "USD"
-                        ? isDarkMode ? "#34d399" : "#10b981"
-                        : isDarkMode ? "#fbbf24" : "#f59e0b",
+                    color:isDarkMode ? "#34d399" : "#10b981",
                     textTransform: "uppercase",
                     letterSpacing: "1px",
                   }}
                 >
-                  {selectedCurrency}
+                  USD
                 </Typography>
               </Box>
 
@@ -2343,27 +2205,13 @@ export default function MyPacks() {
                               const total = (
                                 currentPackReferrals[currentTab] || []
                               ).reduce((sum, ref) => {
-                                if (selectedCurrency === "USD") {
-                                  return (
-                                    sum +
-                                    parseFloat(ref.total_commission_usd || 0)
-                                  );
-                                } else {
-                                  return (
-                                    sum +
-                                    parseFloat(ref.total_commission_cdf || 0)
-                                  );
-                                }
+                                return (
+                                  sum +
+                                  parseFloat(ref.total_commission || 0)
+                                );
                               }, 0);
   
-                              return selectedCurrency === "USD"
-                                ? `${total.toFixed(2)} $`
-                                : new Intl.NumberFormat("fr-CD", {
-                                    style: "currency",
-                                    currency: "CDF",
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0,
-                                  }).format(total);
+                              return `${total.toFixed(2)} $`;
                             })()}
                           </Typography>
                       </Box>
@@ -2590,9 +2438,7 @@ export default function MyPacks() {
                                       borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
                                     }}
                                   >
-                                    {selectedCurrency === "USD"
-                                      ? referral.total_commission_usd || "0"
-                                      : referral.total_commission_cdf || "0"}{" "}{selectedCurrency === "USD" ? "$" : "FC"}
+                                    {referral.total_commission || "0"} $
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -2644,7 +2490,7 @@ export default function MyPacks() {
                         data={transformDataToTree(currentPackReferrals || [])}
                         orientation="vertical"
                         renderCustomNodeElement={(props) => (
-                          <CustomNode {...props} isDarkMode={isDarkMode} selectedCurrency={selectedCurrency} />
+                          <CustomNode {...props} isDarkMode={isDarkMode} />
                         )}
                         pathFunc="step"
                         separation={{ siblings: 1, nonSiblings: 1.2 }}

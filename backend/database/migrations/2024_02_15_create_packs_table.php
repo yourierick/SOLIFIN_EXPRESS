@@ -15,7 +15,6 @@ return new class extends Migration
             $table->text('description');
             $table->enum('abonnement', ['mensuel', 'trimestriel', 'semestriel', 'annuel', 'triennal', 'quinquennal']);
             $table->decimal('price', 10, 2);
-            $table->decimal('cdf_price', 10, 2)->nullable();
             $table->boolean('status')->default(true);
             $table->json('avantages');
             $table->integer('duree_publication_en_jour');

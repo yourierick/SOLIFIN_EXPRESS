@@ -14,7 +14,6 @@ class TransactionNotification extends Notification implements ShouldQueue
 
     protected $transactionData;
     protected $amount;
-    protected $currency;
     protected $transactionType;
     protected $success;
 
@@ -23,16 +22,14 @@ class TransactionNotification extends Notification implements ShouldQueue
      *
      * @param object $transactionData
      * @param float $amount
-     * @param string $currency
      * @param string $transactionType
      * @param bool $success
      * @return void
      */
-    public function __construct($transactionData, $amount, $currency, $transactionType, $success)
+    public function __construct($transactionData, $amount, $transactionType, $success)
     {
         $this->transactionData = $transactionData;
         $this->amount = $amount;
-        $this->currency = $currency;
         $this->transactionType = $transactionType;
         $this->success = $success;
     }
@@ -58,14 +55,14 @@ class TransactionNotification extends Notification implements ShouldQueue
     {
         $typeLabel = $this->getTransactionTypeLabel();
         $status = $this->success ? 'réussie' : 'échouée';
-        $subject = "{$typeLabel} {$status} - {$this->amount} {$this->currency}";
+        $subject = "{$typeLabel} {$status} - {$this->amount} $";
         
         $mailMessage = (new MailMessage)
             ->subject($subject)
             ->greeting('Bonjour,');
             
         if ($this->success) {
-            $mailMessage->line("Votre {$typeLabel} de {$this->amount} {$this->currency} a été traitée avec succès.");
+            $mailMessage->line("Votre {$typeLabel} de {$this->amount} $ a été traitée avec succès.");
             
             switch ($this->transactionType) {
                 case 'purchase_pack':
@@ -86,7 +83,7 @@ class TransactionNotification extends Notification implements ShouldQueue
             
             $mailMessage->line('Merci pour votre confiance!');
         } else {
-            $mailMessage->line("Votre {$typeLabel} de {$this->amount} {$this->currency} n'a pas pu être finalisée.")
+            $mailMessage->line("Votre {$typeLabel} de {$this->amount} $ n'a pas pu être finalisée.")
                 ->line("Bien que le paiement ait été traité, une erreur est survenue lors de la finalisation.")
                 ->line("Notre équipe a été notifiée et résoudra ce problème dans les plus brefs délais.")
                 ->line("Veuillez contacter notre service client si vous avez des questions.");
@@ -108,15 +105,11 @@ class TransactionNotification extends Notification implements ShouldQueue
         
         return [
             'title' => "{$typeLabel} {$status}",
-            'icon' => 'info',
-            'amount' => $this->amount,
-            'currency' => $this->currency,
-            'transaction_type' => $this->transactionType,
-            'success' => $this->success,
-            'data' => json_encode($this->transactionData),
+            'type' => $this->success ? 'success' : 'error',
+            'icon' => $this->success ? 'check-circle' : 'exclamation-circle',
             'message' => $this->success 
-                ? "Votre {$typeLabel} de {$this->amount} {$this->currency} a été traitée avec succès."
-                : "Votre {$typeLabel} de {$this->amount} {$this->currency} n'a pas pu être finalisée."
+                ? "Votre {$typeLabel} de {$this->amount} $ a été traitée avec succès."
+                : "Votre {$typeLabel} de {$this->amount} $ n'a pas pu être finalisée."
         ];
     }
 

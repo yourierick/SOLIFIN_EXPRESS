@@ -161,14 +161,15 @@ class UserController extends BaseController
 
             // Récupérer le wallet de l'utilisateur à détailler
             $userWallet = Wallet::where('user_id', $id)->first();
+            $totalIn = WalletTransaction::where('wallet_id', $userWallet->id)->where('flow', 'in')->where('status', 'completed')->sum('amount');
+            $totalOut = WalletTransaction::where('wallet_id', $userWallet->id)->where('flow', 'out')->where('status', 'completed')->sum('amount');
             $wallet = $userWallet ? [
-                'balance_usd' => $userWallet->balance_usd,
-                'balance_cdf' => $userWallet->balance_cdf,
+                'balance' => $userWallet->balance,
+                'available_balance' => $userWallet->available_balance,
                 'points' => $userWallet->points,
-                'total_earned_usd' => $userWallet->total_earned_usd,
-                'total_earned_cdf' => $userWallet->total_earned_cdf,
-                'total_withdrawn_usd' => $userWallet->total_withdrawn_usd,
-                'total_withdrawn_cdf' => $userWallet->total_withdrawn_cdf,
+                'frozen_balance' => $userWallet->frozen_balance,
+                'total_in' => $totalIn,
+                'total_out' => $totalOut,
             ] : null;
 
             $transactions = [];
@@ -183,10 +184,6 @@ class UserController extends BaseController
                 
                 if ($request->has('status')) {
                     $query->where('status', $request->status);
-                }
-            
-                if ($request->has('currency') && !empty($request->currency)) {
-                    $query->where('currency', $request->currency);
                 }
             
                 if ($request->has('date_from')) {
@@ -230,10 +227,16 @@ class UserController extends BaseController
                     return [
                         'id' => $transaction->id,
                         'amount' => $transaction->amount,
-                        'currency' => $transaction->currency,
+                        'fee_amount' => $transaction->fee_amount,
+                        'commission_amount' => $transaction->commission_amount,
                         'reference' => $transaction->reference,
                         'type' => $transaction->type,
-                        'mouvment' => $transaction->mouvment,
+                        'flow' => $transaction->flow,
+                        'balance_before' => $transaction->balance_before,
+                        'balance_after' => $transaction->balance_after,
+                        'processor' => $transaction->processor->name,
+                        'rejection_reason' => $transaction->rejection_reason,
+                        'description' => $transaction->description,
                         'type_raw' => $transaction->type, // Pour le filtrage
                         'status' => $transaction->status,
                         'metadata' => $transaction->metadata,
@@ -649,26 +652,18 @@ class UserController extends BaseController
                 ->where('pack_id', $pack->id)
                 ->get()
                 ->map(function ($referral) use ($userId, $pack) {
-                    $commissions_usd = Commission::where('user_id', $userId)
-                        ->where('currency', 'USD')
+                    $commissions = Commission::where('user_id', $userId)
                         ->where('source_user_id', $referral->user_id)
                         ->where('pack_id', $pack->id)
                         ->where('status', "completed")
                         ->sum('amount');
 
-                    $commissions_cdf = Commission::where('user_id', $userId)
-                        ->where('currency', 'CDF')
-                        ->where('source_user_id', $referral->user_id)
-                        ->where('pack_id', $pack->id)
-                        ->where('status', "completed")
-                        ->sum('amount');
                     return [
                         'id' => $referral->user->id ?? null,
                         'name' => $referral->user->name ?? 'N/A',
                         'purchase_date' => optional($referral->purchase_date)->format('d/m/Y'),
                         'pack_status' => $referral->status ?? 'inactive',
-                        'total_commission_usd' => $commissions_usd ?? 0,
-                        'total_commission_cdf' => $commissions_cdf ?? 0,
+                        'total_commission' => $commissions ?? 0,
                         'sponsor_id' => $referral->sponsor_id,
                         'referral_code' => $referral->referral_code ?? 'N/A',
                         'pack_name' => $referral->referral_pack_name ?? 'N/A',
@@ -690,26 +685,18 @@ class UserController extends BaseController
                         ->get()
                         ->map(function ($referral) use ($parent, $userId, $pack) {
                             //calcul du total de commission générée par ce filleul pour cet utilisateur.
-                            $commissions_usd = Commission::where('user_id', $userId)
-                                ->where('currency', 'USD')
+                            $commissions = Commission::where('user_id', $userId)
                                 ->where('source_user_id', $referral->user_id)
                                 ->where('pack_id', $pack->id)
                                 ->where('status', "completed")
                                 ->sum('amount');
 
-                            $commissions_cdf = Commission::where('user_id', $userId)
-                                ->where('currency', 'CDF')
-                                ->where('source_user_id', $referral->user_id)
-                                ->where('pack_id', $pack->id)
-                                ->where('status', "completed")
-                                ->sum('amount');
                             return [
                                 'id' => $referral->user->id ?? null,
                                 'name' => $referral->user->name ?? 'N/A',
                                 'purchase_date' => optional($referral->purchase_date)->format('d/m/Y'),
                                 'pack_status' => $referral->status ?? 'inactive',
-                                'total_commission_usd' => $commissions_usd ?? 0,
-                                'total_commission_cdf' => $commissions_cdf ?? 0,
+                                'total_commission' => $commissions ?? 0,
                                 'sponsor_id' => $referral->sponsor_id,
                                 'sponsor_name' => $parent['name'] ?? 'N/A',
                                 'referral_code' => $referral->referral_code ?? 'N/A',
@@ -776,14 +763,11 @@ class UserController extends BaseController
             $allReferrals = [];
             $totalReferralsCount = 0;
             $referralsByGeneration = [0, 0, 0, 0]; // Compteur pour chaque génération
-            $commissionsByGenerationUSD = [0, 0, 0, 0]; // Commissions USD pour chaque génération
-            $commissionsByGenerationCDF = [0, 0, 0, 0]; // Commissions CDF pour chaque génération
+            $commissionsByGeneration = [0, 0, 0, 0]; // Commissions pour chaque génération
             $activeReferralsCount = 0;
             $inactiveReferralsCount = 0;
-            $totalCommissionUSD = 0;
-            $totalCommissionCDF = 0;
-            $failedCommissionUSD = 0;
-            $failedCommissionCDF = 0;
+            $totalCommission = 0;
+            $failedCommission = 0;
 
             // Récupérer les filleuls de première génération
             $firstGenReferrals = UserPack::with(['user', 'pack'])
@@ -820,12 +804,9 @@ class UserController extends BaseController
                 ->where('level', 1)
                 ->get();
                 
-            $commissionsByGenerationUSD[0] = $gen1Commissions->where('status', 'completed')->where('currency', 'USD')->sum('amount');
-            $commissionsByGenerationCDF[0] = $gen1Commissions->where('status', 'completed')->where('currency', 'CDF')->sum('amount');
-            $totalCommissionUSD += $commissionsByGenerationUSD[0];
-            $totalCommissionCDF += $commissionsByGenerationCDF[0];
-            $failedCommissionUSD += $gen1Commissions->where('status', 'failed')->where('currency', 'USD')->sum('amount');
-            $failedCommissionCDF += $gen1Commissions->where('status', 'failed')->where('currency', 'CDF')->sum('amount');
+            $commissionsByGeneration[0] = $gen1Commissions->where('status', 'completed')->sum('amount');
+            $totalCommission += $commissionsByGeneration[0];
+            $failedCommission += $gen1Commissions->where('status', 'failed')->sum('amount');
 
             // Récupérer les filleuls et commissions des générations 2 à 4
             $currentGenReferrals = $firstGenReferrals->pluck('user_id')->toArray();
@@ -871,12 +852,9 @@ class UserController extends BaseController
                     ->where('level', $generation)
                     ->get();
                     
-                $commissionsByGenerationUSD[$generation-1] = $genCommissions->where('status', 'completed')->where('currency', 'USD')->sum('amount');
-                $commissionsByGenerationCDF[$generation-1] = $genCommissions->where('status', 'completed')->where('currency', 'CDF')->sum('amount');
-                $totalCommissionUSD += $commissionsByGenerationUSD[$generation-1];
-                $totalCommissionCDF += $commissionsByGenerationCDF[$generation-1];
-                $failedCommissionUSD += $genCommissions->where('status', 'failed')->where('currency', 'USD')->sum('amount');
-                $failedCommissionCDF += $genCommissions->where('status', 'failed')->where('currency', 'CDF')->sum('amount');
+                $commissionsByGeneration[$generation-1] = $genCommissions->where('status', 'completed')->sum('amount');
+                $totalCommission += $commissionsByGeneration[$generation-1];
+                $failedCommission += $genCommissions->where('status', 'failed')->sum('amount');
                 
                 $currentGenReferrals = $nextGenReferrals;
             }
@@ -899,29 +877,19 @@ class UserController extends BaseController
             }
             
             // Commissions mensuelles
-            $monthlyCommissionsUSD = [];
-            $monthlyCommissionsCDF = [];
+            $monthlyCommissions = [];
             for ($i = 0; $i < 6; $i++) {
                 $month = now()->subMonths($i);
                 $startOfMonth = $month->copy()->startOfMonth();
                 $endOfMonth = $month->copy()->endOfMonth();
                 
-                $amountUSD = Commission::where('user_id', $userId)
+                $amount = Commission::where('user_id', $userId)
                     ->where('pack_id', $pack->id)
                     ->where('status', 'completed')
-                    ->where('currency', 'USD')
                     ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                     ->sum('amount');
                     
-                $amountCDF = Commission::where('user_id', $userId)
-                    ->where('pack_id', $pack->id)
-                    ->where('status', 'completed')
-                    ->where('currency', 'CDF')
-                    ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-                    ->sum('amount');
-                    
-                $monthlyCommissionsUSD[$month->format('Y-m')] = $amountUSD;
-                $monthlyCommissionsCDF[$month->format('Y-m')] = $amountCDF;
+                $monthlyCommissions[$month->format('Y-m')] = $amount;
             }
             
             // Trouver le top filleul (celui qui a recruté le plus de personnes)
@@ -937,17 +905,9 @@ class UserController extends BaseController
                     $maxRecruits = $recruitCount;
                     
                     // Calculer les commissions générées par ce referral
-                    $referralCommissionsUSD = Commission::where('user_id', $userId)
+                    $referralCommissions = Commission::where('user_id', $userId)
                         ->where('pack_id', $pack->id)
                         ->where('source_user_id', $referral->user_id)
-                        ->where('currency', 'USD')
-                        ->where('status', 'completed')
-                        ->sum('amount');
-                        
-                    $referralCommissionsCDF = Commission::where('user_id', $userId)
-                        ->where('pack_id', $pack->id)
-                        ->where('source_user_id', $referral->user_id)
-                        ->where('currency', 'CDF')
                         ->where('status', 'completed')
                         ->sum('amount');
                     
@@ -955,8 +915,7 @@ class UserController extends BaseController
                         'id' => $referral->user->id,
                         'name' => $referral->user->name,
                         'recruit_count' => $recruitCount,
-                        'commission_usd' => $referralCommissionsUSD,
-                        'commission_cdf' => $referralCommissionsCDF
+                        'commission' => $referralCommissions,
                     ];
                 }
             }
@@ -973,7 +932,6 @@ class UserController extends BaseController
                     return [
                         'id' => $commission->id,
                         'amount' => $commission->amount,
-                        'currency' => $commission->currency,
                         'date' => $commission->created_at->format('d/m/Y'),
                         'source' => $commission->source_user->name ?? 'Inconnu',
                         'status' => $commission->status,
@@ -1033,23 +991,18 @@ class UserController extends BaseController
                         'referrals_by_generation' => $referralsByGeneration,
                         'active_referrals' => $activeReferralsCount,
                         'inactive_referrals' => $inactiveReferralsCount,
-                        'total_commission_usd' => $totalCommissionUSD,
-                        'total_commission_cdf' => $totalCommissionCDF,
-                        'failed_commission_usd' => $failedCommissionUSD,
-                        'failed_commission_cdf' => $failedCommissionCDF,
-                        'commissions_by_generation_usd' => $commissionsByGenerationUSD,
-                        'commissions_by_generation_cdf' => $commissionsByGenerationCDF,
+                        'total_commission' => $totalCommission,
+                        'failed_commission' => $failedCommission,
+                        'commissions_by_generation' => $commissionsByGeneration,
                     ],
                     'progression' => [
                         'monthly_signups' => $monthlySignups,
-                        'monthly_commissions_usd' => $monthlyCommissionsUSD,
-                        'monthly_commissions_cdf' => $monthlyCommissionsCDF,
+                        'monthly_commissions' => $monthlyCommissions,
                         'top_referral' => $topReferral
                     ],
                     'latest_referrals' => $latestReferrals,
                     'financial_info' => [
-                        'total_commission_usd' => $totalCommissionUSD,
-                        'total_commission_cdf' => $totalCommissionCDF,
+                        'total_commission' => $totalCommission,
                         'latest_payments' => $latestPayments
                     ],
                     'all_referrals' => $allReferrals,

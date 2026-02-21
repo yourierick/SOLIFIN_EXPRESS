@@ -47,7 +47,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { fr } from 'date-fns/locale';
 import axios from 'axios';
-import { useCurrency } from '../../../../../contexts/CurrencyContext';
 import { useTheme } from '../../../../../contexts/ThemeContext';
 import ExportToExcelTransactions from './SuiviSoldeComponents/ExportToExcelTransactions';
 
@@ -79,9 +78,6 @@ const SuiviSoldesAbonnes = ({ period }) => {
   const { isDarkMode } = useTheme();
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
-  
-  // Utiliser le hook useCurrency au lieu de useContext
-  const { selectedCurrency, toggleCurrency, isCDFEnabled, setCurrency } = useCurrency();
 
   // États pour les statistiques
   const [statistics, setStatistics] = useState(null);
@@ -98,7 +94,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
   const [filters, setFilters] = useState({
     search: '',
     type: '',
-    movement: '',
+    flow: '',
     status: '',
     date_start: null,
     date_end: null,
@@ -108,7 +104,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
   const formatAmount = (amount) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: selectedCurrency === 'CDF' ? 'CDF' : 'USD',
+      currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -156,7 +152,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
     setFilters({
       search: '',
       type: '',
-      movement: '',
+      flow: '',
       status: '',
       date_start: null,
       date_end: null,
@@ -173,7 +169,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/admin/tableau-de-suivi/wallet-statistics?period=${period}&currency=${selectedCurrency}`);
+      const response = await axios.get(`/api/admin/tableau-de-suivi/wallet-statistics?period=${period}`);
       setStatistics(response.data);
     } catch (error) {
       console.error('Erreur lors de la récupération des statistiques:', error);
@@ -203,7 +199,6 @@ const SuiviSoldesAbonnes = ({ period }) => {
       const params = new URLSearchParams({
         page: page + 1,
         per_page: rowsPerPage,
-        currency: selectedCurrency,
         period: period,
         ...Object.fromEntries(
           Object.entries(formattedFilters).filter(([_, value]) => value !== null && value !== '')
@@ -221,11 +216,11 @@ const SuiviSoldesAbonnes = ({ period }) => {
   // Effets pour charger les données
   useEffect(() => {
     fetchStatistics();
-  }, [period, selectedCurrency]);
+  }, [period]);
 
   useEffect(() => {
     fetchTransactions();
-  }, [page, rowsPerPage, filters, selectedCurrency, period]);
+  }, [page, rowsPerPage, filters, period]);
 
   // Gestionnaires de pagination
   const handleChangePage = (event, newPage) => {
@@ -238,8 +233,8 @@ const SuiviSoldesAbonnes = ({ period }) => {
   };
 
   // Obtenir la couleur pour le type de mouvement
-  const getMovementColor = (movement) => {
-    switch (movement) {
+  const getFlowColor = (flow) => {
+    switch (flow) {
       case 'in':
         return 'success';
       case 'out':
@@ -317,18 +312,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
                         lineHeight: 1.2,
                       }}
                     >
-                      {statistics ? formatAmount(statistics.total_balance) : formatAmount(0)}
-                    </Typography>
-                    <Typography 
-                      variant="caption" 
-                      textTransform="uppercase"
-                      letterSpacing={1}
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {selectedCurrency}
+                      {statistics ? formatAmount(statistics.solde) : formatAmount(0)}
                     </Typography>
                   </Box>
                 </Box>
@@ -350,7 +334,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
                     borderRadius: '50%', 
                     bgcolor: 'primary.main' 
                   }} />
-                  Solde Total
+                  Solde : Entrées - Sorties
                 </Box>
               </CardContent>
             </Card>
@@ -399,17 +383,6 @@ const SuiviSoldesAbonnes = ({ period }) => {
                     >
                       {statistics ? formatAmount(statistics.total_in) : formatAmount(0)}
                     </Typography>
-                    <Typography 
-                      variant="caption" 
-                      textTransform="uppercase"
-                      letterSpacing={1}
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {selectedCurrency}
-                    </Typography>
                   </Box>
                 </Box>
                 <Box 
@@ -430,7 +403,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
                     borderRadius: '50%', 
                     bgcolor: 'success.main' 
                   }} />
-                  Total Entré
+                  Total Entrées
                 </Box>
               </CardContent>
             </Card>
@@ -479,17 +452,6 @@ const SuiviSoldesAbonnes = ({ period }) => {
                     >
                       {statistics ? formatAmount(statistics.total_out) : formatAmount(0)}
                     </Typography>
-                    <Typography 
-                      variant="caption" 
-                      textTransform="uppercase"
-                      letterSpacing={1}
-                      sx={{ 
-                        color: isDarkMode ? '#9ca3af' : '#6b7280',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {selectedCurrency}
-                    </Typography>
                   </Box>
                 </Box>
                 <Box 
@@ -510,7 +472,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
                     borderRadius: '50%', 
                     bgcolor: 'error.main' 
                   }} />
-                  Total Sorti
+                  Total Sorties
                 </Box>
               </CardContent>
             </Card>
@@ -558,7 +520,6 @@ const SuiviSoldesAbonnes = ({ period }) => {
                 currentPage={page}
                 rowsPerPage={rowsPerPage}
                 total={total}
-                currency={selectedCurrency}
               />
               
               <IconButton
@@ -810,8 +771,8 @@ const SuiviSoldesAbonnes = ({ period }) => {
                     </Typography>
                     <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                       <Select
-                        value={filters.movement || ''}
-                        onChange={(e) => handleFilterChange('movement', e.target.value)}
+                        value={filters.flow || ''}
+                        onChange={(e) => handleFilterChange('flow', e.target.value)}
                         displayEmpty
                         sx={{ 
                           borderRadius: { xs: 1.5, md: 2 },
@@ -1114,10 +1075,10 @@ const SuiviSoldesAbonnes = ({ period }) => {
                         variant="outlined"
                       />
                     )}
-                    {filters.movement && (
+                    {filters.flow && (
                       <Chip
-                        label={`Mouvement: ${filters.movement === 'in' ? 'Entrée' : 'Sortie'}`}
-                        onDelete={() => handleFilterChange('movement', '')}
+                        label={`Mouvement: ${filters.flow === 'in' ? 'Entrée' : 'Sortie'}`}
+                        onDelete={() => handleFilterChange('flow', '')}
                         size="small"
                         color="primary"
                         variant="outlined"
@@ -1219,7 +1180,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
                         <Chip
                           label={transaction.mouvment === 'in' ? 'Entrée' : 'Sortie'}
                           size="small"
-                          color={getMovementColor(transaction.mouvment)}
+                          color={getFlowColor(transaction.flow)}
                           variant="outlined"
                           sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
                         />
@@ -1233,7 +1194,7 @@ const SuiviSoldesAbonnes = ({ period }) => {
                             fontSize: { xs: '0.75rem', sm: '0.875rem' }
                           }}
                         >
-                          {formatAmount(transaction.amount, transaction.currency)}
+                          {formatAmount(transaction.amount)}
                         </Typography>
                       </TableCell>
                       <TableCell>

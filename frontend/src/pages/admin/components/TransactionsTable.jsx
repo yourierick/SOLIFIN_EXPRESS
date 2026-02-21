@@ -16,6 +16,9 @@ import {
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import { FaExchangeAlt } from 'react-icons/fa';
+import { getOperationType } from "../../../components/OperationTypeFormatter";
+import { getTransactionColor } from "../../../components/TransactionColorFormatter";
+import { TransferWithinAStationSharp } from '@mui/icons-material';
 
 const TransactionsTable = ({
   transactions,
@@ -71,7 +74,7 @@ const TransactionsTable = ({
                       }`,
                     }}
                   >
-                    Type
+                    Référence
                   </TableCell>
                   <TableCell
                     sx={{
@@ -84,7 +87,20 @@ const TransactionsTable = ({
                       }`,
                     }}
                   >
-                    Référence
+                    Direction
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Type
                   </TableCell>
                   <TableCell
                     sx={{
@@ -123,6 +139,45 @@ const TransactionsTable = ({
                       }`,
                     }}
                   >
+                    Balance avant
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Balance après
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Effectué par
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
                     Date
                   </TableCell>
                 </TableRow>
@@ -146,6 +201,28 @@ const TransactionsTable = ({
                     <TableCell
                       sx={{
                         fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.reference}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color:
+                          transaction.direction === "out" || transaction.direction === "freeze"
+                            ? isDarkMode ? "#f87171" : "#dc2626"
+                            : isDarkMode ? "#34d399" : "#16a34a",
+                        py: 2,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {transaction.direction === "out" ? "Sortie" : transaction.direction === "in" ? "Entrée" : transaction.direction === "freeze" ? 'Blocage' : 'Déblocage'}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
                         color: isDarkMode ? "#ffffff" : "#111827",
                         py: 2,
                       }}
@@ -153,39 +230,14 @@ const TransactionsTable = ({
                       <div className="flex items-center">
                         <div
                           className={`p-2 rounded-full ${
-                            transaction.type === "withdrawal"
-                              ? "bg-red-100 dark:bg-red-900"
-                              : transaction.type === "reception"
-                              ? "bg-green-100 dark:bg-green-900"
-                              : transaction.type === "transfer"
-                              ? "bg-blue-100 dark:bg-blue-900"
-                              : transaction.type === "remboursement"
-                              ? "bg-orange-100 dark:bg-orange-900"
-                              : transaction.type === "commission de retrait"
-                              ? "bg-yellow-100 dark:bg-yellow-900"
-                              : transaction.type === "commission de transfert"
-                              ? "bg-yellow-100 dark:bg-yellow-900"
-                              : transaction.type ===
-                                "commission de parrainage"
-                              ? "bg-yellow-100 dark:bg-yellow-900"
-                              : transaction.type === "digital_product_sale"
-                              ? "bg-green-100 dark:bg-green-800"
-                              : transaction.type === "pack_sale"
-                              ? "bg-green-100 dark:bg-green-800"
-                              : transaction.type === "boost_sale"
-                              ? "bg-green-100 dark:bg-green-800"
-                              : transaction.type === "renew_pack_sale"
-                              ? "bg-green-100 dark:bg-green-800"
-                              : transaction.type === "virtual_sale"
-                              ? "bg-green-100 dark:bg-green-800"
-                              : "bg-gray-100 dark:bg-gray-700"
+                            getTransactionColor(transaction.type)
                           }`}
                         >
-                          {transaction.type === "withdrawal" ? (
+                          {transaction.type === "funds_withdrawal" ? (
                             <ArrowDownTrayIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
-                          ) : transaction.type === "reception" ? (
+                          ) : transaction.type === "funds_receipt" ? (
                             <BanknotesIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
-                          ) : transaction.type === "transfer" ? (
+                          ) : transaction.type === "funds_transfer" ? (
                             <FaExchangeAlt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                           ) : (
                             <CurrencyDollarIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -197,30 +249,7 @@ const TransactionsTable = ({
                               isDarkMode ? "text-white" : "text-gray-900"
                             }`}
                           >
-                            {transaction.type === "withdrawal"
-                              ? "Retrait"
-                              : transaction.type === "transfer"
-                              ? "Transfert des fonds"
-                              : transaction.type === "reception"
-                              ? "Dépot des fonds"
-                              : transaction.type ===
-                                "commission de parrainage"
-                              ? "Commission de parrainage"
-                              : transaction.type === "commission de retrait"
-                              ? "Commission de retrait"
-                              : transaction.type === "commission de transfert"
-                              ? "Commission de transfert"
-                              : transaction.type === "pack_sale"
-                              ? "Vente de pack"
-                              : transaction.type === "renew_pack_sale"
-                              ? "Rénouvellement de pack"
-                              : transaction.type === "boost_sale"
-                              ? "Boost de publication"
-                              : transaction.type === "virtual_sale"
-                              ? "Vente de virtuel"
-                              : transaction.type === "digital_product_sale"
-                              ? "Vente de produit numérique"
-                              : transaction.type}
+                            {getOperationType(transaction.type)}
                           </div>
                         </div>
                       </div>
@@ -228,26 +257,15 @@ const TransactionsTable = ({
                     <TableCell
                       sx={{
                         fontSize: "0.875rem",
-                        color: isDarkMode ? "#d1d5db" : "#6b7280",
-                        py: 2,
-                      }}
-                    >
-                      {transaction.reference}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontSize: "0.875rem",
                         color:
-                          transaction.mouvment === "out"
+                          transaction.direction === "out" || transaction.direction === "freeze"
                             ? isDarkMode ? "#f87171" : "#dc2626"
                             : isDarkMode ? "#34d399" : "#16a34a",
                         py: 2,
                         fontWeight: 500,
                       }}
                     >
-                      {transaction.mouvment === "out" ? "-" : "+"}
-                      {transaction.amount}{" "}
-                      {transaction.currency === "USD" ? "$" : "FC"}
+                      {transaction.amount + ' $'}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -266,8 +284,39 @@ const TransactionsTable = ({
                           ? "en attente"
                           : transaction.status === "failed"
                           ? "échoué"
+                          : transaction.status === "processing"
+                          ? "en cours de traitement"
+                          : transaction.status === "reversed"
+                          ? "Annulé"
                           : transaction.status}
                       </span>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.balance_before}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.balance_after}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.processed_by}
                     </TableCell>
                     <TableCell
                       sx={{

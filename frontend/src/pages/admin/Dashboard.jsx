@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useCurrency } from "../../contexts/CurrencyContext";
 import axios from "axios";
-import AdminStandardWallet from "./components/AdminStandardWallet";
+import DashboardAd from "../admin/DashboardAd";
+import { getOperationType } from "../../components/OperationTypeFormatter";
 import {
   AreaChart,
   Area,
@@ -23,7 +23,6 @@ import {
 } from "recharts";
 import {
   UsersIcon,
-  CurrencyEuroIcon,
   UserGroupIcon,
   ArrowTrendingUpIcon,
   ClockIcon,
@@ -74,16 +73,9 @@ const getStatusText = (status) => {
 
 export default function Dashboard() {
   const { isDarkMode } = useTheme();
-  const {
-    isCDFEnabled,
-    availableCurrencies,
-    selectedCurrency,
-    setSelectedCurrency,
-    loading: currencyLoading,
-  } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
-  const [period, setPeriod] = useState("month"); // day, week, month, year
+  const [period, setPeriod] = useState("all"); // day, week, month, year
   const [userPermissions, setUserPermissions] = useState([]);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -113,7 +105,7 @@ export default function Dashboard() {
     if (isSuperAdmin && !loadingPermissions) {
       fetchDashboardData();
     }
-  }, [period, isSuperAdmin, loadingPermissions, selectedCurrency]);
+  }, [period, isSuperAdmin, loadingPermissions]);
 
   // Fonction pour récupérer les permissions de l'utilisateur
   const fetchUserPermissions = async () => {
@@ -156,9 +148,6 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const params = new URLSearchParams({ period });
-      if (selectedCurrency) {
-        params.append("currency", selectedCurrency);
-      }
 
       const response = await axios.get(
         `/api/admin/dashboard/data?${params.toString()}`
@@ -184,21 +173,10 @@ export default function Dashboard() {
     return new Intl.NumberFormat("fr-FR").format(number);
   };
 
-  const formatAmount = (amount, currency) => {
+  const formatAmount = (amount) => {
     if (!amount || amount === 0) return "0";
     const formattedNumber = formatNumber(amount);
-    return `${formattedNumber} ${currency || "USD"}`;
-  };
-
-  const getCurrencySymbol = (currency) => {
-    switch (currency?.toUpperCase()) {
-      case "USD":
-        return "$";
-      case "CDF":
-        return "FC";
-      default:
-        return "$";
-    }
+    return `${formattedNumber} $`;
   };
 
   const formatDate = (dateString) => {
@@ -336,7 +314,7 @@ export default function Dashboard() {
 
   // Si l'utilisateur n'est pas super admin, afficher le composant Wallet à la place
   if (!isSuperAdmin) {
-    return <AdminStandardWallet />;
+    return <DashboardAd />;
   }
 
   return (
@@ -390,7 +368,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => setPeriod("year")}
-            className={`px-4 py-2 text-sm font-medium rounded-r-md transition-colors duration-200 ${
+            className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
               period === "year"
                 ? "bg-primary-600 text-white"
                 : `${themeColors.text.secondary} hover:${
@@ -399,6 +377,19 @@ export default function Dashboard() {
             }`}
           >
             Année
+          </button>
+          <button
+            type="button"
+            onClick={() => setPeriod("all")}
+            className={`px-4 py-2 text-sm font-medium rounded-r-md transition-colors duration-200 ${
+              period === "all"
+                ? "bg-primary-600 text-white"
+                : `${themeColors.text.secondary} hover:${
+                    isDarkMode ? "bg-gray-700" : "bg-gray-50"
+                  }`
+            }`}
+          >
+            Tout
           </button>
         </div>
       </div>
@@ -1146,21 +1137,21 @@ export default function Dashboard() {
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Utilisateur
+                    Référence
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Montant
+                    Nature
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Devise
+                    Direction
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -1168,6 +1159,13 @@ export default function Dashboard() {
                     }`}
                   >
                     Type
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Montant
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -1192,7 +1190,7 @@ export default function Dashboard() {
               >
                 {loading ? (
                   // Afficher des placeholders pendant le chargement
-                  [...Array(5)].map((_, index) => (
+                  [...Array(7)].map((_, index) => (
                     <tr
                       key={index}
                       className={isDarkMode ? "bg-gray-800" : "bg-white"}
@@ -1210,10 +1208,13 @@ export default function Dashboard() {
                         <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 animate-pulse"></div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/3 animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 animate-pulse"></div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-2/3 animate-pulse"></div>
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 animate-pulse"></div>
                       </td>
                     </tr>
                   ))
@@ -1230,62 +1231,35 @@ export default function Dashboard() {
                           isDarkMode ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        {transaction.metadata?.bénéficiaire ||
-                          transaction.metadata?.user ||
-                          "Non défini"}
+                        {transaction.reference}
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {transaction.nature === "internal" ? "Interne" : "Externe"}
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {transaction.flow === "in" ? "Entrée" : "Sortie"}
                       </td>
                       <td
                         className={`px-6 py-4 whitespace-nowrap text-sm ${
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {formatAmount(transaction.amount, transaction.currency)}
+                        {getOperationType(transaction.type)}
                       </td>
                       <td
                         className={`px-6 py-4 whitespace-nowrap text-sm ${
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            transaction.currency === "USD"
-                              ? isDarkMode
-                                ? "bg-blue-900 text-blue-300"
-                                : "bg-blue-100 text-blue-800"
-                              : isDarkMode
-                              ? "bg-green-900 text-green-300"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {transaction.currency || "USD"}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        {transaction.type === "pack_sale"
-                          ? "Vente de Pack"
-                          : transaction.type === "withdrawal"
-                          ? "retrait"
-                          : transaction.type === "boost_sale"
-                          ? "Boost de publication"
-                          : transaction.type === "renew_pack_sale"
-                          ? "Renouvellement de Pack"
-                          : transaction.type === "digital_product_sale"
-                          ? "Vente de produit numérique"
-                          : transaction.type === "commission de retrait"
-                          ? "Commission de retrait"
-                          : transaction.type === "commission de parrainage"
-                          ? "Commission de parrainage"
-                          : transaction.type === "commission de transfert"
-                          ? "Commission de transfert"
-                          : transaction.type === "virtual_sale"
-                          ? "Vente virtuelle"
-                          : transaction.type === "transfer"
-                          ? "Transfert des fonds"
-                          : transaction.type}
+                        {formatAmount(transaction.amount)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -1325,7 +1299,187 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Section des statistiques par pack */}
+      {/* Section des demandes de retrait */}
+      {dashboardData && dashboardData.latest_withdrawals && (
+        <div
+          className={`shadow rounded-lg ${
+            isDarkMode
+              ? "bg-gray-800 shadow-gray-900"
+              : "bg-white shadow-gray-200"
+          } mb-10`}
+        >
+          <div
+            className={`px-4 py-5 sm:px-6 border-b ${
+              isDarkMode ? "border-gray-700" : "border-gray-200"
+            }`}
+          >
+            <h3
+              className={`text-lg font-medium leading-6 ${
+                isDarkMode ? "text-white" : "text-gray-900"
+              }`}
+            >
+              Demandes de retrait récentes
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table
+              className={`min-w-full divide-y ${
+                isDarkMode ? "divide-gray-700" : "divide-gray-200"
+              }`}
+            >
+              <thead className={isDarkMode ? "bg-gray-700/50" : "bg-gray-50"}>
+                <tr>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    ID
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Utilisateur
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Montant
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Méthode
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Statut
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody
+                className={`divide-y ${
+                  isDarkMode ? "divide-gray-700" : "divide-gray-200"
+                }`}
+              >
+                {loading ? (
+                  // Afficher des placeholders pendant le chargement
+                  [...Array(5)].map((_, index) => (
+                    <tr key={index} className={isDarkMode ? "bg-gray-800" : "bg-white"}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/2 animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/3 animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/5 animate-pulse"></div>
+                      </td>
+                    </tr>
+                  ))
+                ) : dashboardData.latest_withdrawals ? (
+                  dashboardData.latest_withdrawals.map((withdrawal) => (
+                    <tr
+                      key={withdrawal.id}
+                      className={
+                        isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-50"
+                      }
+                    >
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {withdrawal.id}
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {withdrawal.user?.name || 'N/A'}
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {parseFloat(withdrawal.amount).toFixed(2)} $
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          isDarkMode ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {withdrawal.payment_method || 'N/A'}
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap`}
+                      >
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColorUtil(
+                            withdrawal.status,
+                            isDarkMode
+                          )}`}
+                        >
+                          {withdrawal.status === "pending"
+                            ? "En attente"
+                            : withdrawal.status === "processing"
+                            ? "En cours de traitement"
+                            : withdrawal.status === "rejected"
+                            ? "Rejetée"
+                            : withdrawal.status === "completed"
+                            ? "Complétée"
+                            : withdrawal.status === "cancelled"
+                            ? "Annulée"
+                            : withdrawal.status}
+                        </span>
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          isDarkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        {formatDate(withdrawal.created_at)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-4 text-center text-sm">
+                      Aucune demande de retrait trouvée
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+        
+       {/* Section des statistiques par pack */}
       {!loading && (
         <div
           className={`rounded-lg shadow-md mt-10 overflow-hidden ${themeColors.card} ${themeColors.shadow} transition-all duration-300 mb-10`}
@@ -1794,7 +1948,7 @@ export default function Dashboard() {
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {formatAmount(pack.revenue, pack.currency)}
+                        {formatAmount(pack.revenue)}
                       </td>
                       <td
                         className={`px-6 py-4 whitespace-nowrap text-sm ${

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
-import { useCurrency } from "../contexts/CurrencyContext";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -20,38 +19,18 @@ const FundsTransferModal = ({
   isOpen,
   onClose,
   onSuccess,
-  balance_usd,
-  balance_cdf,
+  available_balance,
   userInfo,
   isAdmin = false,
 }) => {
   const { isDarkMode } = useTheme();
 
-  // Gestion sécurisée du contexte de devise avec fallback
-  let currencyContext;
-  try {
-    currencyContext = useCurrency();
-  } catch (error) {
-    console.warn(
-      "CurrencyContext non disponible, utilisation de USD par défaut"
-    );
-    currencyContext = { canUseCDF: () => false, selectedCurrency: "USD" };
-  }
-
-  const { canUseCDF, selectedCurrency: globalCurrency } = currencyContext;
-
-  // Garantir USD par défaut si CDF non disponible ou contexte en erreur
-  const [selectedCurrency, setSelectedCurrency] = useState(
-    canUseCDF() ? "" : "USD"
-  );
   const [walletData, setWalletData] = useState({
-    balance_usd: parseFloat(balance_usd) || 0,
-    balance_cdf: parseFloat(balance_cdf) || 0,
+    available_balance: parseFloat(available_balance) || 0,
   });
   const [transferData, setTransferData] = useState({
     recipient_account_id: "",
     amount: "",
-    currency: "", // Devise sélectionnée: USD ou CDF
     original_amount: "",
     fee_amount: 0,
     fee_percentage: 0,
@@ -80,10 +59,9 @@ const FundsTransferModal = ({
   // Mettre à jour walletData si les props changent
   useEffect(() => {
     setWalletData({
-      balance_usd: parseFloat(balance_usd) || 0,
-      balance_cdf: parseFloat(balance_cdf) || 0,
+      available_balance: parseFloat(available_balance) || 0,
     });
-  }, [balance_usd, balance_cdf]);
+  }, [available_balance]);
 
   // Récupérer les frais de transfert à l'ouverture du modal
   useEffect(() => {
@@ -95,12 +73,9 @@ const FundsTransferModal = ({
 
   // Réinitialiser le formulaire
   const resetForm = () => {
-    const defaultCurrency = canUseCDF() ? "" : "USD";
-    setSelectedCurrency(defaultCurrency);
     setTransferData({
       recipient_account_id: "",
       amount: "",
-      currency: defaultCurrency,
       original_amount: "",
       fee_amount: 0,
       fee_percentage: 0,
@@ -273,51 +248,9 @@ const FundsTransferModal = ({
     }, 0);
   };
 
-  // Initialiser automatiquement la devise selon le contexte global
-  useEffect(() => {
-    const initialCurrency = canUseCDF() ? globalCurrency : "USD";
-    if (selectedCurrency !== initialCurrency) {
-      setSelectedCurrency(initialCurrency);
-      setTransferData((prev) => ({ ...prev, currency: initialCurrency }));
-    }
-  }, [canUseCDF, globalCurrency, selectedCurrency]);
-
-  // Gestion de la sélection de devise
-  const handleCurrencySelect = (currency) => {
-    setSelectedCurrency(currency);
-    setTransferData((prev) => ({ ...prev, currency }));
-  };
-
-  // Initialiser automatiquement USD si CDF n'est pas disponible ou contexte en erreur
-  useEffect(() => {
-    if (!canUseCDF() && selectedCurrency !== "USD") {
-      handleCurrencySelect("USD");
-    }
-  }, [canUseCDF, selectedCurrency]); // Se déclenche quand canUseCDF ou selectedCurrency change
-
-  // Garantir l'initialisation au chargement du composant et à l'ouverture du modal
-  useEffect(() => {
-    if (!canUseCDF() && (!selectedCurrency || selectedCurrency === "")) {
-      setSelectedCurrency("USD");
-      setTransferData((prev) => ({ ...prev, currency: "USD" }));
-    }
-  }, [canUseCDF, selectedCurrency, isOpen]); // Se déclenche au montage et à l'ouverture du modal
-
   // Validation du formulaire
   const validateForm = () => {
     const newErrors = {};
-
-    // Garantir une devise par défaut si aucune n'est sélectionnée
-    if (!selectedCurrency || selectedCurrency === "") {
-      if (!canUseCDF()) {
-        // Si CDF n'est pas disponible, utiliser USD automatiquement
-        setSelectedCurrency("USD");
-        setTransferData((prev) => ({ ...prev, currency: "USD" }));
-      } else {
-        // Si CDF est disponible, demander à l'utilisateur de choisir
-        newErrors.currency = "Veuillez sélectionner une devise";
-      }
-    }
 
     if (isMultipleTransfer) {
       // Validation pour transfert multiple
@@ -338,10 +271,10 @@ const FundsTransferModal = ({
 
       // Vérifier si le portefeuille a suffisamment de fonds pour le total
       const totalAmount = calculateMultipleTransferTotal();
-      const availableBalance = selectedCurrency === "USD" ? walletData?.balance_usd : walletData?.balance_cdf;
+      const availableBalance = walletData?.available_balance;
       
       if (totalAmount > availableBalance) {
-        newErrors.total = `Solde insuffisant dans votre portefeuille ${selectedCurrency} pour couvrir tous les transferts et frais`;
+        newErrors.total = `Solde insuffisant dans votre portefeuille pour couvrir tous les transferts et frais`;
       }
     } else {
       // Validation pour transfert simple (existante)
@@ -364,15 +297,12 @@ const FundsTransferModal = ({
       }
 
       const transferAmount = parseFloat(transferData.amount);
-      if (!isNaN(transferAmount) && selectedCurrency) {
+      if (!isNaN(transferAmount)) {
         const totalAmount = transferAmount + totalFeeAmount;
-        const availableBalance =
-          selectedCurrency === "USD"
-            ? walletData?.balance_usd
-            : walletData?.balance_cdf;
+        const availableBalance = walletData?.available_balance;
 
         if (totalAmount > availableBalance) {
-          newErrors.amount = `Montant insuffisant dans votre portefeuille ${selectedCurrency} pour couvrir le transfert et les frais`;
+          newErrors.amount = `Montant insuffisant dans votre portefeuille pour couvrir le transfert et les frais`;
         }
       }
     }
@@ -481,9 +411,6 @@ const FundsTransferModal = ({
       return;
     }
 
-    // Garantir que la devise est toujours définie (USD par défaut)
-    const finalCurrency = selectedCurrency || "USD";
-
     setTransferLoading(true);
     try {
       let apiData;
@@ -500,7 +427,6 @@ const FundsTransferModal = ({
             frais_de_transaction: r.fee_amount.toFixed(2),
             frais_de_commission: r.commission_amount.toFixed(2),
           })),
-          currency: finalCurrency,
           note: transferData.note || "",
           password: transferData.password,
           total_amount: calculateTotalAmountTransferred().toFixed(2),
@@ -517,7 +443,6 @@ const FundsTransferModal = ({
           frais_de_transaction: transferFeeAmount.toFixed(2),
           frais_de_commission: transferCommissionAmount.toFixed(2),
           recipient_account_id: transferData.recipient_account_id,
-          currency: finalCurrency,
           note: transferData.note || "",
           password: transferData.password,
         };
@@ -665,15 +590,15 @@ const FundsTransferModal = ({
                                 {recipient.name ? `${recipient.name} (ID: ${recipient.recipient_account_id})` : `ID: ${recipient.recipient_account_id}`}
                               </span>
                               <div className="text-xs text-gray-500 dark:text-gray-400">
-                                Montant: {parseFloat(recipient.amount).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                Montant: {parseFloat(recipient.amount).toFixed(2)} $
                               </div>
                             </div>
                             <div className="text-right">
                               <div className="font-medium">
-                                {(parseFloat(recipient.amount) + parseFloat(recipient.total_fee)).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                {(parseFloat(recipient.amount) + parseFloat(recipient.total_fee)).toFixed(2)} $
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400">
-                                Frais: {parseFloat(recipient.total_fee).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                Frais: {parseFloat(recipient.total_fee).toFixed(2)} $
                               </div>
                             </div>
                           </div>
@@ -741,13 +666,9 @@ const FundsTransferModal = ({
                       : parseFloat(transferData.amount).toFixed(2)
                     }{" "}
                     <span
-                      className={`text-lg ${
-                        selectedCurrency === "USD"
-                          ? "text-blue-500"
-                          : "text-green-500"
-                      }`}
+                      className={`text-lg text-blue-500`}
                     >
-                      {selectedCurrency === "USD" ? "$" : "FC"}
+                      $ 
                     </span>
                   </p>
                 </div>
@@ -782,7 +703,7 @@ const FundsTransferModal = ({
                           ? calculateTotalFees().toFixed(2)
                           : totalFeeAmount.toFixed(2)
                         }{" "}
-                        {selectedCurrency === "USD" ? "$" : "FC"}
+                        $
                       </span>{" "}
                       <span
                         className={`text-sm ${
@@ -828,7 +749,7 @@ const FundsTransferModal = ({
                       : (parseFloat(transferData.amount) + totalFeeAmount).toFixed(2)
                     }{" "}
                     <span className="text-red-500">
-                      {selectedCurrency === "USD" ? "$" : "FC"}
+                      $
                     </span>
                   </p>
                 </div>
@@ -1066,22 +987,14 @@ const FundsTransferModal = ({
                   <div className="grid gap-4 grid-cols-1">
                     {/* Portefeuille automatiquement sélectionné */}
                     <div
-                      className={`p-5 rounded-2xl border-2 ${
-                        selectedCurrency === "USD"
-                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 shadow-xl"
-                          : "border-green-500 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 shadow-xl"
-                      }`}
+                      className={`p-5 rounded-2xl border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 shadow-xl`}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div
-                          className={`p-2 rounded-lg ${
-                            selectedCurrency === "USD"
-                              ? "bg-blue-500 text-white"
-                              : "bg-green-500 text-white"
-                          }`}
+                          className={`p-2 rounded-lg bg-blue-500 text-white`}
                         >
                           <span className="text-lg font-bold">
-                            {selectedCurrency === "USD" ? "$" : "FC"}
+                            $
                           </span>
                         </div>
                         <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
@@ -1099,57 +1012,26 @@ const FundsTransferModal = ({
                         </div>
                       </div>
                       <p
-                        className={`text-sm font-semibold mb-1 ${
-                          selectedCurrency === "USD"
-                            ? "text-blue-700 dark:text-blue-300"
-                            : "text-green-700 dark:text-green-300"
-                        }`}
+                        className={`text-sm font-semibold mb-1 text-blue-700 dark:text-blue-300`}
                       >
-                        {selectedCurrency === "USD"
-                          ? "Portefeuille Dollars Américains"
-                          : "Portefeuille Francs Congolais"}
+                        Fonds disponibles dans votre portefeuille
                       </p>
                       <p
-                        className={`text-xs mb-2 ${
-                          selectedCurrency === "USD"
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-green-600 dark:text-green-400"
-                        }`}
+                        className={`text-xs mb-2 text-blue-600 dark:text-blue-400`}
                       >
                         Solde disponible
                       </p>
                       <p
-                        className={`text-xl font-bold ${
-                          selectedCurrency === "USD"
-                            ? "text-blue-700 dark:text-blue-300"
-                            : "text-green-700 dark:text-green-300"
-                        }`}
+                        className={`text-xl font-bold text-blue-700 dark:text-blue-300`}
                       >
-                        {selectedCurrency === "USD"
-                          ? `${walletData?.balance_usd?.toFixed(2) || "0.00"} USD`
-                          : `${walletData?.balance_cdf?.toFixed(2) || "0.00"} CDF`}
-                      </p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        {selectedCurrency === "USD"
-                          ? "Devise sélectionnée automatiquement (USD)"
-                          : "Devise sélectionnée automatiquement (CDF)"}
+                        {console.log(walletData)}
+                        {walletData?.available_balance?.toFixed(2) || "0.00"} $
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Désactiver les champs si aucune devise n'est sélectionnée et que CDF est disponible */}
-                <div
-                  className={`${
-                    canUseCDF() && !selectedCurrency
-                      ? "opacity-50 pointer-events-none"
-                      : ""
-                  }`}
-                >
+                <div>
                   {isMultipleTransfer ? (
                     // Interface pour transfert multiple
                     <div>
@@ -1228,7 +1110,7 @@ const FundsTransferModal = ({
                                 <div>
                                   <div className="flex items-center">
                                     <span className="text-gray-600 mr-2 font-bold dark:text-gray-300 text-sm">
-                                      {selectedCurrency === "USD" ? "$" : "FC"}
+                                      $
                                     </span>
                                     <input
                                       type="number"
@@ -1257,10 +1139,10 @@ const FundsTransferModal = ({
                                   }`}>
                                     <div className="flex justify-between">
                                       <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                                        Frais: {(parseFloat(recipient.total_fee)).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                        Frais: {(parseFloat(recipient.total_fee)).toFixed(2)} $
                                       </span>
                                       <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                                        Total: {(parseFloat(recipient.amount) + parseFloat(recipient.total_fee)).toFixed(2)} {selectedCurrency === "USD" ? "$" : "FC"}
+                                        Total: {(parseFloat(recipient.amount) + parseFloat(recipient.total_fee)).toFixed(2)} $
                                       </span>
                                     </div>
                                   </div>
@@ -1312,7 +1194,7 @@ const FundsTransferModal = ({
                         </label>
                         <div className="flex items-center">
                           <span className="text-gray-600 mr-2 font-bold dark:text-gray-300">
-                            {selectedCurrency === "USD" ? "$" : "FC"}
+                            $
                           </span>
                           <input
                             type="number"
@@ -1395,7 +1277,7 @@ const FundsTransferModal = ({
                               </span>
                               <span className={isDarkMode ? "text-white" : "text-gray-900"}>
                                 {calculateTotalAmountTransferred().toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
                             {calculateTotalFees() > 0 && (
@@ -1405,7 +1287,7 @@ const FundsTransferModal = ({
                                 </span>
                                 <span className={isDarkMode ? "text-white" : "text-gray-900"}>
                                   {calculateTotalFees().toFixed(2)}{" "}
-                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                  $
                                 </span>
                               </div>
                             )}
@@ -1415,7 +1297,7 @@ const FundsTransferModal = ({
                               </span>
                               <span className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
                                 {calculateMultipleTransferTotal().toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
                           </div>
@@ -1428,7 +1310,7 @@ const FundsTransferModal = ({
                               </span>
                               <span className={isDarkMode ? "text-white" : "text-gray-900"}>
                                 {parseFloat(transferData.amount).toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
                             {transferFeePercentage > 0 && (
@@ -1438,7 +1320,7 @@ const FundsTransferModal = ({
                                 </span>
                                 <span className={isDarkMode ? "text-white" : "text-gray-900"}>
                                   {transferFeeAmount.toFixed(2)}{" "}
-                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                  $
                                 </span>
                               </div>
                             )}
@@ -1449,7 +1331,7 @@ const FundsTransferModal = ({
                                 </span>
                                 <span className={isDarkMode ? "text-white" : "text-gray-900"}>
                                   {transferCommissionAmount.toFixed(2)}{" "}
-                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                  $
                                 </span>
                               </div>
                             )}
@@ -1460,7 +1342,7 @@ const FundsTransferModal = ({
                                 </span>
                                 <span className={`font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
                                   {(parseFloat(transferData.amount) + totalFeeAmount).toFixed(2)}{" "}
-                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                  $
                                 </span>
                               </div>
                             )}

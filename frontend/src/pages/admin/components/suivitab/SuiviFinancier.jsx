@@ -29,8 +29,13 @@ import {
   LinearProgress,
   Divider,
   Badge,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import {
+  AllInclusive,
   Menu as MenuIcon,
   ShoppingCart as PackSaleIcon,
   TrendingUp as BoostSaleIcon,
@@ -44,6 +49,7 @@ import {
   SwapVert as TransferIcon,
   Assessment as TotalIcon,
   Paid as AmountIcon,
+  TrendingDown,
   ArrowUpward as InIcon,
   ArrowDownward as OutIcon,
   Close as CloseIcon,
@@ -51,30 +57,33 @@ import {
   Speed as SpeedIcon,
   Timeline as TimelineIcon,
   Analytics as AnalyticsIcon,
+  Info as InfoIcon,
+  Description as ReceiptIcon 
 } from '@mui/icons-material';
-import { useCurrency } from '../../../../contexts/CurrencyContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import SuiviFinancierFilters from './suivi-types/SuiviFinancierFilters';
+import { getOperationType } from "../../../../components/OperationTypeFormatter";
+import { getTransactionColor } from "../../../../components/TransactionColorFormatter";
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
-const SuiviFinancier = ({ period }) => {
+const SuiviFinancier = React.memo(() => {
   const { isDarkMode } = useTheme();
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   
-  // Currency context
-  const { selectedCurrency, isCDFEnabled } = useCurrency();
+  // État local pour la période
+  const [period, setPeriod] = useState('all');
   
   // États du composant
   const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedView, setSelectedView] = useState('pack_sale');
+  const [selectedView, setSelectedView] = useState('all');
   const [loading, setLoading] = useState(false);
   const [statistics, setStatistics] = useState({
-    totalTransactions: 0,
-    totalAmount: 0,
+    creditAmount: 0,
+    debitAmount: 0,
+    solde: 0,
   });
-  const [transactions, setTransactions] = useState([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   
   // États pour le tableau
@@ -84,8 +93,8 @@ const SuiviFinancier = ({ period }) => {
   const [allTransactions, setAllTransactions] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true); // ✅ État de chargement initial
   
-  // États pour le modal des métadonnées
-  const [metadataModalOpen, setMetadataModalOpen] = useState(false);
+  // États pour le drawer des métadonnées
+  const [metadataDrawerOpen, setMetadataDrawerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   
   // États pour les filtres
@@ -97,8 +106,9 @@ const SuiviFinancier = ({ period }) => {
   
   const open = Boolean(anchorEl);
 
-  // Types de transactions extraits de la migration
+  // Types de transactions extraits de la migration wallet_system_transactions
   const transactionTypes = [
+    { key: "all", label: "Toutes les transactions", icon: AllInclusive, color: 'primary', },
     {
       key: 'pack_sale',
       label: 'Ventes de packs',
@@ -107,75 +117,26 @@ const SuiviFinancier = ({ period }) => {
       color: 'primary',
     },
     {
-      key: 'boost_sale',
-      label: 'Ventes de boosts',
-      description: 'Suivi des ventes de services boost',
-      icon: BoostSaleIcon,
-      color: 'info',
-    },
-    {
-      key: 'renew_pack_sale',
-      label: 'Renouvellements de packs',
-      description: 'Suivi des renouvellements de packs',
-      icon: RenewPackSaleIcon,
-      color: 'success',
-    },
-    {
-      key: 'digital_product_sale',
-      label: 'Ventes de produits digitaux',
-      description: 'Suivi des ventes de produits numériques',
-      icon: DigitalProductSaleIcon,
-      color: 'secondary',
-    },
-    {
-      key: 'withdrawal',
-      label: 'Retraits',
-      description: 'Suivi des retraits payés',
-      icon: WithdrawalIcon,
-      color: 'error',
-    },
-    {
-      key: 'commission de retrait',
-      label: 'Commissions de retrait',
-      description: 'Suivi des commissions sur retraits',
-      icon: WithdrawalCommissionIcon,
-      color: 'warning',
-    },
-    {
-      key: 'commission de parrainage',
-      label: 'Commissions de parrainage',
-      description: 'Suivi des commissions de parrainage',
-      icon: ReferralCommissionIcon,
-      color: 'success',
-    },
-    {
-      key: 'commission de transfert',
-      label: 'Commissions de transfert',
-      description: 'Suivi des commissions de transfert',
-      icon: TransferCommissionIcon,
-      color: 'info',
-    },
-    {
       key: 'virtual_sale',
-      label: 'Ventes virtuelles',
-      description: 'Suivi des ventes de services virtuels',
+      label: 'Vente des virtuels',
+      description: 'Suivi des ventes des virtuels solifin',
       icon: VirtualSaleIcon,
       color: 'secondary',
     },
     {
-      key: 'transfer',
-      label: 'Transferts',
-      description: 'Suivi des transferts de fonds',
-      icon: TransferIcon,
-      color: 'primary',
-    },
+      key: 'funds_withdrawal',
+      label: 'Suivi des retraits',
+      description: 'Suivi des retraits payés',
+      icon: WithdrawalIcon,
+      color: 'error',
+    }
   ];
 
   // Effet pour charger les statistiques et les transactions lorsque le type, la période ou les filtres changent
   useEffect(() => {
     fetchStatistics();
     fetchAllTransactions();
-  }, [selectedView, period, selectedCurrency, filters]);
+  }, [selectedView, period, filters]);
 
   // Effet pour charger les transactions quand la pagination change
   useEffect(() => {
@@ -190,12 +151,12 @@ const SuiviFinancier = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         type: selectedView,
       };
       
       // Ajouter les filtres aux paramètres
-      if (filters.mouvment) params.mouvment = filters.mouvment;
+      params.nature = 'external';
+      if (filters.flow) params.flow = filters.flow;
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -207,13 +168,14 @@ const SuiviFinancier = ({ period }) => {
       });
       
       setStatistics({
-        totalTransactions: response.data.total_transactions || 0,
-        totalAmount: response.data.total_amount || 0,
+        creditAmount: response.data.credit_amount || 0,
+        debitAmount: response.data.debit_amount || 0,
+        solde: response.data.solde || 0,
       });
       setLoading(false);
     } catch (error) {
       console.error('Erreur lors de la récupération des statistiques:', error);
-      setStatistics({ totalTransactions: 0, totalAmount: 0 });
+      setStatistics({ creditAmount: 0, debitAmount: 0, solde: 0 });
       setLoading(false);
     }
   };
@@ -227,14 +189,14 @@ const SuiviFinancier = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         type: selectedView,
         page: 1,
         per_page: rowsPerPage, // ✅ Récupérer directement les premières données
       };
       
       // Ajouter les filtres aux paramètres
-      if (filters.mouvment) params.mouvment = filters.mouvment;
+      if (filters.flow) params.flow = filters.flow;
+      params.nature = "external";
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -264,14 +226,14 @@ const SuiviFinancier = ({ period }) => {
     try {
       const params = {
         period: period,
-        currency: selectedCurrency,
         type: selectedView,
         page: page + 1, // Material-UI pagination starts from 0
         per_page: rowsPerPage,
       };
       
       // Ajouter les filtres aux paramètres
-      if (filters.mouvment) params.mouvment = filters.mouvment;
+      if (filters.flow) params.flow = filters.flow;
+      params.nature = "external";
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -296,24 +258,15 @@ const SuiviFinancier = ({ period }) => {
     if (amount === null || amount === undefined) return '0';
     
     const absAmount = Math.abs(amount);
-    const isNegative = amount < 0;
     
     let formattedAmount;
-    if (selectedCurrency === 'CDF' && isCDFEnabled) {
-      // Format pour le Franc Congolais
-      formattedAmount = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(absAmount);
-    } else {
-      // Format pour l'USD et autres devises
-      formattedAmount = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(absAmount);
-    }
+    // Format pour l'USD et autres devises
+    formattedAmount = new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(absAmount);
     
-    return `${isNegative ? '-' : '+'}${formattedAmount}`;
+    return `${formattedAmount}`;
   };
 
   // Fonctions pour la pagination
@@ -326,14 +279,14 @@ const SuiviFinancier = ({ period }) => {
     setPage(0);
   };
 
-  // Handlers pour le modal des métadonnées
-  const handleOpenMetadataModal = (transaction) => {
+  // Handlers pour le drawer des métadonnées
+  const handleOpenMetadataDrawer = (transaction) => {
     setSelectedTransaction(transaction);
-    setMetadataModalOpen(true);
+    setMetadataDrawerOpen(true);
   };
 
-  const handleCloseMetadataModal = () => {
-    setMetadataModalOpen(false);
+  const handleCloseMetadataDrawer = () => {
+    setMetadataDrawerOpen(false);
     setSelectedTransaction(null);
   };
 
@@ -342,13 +295,13 @@ const SuiviFinancier = ({ period }) => {
     try {
       let params = {
         period: period,
-        currency: selectedCurrency,
         type: selectedView,
         export_type: exportType,
       };
       
       // Ajouter les filtres aux paramètres
-      if (filters.mouvment) params.mouvment = filters.mouvment;
+      if (filters.flow) params.flow = filters.flow;
+      params.nature = "external";
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -374,8 +327,15 @@ const SuiviFinancier = ({ period }) => {
         'Type',
         'Mouvement',
         'Montant',
-        'Devise',
+        'Frais',
+        'Commission',
         'Statut',
+        'Balance avant',
+        'Balance après',
+        'Traité par',
+        'Traité le',
+        'Déscription',
+        'Raison (rejet, echec, ...)',
         'Date de création',
         'Métadonnées'
       ];
@@ -383,11 +343,18 @@ const SuiviFinancier = ({ period }) => {
       // Transformer les données en tableau de tableaux
       const rows = data.map(item => [
         item.reference,
-        item.type,
-        item.mouvment,
+        getOperationType(item.type),
+        item.flow,
         item.amount,
-        item.currency,
+        item.fee_amount,
+        item.commission_amount,
         item.status,
+        item.balance_before,
+        item.balance_after,
+        item.processor,
+        item.processed_at,
+        item.description,
+        item.rejection_reason,
         item.created_at,
         item.metadata
       ]);
@@ -406,8 +373,15 @@ const SuiviFinancier = ({ period }) => {
         { wch: 15 }, // Type
         { wch: 12 }, // Mouvement
         { wch: 15 }, // Montant
-        { wch: 8 },  // Devise
+        { wch: 15 }, // Frais
+        { wch: 15 }, // Commission
         { wch: 12 }, // Statut
+        { wch: 15 }, // Balance avant
+        { wch: 15 }, // Balance après
+        { wch: 20 }, // Traité par
+        { wch: 20 }, // Traité le
+        { wch: 20 }, // Déscription
+        { wch: 20 }, // Raison (rejet, echec, ...)
         { wch: 20 }, // Date de création
         { wch: 50 }, // Métadonnées (élargie car c'est la dernière colonne)
       ];
@@ -473,12 +447,13 @@ const SuiviFinancier = ({ period }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
+      case 'processing':
         return 'success';
       case 'pending':
         return 'warning';
       case 'failed':
         return 'error';
-      case 'cancelled':
+      case 'reversed':
         return 'default';
       default:
         return 'default';
@@ -494,31 +469,39 @@ const SuiviFinancier = ({ period }) => {
         return 'En attente';
       case 'failed':
         return 'Échouée';
-      case 'cancelled':
+      case 'reversed':
         return 'Annulée';
+      case 'processing':
+        return 'En cours';
       default:
         return status;
     }
   };
 
   // Fonction pour obtenir le libellé du mouvement
-  const getMouvmentLabel = (mouvment) => {
-    switch (mouvment) {
+  const getFlowLabel = (flow) => {
+    switch (flow) {
       case 'in':
         return 'Entrée';
       case 'out':
         return 'Sortie';
+      case 'freeze':
+        return 'Blocage';
+      case 'unfreeze':
+        return 'Déblocage';
       default:
-        return mouvment;
+        return flow;
     }
   };
 
   // Fonction pour obtenir la couleur du mouvement
-  const getMouvmentColor = (mouvment) => {
-    switch (mouvment) {
+  const getFlowColor = (flow) => {
+    switch (flow) {
       case 'in':
+      case 'unfreeze':
         return 'success';
       case 'out':
+      case 'freeze':
         return 'error';
       default:
         return 'default';
@@ -577,107 +560,162 @@ const SuiviFinancier = ({ period }) => {
         </Box>
 
         {/* Cards statistiques */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: { xs: 2, sm: 3 }, mb: { xs: 3, sm: 4 } }}>
-          {/* Card 1: Nombre de transactions */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 3 } }}>
+          {/* Card 1: Montant total entré */}
           <Card 
             sx={{ 
               background: isDarkMode ? '#1a2636c4' : '#ffffff',
               border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-              borderRadius: 3,
+              borderRadius: 2,
               overflow: 'hidden',
               position: 'relative',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease',
-              height: 120,
+              height: 90,
               display: 'flex',
               flexDirection: 'column',
               '&:hover': {
-                transform: 'translateY(-4px)',
-              }
-            }}
-          >
-            <Box sx={{ 
-              backgroundColor: isDarkMode ? 'transparent' : '#eff6ff',
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              flex: 1
-            }}>
-              <Avatar 
-                sx={{ 
-                  bgcolor: '#3b82f6',
-                  width: 36,
-                  height: 36
-                }}
-              >
-                <TotalIcon sx={{ fontSize: 18, color: 'white' }} />
-              </Avatar>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 500 }}>
-                  Transactions
-                </Typography>
-                <Typography variant="h4" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 700, lineHeight: 1.2 }}>
-                  {statistics.totalTransactions.toLocaleString('fr-FR')}
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : 'cette année'}
-                </Typography>
-              </Box>
-              {loading && (
-                <CircularProgress size={20} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
-              )}
-            </Box>
-          </Card>
-
-          {/* Card 2: Montant total */}
-          <Card 
-            sx={{ 
-              background: isDarkMode ? '#1a2636c4' : '#ffffff',
-              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-              borderRadius: 3,
-              overflow: 'hidden',
-              position: 'relative',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s ease',
-              height: 120,
-              display: 'flex',
-              flexDirection: 'column',
-              '&:hover': {
-                transform: 'translateY(-4px)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               }
             }}
           >
             <Box sx={{ 
               backgroundColor: isDarkMode ? 'transparent' : '#f0fdf4',
-              p: 2,
+              p: 1.5,
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.5,
               flex: 1
             }}>
               <Avatar 
                 sx={{ 
                   bgcolor: '#10b981',
-                  width: 36,
-                  height: 36
+                  width: 32,
+                  height: 32
                 }}
               >
-                <AmountIcon sx={{ fontSize: 18, color: 'white' }} />
+                <AmountIcon sx={{ fontSize: 16, color: 'white' }} />
               </Avatar>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 500 }}>
-                  Montant total
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 500, fontSize: '0.75rem' }}>
+                  Montant total entré
                 </Typography>
-                <Typography variant="h4" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 700, lineHeight: 1.2 }}>
-                  {formatAmount(statistics.totalAmount)} {selectedCurrency}
+                <Typography variant="h6" sx={{ color: isDarkMode ? '#10b981' : '#064e3b', fontWeight: 700, lineHeight: 1.1, fontSize: '1.25rem' }}>
+                  +{formatAmount(statistics.creditAmount)} $
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : 'cette année'}
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.65rem', mt: 0.25 }}>
+                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : period === 'year' ? 'cette année' : 'toute période'}
                 </Typography>
               </Box>
               {loading && (
-                <CircularProgress size={20} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+                <CircularProgress size={16} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </Box>
+          </Card>
+
+          {/* Card 2: Montant total sorti */}
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1a2636c4' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 2,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 90,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              }
+            }}
+          >
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#fef2f2',
+              p: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#ef4444',
+                  width: 32,
+                  height: 32
+                }}
+              >
+                <TrendingDown sx={{ fontSize: 16, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#ef4444' : '#991b1b', fontWeight: 500, fontSize: '0.75rem' }}>
+                  Montant total sorti
+                </Typography>
+                <Typography variant="h6" sx={{ color: isDarkMode ? '#ef4444' : '#991b1b', fontWeight: 700, lineHeight: 1.1, fontSize: '1.25rem' }}>
+                  -{formatAmount(statistics.debitAmount)} $
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.65rem', mt: 0.25 }}>
+                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : period === 'year' ? 'cette année' : 'toute période'}
+                </Typography>
+              </Box>
+              {loading && (
+                <CircularProgress size={16} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </Box>
+          </Card>
+          
+          {/* Card 3: Solde */}
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1a2636c4' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: 2,
+              overflow: 'hidden',
+              position: 'relative',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s ease',
+              height: 90,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              }
+            }}
+          >
+            <Box sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#eff6ff',
+              p: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#3b82f6',
+                  width: 32,
+                  height: 32
+                }}
+              >
+                <TotalIcon sx={{ fontSize: 16, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 500, fontSize: '0.75rem' }}>
+                  Solde : entrées - sorties
+                </Typography>
+                <Typography variant="h6" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 700, lineHeight: 1.1, fontSize: '1.25rem' }}>
+                  {formatAmount(statistics.solde)} $
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.65rem', mt: 0.25 }}>
+                  {period === 'day' ? "aujourd'hui" : period === 'week' ? 'cette semaine' : period === 'month' ? 'ce mois' : period === 'year' ? 'cette année' : 'toute période'}
+                </Typography>
+              </Box>
+              {loading && (
+                <CircularProgress size={16} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
               )}
             </Box>
           </Card>
@@ -766,6 +804,16 @@ const SuiviFinancier = ({ period }) => {
                       fontWeight: 600, 
                       fontSize: { xs: '0.75rem', sm: '0.875rem' },
                       bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 200
+                    }}
+                  >
+                    Type
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
                       minWidth: 120
                     }}
                   >
@@ -776,10 +824,60 @@ const SuiviFinancier = ({ period }) => {
                       fontWeight: 600, 
                       fontSize: { xs: '0.75rem', sm: '0.875rem' },
                       bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 120
+                    }}
+                  >
+                    Frais
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 120
+                    }}
+                  >
+                    Commission
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
                       minWidth: 100
                     }}
                   >
                     Statut
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 100
+                    }}
+                  >
+                    Balance Avant
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 100
+                    }}
+                  >
+                    Balance Après
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 100
+                    }}
+                  >
+                    Traité par
                   </TableCell>
                   <TableCell 
                     sx={{ 
@@ -799,13 +897,12 @@ const SuiviFinancier = ({ period }) => {
                       minWidth: 150
                     }}
                   >
-                    Métadonnées
+                    Détails
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {(() => {
-                  
                   return (transactionsLoading || isInitialLoading) ? (
                     <TableRow>
                       <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
@@ -824,16 +921,36 @@ const SuiviFinancier = ({ period }) => {
                         }}
                       >
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                            {transaction.reference || `#${transaction.id}`}
+                          <Typography variant="body2">
+                            {transaction.reference}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip 
-                            label={getMouvmentLabel(transaction.mouvment)}
-                            color={getMouvmentColor(transaction.mouvment)}
+                            label={getFlowLabel(transaction.flow)}
+                            color={getFlowColor(transaction.flow)}
                             size="small"
                             variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={getOperationType(transaction.type)}
+                            size="small"
+                            sx={{
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                              height: { xs: 22, sm: 26 },
+                              fontWeight: 500,
+                              borderRadius: { xs: 1.5, sm: 2 },
+                              fontFamily: "'Poppins', sans-serif",
+                              bgcolor: (() => {
+                                switch (transaction.type) {
+                                  default:
+                                    return getTransactionColor(transaction.type, isDarkMode);
+                                  }
+                                })(),
+                              color: isDarkMode ? "#fff" : "#111",
+                            }}
                           />
                         </TableCell>
                         <TableCell>
@@ -845,7 +962,31 @@ const SuiviFinancier = ({ period }) => {
                               fontSize: '0.9rem'
                             }}
                           >
-                            {formatAmount(transaction.amount)} {selectedCurrency}
+                            {formatAmount(transaction.amount)} $
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ 
+                              color: transaction.amount > 0 ? 'success.main' : 'error.main',
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            {formatAmount(transaction.fee_amount)} $
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ 
+                              color: transaction.amount > 0 ? 'success.main' : 'error.main',
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            {formatAmount(transaction.commission_amount)} $
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -854,6 +995,42 @@ const SuiviFinancier = ({ period }) => {
                             color={getStatusColor(transaction.status)}
                             size="small"
                           />
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ 
+                              color: `${isDarkMode ? 'rgba(70, 141, 255, 1)':'rgba(59, 130, 246, 1)'}`,
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            {formatAmount(transaction.balance_before)} $
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ 
+                              color: `${isDarkMode ? 'rgba(70, 141, 255, 1)':'rgba(59, 130, 246, 1)'}`,
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            {formatAmount(transaction.balance_after)} $
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ 
+                              color: transaction.amount > 0 ? 'success.main' : 'error.main',
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            {transaction.processor?.name}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
@@ -867,11 +1044,11 @@ const SuiviFinancier = ({ period }) => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          {transaction.metadata && Object.keys(transaction.metadata).length > 0 ? (
-                            <Button
+                          <Button
                               variant="outlined"
                               size="small"
-                              onClick={() => handleOpenMetadataModal(transaction)}
+                              onClick={() => handleOpenMetadataDrawer(transaction)}
+                              startIcon={<InfoIcon />}
                               sx={{
                                 fontSize: '0.7rem',
                                 py: 0.5,
@@ -886,13 +1063,8 @@ const SuiviFinancier = ({ period }) => {
                                 }
                               }}
                             >
-                              {Object.keys(transaction.metadata).length} champs
+                              Voir plus
                             </Button>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                              -
-                            </Typography>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -931,162 +1103,515 @@ const SuiviFinancier = ({ period }) => {
     );
   };
 
-  // Modal pour afficher les métadonnées
-  const MetadataModal = () => (
-    <Modal
-      open={metadataModalOpen}
-      onClose={handleCloseMetadataModal}
-      closeAfterTransition
-      BackdropComponent={Backdrop}
-      BackdropProps={{
-        sx: {
-          backdropFilter: 'blur(8px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  // Drawer pour afficher les métadonnées
+  const MetadataDrawer = () => (
+    <Drawer
+      anchor="right"
+      open={metadataDrawerOpen}
+      onClose={handleCloseMetadataDrawer}
+      sx={{
+        '& .MuiDrawer-paper': {
+          width: { xs: '85%', sm: '400px', md: '450px' },
+          background: isDarkMode 
+            ? 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%)' 
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'}`,
+          boxShadow: isDarkMode 
+            ? '0 10px 40px rgba(0, 0, 0, 0.3)' 
+            : '0 10px 40px rgba(0, 0, 0, 0.1)',
         }
       }}
     >
-      <Fade in={metadataModalOpen}>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header du drawer */}
         <Box
           sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: { xs: '90%', sm: '80%', md: '600px' },
-            maxHeight: { xs: '80vh', md: '70vh' },
-            bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
-            borderRadius: { xs: 2, md: 3 },
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
+            p: { xs: 2, sm: 3 },
+            background: isDarkMode 
+              ? 'linear-gradient(135deg, #374151 0%, #1f2937 100%)' 
+              : 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+            borderBottom: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
           }}
         >
-          {/* Header du modal */}
-          <Box
-            sx={{
-              p: { xs: 2, sm: 3 },
-              background: isDarkMode 
-                ? 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
-                : 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-              borderBottom: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
-                  Métadonnées de la transaction
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Référence: {selectedTransaction?.reference || `#${selectedTransaction?.id}`}
-                </Typography>
-              </Box>
-              <IconButton
-                onClick={handleCloseMetadataModal}
-                sx={{
-                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
-                  '&:hover': {
-                    color: isDarkMode ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 0.8)',
-                    bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                  }
-                }}
-              >
-                <CloseIcon />
-              </IconButton>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5, color: 'primary.main' }}>
+                Métadonnées
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Référence: {selectedTransaction?.reference || `#${selectedTransaction?.id}`}
+              </Typography>
             </Box>
-          </Box>
-
-          {/* Contenu du modal */}
-          <Box
-            sx={{
-              p: { xs: 2, sm: 3 },
-              overflowY: 'auto',
-              flex: 1,
-            }}
-          >
-            {selectedTransaction?.metadata && Object.keys(selectedTransaction.metadata).length > 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {Object.entries(selectedTransaction.metadata).map(([key, value]) => (
-                  <Box
-                    key={key}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                      border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                      '&:hover': {
-                        bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                      }
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={600}
-                      sx={{
-                        mb: 1,
-                        color: 'primary.main',
-                        fontSize: '0.9rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                      }}
-                    >
-                      {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontFamily: typeof value === 'object' ? 'monospace' : 'inherit',
-                        fontSize: '0.85rem',
-                        lineHeight: 1.5,
-                        wordBreak: 'break-word',
-                        color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)',
-                      }}
-                    >
-                      {typeof value === 'object' 
-                        ? JSON.stringify(value, null, 2)
-                        : String(value)
-                      }
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Aucune métadonnée disponible pour cette transaction
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
-          {/* Footer du modal */}
-          <Box
-            sx={{
-              p: { xs: 2, sm: 3 },
-              borderTop: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-              bgcolor: isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.02)',
-            }}
-          >
-            <Button
-              variant="contained"
-              onClick={handleCloseMetadataModal}
-              fullWidth
+            <IconButton
+              onClick={handleCloseMetadataDrawer}
               sx={{
-                py: 1.5,
-                fontWeight: 600,
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: isDarkMode ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 0.8)',
+                  bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
                 }
               }}
             >
-              Fermer
-            </Button>
+              <CloseIcon />
+            </IconButton>
           </Box>
         </Box>
-      </Fade>
-    </Modal>
+
+        {/* Contenu du drawer */}
+        <Box
+          sx={{
+            p: { xs: 2, sm: 3 },
+            overflowY: 'auto',
+            flex: 1,
+          }} 
+        >
+          <Box sx={{ p: { xs: 1, sm: 2 } }}>
+              {/* Carte d'en-tête */}
+              <Card
+                sx={{
+                  mb: 2,
+                  background: isDarkMode 
+                    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)'
+                    : 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%)',
+                  border: `1px solid ${isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'}`,
+                  borderRadius: 3,
+                  boxShadow: isDarkMode 
+                    ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
+                    : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                    <Avatar
+                      sx={{
+                        bgcolor: 'primary.main',
+                        width: 48,
+                        height: 48,
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                      }}
+                    >
+                      <InfoIcon sx={{ fontSize: 24, color: 'white' }} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight={600} sx={{ color: 'primary.main', fontSize: '1.1rem' }}>
+                        Métadonnées
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {Object.keys(selectedTransaction?.metadata || {}).length} champ{Object.keys(selectedTransaction?.metadata || {}).length > 1 ? 's' : ''}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Divider sx={{ my: 2 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Transaction #{selectedTransaction?.id}
+                    </Typography>
+                    <Chip 
+                      label={selectedTransaction?.reference || `#${selectedTransaction?.id}`}
+                      size="small"
+                      sx={{
+                        bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                        color: 'primary.main',
+                        fontWeight: 500,
+                      }}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* Carte des informations de la transaction */}
+              <Card
+                sx={{
+                  mb: 2,
+                  background: isDarkMode 
+                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)'
+                    : 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)',
+                  border: `1px solid ${isDarkMode ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'}`,
+                  borderRadius: 3,
+                  boxShadow: isDarkMode 
+                    ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
+                    : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                    <Avatar
+                      sx={{
+                        bgcolor: 'success.main',
+                        width: 48,
+                        height: 48,
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                      }}
+                    >
+                      <ReceiptIcon sx={{ fontSize: 24, color: 'white' }} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight={600} sx={{ color: 'success.main', fontSize: '1.1rem' }}>
+                        Informations Transaction
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Détails complets de la transaction
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Divider sx={{ my: 2 }} />
+                  <List sx={{ p: 0 }}>
+                    {/* Référence */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Référence"
+                        secondary={selectedTransaction?.reference || `#${selectedTransaction?.id}`}
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                        secondaryTypographyProps={{ 
+                          fontSize: '0.9rem',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Session ID */}
+                    {selectedTransaction?.session_id && (
+                      <ListItem sx={{ p: 0, mb: 1 }}>
+                        <ListItemText
+                          primary="Session ID"
+                          secondary={selectedTransaction.session_id}
+                          primaryTypographyProps={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: 600, 
+                            color: 'success.main',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                          secondaryTypographyProps={{ 
+                            fontSize: '0.9rem',
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                      </ListItem>
+                    )}
+                    
+                    {/* Transaction ID */}
+                    {selectedTransaction?.transaction_id && (
+                      <ListItem sx={{ p: 0, mb: 1 }}>
+                        <ListItemText
+                          primary="Transaction ID"
+                          secondary={selectedTransaction.transaction_id}
+                          primaryTypographyProps={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: 600, 
+                            color: 'success.main',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                          secondaryTypographyProps={{ 
+                            fontSize: '0.9rem',
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                      </ListItem>
+                    )}
+                    
+                    {/* Flow */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Flux"
+                        secondary={
+                          <Chip
+                            label={selectedTransaction?.flow === 'in' ? 'Entrée' : selectedTransaction?.flow === 'out' ? 'Sortie' : selectedTransaction?.flow === 'freeze' ? 'Blocage' : 'Déblocage'}
+                            color={selectedTransaction?.flow === 'out' || selectedTransaction?.flow === 'freeze' ? 'error' : 'success'}
+                            size="small"
+                            variant="outlined"
+                          />
+                        }
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Type */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Type"
+                        secondary={getOperationType(selectedTransaction?.type)}
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                        secondaryTypographyProps={{ 
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Montant */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Montant"
+                        secondary={formatAmount(selectedTransaction?.amount)}
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                        secondaryTypographyProps={{ 
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          color: selectedTransaction?.amount > 0 ? 'success.main' : 'error.main'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Statut */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Statut"
+                        secondary={
+                          <Chip
+                            label={getStatusLabel(selectedTransaction?.status)}
+                            color={getStatusColor(selectedTransaction?.status)}
+                            size="small"
+                          />
+                        }
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Description */}
+                    {selectedTransaction?.description && (
+                      <ListItem sx={{ p: 0, mb: 1 }}>
+                        <ListItemText
+                          primary="Description"
+                          secondary={selectedTransaction.description}
+                          primaryTypographyProps={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: 600, 
+                            color: 'success.main',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                          secondaryTypographyProps={{ 
+                            fontSize: '0.9rem'
+                          }}
+                        />
+                      </ListItem>
+                    )}
+                    
+                    {/* Soldes */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Balance"
+                        secondary={
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                              Avant: <strong>{formatAmount(selectedTransaction?.balance_before)}</strong>
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                              Après: <strong>{formatAmount(selectedTransaction?.balance_after)}</strong>
+                            </Typography>
+                          </Box>
+                        }
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Traitement */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Traitement"
+                        secondary={
+                          <Box>
+                            {selectedTransaction?.processed_by && (
+                              <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                                Par: <strong>{selectedTransaction.processor?.name || `ID: ${selectedTransaction.processed_by}`}</strong>
+                              </Typography>
+                            )}
+                            {selectedTransaction?.processed_at && (
+                              <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                Le: <strong>{new Date(selectedTransaction.processed_at).toLocaleString('fr-FR')}</strong>
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      />
+                    </ListItem>
+                    
+                    {/* Raison de rejet */}
+                    {selectedTransaction?.rejection_reason && (
+                      <ListItem sx={{ p: 0, mb: 1 }}>
+                        <ListItemText
+                          primary="Raison de Rejet"
+                          secondary={selectedTransaction.rejection_reason}
+                          primaryTypographyProps={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: 600, 
+                            color: 'error.main',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                          secondaryTypographyProps={{ 
+                            fontSize: '0.9rem',
+                            color: 'error.main'
+                          }}
+                        />
+                      </ListItem>
+                    )}
+                    
+                    {/* Dates */}
+                    <ListItem sx={{ p: 0, mb: 1 }}>
+                      <ListItemText
+                        primary="Dates"
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
+                              Créée: <strong>{new Date(selectedTransaction?.created_at).toLocaleString('fr-FR')}</strong>
+                            </Typography>
+                            {selectedTransaction?.updated_at && (
+                              <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                                Modifiée: <strong>{new Date(selectedTransaction.updated_at).toLocaleString('fr-FR')}</strong>
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        primaryTypographyProps={{ 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600, 
+                          color: 'success.main',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      />
+                    </ListItem>
+                  </List>
+                </CardContent>
+              </Card>
+
+              {/* Liste des métadonnées */}
+              <List sx={{ p: 0, maxHeight: 400, overflowY: 'auto' }}>
+                {Object.entries(selectedTransaction?.metadata || {}).map(([key, value], index) => (
+                  <Grow
+                    in={true}
+                    timeout={300}
+                    style={{ transformOrigin: '0 0 0' }}
+                  >
+                    <ListItem
+                      key={key}
+                      sx={{
+                        p: 0,
+                        mb: 1,
+                        borderRadius: 2,
+                        background: isDarkMode 
+                          ? 'rgba(255, 255, 255, 0.02)' 
+                          : 'rgba(0, 0, 0, 0.02)',
+                        border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                        '&:hover': {
+                          background: isDarkMode 
+                            ? 'rgba(255, 255, 255, 0.05)' 
+                            : 'rgba(0, 0, 0, 0.05)',
+                          transform: 'translateX(4px)',
+                          transition: 'all 0.2s ease',
+                        }
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5, ml: 0.5 }}>
+                            <Box
+                              sx={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                bgcolor: 'primary.main',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                color: 'white',
+                              }}
+                            >
+                              {index + 1}
+                            </Box>
+                            <Typography
+                              variant="subtitle2"
+                              fontWeight={600}
+                              sx={{
+                                color: 'primary.main',
+                                fontSize: '0.9rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                              }}
+                            >
+                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Typography>
+                          </Box>
+                        }
+                        secondary={
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontFamily: typeof value === 'object' ? 'monospace' : 'inherit',
+                              fontSize: '0.85rem',
+                              lineHeight: 1.5,
+                              wordBreak: 'break-word',
+                              color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)',
+                              ml: 0.5,
+                              mt: 0.5,
+                              p: 0.75,
+                              borderRadius: 1,
+                              bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                            }}
+                          >
+                            {typeof value === 'object' 
+                              ? JSON.stringify(value, null, 2)
+                              : String(value)
+                            }
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  </Grow>
+                ))}
+              </List>
+            </Box>
+        </Box>
+      </Box>
+    </Drawer>
   );
 
   return (
@@ -1342,6 +1867,139 @@ const SuiviFinancier = ({ period }) => {
         </Menu>
       </Paper>
 
+      {/* Sélecteur de période */}
+      <Paper
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          mb: { xs: 2, sm: 3 },
+          borderRadius: { xs: 2, md: 3 },
+          background: isDarkMode ? '#1f2937' : '#ffffff',
+          border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+          boxShadow: 'none',
+        }}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 }
+        }}>
+          <Typography variant="h6" fontWeight={600} sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }}>
+            Période d'analyse
+          </Typography>
+          
+          {/* Sélecteur de période - Même design que Dashboard */}
+          <Box
+            sx={{
+              display: 'inline-flex',
+              borderRadius: '0.375rem',
+              boxShadow: isDarkMode 
+                ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              bgcolor: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setPeriod("day")}
+              className={`px-4 py-2 text-sm font-medium rounded-l-md transition-colors duration-200 ${
+                period === "day"
+                  ? "bg-green-600 text-white"
+                  : isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700"
+                    : "text-gray-600 hover:bg-gray-50"
+              }`}
+              style={{
+                background: period === "day" ? '#16a34a' : 'transparent',
+                color: period === "day" ? 'white' : isDarkMode ? '#9ca3af' : '#4b5563',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Jour
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod("week")}
+              className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                period === "week"
+                  ? "bg-green-600 text-white"
+                  : isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700"
+                    : "text-gray-600 hover:bg-gray-50"
+              }`}
+              style={{
+                background: period === "week" ? '#16a34a' : 'transparent',
+                color: period === "week" ? 'white' : isDarkMode ? '#9ca3af' : '#4b5563',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Semaine
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod("month")}
+              className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                period === "month"
+                  ? "bg-green-600 text-white"
+                  : isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700"
+                    : "text-gray-600 hover:bg-gray-50"
+              }`}
+              style={{
+                background: period === "month" ? '#16a34a' : 'transparent',
+                color: period === "month" ? 'white' : isDarkMode ? '#9ca3af' : '#4b5563',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Mois
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod("year")}
+              className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                period === "year"
+                  ? "bg-green-600 text-white"
+                  : isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700"
+                    : "text-gray-600 hover:bg-gray-50"
+              }`}
+              style={{
+                background: period === "year" ? '#16a34a' : 'transparent',
+                color: period === "year" ? 'white' : isDarkMode ? '#9ca3af' : '#4b5563',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Année
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod("all")}
+              className={`px-4 py-2 text-sm font-medium rounded-r-md transition-colors duration-200 ${
+                period === "all"
+                  ? "bg-green-600 text-white"
+                  : isDarkMode 
+                    ? "text-gray-400 hover:bg-gray-700"
+                    : "text-gray-600 hover:bg-gray-50"
+              }`}
+              style={{
+                background: period === "all" ? '#16a34a' : 'transparent',
+                color: period === "all" ? 'white' : isDarkMode ? '#9ca3af' : '#4b5563',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Tout
+            </button>
+          </Box>
+        </Box>
+      </Paper>
+
       {/* Filtres avancés */}
       <SuiviFinancierFilters 
         filters={filters}
@@ -1362,8 +2020,8 @@ const SuiviFinancier = ({ period }) => {
         {renderContent()}
       </Paper>
 
-      {/* Modal des métadonnées */}
-      <MetadataModal />
+      {/* Drawer des métadonnées */}
+      <MetadataDrawer />
 
       {/* Menu d'export */}
       <Menu
@@ -1454,6 +2112,6 @@ const SuiviFinancier = ({ period }) => {
       </Menu>
     </Box>
   );
-};
+});
 
 export default SuiviFinancier;

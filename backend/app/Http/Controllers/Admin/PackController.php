@@ -123,12 +123,12 @@ class PackController extends Controller
                 ->where('level', 1)
                 ->get();
                 
-            $commissionsByGenerationUSD[0] = $gen1Commissions->where('status', 'completed')->where('currency', 'USD')->sum('amount');
-            $commissionsByGenerationCDF[0] = $gen1Commissions->where('status', 'completed')->where('currency', 'CDF')->sum('amount');
+            $commissionsByGenerationUSD[0] = $gen1Commissions->where('status', 'completed')->sum('amount');
+            $commissionsByGenerationCDF[0] = $gen1Commissions->where('status', 'completed')->sum('amount');
             $totalCommissionUSD += $commissionsByGenerationUSD[0];
             $totalCommissionCDF += $commissionsByGenerationCDF[0];
-            $failedCommissionUSD += $gen1Commissions->where('status', 'failed')->where('currency', 'USD')->sum('amount');
-            $failedCommissionCDF += $gen1Commissions->where('status', 'failed')->where('currency', 'CDF')->sum('amount');
+            $failedCommissionUSD += $gen1Commissions->where('status', 'failed')->sum('amount');
+            $failedCommissionCDF += $gen1Commissions->where('status', 'failed')->sum('amount');
 
             // Récupérer les filleuls et commissions des générations 2 à 4
             $currentGenReferrals = $firstGenReferrals->pluck('user_id')->toArray();
@@ -174,12 +174,12 @@ class PackController extends Controller
                     ->where('level', $generation)
                     ->get();
                     
-                $commissionsByGenerationUSD[$generation-1] = $genCommissions->where('status', 'completed')->where('currency', 'USD')->sum('amount');
-                $commissionsByGenerationCDF[$generation-1] = $genCommissions->where('status', 'completed')->where('currency', 'CDF')->sum('amount');
+                $commissionsByGenerationUSD[$generation-1] = $genCommissions->where('status', 'completed')->sum('amount');
+                $commissionsByGenerationCDF[$generation-1] = $genCommissions->where('status', 'completed')->sum('amount');
                 $totalCommissionUSD += $commissionsByGenerationUSD[$generation-1];
                 $totalCommissionCDF += $commissionsByGenerationCDF[$generation-1];
-                $failedCommissionUSD += $genCommissions->where('status', 'failed')->where('currency', 'USD')->sum('amount');
-                $failedCommissionCDF += $genCommissions->where('status', 'failed')->where('currency', 'CDF')->sum('amount');
+                $failedCommissionUSD += $genCommissions->where('status', 'failed')->sum('amount');
+                $failedCommissionCDF += $genCommissions->where('status', 'failed')->sum('amount');
                 
                 $currentGenReferrals = $nextGenReferrals;
             }
@@ -212,14 +212,12 @@ class PackController extends Controller
                 $amountUSD = Commission::where('user_id', $userId)
                     ->where('pack_id', $pack->id)
                     ->where('status', 'completed')
-                    ->where('currency', 'USD')
                     ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                     ->sum('amount');
                     
                 $amountCDF = Commission::where('user_id', $userId)
                     ->where('pack_id', $pack->id)
                     ->where('status', 'completed')
-                    ->where('currency', 'CDF')
                     ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                     ->sum('amount');
                     
@@ -243,14 +241,12 @@ class PackController extends Controller
                     $referralCommissionsUSD = Commission::where('user_id', $userId)
                         ->where('pack_id', $pack->id)
                         ->where('source_user_id', $referral->user_id)
-                        ->where('currency', 'USD')
                         ->where('status', 'completed')
                         ->sum('amount');
                         
                     $referralCommissionsCDF = Commission::where('user_id', $userId)
                         ->where('pack_id', $pack->id)
                         ->where('source_user_id', $referral->user_id)
-                        ->where('currency', 'CDF')
                         ->where('status', 'completed')
                         ->sum('amount');
                     
@@ -376,7 +372,6 @@ class PackController extends Controller
                 'name' => ['required', 'max:255', 'string', Rule::unique('packs')],
                 'description' => 'required|string',
                 'price' => 'required|numeric|min:0',
-                'cdf_price'=>'nullable|numeric|min:0',
                 'status' => 'required|boolean',
                 'avantages' => 'required|json',
                 'duree_publication_en_jour' => 'required|numeric|min:1',
@@ -396,7 +391,6 @@ class PackController extends Controller
                 'name' => $validated['name'],
                 'description' => $validated['description'],
                 'price' => $validated['price'],
-                'cdf_price' => $validated['cdf_price'],
                 'status' => $request->boolean('status'),
                 'avantages' => json_decode($request->avantages, true),
                 'duree_publication_en_jour' => $validated['duree_publication_en_jour'],
@@ -485,7 +479,6 @@ class PackController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'cdf_price'=> 'nullable|numeric|min:0',
             'status' => 'required|boolean',
             'avantages' => 'required|json',
             'abonnement' => 'required|string|in:mensuel,trimestriel,semestriel,annuel,triennal,quinquennal',
@@ -509,7 +502,6 @@ class PackController extends Controller
                 'name' => $request->name,
                 'description' => $request->description,
                 'price' => $request->price,
-                'cdf_price' => $request->cdf_price ?? null,
                 'status' => filter_var($request->status, FILTER_VALIDATE_BOOLEAN),
                 'avantages' => $request->avantages,
                 'abonnement' => $request->abonnement,

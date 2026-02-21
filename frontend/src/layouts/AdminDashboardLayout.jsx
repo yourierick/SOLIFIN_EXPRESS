@@ -37,12 +37,7 @@ import { motion } from "framer-motion";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
-import { useCurrency } from "../contexts/CurrencyContext";
-import CurrencySwitcher from "../components/CurrencySwitcher";
-import useWithdrawalRequests from "../hooks/useWithdrawalRequests";
-import usePendingTestimonials from "../hooks/usePendingTestimonials";
-import usePendingFormations from "../hooks/usePendingFormations";
-import usePendingPublications from "../hooks/usePendingPublications";
+import useDashboardCounters from "../hooks/useDashboardCounters";
 import instance from "../utils/axios";
 import {
   ChartBarIcon,
@@ -93,8 +88,8 @@ const navigationItems = [
   //   permission: "manage-withdrawals",
   // },
   {
-    name: "Portefeuilles",
-    href: "/admin/wallets",
+    name: "Portefeuille",
+    href: "/admin/wallet",
     icon: WalletIcon,
     permission: "manage-wallets",
   },
@@ -311,12 +306,12 @@ export default function AdminDashboardLayout() {
     useTheme();
   const { logout, user } = useAuth();
   const [userData, setUserData] = useState(null);
-  const { pendingCount } = useWithdrawalRequests();
-  const { pendingCount: pendingTestimonialsCount = 0 } =
-    usePendingTestimonials();
-  const { pendingCount: pendingFormationsCount = 0 } = usePendingFormations();
-  const { pendingCount: pendingPublicationsCount = 0 } =
-    usePendingPublications();
+  const { 
+    pendingCount, 
+    pendingFormationsCount, 
+    pendingTestimonialsCount, 
+    pendingPublicationsCount 
+  } = useDashboardCounters(user?.is_admin);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
@@ -442,7 +437,7 @@ export default function AdminDashboardLayout() {
 
     // Ajouter un badge pour les demandes de retrait en attente
     const showWithdrawalBadge =
-      item.href === "/admin/withdrawal-requests" && pendingCount > 0;
+      item.href === "/admin/finances" && pendingCount > 0;
     // Ajouter un badge pour les témoignages en attente
     const showTestimonialsBadge =
       item.href === "/admin/testimonials" && pendingTestimonialsCount > 0;
@@ -948,9 +943,6 @@ export default function AdminDashboardLayout() {
                 <span className="hidden sm:block">Accueil</span>
               </Link>
 
-              {/* CurrencySwitcher global */}
-              <CurrencySwitcher />
-
               {/* Notifications */}
               <NotificationsDropdown />
 
@@ -1032,7 +1024,7 @@ export default function AdminDashboardLayout() {
                         onClick={() => setShowProfileMenu(false)}
                       >
                         <UserCircleIcon className="h-5 w-5" />
-                        Mon profil
+                        Mon profile
                       </Link>
                       <button
                         onClick={() => {

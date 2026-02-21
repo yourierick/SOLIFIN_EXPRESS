@@ -61,7 +61,7 @@ class PubliciteController extends Controller
     public function getPendingAds()
     {
         $publicites = Publicite::with('page.user')
-            ->where('statut', 'en_attente')
+            ->where('statut', 'pending')
             ->orderBy('created_at', 'asc')
             ->paginate(10);
         
@@ -176,8 +176,8 @@ class PubliciteController extends Controller
             // Utiliser $requestData pour la suite
             $data = $requestData;
             $data['page_id'] = $page->id;
-            $data['statut'] = 'en_attente';
-            $data['etat'] = 'disponible';
+            $data['statut'] = 'pending';
+            $data['etat'] = 'available';
             
             // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
             if ($user->pack_de_publication) {
@@ -356,7 +356,7 @@ class PubliciteController extends Controller
             
             // Si l'utilisateur n'est pas admin, la publicité revient en attente
             if (!$user->is_admin) {
-                $data['statut'] = 'en_attente';
+                $data['statut'] = 'pending';
             }
             
             // Traitement des fichiers
@@ -417,7 +417,7 @@ class PubliciteController extends Controller
     public function changeEtat(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'etat' => 'required|in:disponible,terminé',
+            'etat' => 'required|in:available,unavailable',
         ]);
 
         if ($validator->fails()) {
@@ -459,7 +459,7 @@ class PubliciteController extends Controller
     public function changeStatut(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'statut' => 'required|in:en_attente,approuvé,rejeté,expiré',
+            'statut' => 'required|in:pending,approved,rejected,expired',
         ]);
 
         if ($validator->fails()) {

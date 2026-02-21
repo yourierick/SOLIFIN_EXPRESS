@@ -12,7 +12,6 @@ class Commission extends Model
         'pack_id',
         'duree',
         'amount',
-        'currency',
         'level',
         'status',
         'error_message'

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { useCurrency } from "../../../contexts/CurrencyContext";
 import { toast } from "react-toastify";
 import {
   TablePagination,
@@ -34,7 +33,6 @@ import {
 
 const TransactionSerdipay = () => {
   const { isDarkMode } = useTheme();
-  const { selectedCurrency: currency } = useCurrency();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -81,7 +79,7 @@ const TransactionSerdipay = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [page, rowsPerPage, filters, searchTerm, currency]);
+  }, [page, rowsPerPage, filters, searchTerm]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -103,7 +101,6 @@ const TransactionSerdipay = () => {
         page: page + 1,
         per_page: rowsPerPage,
         search: searchTerm,
-        currency: currency || 'USD',
         ...filters,
       };
 
@@ -147,7 +144,6 @@ const TransactionSerdipay = () => {
       const params = {
         format: 'csv',
         search: searchTerm,
-        currency: currency || 'USD',
         ...filters,
       };
 
@@ -201,10 +197,10 @@ const TransactionSerdipay = () => {
     }).format(date);
   };
 
-  const formatAmount = (amount, currency) => {
+  const formatAmount = (amount) => {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
-      currency: currency || "USD",
+      currency: "USD",
     }).format(amount);
   };
 
@@ -355,7 +351,7 @@ const TransactionSerdipay = () => {
                   {transaction.phone_number || 'Non défini'}
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {transaction.amount} {(currency || 'USD').toUpperCase()}
+                  {transaction.amount} $
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {transaction.payment_method}
@@ -506,7 +502,7 @@ const TransactionSerdipay = () => {
                 {stats.totalTransactions.toLocaleString()}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {(currency || 'USD').toUpperCase()}
+                $
               </p>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -956,15 +952,7 @@ const TransactionSerdipay = () => {
                           }`}>
                             <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Montant</h4>
                             <p className="text-sm font-bold text-gray-900 dark:text-white">
-                              {formatAmount(selectedTransaction.amount, selectedTransaction.currency)}
-                            </p>
-                          </div>
-                          <div className={`p-3 rounded-lg border ${
-                            isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
-                          }`}>
-                            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Devise</h4>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {selectedTransaction.currency?.toUpperCase() || 'USD'}
+                              {formatAmount(selectedTransaction.amount)} $
                             </p>
                           </div>
                           <div className={`p-3 rounded-lg border ${

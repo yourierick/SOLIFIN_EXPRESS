@@ -206,7 +206,7 @@ const WalletExportButtons = ({
             },
           }}
         >
-          {isLoading ? 'Chargement...' : `Exporter ${tabDisplayName}`}
+          {isLoading ? 'Chargement...' : `Exporter les transactions`}
         </Button>
       </Tooltip>
 

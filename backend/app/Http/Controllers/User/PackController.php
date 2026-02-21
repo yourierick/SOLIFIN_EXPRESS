@@ -23,39 +23,6 @@ use Illuminate\Support\Facades\Auth;
 class PackController extends Controller
 {
     /**
-     * Détermine le pas d'abonnement en mois selon le type d'abonnement
-     *
-     * @param string|null $subscriptionType Type d'abonnement (mensuel, trimestriel, etc.)
-     * @return int Pas d'abonnement en mois
-     */
-    private function getSubscriptionStep($subscriptionType)
-    {
-        $type = strtolower($subscriptionType ?? '');
-        
-        switch ($type) {
-            case 'monthly':
-            case 'mensuel':
-                return 1; // Pas de 1 mois pour abonnement mensuel
-            case 'quarterly':
-            case 'trimestriel':
-                return 3; // Pas de 3 mois pour abonnement trimestriel
-            case 'biannual':
-            case 'semestriel':
-                return 6; // Pas de 6 mois pour abonnement semestriel
-            case 'annual':
-            case 'yearly':
-            case 'annuel':
-                return 12; // Pas de 12 mois pour abonnement annuel
-            case 'triennal':
-                return 36;
-            case 'quinquennal':
-                return 60;
-            default:
-                return 1; // Par défaut, pas de 1 mois
-        }
-    }
-
-    /**
      * Convertit une méthode de paiement du format Serdipay au format Frontend
      *
      * @param string $method Méthode de paiement du Serdipay
@@ -193,7 +160,9 @@ class PackController extends Controller
                 'currency' => $request->currency,
                 'fees' => $request->fees,
                 'payment_details' => $request->payment_details ?? [],
-                'duration_months' => $request->duration_months
+                'duration_months' => $request->duration_months,
+                'session_id' => $request->session_id ?? null,
+                'transaction_id' => $request->transaction_id ?? null,
             ];
             
             DB::beginTransaction();
@@ -237,8 +206,6 @@ class PackController extends Controller
     {
         try {
             $user = null;
-            \Log::info("ici c'est la ligne 239 Pack Controller");
-            \Log::info($request->all());
             if (isset($request->user_id)) {
                 $user = User::findOrFail($request->user_id);
             }else {
@@ -257,20 +224,11 @@ class PackController extends Controller
             if ($request->payment_method === 'solifin-wallet') {
                 $userWallet = $user->wallet;
                 
-                if ($request->currency === "USD") {
-                    if (!$userWallet || $userWallet->balance_usd < $request->amount) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Solde insuffisant dans votre wallet'
-                        ], 400);
-                    }
-                }else {
-                    if (!$userWallet || $userWallet->balance_cdf < $request->amount) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Solde insuffisant dans votre wallet'
-                        ], 400);
-                    }
+                if (!$userWallet || $userWallet->available_balance < $request->amount) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Solde insuffisant dans votre wallet'
+                    ], 400);
                 }
             }
             
@@ -279,10 +237,11 @@ class PackController extends Controller
                 'payment_method' => $this->mapPaymentMethodToSerdiPay($request->payment_method),
                 'payment_type' => $request->payment_type,
                 'amount' => $request->amount,
-                'currency' => $request->currency,
                 'fees' => $request->fees,
                 'payment_details' => $request->payment_details ?? [],
-                'duration_months' => $request->duration_months
+                'duration_months' => $request->duration_months,
+                'session_id' => $request->session_id ?? null,
+                'transaction_id' => $request->transaction_id ?? null,
             ];
             
             DB::beginTransaction();
@@ -351,11 +310,13 @@ class PackController extends Controller
                 ->get()
                 ->map(function ($referral) use ($request, $pack) {
                     $commissions = Commission::where('user_id', $request->user()->id)->where('source_user_id', $referral->user_id)->where('pack_id', $pack->id)->where('status', "completed")->get();
-                    $commissionsByCurrency = $commissions->groupBy('currency');
+                    $commissionsByCurrency = $commissions;
                     
-                    $totalCommissionUSD = $commissionsByCurrency->get('USD', collect())->sum('amount');
-                    $totalCommissionCDF = $commissionsByCurrency->get('CDF', collect())->sum('amount');
+                    $totalCommissionUSD = $commissionsByCurrency->sum('amount');
+                    $totalCommissionCDF = $commissionsByCurrency->sum('amount');
                     $totalCommission = $commissions->sum('amount');
+
+                    \Log::info($totalCommission);
                     
                     return [
                         'id' => $referral->user->id ?? null,
@@ -387,11 +348,13 @@ class PackController extends Controller
                         ->map(function ($referral) use ($parent, $request, $pack) {
                             //calcul du total de commission générée par ce filleul pour cet utilisateur.
                             $commissions = Commission::where('user_id', $request->user()->id)->where('source_user_id', $referral->user_id)->where('pack_id', $pack->id)->where('status', "completed")->get();
-                            $commissionsByCurrency = $commissions->groupBy('currency');
+                            $commissionsByCurrency = $commissions;
                             
-                            $totalCommissionUSD = $commissionsByCurrency->get('USD', collect())->sum('amount');
-                            $totalCommissionCDF = $commissionsByCurrency->get('CDF', collect())->sum('amount');
+                            $totalCommissionUSD = $commissionsByCurrency->sum('amount');
+                            $totalCommissionCDF = $commissionsByCurrency->sum('amount');
                             $totalCommission = $commissions->sum('amount');
+
+                            \Log::info($totalCommission);
                             
                             return [
                                 'id' => $referral->user->id ?? null,

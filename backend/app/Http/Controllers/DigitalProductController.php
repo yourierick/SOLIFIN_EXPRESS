@@ -44,8 +44,8 @@ class DigitalProductController extends Controller
      */
     public function getApprovedProducts(Request $request)
     {
-        $query = DigitalProduct::where('statut', 'approuve')
-            ->where('etat', 'disponible')
+        $query = DigitalProduct::where('statut', 'approved')
+            ->where('etat', 'available')
             ->with('page.user');
 
         // Filtrer par type si spécifié
@@ -123,8 +123,8 @@ class DigitalProductController extends Controller
                 'devise' => $request->devise,
                 'image' => $imagePath,
                 'fichier' => $fichierPath,
-                'statut' => 'en_attente',
-                'etat' => 'disponible',
+                'statut' => 'pending',
+                'etat' => 'available',
                 'nombre_ventes' => 0,
             ]);
 
@@ -171,7 +171,7 @@ class DigitalProductController extends Controller
         $user = Auth::user();
         $isOwner = $user && $product->page->user_id === $user->id;
 
-        if ($product->statut !== 'approuve' && !$isOwner) {
+        if ($product->statut !== 'approved' && !$isOwner) {
             return response()->json(['message' => 'Produit non disponible'], 403);
         }
 
@@ -240,7 +240,7 @@ class DigitalProductController extends Controller
             $product->type = $request->type;
             $product->prix = $request->prix;
             $product->devise = $request->devise;
-            $product->statut = 'en_attente'; // Remettre en attente pour validation
+            $product->statut = 'pending'; // Remettre en attente pour validation
             $product->save();
 
             $product->image_url = $product->image ? asset("storage/" . $product->image) : null;
@@ -320,7 +320,7 @@ class DigitalProductController extends Controller
             }
 
             $product->update([
-                'etat' => $product->etat == 'disponible' ? 'termine' : 'disponible',
+                'etat' => $product->etat == 'available' ? 'unavailable' : 'available',
             ]);
 
             return response()->json([
@@ -355,10 +355,9 @@ class DigitalProductController extends Controller
 
             $productPrice = floatval($product->prix);
             $montant_a_payer = $request->montant_a_payer;
-            $devise = $request->devise;
             
             // Vérifier si le produit est approuvé et disponible
-            if ($product->statut !== 'approuve' || $product->etat !== 'disponible') {
+            if ($product->statut !== 'approved' || $product->etat !== 'available') {
                 return response()->json(['message' => 'Produit non disponible'], 403);
             }
 
@@ -367,7 +366,7 @@ class DigitalProductController extends Controller
             // Vérifier si l'utilisateur a déjà acheté ce produit
             $existingPurchase = DigitalProductPurchase::where('digital_product_id', $product->id)
                 ->where('user_id', $user->id)
-                ->where('statut', 'complete')
+                ->where('statut', 'completed')
                 ->first();
 
             if ($existingPurchase) {
@@ -396,11 +395,11 @@ class DigitalProductController extends Controller
             if (!$userWallet) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Wallet non trouvé'
+                    'message' => 'Portefeuille non trouvé'
                 ], 402);
             }
 
-            if ($userWallet->balance_usd < $totalAmount) {
+            if ($userWallet->available_balance < $totalAmount) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Solde insuffisant pour effectuer cet achat'
@@ -409,8 +408,6 @@ class DigitalProductController extends Controller
 
             DB::beginTransaction();
 
-            $devise = "USD";
-
             // Créer un achat en attente avec un identifiant de transaction unique
             $purchase = DigitalProductPurchase::create([
                 'digital_product_id' => $product->id,
@@ -418,9 +415,8 @@ class DigitalProductController extends Controller
                 'prix' => $productPrice,
                 'frais' => $fees,
                 'montant_total' => $totalAmount,
-                'devise' => $devise,
                 'transaction_id' => 'dp_' . uniqid(),
-                'statut' => 'en_cours',
+                'statut' => 'pending',
             ]);
 
             // Récupérer le vendeur
@@ -429,26 +425,25 @@ class DigitalProductController extends Controller
             $sellerWallet = $seller->wallet;
             
             if (!$sellerWallet) {
-                $sellerWallet = Wallet::create([
-                    'user_id' => $seller->id,
-                    'balance_usd' => 0,
-                    'balance_cdf' => 0,
-                    'total_earned_usd' => 0,
-                    'total_earned_cdf' => 0,
-                    'total_withdrawn_usd' => 0,
-                    'total_withdrawn_cdf' => 0,
-                ]);
+                //Créer le wallet du vendeur
+                $walletService = app(\App\Services\WalletService::class);
+                $sellerWallet = $walletService->createUserWallet($seller->id);
             }
             
             // Débiter le portefeuille de l'acheteur avec métadonnées détaillées
+            $description_acheteur = "Vous avez acheté le produit " . $product->titre . 'à ' . $seller->name;
             $userWallet->withdrawFunds(
                 $totalAmount, 
-                $devise,
-                "purchase", 
+                $fees,
+                0,
+                'internal',
+                "digital_product_purchase", 
                 "completed", 
+                $description_acheteur,
+                $user->id,
                 [
                     "produit" => $product->titre, 
-                    "montant" => $productPrice,
+                    "montant" => $productPrice . ' $',
                     "frais" => $fees . ' $',
                     "Vendeur" => $seller->name, 
                     "description" => "Vous avez acheté le produit numérique " . $product->titre . " à l'utilisateur " . $seller->name
@@ -456,69 +451,53 @@ class DigitalProductController extends Controller
             );
             
             // Créditer le portefeuille du vendeur avec métadonnées détaillées
+            $description_vendeur = "Vous avez vendu le produit " . $product->titre . 'à ' . $user->name;
             $sellerWallet->addFunds(
                 $productPrice, 
-                $devise,
+                0,
+                0,
                 "digital_product_sale", 
                 "completed", 
+                $description_vendeur,
+                $user->id,
                 [
                     "produit" => $product->titre, 
                     "montant" => $productPrice . ' $', 
                     "Acheteur" => $user->name, 
-                    "description" => "Vous avez vendu le produit numérique " . $product->titre . " à l'utilisateur " . $user->name
+                    "description" => "Vous avez vendu le produit " . $product->titre . " à l'utilisateur " . $user->name
                 ]
             );
             
             // Créditer le portefeuille système pour les frais
             $systemWallet = WalletSystem::first();
-            if (!$systemWallet) {
-                $systemWallet = WalletSystem::create([
-                    'balance_usd' => 0,
-                    'balance_cdf' => 0,
-                    'total_in_usd' => 0,
-                    'total_in_cdf' => 0,
-                    'total_out_usd' => 0,
-                    'total_out_cdf' => 0,
-                ]);
-            }
+            $system_description = "Vous avez reçu une commission de " . $fees . "$ pour la vente du produit " . $product->titre . " de l'utilisateur " . $seller->account_id . " à l'utilisateur " . $user->account_id;
+            $system_metadata = [
+                'Acheteur' => $user->name . ' / ' . $user->account_id,
+                'Vendeur' => $seller->name . ' / ' . $seller->account_id,
+                'Produit' => $product->titre,
+                'Prix du produit' => $product->prix . '$',
+                'Commission Solifin' => $fees . '$',
+            ];
+            $systemWallet->addProfits($fees, 'sale_commission', 'completed', $system_description, $user->id, $system_metadata);
             
-            // Créer une transaction cette opération dans le portefeuille système
-            $systemWallet->transactions()->create([
-                "wallet_system_id" => $systemWallet->id,
-                "mouvment" => 'in',
-                "type" => "digital_product_sale",
-                "amount" => $totalAmount,
-                "currency" => $devise,
-                "status" => "completed",
-                "metadata" => [
-                    "Produit" => "Produit numérique", 
-                    "Compte Acheteur" => $user->account_id,
-                    "Compte Vendeur" => $seller->account_id,
-                    "Méthode de paiement" => "Solifin Wallet",
-                    "Titre du produit" => $product->titre, 
-                    "Prix du produit" => $productPrice . " $", 
-                    "Commission solifin" => $fees . ' $',
-                ]
-            ]);
 
             // Mettre à jour le nombre de ventes
             $product->nombre_ventes += 1;
             $product->save();
 
             // Mettre à jour le statut de l'achat
-            $purchase->statut = 'complete';
+            $purchase->statut = 'completed';
             $purchase->save();
+
+            DB::commit();
 
             // Notifier le vendeur de la vente
             $seller->notify(new \App\Notifications\DigitalProductSold([
                 'product_id' => $product->id,
                 'product_title' => $product->titre,
                 'amount' => $productPrice,
-                'currency' => $devise,
                 'buyer_name' => $user->name
             ]));
-
-            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -556,7 +535,7 @@ class DigitalProductController extends Controller
         $product = $purchase->digitalProduct;
 
         // Vérifier que le produit existe et est disponible
-        if (!$product || $product->etat !== 'disponible') {
+        if (!$product || $product->etat !== 'available') {
             return response()->json(['message' => 'Ce produit n\'est plus disponible'], 404);
         }
 
@@ -593,7 +572,7 @@ class DigitalProductController extends Controller
         $user = Auth::user();
         
         $purchases = DigitalProductPurchase::where('user_id', $user->id)
-            ->where('statut', 'complete')
+            ->where('statut', 'completed')
             ->with(['digitalProduct' => function($query) {
                 $query->select('id', 'titre', 'description', 'prix', 'devise', 'type', 'image', 'fichier', 'page_id', 'created_at');
             }])

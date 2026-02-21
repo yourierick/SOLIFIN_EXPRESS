@@ -52,7 +52,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => env('APP_URL', 'solifinexpress.com'),
 
     /*
     |--------------------------------------------------------------------------
@@ -134,9 +134,9 @@ return [
     |
     */
 
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+    'frontend_url' => env('FRONTEND_URL', 'https://solifinexpress.com'),
     'serdipay_email' => env('SERDIPAY_EMAIL'),
-    'serdipay_password' => env('SERDIPAY_PASSWORD'),
+    'serdipay_password' => env('SERDIPAY_PASSWORD'), 
     'serdipay_api_id' => env('SERDIPAY_API_ID'),
     'serdipay_api_password' => env('SERDIPAY_API_PASSWORD'),
     'serdipay_merchant_code' => env('SERDIPAY_MERCHANT_CODE'),

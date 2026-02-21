@@ -14,6 +14,7 @@ const PeriodFilter = ({ period, setPeriod }) => {
     { key: 'week', label: 'Semaine' },
     { key: 'month', label: 'Mois' },
     { key: 'year', label: 'Année' },
+    { key: 'all', label: 'Tout' },
   ];
 
   return (

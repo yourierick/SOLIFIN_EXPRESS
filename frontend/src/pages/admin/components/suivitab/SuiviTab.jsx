@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -18,6 +18,10 @@ import {
   Chip,
   Avatar,
   Divider,
+  Card,
+  CardContent,
+  CircularProgress,
+  Grid,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -28,6 +32,9 @@ import {
   TrendingUp as TrendingUpIcon,
   Assessment as AssessmentIcon,
   Speed as SpeedIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon,
+  Lock as LockIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import {
   SuiviAbonnementGestion,
@@ -39,8 +46,8 @@ import SuiviAbonnement from './SuiviAbonnement';
 import SuiviFinancier from './SuiviFinancier';
 import GradeHistory from './GradeHistory';
 import PeriodFilter from './PeriodFilter';
-import { useCurrency } from "../../../../contexts/CurrencyContext";
 import { useTheme } from "../../../../contexts/ThemeContext";
+import axios from 'axios';
 
 const SuiviTab = () => {
   const { isDarkMode } = useTheme();
@@ -50,8 +57,46 @@ const SuiviTab = () => {
   const [subscriptionView, setSubscriptionView] = useState('abonnement-gestion');
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
-  const [period, setPeriod] = useState('month');
-  const { selectedCurrency, isCDFEnabled, toggleCurrency } = useCurrency();
+  const [period, setPeriod] = useState('all');
+
+  // États pour les statistiques du solde
+  const [walletStatistics, setWalletStatistics] = useState({
+    wallets: {
+      total_balance: 0,
+      availableBalance: 0,
+      frozenBalance: 0,
+      total_in: 0,
+      total_out: 0,
+    }
+  });
+  const [walletLoading, setWalletLoading] = useState(false);
+
+  // Fonction pour récupérer les statistiques du solde
+  const fetchWalletStatistics = async () => {
+    setWalletLoading(true);
+    try {
+      const response = await axios.get(`/api/admin/tableau-de-suivi/wallet-statistics`);
+      setWalletStatistics(response.data);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques du solde:', error);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  // Effet pour charger les statistiques du solde quand la période change
+  useEffect(() => {
+    fetchWalletStatistics();
+  }, [period]);
+
+  // Fonction pour formater les montants
+  const formatAmount = (amount) => {
+    const numAmount = parseFloat(amount) || 0;
+    return numAmount.toLocaleString('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + ' $';
+  };
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -94,9 +139,6 @@ const SuiviTab = () => {
             <SuiviAbonnement
               period={period} 
               setPeriod={setPeriod} 
-              selectedCurrency={selectedCurrency}
-              isCDFEnabled={isCDFEnabled}
-              toggleCurrency={toggleCurrency}
             />
             
             {/* Menu hamburger pour le suivi d'abonnement - responsive */}
@@ -579,7 +621,7 @@ const SuiviTab = () => {
               fontWeight: 400
             }}
           >
-            Suivi complet des abonnements, finances et performances de la plateforme
+            Suivi complet des abonnements, finances et performances des utilisateurs
           </Typography>
         </Box>
         
@@ -592,6 +634,291 @@ const SuiviTab = () => {
           <PeriodFilter period={period} setPeriod={setPeriod} />
         </Box>
       </Box>
+
+      {/* Cartes des soldes globaux */}
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: { xs: 1.5, sm: 2, md: 3 } }}>
+        <Grid item xs={12} md={4}>
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: { xs: 2, sm: 3 },
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              height: { xs: 100, sm: 110, md: 120 },
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              }
+            }}
+          >
+            <CardContent sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+              p: { xs: 1.5, sm: 2 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1.5, sm: 2 },
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#3b82f6',
+                  width: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 }
+                }}
+              >
+                <WalletIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                  <Typography variant="body2" sx={{ 
+                    color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                    fontWeight: 500,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                  }}>
+                    Solde Total
+                  </Typography>
+                  <Chip 
+                    icon={<TrendingUpIcon sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                    label="Live" 
+                    size="small" 
+                    color="default" 
+                    variant="outlined"
+                    sx={{ 
+                      height: { xs: 14, sm: 16 }, 
+                      fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                      color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                    }}
+                  />
+                </Box>
+                <Typography variant="h4" sx={{ 
+                  color: '#3b82f6', 
+                  fontWeight: 700, 
+                  lineHeight: 1.2,
+                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                }}>
+                  {formatAmount(walletStatistics?.total_balance || 0)}
+                </Typography>
+                <Typography variant="caption" sx={{ 
+                  color: '#6b7280', 
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                  lineHeight: 1.2 
+                }}>
+                  <Box component="span" sx={{ 
+                    color: '#03a703ff', 
+                    fontWeight: 600, 
+                    display: 'block' 
+                  }}>
+                    Entrée: {formatAmount(walletStatistics?.total_in || 0)}
+                  </Box>
+                  <Box component="span" sx={{ 
+                    color: '#f16046ff', 
+                    fontWeight: 400, 
+                    display: 'block' 
+                  }}>
+                    Retiré: {formatAmount(walletStatistics?.total_out || 0)}
+                  </Box>
+                </Typography>
+              </Box>
+              {walletLoading && (
+                <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: { xs: 2, sm: 3 },
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              height: { xs: 100, sm: 110, md: 120 },
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              }
+            }}
+          >
+            <CardContent sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+              p: { xs: 1.5, sm: 2 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1.5, sm: 2 },
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#10b981',
+                  width: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 }
+                }}
+              >
+                <AccountBalanceWalletIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                  <Typography variant="body2" sx={{ 
+                    color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                    fontWeight: 500,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                  }}>
+                    Solde Disponible
+                  </Typography>
+                  <Chip 
+                    icon={<CheckIcon sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                    label="Actif" 
+                    size="small" 
+                    color="default" 
+                    variant="outlined"
+                    sx={{ 
+                      height: { xs: 14, sm: 16 }, 
+                      fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                      color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                    }}
+                  />
+                </Box>
+                <Typography variant="h4" sx={{ 
+                  color: '#10b981', 
+                  fontWeight: 700, 
+                  lineHeight: 1.2,
+                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                }}>
+                  {formatAmount(walletStatistics?.availableBalance || 0)}
+                </Typography>
+                <Typography variant="caption" sx={{ 
+                  color: '#6b7280', 
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                  lineHeight: 1.2 
+                }}>
+                  <Box component="span" sx={{ 
+                    color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                    fontWeight: 600, 
+                    display: 'block' 
+                  }}>
+                    Fonds utilisables
+                  </Box>
+                  <Box component="span" sx={{ 
+                    color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                    fontWeight: 400, 
+                    display: 'block' 
+                  }}>
+                    Non gelés
+                  </Box>
+                </Typography>
+              </Box>
+              {walletLoading && (
+                <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card 
+            sx={{ 
+              background: isDarkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+              borderRadius: { xs: 2, sm: 3 },
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              position: 'relative',
+              transition: 'all 0.3s ease',
+              height: { xs: 100, sm: 110, md: 120 },
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              }
+            }}
+          >
+            <CardContent sx={{ 
+              backgroundColor: isDarkMode ? 'transparent' : '#f9fafb',
+              p: { xs: 1.5, sm: 2 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1.5, sm: 2 },
+              flex: 1
+            }}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: '#ef4444',
+                  width: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 }
+                }}
+              >
+                <LockIcon sx={{ fontSize: { xs: 16, sm: 18 }, color: 'white' }} />
+              </Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, sm: 1 } }}>
+                  <Typography variant="body2" sx={{ 
+                    color: isDarkMode ? '#d1d5db' : '#4b5563', 
+                    fontWeight: 500,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                  }}>
+                    Solde Gelé
+                  </Typography>
+                  <Chip 
+                    icon={<LockIcon sx={{ fontSize: { xs: 10, sm: 12 } }} />}
+                    label="Bloqué" 
+                    size="small" 
+                    color="default" 
+                    variant="outlined"
+                    sx={{ 
+                      height: { xs: 14, sm: 16 }, 
+                      fontSize: { xs: '0.55rem', sm: '0.6rem' }, 
+                      color: isDarkMode ? '#9ca3af' : '#6b7280' 
+                    }}
+                  />
+                </Box>
+                <Typography variant="h4" sx={{ 
+                  color: '#ef4444', 
+                  fontWeight: 700, 
+                  lineHeight: 1.2,
+                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' }
+                }}>
+                  {formatAmount(walletStatistics?.frozenBalance || 0)}
+                </Typography>
+                <Typography variant="caption" sx={{ 
+                  color: '#6b7280', 
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' }, 
+                  lineHeight: 1.2 
+                }}>
+                  <Box component="span" sx={{ 
+                    color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                    fontWeight: 600, 
+                    display: 'block' 
+                  }}>
+                    Fonds bloqués
+                  </Box>
+                  <Box component="span" sx={{ 
+                    color: isDarkMode ? '#9ca3af' : '#6b7280', 
+                    fontWeight: 400, 
+                    display: 'block' 
+                  }}>
+                    En attente de déblocage
+                  </Box>
+                </Typography>
+              </Box>
+              {walletLoading && (
+                <CircularProgress size={18} sx={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }} />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       <Paper
         sx={{

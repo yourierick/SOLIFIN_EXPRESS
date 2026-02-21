@@ -14,7 +14,6 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
 
     protected $success;
     protected $totalAmount;
-    protected $currency;
     protected $successfulCount;
     protected $failedCount;
     protected $failedTransfers;
@@ -24,17 +23,15 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
      *
      * @param bool $success Succès ou échec du transfert
      * @param float $totalAmount Montant total transféré
-     * @param string $currency Devise (USD, CDF)
      * @param int $successfulCount Nombre de transferts réussis
      * @param int $failedCount Nombre de transferts échoués
      * @param array $failedTransfers Liste des transferts échoués
      * @return void
      */
-    public function __construct($success, $totalAmount, $currency, $successfulCount, $failedCount, $failedTransfers = [])
+    public function __construct($success, $totalAmount, $successfulCount, $failedCount, $failedTransfers = [])
     {
         $this->success = $success;
         $this->totalAmount = $totalAmount;
-        $this->currency = $currency;
         $this->successfulCount = $successfulCount;
         $this->failedCount = $failedCount;
         $this->failedTransfers = $failedTransfers;
@@ -59,17 +56,16 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
      */
     public function toArray($notifiable)
     {
-        $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         $status = $this->success ? 'réussi' : 'échoué';
         $type = $this->success ? 'success' : 'error';
         
         $data = [
             'type' => $type,
             'icon' => $this->success ? 'info' : 'error',
-            'title' => "Transfert multiple {$status}",
+            'title' => "Transfert {$status}",
             'message' => $this->success 
-                ? "Votre transfert multiple de {$this->totalAmount} {$currencySymbol} a été effectué avec succès ({$this->successfulCount} réussis, {$this->failedCount} échoués)."
-                : "Votre transfert multiple a rencontré des problèmes ({$this->successfulCount} réussis, {$this->failedCount} échoués).",
+                ? "Votre transfert de {$this->totalAmount} $ a été effectué avec succès ({$this->successfulCount} réussis, {$this->failedCount} échoués)."
+                : "Votre transfert a rencontré des problèmes ({$this->successfulCount} réussis, {$this->failedCount} échoués).",
             'link' => '/dashboard/finances',
         ];
         
@@ -84,17 +80,16 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
      */
     public function toBroadcast($notifiable)
     {
-        $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         $status = $this->success ? 'réussi' : 'échoué';
         $type = $this->success ? 'success' : 'error';
         
         return new BroadcastMessage([
             'type' => $type,
             'icon' => $this->success ? 'exclamation-circle' : 'exclamation-triangle',
-            'title' => "Transfert multiple {$status}",
+            'title' => "Transfert {$status}",
             'message' => $this->success 
-                ? "Votre transfert multiple de {$this->totalAmount} {$currencySymbol} a été effectué avec succès."
-                : "Votre transfert multiple a rencontré des problèmes.",
+                ? "Votre transfert de {$this->totalAmount} $ a été effectué avec succès."
+                : "Votre transfert a rencontré des problèmes.",
             'link' => '/wallet'
         ]);
     }
@@ -107,17 +102,16 @@ class MultipleTransferStatusNotification extends Notification implements ShouldQ
      */
     public function toMail($notifiable)
     {
-        $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         $status = $this->success ? 'réussi' : 'échoué';
         
         $mailMessage = (new MailMessage)
-            ->subject("Transfert multiple {$status}")
+            ->subject("Transfert {$status}")
             ->greeting('Bonjour ' . $notifiable->name . ',')
-            ->line("Votre transfert multiple de fonds a {$status}.");
+            ->line("Votre transfert de fonds a {$status}.");
 
         if ($this->success) {
             $mailMessage
-                ->line("Montant total transféré : {$this->totalAmount} {$currencySymbol}")
+                ->line("Montant total transféré : {$this->totalAmount} $")
                 ->line("Nombre de transferts réussis : {$this->successfulCount}")
                 ->line("Nombre de transferts échoués : {$this->failedCount}");
         } else {

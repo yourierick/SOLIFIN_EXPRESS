@@ -18,9 +18,8 @@ return new class extends Migration
             $table->decimal('prix', 10, 2);
             $table->decimal('frais', 10, 2)->nullable();
             $table->decimal('montant_total', 10, 2)->nullable();
-            $table->string('devise', 10)->default('USD');
             $table->string('transaction_id')->nullable();
-            $table->enum('statut', ['en_cours', 'complete', 'annule'])->default('en_cours');
+            $table->enum('statut', ['pending', 'completed', 'cancelled'])->default('pending');
             $table->timestamps();
         });
     }

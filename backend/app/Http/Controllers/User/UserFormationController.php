@@ -399,7 +399,6 @@ class UserFormationController extends Controller
             'thumbnail' => 'nullable|image|max:2048', // Max 2MB
             'is_paid' => 'required',
             'price' => 'required_if:is_paid,true|nullable|numeric|min:0',
-            'currency' => 'required_if:is_paid,true|nullable|string|size:3',
         ]);
         
         if ($validator->fails()) {
@@ -583,7 +582,6 @@ class UserFormationController extends Controller
 
             $formationPrice = floatval($formation->price);
             $montant_a_payer = $request->montant_a_payer;
-            $devise = "USD";
 
 
             $user = Auth::user();
@@ -626,7 +624,7 @@ class UserFormationController extends Controller
 
             $totalAmount = $formationPrice + $fees;
 
-            if ($walletPurchaser->balance_usd < $totalAmount) {
+            if ($walletPurchaser->available_balance < $totalAmount) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vous n\'avez pas assez d\'argent sur votre portefeuille pour acheter cette formation'
@@ -635,52 +633,67 @@ class UserFormationController extends Controller
             
 
             DB::beginTransaction();
-
-            $walletPurchaser->withdrawFunds($totalAmount, $devise, "purchase", "completed", ["formation" => $formation->title, "montant"=>$formationPrice, "Vendeur"=>$formation->creator->name, "description"=>"Vous avez acheté la formation titrée " . $formation->title . "à l'utilisateur " . $formation->creator->name]);
-            $walletSeller->addFunds($formationPrice, $devise, "digital_product_sale", "completed", ["formation" => $formation->title, "montant"=>$formationPrice, "Acheteur"=>$user->name, "description"=>"Vous avez vendu la formation titrée " . $formation->title ." à l'utilisateur " . $user->name]);
-            
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create([
-                    'balance_usd' => 0,
-                    'balance_cdf' => 0,
-                    'total_in_usd' => 0,
-                    'total_in_cdf' => 0,
-                    'total_out_usd' => 0,
-                    'total_out_cdf' => 0,
-                ]);
-            }
-
-            $walletsystem->transactions()->create([
-                "wallet_system_id" => $walletsystem->id,
-                "mouvment" => 'in',
-                "type" => "digital_product_sale",
-                "amount" => $totalAmount,
-                "currency" => $devise,
-                "status" => "completed",
-                "metadata" => [ 
-                    "Produit" => "Formation", 
-                    "Compte Acheteur" => $user->account_id,
-                    "Compte Vendeur" => $formation->creator->account_id,
-                    "Formation" => $formation->title,
-                    "Méthode de paiement" => "Solifin Wallet", 
-                    "Prix de la formation" => $formationPrice . " $", 
-                    "Total payé" => $totalAmount . " $",
-                    "Commission solifin" => $fees . " $"
-                ]
-            ]);
             
             // Créer l'achat
             $purchase = FormationPurchase::create([
                 'user_id' => $user->id,
                 'formation_id' => $formation->id,
                 'amount_paid' => $formationPrice,
-                'currency' => $devise,
                 'payment_method' => "SOLIFIN WALLET",
                 'payment_status' => 'completed',
                 'transaction_id' => 'sim_' . uniqid(),
                 "purchased_at" => now(),
             ]);
+
+            // Débiter le portefeuille de l'acheteur avec métadonnées détaillées
+            $description_acheteur = "Vous avez acheté la formation " . $formation->title . 'à ' . $formation->creator->name;
+            $walletPurchaser->withdrawFunds(
+                $totalAmount, 
+                $fees,
+                0,
+                'internal',
+                "digital_product_purchase", 
+                "completed", 
+                $description_acheteur,
+                $user->id,
+                [
+                    "Produit" => $formation->title, 
+                    "Montant" => $formationPrice . ' $',
+                    "Frais" => $fees . ' $',
+                    "Vendeur" => $formation->creator->name, 
+                    "Déscription" => "Vous avez acheté la formation " . $formation->title . " à l'utilisateur " . $formation->creator->name
+                ]
+            );
+            
+            // Créditer le portefeuille du vendeur avec métadonnées détaillées
+            $description_vendeur = "Vous avez vendu la formation " . $formation->title . 'à ' . $user->name;
+            $walletSeller->addFunds(
+                $formationPrice, 
+                0,
+                0,
+                "digital_product_sale", 
+                "completed", 
+                $description_vendeur,
+                $user->id,
+                [
+                    "Produit" => $formation->title, 
+                    "Montant" => $formationPrice . ' $', 
+                    "Acheteur" => $user->name, 
+                    "Déscription" => "Vous avez vendu le produit " . $formation->title . " à l'utilisateur " . $user->name
+                ]
+            );
+            
+            // Créditer le portefeuille système pour les frais
+            $systemWallet = WalletSystem::first();
+            $system_description = "Vous avez reçu une commission de " . $fees . "$ pour la vente de la formation " . $formation->title . " de l'utilisateur " . $formation->creator->account_id . " à l'utilisateur " . $user->account_id;
+            $system_metadata = [
+                'Acheteur' => $user->name . ' / ' . $user->account_id,
+                'Vendeur' => $formation->creator->name . ' / ' . $formation->creator->account_id,
+                'Produit' => $formation->title,
+                'Prix du produit' => $formationPrice . '$',
+                'Commission Solifin' => $fees . '$',
+            ];
+            $systemWallet->addProfits($fees, 'sale_commission', 'completed', $system_description, $user->id, $system_metadata);
             
             // Créer ou mettre à jour la progression de l'utilisateur pour cette formation
             UserFormationProgress::firstOrCreate(
@@ -694,6 +707,14 @@ class UserFormationController extends Controller
             );
 
             DB::commit();
+
+            // Notifier le vendeur de la vente
+            $formation->creator->notify(new \App\Notifications\DigitalProductSold([
+                'product_id' => $formation->id,
+                'product_title' => $formation->title,
+                'amount' => $formationPrice,
+                'buyer_name' => $user->name
+            ]));
             
             return response()->json([
                 'success' => true,

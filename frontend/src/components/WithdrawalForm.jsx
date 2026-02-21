@@ -1,7 +1,6 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../contexts/ThemeContext";
-import { useCurrency } from "../contexts/CurrencyContext";
 import axios from "../utils/axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -28,7 +27,7 @@ import moovIcon from "../assets/icons-mobil-money/moov.png";
 import visaIcon from "../assets/icons-mobil-money/visa.png";
 import mastercardIcon from "../assets/icons-mobil-money/mastercard.png";
 import amexIcon from "../assets/icons-mobil-money/americanexpress.png";
-import { CURRENCIES, PAYMENT_TYPES, PAYMENT_METHODS } from "../config";
+import { PAYMENT_TYPES, PAYMENT_METHODS } from "../config";
 import { countries } from "../data/countries";
 import CountryCodeSelector from "./CountryCodeSelector";
 
@@ -290,14 +289,11 @@ const paymentMethodsMap = {
 
 export default function WithdrawalForm({
   walletId,
-  walletType,
-  balance_usd,
-  balance_cdf,
+  available_balance,
   onClose,
   onSuccess,
 }) {
   const { isDarkMode } = useTheme();
-  const { isCDFEnabled, canUseCDF, selectedCurrency: globalCurrency } = useCurrency();
   const [selectedType, setSelectedType] = useState(null);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
@@ -305,21 +301,17 @@ export default function WithdrawalForm({
     amount: "",
     accountNumber: "",
     accountName: "",
+    expiryDate: "",
     phoneNumber: "",
     phoneCode: "+243", // Indicatif téléphonique par défaut
     country: "CD", // Pays par défaut: République Démocratique du Congo
     // fullName: "", // Nouveau champ pour transfert d'argent
     // recipientCountry: "", // Nouveau champ pour transfert d'argent
     password: "", // Mot de passe pour confirmer le retrait
-    otpCode: "", // Champ OTP conservé pour compatibilité mais non utilisé
-    currency: "", // Devise à sélectionner: USD ou CDF
   });
-  const [selectedCurrency, setSelectedCurrency] = useState(""); // État pour la devise sélectionnée
+
   const [walletData, setWalletData] = useState({
-    balance_usd: parseFloat(balance_usd) || 0,
-    balance_cdf: parseFloat(balance_cdf) || 0,
-    total_earned: 0, // Non utilisé dans ce composant
-    total_withdrawn: 0, // Non utilisé dans ce composant
+    available_balance: parseFloat(available_balance) || 0,
   });
   const [withdrawalFee, setWithdrawalFee] = useState(0);
   const [feePercentage, setFeePercentage] = useState(0);
@@ -332,21 +324,32 @@ export default function WithdrawalForm({
   const [feesError, setFeesError] = useState(false);
   const [formIsValid, setFormIsValid] = useState(false);
 
-  // Ces variables sont définies avec des valeurs par défaut pour l'authentification par mot de passe uniquement
-  const [showOtpField, setShowOtpField] = useState(false);
-  const [usePasswordInsteadOfOtp, setUsePasswordInsteadOfOtp] = useState(true);
-  const formRef = useRef(null);
-
   // Fonction pour formater le numéro de carte de crédit (ajouter des espaces tous les 4 chiffres)
   const formatCreditCardNumber = (value) => {
-    // Supprimer tous les caractères non numériques
-    const v = value.replace(/\D/g, "");
+    // Supprimer tous les caractères non numériques et limiter à 16 chiffres
+    const v = value.replace(/\D/g, "").slice(0, 16);
 
     // Ajouter un espace tous les 4 chiffres
     const matches = v.match(/\d{1,4}/g);
     const formatted = matches ? matches.join(" ") : "";
 
     return formatted;
+  };
+
+  // Fonction pour formater la date d'expiration (MM/AA)
+  const formatExpiryDate = (value) => {
+    // Supprimer tous les caractères non numériques
+    const v = value.replace(/\D/g, "");
+
+    // Limiter à 4 caractères
+    const trimmed = v.slice(0, 4);
+
+    // Ajouter un slash après 2 chiffres
+    if (trimmed.length > 2) {
+      return trimmed.slice(0, 2) + "/" + trimmed.slice(2);
+    }
+
+    return trimmed;
   };
 
   // Fonction pour obtenir l'emoji du drapeau à partir du code pays
@@ -404,19 +407,10 @@ export default function WithdrawalForm({
   // Mettre à jour walletData si les props changent
   useEffect(() => {
     setWalletData({
-      balance_usd: parseFloat(balance_usd) || 0,
-      balance_cdf: parseFloat(balance_cdf) || 0,
-      total_earned: 0, // Non utilisé dans ce composant
-      total_withdrawn: 0, // Non utilisé dans ce composant
+      available_balance: parseFloat(available_balance) || 0,
     });
-  }, [balance_usd, balance_cdf]);
+  }, [available_balance]);
 
-  // Initialiser la devise selon le contexte global
-  useEffect(() => {
-    const initialCurrency = canUseCDF() ? globalCurrency : "USD";
-    setSelectedCurrency(initialCurrency);
-    setFormData(prev => ({ ...prev, currency: initialCurrency }));
-  }, [canUseCDF, globalCurrency]);
 
   // Récupérer les frais de retrait et commission
   useEffect(() => {
@@ -542,8 +536,6 @@ export default function WithdrawalForm({
     }
   }, [formData.amount, feePercentage, referralCommissionPercentage]);
 
-  // Fonction handleSendOtp supprimée - Authentification par mot de passe uniquement
-
   // Fonction pour valider le formulaire
   const isFormValid = () => {
     // Vérifier si le montant est valide
@@ -558,13 +550,8 @@ export default function WithdrawalForm({
     // Vérifier si le montant total ne dépasse pas le solde disponible
     const totalAmount =
       parseFloat(formData.amount) + withdrawalFee + referralCommission;
-    if (
-      totalAmount >
-      (selectedCurrency === "USD"
-        ? walletData?.balance_usd
-        : walletData?.balance_cdf)
-    ) {
-      return false;
+    if (totalAmount > walletData?.available_balance) {
+       return false;
     }
 
     // Vérifier si une méthode de paiement a été sélectionnée
@@ -580,27 +567,8 @@ export default function WithdrawalForm({
       ) {
         return false;
       }
-    } else if (selectedType === PAYMENT_TYPES.BANK_TRANSFER) {
-      if (
-        !formData.accountNumber ||
-        !formData.accountName ||
-        !formData.bankName
-      ) {
-        return false;
-      }
     } else if (selectedType === PAYMENT_TYPES.CREDIT_CARD) {
-      if (!formData.accountNumber || !formData.accountName) {
-        return false;
-      }
-    } else if (selectedType === PAYMENT_TYPES.MONEY_TRANSFER) {
-      if (
-        !formData.fullName ||
-        !formData.recipientCity ||
-        !formData.idType ||
-        !formData.idNumber ||
-        !formData.phoneNumber ||
-        !validatePhoneNumber(formData.phoneNumber, formData.country)
-      ) {
+      if (!formData.accountNumber || !formData.accountName || !formData.expiryDate) {
         return false;
       }
     }
@@ -631,11 +599,6 @@ export default function WithdrawalForm({
     return true;
   };
 
-  // Cette fonction n'est plus utilisée - Authentification par mot de passe uniquement
-  const isOtpEnabled = () => {
-    return false; // Désactivée car nous n'utilisons plus l'OTP
-  };
-
   // Effet pour mettre à jour la validité du formulaire
   useEffect(() => {
     setFormIsValid(isFormValid());
@@ -657,7 +620,6 @@ export default function WithdrawalForm({
         amount: parseFloat(formData.amount),
         payment_method: selectedPaymentOption,
         payment_type: selectedType,
-        currency: formData.currency,
         // Résumé de la transaction
         withdrawal_fee: withdrawalFee,
         referral_commission: referralCommission,
@@ -678,10 +640,12 @@ export default function WithdrawalForm({
       } else if (selectedType === PAYMENT_TYPES.CREDIT_CARD) {
         requestData.account_number = formData.accountNumber;
         requestData.account_name = formData.accountName;
+        requestData.expiry_date = formData.expiryDate;
         requestData.country = formData.country; // Ajouter le pays sélectionné
         requestData.payment_details = {
           account_number: formData.accountNumber,
           account_name: formData.accountName,
+          expiry_date: formData.expiryDate,
           country: formData.country,
         };
       }
@@ -861,8 +825,7 @@ export default function WithdrawalForm({
                     isDarkMode ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
-                  Retirez des fonds de votre portefeuille{" "}
-                  {walletType === "main" ? "principal" : "secondaire"}
+                  Retirez des fonds de votre portefeuille
                 </p>
                 <div
                   className={`mt-2 p-3 rounded-md ${
@@ -884,11 +847,7 @@ export default function WithdrawalForm({
                         isDarkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      {selectedCurrency === "USD"
-                        ? `${walletData?.balance_usd?.toFixed(2) || "0.00"} $`
-                        : selectedCurrency === "CDF"
-                        ? `${walletData?.balance_cdf?.toFixed(2) || "0.00"} FC`
-                        : "Sélectionnez une devise"}
+                      {walletData?.available_balance?.toFixed(2) || "0.00"} $
                     </span>
                   </div>
                 </div>
@@ -911,57 +870,24 @@ export default function WithdrawalForm({
                   <div className="grid gap-4 grid-cols-1">
                     {/* Portefeuille automatiquement sélectionné */}
                     <div
-                      className={`p-4 rounded-xl border-2 ${
-                        selectedCurrency === "USD"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-green-500 bg-green-50 dark:bg-green-900/20"
-                      }`}
+                      className={`p-4 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20`}
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div
-                          className={`p-2 rounded-lg bg-gradient-to-br ${
-                            selectedCurrency === "USD"
-                              ? "from-blue-500 to-blue-600"
-                              : "from-green-500 to-green-600"
-                          }`}
+                          className={`p-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600`}
                         >
-                          {selectedCurrency === "USD" ? (
-                            <CurrencyDollarIcon className="h-5 w-5 text-white" />
-                          ) : (
-                            <BanknotesIcon className="h-5 w-5 text-white" />
-                          )}
+                          <CurrencyDollarIcon className="h-5 w-5 text-white" />
                         </div>
                         <h5
-                          className={`text-sm font-semibold ${
-                            selectedCurrency === "USD"
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-green-600 dark:text-green-400"
-                          }`}
+                          className={`text-sm font-semibold text-blue-600 dark:text-blue-400`}
                         >
-                          {selectedCurrency === "USD"
-                            ? "Portefeuille Dollars Américains"
-                            : "Portefeuille Francs Congolais"}
+                          Fonds disponibles dans votre portefeuille
                         </h5>
                       </div>
                       <p
-                        className={`text-xl font-bold ${
-                          selectedCurrency === "USD"
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-green-600 dark:text-green-400"
-                        }`}
+                        className={`text-xl font-bold text-blue-600 dark:text-blue-400`}
                       >
-                        {selectedCurrency === "USD"
-                          ? `${walletData?.balance_usd?.toFixed(2) || "0.00"} $`
-                          : `${walletData?.balance_cdf?.toFixed(2) || "0.00"} FC`}
-                      </p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        {selectedCurrency === "USD"
-                          ? "Devise sélectionnée automatiquement (USD)"
-                          : "Devise sélectionnée automatiquement (CDF)"}
+                        {walletData?.available_balance?.toFixed(2) || "0.00"} $
                       </p>
                     </div>
                   </div>
@@ -969,9 +895,7 @@ export default function WithdrawalForm({
 
                 {/* Sélection de la méthode de paiement */}
                 <div
-                  className={`mb-6 slide-in ${
-                    !selectedCurrency ? "opacity-50 pointer-events-none" : ""
-                  }`}
+                  className={`mb-6 slide-in`}
                 >
                   <h4
                     className={`text-sm font-semibold uppercase tracking-wider mb-3 ${
@@ -986,9 +910,7 @@ export default function WithdrawalForm({
                 {/* Options de paiement spécifiques */}
                 {selectedMethod && selectedMethod.options && (
                   <div
-                    className={`mb-6 slide-in ${
-                      !selectedCurrency ? "opacity-50 pointer-events-none" : ""
-                    }`}
+                    className={`mb-6 slide-in`}
                   >
                     <h4
                       className={`text-sm font-semibold uppercase tracking-wider mb-3 ${
@@ -1055,9 +977,7 @@ export default function WithdrawalForm({
                 {/* Sélection du pays - affiché uniquement si le type de paiement n'est pas mobile-money */}
                 {selectedType !== PAYMENT_TYPES.MOBILE_MONEY && (
                   <div
-                    className={`mb-4 ${
-                      !selectedCurrency ? "opacity-50 pointer-events-none" : ""
-                    }`}
+                    className={`mb-4`}
                   >
                     <label className="input-label dark:text-gray-200">
                       Pays <span className="text-red-500">*</span>
@@ -1115,9 +1035,7 @@ export default function WithdrawalForm({
                 {/* Champs du formulaire */}
                 {selectedType && (
                   <div
-                    className={`mb-6 slide-in ${
-                      !selectedCurrency ? "opacity-50 pointer-events-none" : ""
-                    }`}
+                    className={`mb-6 slide-in`}
                   >
                     {selectedType === PAYMENT_TYPES.MOBILE_MONEY && (
                       <div>
@@ -1211,6 +1129,30 @@ export default function WithdrawalForm({
                             required
                           />
                         </div>
+                        <div className="mb-4">
+                          <label className="input-label dark:text-gray-200">
+                            Date d'expiration{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="expiryDate"
+                            value={formatExpiryDate(formData.expiryDate)}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                expiryDate: e.target.value.replace(
+                                  /\D/g,
+                                  ""
+                                ).slice(0, 4),
+                              })
+                            }
+                            placeholder="MM/AA"
+                            className="input-field"
+                            maxLength="5"
+                            required
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -1220,7 +1162,7 @@ export default function WithdrawalForm({
                       </label>
                       <div className="flex items-center">
                         <span className="text-gray-500 dark:text-gray-400 mr-2">
-                          {selectedCurrency === "USD" ? "$" : "FC"}
+                          $
                         </span>
                         <input
                           type="number"
@@ -1236,21 +1178,14 @@ export default function WithdrawalForm({
                         />
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Solde disponible:{" "}
-                        {selectedCurrency === "USD"
-                          ? `${walletData?.balance_usd?.toFixed(2) || "0.00"} $`
-                          : `${
-                              walletData?.balance_cdf?.toFixed(2) || "0.00"
-                            } FC`}
+                        Solde disponible:{" "} {walletData?.available_balance?.toFixed(2) || "0.00"} $
                       </p>
                       {formData.amount &&
                         parseFloat(formData.amount) > 0 &&
                         parseFloat(formData.amount) +
                           withdrawalFee +
                           referralCommission >
-                          (selectedCurrency === "USD"
-                            ? walletData?.balance_usd
-                            : walletData?.balance_cdf) && (
+                          walletData?.available_balance && (
                           <p className="text-xs text-red-500 font-medium mt-1 animate-pulse">
                             Solde insuffisant. Le montant total (montant + frais
                             + commission) dépasse votre solde disponible.
@@ -1336,7 +1271,7 @@ export default function WithdrawalForm({
                                 }`}
                               >
                                 {parseFloat(formData.amount).toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -1353,7 +1288,7 @@ export default function WithdrawalForm({
                                 }`}
                               >
                                 {withdrawalFee.toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -1371,7 +1306,7 @@ export default function WithdrawalForm({
                                 }`}
                               >
                                 {referralCommission.toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
                             <div className="border-t border-dashed my-2"></div>
@@ -1393,7 +1328,7 @@ export default function WithdrawalForm({
                                   withdrawalFee +
                                   referralCommission
                                 ).toFixed(2)}{" "}
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </div>
 
@@ -1428,7 +1363,7 @@ export default function WithdrawalForm({
                                     {referralCommissionPercentage}% du montant
                                     demandé, soit{" "}
                                     {referralCommission.toFixed(2)}{" "}
-                                    {selectedCurrency === "USD" ? "$" : "FC"}
+                                    $
                                   </p>
                                 </div>
                               </div>

@@ -49,7 +49,7 @@ class DeleteExpiredSocialEvents extends Command
         
         try {
             // Traitement par lots optimisé des statuts sociaux expirés
-            SocialEvent::where('statut', 'approuvé')
+            SocialEvent::where('statut', 'approved')
                 ->where('created_at', '<', now()->subHours($hours))
                 ->chunk($this->chunkSize, function ($events) use (&$totalDeleted, &$totalErrors) {
                     $this->info("Processing batch of {$events->count()} events...");

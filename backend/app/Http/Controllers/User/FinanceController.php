@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Models\WithdrawalRequest;
 use App\Models\Pack;
 use App\Models\User;
 use Carbon\Carbon;
@@ -31,7 +32,7 @@ class FinanceController extends Controller
             }
             
             $query = WalletTransaction::where('wallet_id', $wallet->id)
-                ->orderBy('created_at', 'desc');
+                ->orderBy('id', 'desc');
             
             // Filtrer par type si spécifié
             if ($request->has('type') && !empty($request->type)) {
@@ -98,11 +99,6 @@ class FinanceController extends Controller
             
             $query = WalletTransaction::where('wallet_id', $wallet->id);
             
-            // Filtrer par devise si spécifiée
-            if ($request->has('currency') && !empty($request->currency)) {
-                $query->where('currency', $request->currency);
-                \Log::info('Filtre devise appliqué: ' . $request->currency);
-            }
             
             // Filtrer par date de début si spécifiée
             if ($request->has('date_from') && !empty($request->date_from)) {
@@ -115,13 +111,13 @@ class FinanceController extends Controller
             }
             
             // Regrouper par type et devise, puis calculer les totaux
-            $stats = $query->select('type', 'currency',
+            $stats = $query->select('type',
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(amount) as total_amount'),
                 DB::raw('MIN(created_at) as first_transaction'),
                 DB::raw('MAX(created_at) as last_transaction')
             )->where('status', 'completed')
-            ->groupBy('type', 'currency')
+            ->groupBy('type')
             ->get();
             
             // Calculer le total général
@@ -219,6 +215,8 @@ class FinanceController extends Controller
             $user = Auth::user();
             $wallet = Wallet::where('user_id', $user->id)->first();
             
+            $totalIn = WalletTransaction::where('wallet_id', $wallet->id)->where('flow', 'in')->where('status', 'completed')->sum('amount');
+            $totalOut = WalletTransaction::where('wallet_id', $wallet->id)->where('flow', 'out')->where('status', 'completed')->sum('amount');
             if (!$wallet) {
                 return response()->json([
                     'success' => false,
@@ -233,63 +231,57 @@ class FinanceController extends Controller
             // Récupérer les statistiques par type pour la période, séparées par devise
             $statsByType = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->select('type', 'currency',
+                ->select('type',
                     DB::raw('COUNT(*) as count'),
                     DB::raw('SUM(amount) as total_amount')
                 )
-                ->groupBy('type', 'currency')
+                ->groupBy('type')
                 ->get();
             
             // Récupérer le total des entrées et sorties pour la période, séparées par devise
             $totalInUSD = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('type', ['commission de parrainage', 'frais de retrait', 'frais de transfert', 'commission de retrait'])
-                ->where('currency', 'USD')
+                ->where('flow', 'in')
                 ->sum('amount');
                 
             $totalInCDF = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('type', ['commission de parrainage', 'frais de retrait', 'frais de transfert', 'commission de retrait'])
-                ->where('currency', 'CDF')
+                ->where('flow', 'in')
                 ->sum('amount');
             
             $totalOutUSD = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->where('type', 'withdrawal')
-                ->where('currency', 'USD')
+                ->where('flow', 'out')
                 ->sum('amount');
                 
             $totalOutCDF = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->where('type', 'withdrawal')
-                ->where('currency', 'CDF')
+                ->where('flow', 'out')
                 ->sum('amount');
                 
             // Récupérer le nombre de demandes de retrait en attente
-            $pendingWithdrawals = WalletTransaction::where('wallet_id', $wallet->id)
-                ->where('type', 'withdrawal')
+            $pendingWithdrawals = WithdrawalRequest::where('user_id', $wallet->user->id)
                 ->where('status', 'pending')
                 ->count();
             
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'balance_usd' => $wallet->balance_usd,
-                    'total_earned_usd' => $wallet->total_earned_usd,
-                    'total_withdrawn_usd' => $wallet->total_withdrawn_usd,
-                    'balance_cdf' => $wallet->balance_cdf,
-                    'total_earned_cdf' => $wallet->total_earned_cdf,
-                    'total_withdrawn_cdf' => $wallet->total_withdrawn_cdf,
-                    'period_total_in_usd' => $totalInUSD,
-                    'period_total_in_cdf' => $totalInCDF,
-                    'period_total_out_usd' => $totalOutUSD,
-                    'period_total_out_cdf' => $totalOutCDF,
-                    'stats_by_type' => $statsByType,
+                    'balance' => $wallet->balance,
+                    'total_in' => $totalIn,
+                    'total_out' => $totalOut,
+                    'available_balance' => $wallet->available_balance,
+                    'frozen_balance' => $wallet->frozen_balance,
+                    // 'period_total_in_usd' => $totalInUSD,
+                    // 'period_total_in_cdf' => $totalInCDF,
+                    // 'period_total_out_usd' => $totalOutUSD,
+                    // 'period_total_out_cdf' => $totalOutCDF,
+                    // 'stats_by_type' => $statsByType,
                     'pending_withdrawals' => $pendingWithdrawals,
-                    'period' => [
-                        'start' => $startDate->format('Y-m-d'),
-                        'end' => $endDate->format('Y-m-d')
-                    ]
+                    // 'period' => [
+                    //     'start' => $startDate->format('Y-m-d'),
+                    //     'end' => $endDate->format('Y-m-d')
+                    // ]
                 ]
             ]);
         } catch (\Exception $e) {

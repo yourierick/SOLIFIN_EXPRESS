@@ -18,10 +18,9 @@ return new class extends Migration
             $table->text('description');
             $table->enum('type', ['ebook', 'fichier_admin']);
             $table->decimal('prix', 10, 2);
-            $table->string('devise', 10)->default('USD');
             $table->string('image')->nullable();
             $table->string('fichier');
-            $table->enum('statut', ['en_attente', 'approuve', 'rejete'])->default('en_attente');
+            $table->enum('statut', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('raison_rejet')->nullable();
             $table->enum('etat', ['disponible', 'termine'])->default('disponible');
             $table->integer('nombre_ventes')->default(0);

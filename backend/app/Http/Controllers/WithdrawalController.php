@@ -22,16 +22,16 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use App\Http\Controllers\Api\CurrencyController;
 use App\Services\TwilioSmsService;
 use App\Jobs\SendWithdrawalNotificationSms;
 
 class WithdrawalController extends Controller
 {
     const STATUS_PENDING = 'pending';
-    const STATUS_APPROVED = 'approved';
+    const STATUS_PROCESSING = 'processing';
     const STATUS_REJECTED = 'rejected';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_PAID = 'paid';
     const STATUS_FAILED = 'failed';
     
     public function __construct()
@@ -52,16 +52,14 @@ class WithdrawalController extends Controller
             
             // Récupérer les paramètres de filtrage
             $status = $request->query('status');
-            $paymentStatus = $request->query('payment_status');
             $paymentMethod = $request->query('payment_method');
-            $currency = $request->query('currency');
             $startDate = $request->query('start_date');
             $endDate = $request->query('end_date');
             $search = $request->query('search');
             $perPage = $request->query('per_page', 10);
             
             // Construire la requête
-            $query = WithdrawalRequest::where('user_id', $user->id)
+            $query = WithdrawalRequest::with('processor')->where('user_id', $user->id)
                 ->with(['user'])
                 ->orderBy('created_at', 'desc');
             
@@ -70,16 +68,8 @@ class WithdrawalController extends Controller
                 $query->where('status', $status);
             }
             
-            if ($paymentStatus) {
-                $query->where('payment_status', $paymentStatus);
-            }
-            
             if ($paymentMethod) {
                 $query->where('payment_method', $paymentMethod);
-            }
-            
-            if ($currency) {
-                $query->where('currency', $currency);
             }
             
             if ($startDate) {
@@ -132,9 +122,7 @@ class WithdrawalController extends Controller
         try {
             // Récupérer les paramètres de filtrage
             $status = $request->query('status');
-            $paymentStatus = $request->query('payment_status');
             $paymentMethod = $request->query('payment_method');
-            $currency = $request->query('currency');
             $initiatedBy = $request->query('initiated_by');
             $startDate = $request->query('start_date');
             $endDate = $request->query('end_date');
@@ -150,16 +138,8 @@ class WithdrawalController extends Controller
                 $query->where('status', $status);
             }
             
-            if ($paymentStatus) {
-                $query->where('payment_status', $paymentStatus);
-            }
-            
             if ($paymentMethod) {
                 $query->where('payment_method', $paymentMethod);
-            }
-            
-            if ($currency) {
-                $query->where('currency', $currency);
             }
             
             if ($initiatedBy) {
@@ -190,69 +170,48 @@ class WithdrawalController extends Controller
             $withdrawalRequests = $query->paginate($perPage);
             
             // Calculer les statistiques
-            // Créer une requête de base pour les statistiques avec le filtre de devise
             $baseStatsQuery = WithdrawalRequest::query();
-            
-            // Appliquer le filtre de devise s'il est présent
-            if ($currency) {
-                $baseStatsQuery->where('currency', $currency);
-            }
             
             // Utiliser des requêtes fraîches pour chaque statistique
             $totalRequests = $baseStatsQuery->count();
             $pendingRequests = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
                 ->where('status', 'pending')
                 ->count();
             $approvedRequests = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
-                ->where('status', 'approved')
+                ->where('status', 'processing')
                 ->count();
             $rejectedRequests = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
                 ->where('status', 'rejected')
                 ->count();
             $cancelledRequests = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
                 ->where('status', 'cancelled')
+                ->count();
+            $paidRequests = WithdrawalRequest::query()
+                ->where('status', 'paid')
+                ->count();
+            $failedRequests = WithdrawalRequest::query()
+                ->where('status', 'failed')
                 ->count();
             
             $totalAmount = $baseStatsQuery->sum(DB::raw('CAST(amount AS DECIMAL(10,2))'));
             $pendingAmount = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
                 ->where('status', 'pending')
                 ->sum(DB::raw('CAST(amount AS DECIMAL(10,2))'));
             $approvedAmount = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
-                ->where('status', 'approved')
+                ->where('status', 'processing')
                 ->sum(DB::raw('CAST(amount AS DECIMAL(10,2))'));
             $rejectedAmount = WithdrawalRequest::query()
-                ->when($currency, function($query, $currency) {
-                    $query->where('currency', $currency);
-                })
                 ->where('status', 'rejected')
                 ->sum(DB::raw('CAST(amount AS DECIMAL(10,2))'));
-            $paidAmount = $approvedAmount;
+            $paidAmount = WithdrawalRequest::query()
+                ->where('status', 'paid')
+                ->sum(DB::raw('CAST(amount AS DECIMAL(10,2))'));
+            $failedAmount = WithdrawalRequest::query()
+                ->where('status', 'failed')
+                ->sum(DB::raw('CAST(amount AS DECIMAL(10,2))'));
             
             // Statistiques par méthode de paiement
             $paymentMethodStatsQuery = WithdrawalRequest::select('payment_method', DB::raw('count(*) as count'), DB::raw('sum(CAST(amount AS DECIMAL(10,2))) as total_amount'));
-            
-            // Appliquer le filtre de devise s'il est présent
-            if ($currency) {
-                $paymentMethodStatsQuery->where('currency', $currency);
-            }
             
             $paymentMethodStats = $paymentMethodStatsQuery->groupBy('payment_method')->get();
             
@@ -264,11 +223,6 @@ class WithdrawalController extends Controller
                     DB::raw('sum(CAST(amount AS DECIMAL(10,2))) as total_amount')
                 )
                 ->where('created_at', '>=', now()->subMonths(12));
-            
-            // Appliquer le filtre de devise s'il est présent
-            if ($currency) {
-                $monthlyStatsQuery->where('currency', $currency);
-            }
             
             $monthlyStats = $monthlyStatsQuery->groupBy('year', 'month')
                 ->orderBy('year', 'asc')
@@ -284,11 +238,14 @@ class WithdrawalController extends Controller
                     'approved_requests' => $approvedRequests,
                     'rejected_requests' => $rejectedRequests,
                     'cancelled_requests' => $cancelledRequests,
+                    'failed_requests' => $failedRequests,
+                    'paid_requests' => $paidRequests,
                     'total_amount' => $totalAmount,
                     'pending_amount' => $pendingAmount,
                     'approved_amount' => $approvedAmount,
                     'rejected_amount' => $rejectedAmount,
                     'paid_amount' => $paidAmount,
+                    'failed_amount' => $failedAmount,
                     'payment_method_stats' => $paymentMethodStats,
                     'monthly_stats' => $monthlyStats
                 ]
@@ -336,7 +293,6 @@ class WithdrawalController extends Controller
                 'payment_method' => 'required|string',
                 'payment_type' => 'required|string|in:mobile-money,credit-card',
                 'amount' => 'required|numeric|min:0',
-                'currency' => 'required|string',
                 'password' => 'required',
                 'withdrawal_fee' => 'required|numeric',
                 'referral_commission' => 'required|numeric',
@@ -344,6 +300,7 @@ class WithdrawalController extends Controller
                 'fee_percentage' => 'required|numeric',
                 'account_name' => 'required_if:payment_type,credit-card',
                 'account_number' => 'required_if:payment_type,credit-card',
+                'expiry_date' => 'required_if:payment_type,credit-card',
             ]);
 
             if ($validator->fails()) {
@@ -441,58 +398,59 @@ class WithdrawalController extends Controller
             $totalAmount = $amount + $total_frais;
             
             // Vérifier le solde
-            if ($request->currency === "USD") {
-                if ($wallet->balance_usd < $totalAmount) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Vous n\'avez pas suffisamment d\'argent dans votre portefeuille (' . $wallet->balance_usd . ' $ vs ' . $totalAmount . ' $ )'
-                    ], 400);
-                }
-            }else {
-                if ($wallet->balance_cdf < $totalAmount) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Vous n\'avez pas suffisamment d\'argent dans votre portefeuille (' . $wallet->balance_cdf . ' FC vs' . $totalAmount . ' FC )'
-                    ], 400);
-                }
+            if ($wallet->available_balance < $totalAmount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous n\'avez pas suffisamment d\'argent dans votre portefeuille (' . $wallet->balance_usd . ' $ vs ' . $totalAmount . ' $ )'
+                ], 400);
             }
 
             DB::beginTransaction();
 
+            //Géler le montant à retirer du wallet de l'utilisateur
+            $wallet->freezeFunds(
+                $totalAmount,
+                "Fonds gélés pour retrait",
+            );
+
             // Créer la demande de retrait avec les valeurs calculées côté serveur
-            $withdrawalRequest = WithdrawalRequest::create([
-                'user_id' => auth()->id(),
-                'amount' => $amount, // Montant à rétirer calculé côté serveur
-                'currency' => $request->currency,
-                'status' => self::STATUS_PENDING,
-                'payment_method' => $request->payment_method,
-                'payment_details' => [
-                    "payment_type" => $request->payment_type,
-                    "payment_method" => $request->payment_method,
-                    "montant_a_retirer" => $amount,
-                    "devise" => $request->currency,
-                    "frais_de_retrait" => $frais_de_transaction,
-                    "frais_de_commission" => $frais_de_commission,
-                    "montant_total_a_debiter" => $totalAmount,
-                    "phoneNumber" => $request->phone_number ?? null,
-                ]
-            ]);
+            if ($request->payment_type === "mobile-money") {
+                $withdrawalRequest = WithdrawalRequest::create([
+                    'user_id' => auth()->id(),
+                    'amount' => $amount, // Montant à rétirer calculé côté serveur
+                    'status' => self::STATUS_PENDING,
+                    'payment_method' => $request->payment_method,
+                    'payment_details' => [
+                        "payment_type" => $request->payment_type,
+                        "payment_method" => $request->payment_method,
+                        "montant_a_retirer" => $amount,
+                        "frais_de_retrait" => $frais_de_transaction,
+                        "frais_de_commission" => $frais_de_commission,
+                        "montant_total_a_debiter" => $totalAmount,
+                        "phoneNumber" => $request->phone_number ?? null,
+                    ]
+                ]);
+            }else {
+                $withdrawalRequest = WithdrawalRequest::create([
+                    'user_id' => auth()->id(),
+                    'amount' => $amount, // Montant à rétirer calculé côté serveur
+                    'status' => self::STATUS_PENDING,
+                    'payment_method' => $request->payment_method,
+                    'payment_details' => [
+                        "payment_type" => $request->payment_type,
+                        "payment_method" => $request->payment_method,
+                        "montant_a_retirer" => $amount,
+                        "frais_de_retrait" => $frais_de_transaction,
+                        "frais_de_commission" => $frais_de_commission,
+                        "montant_total_a_debiter" => $totalAmount,
+                        'cardNumber' => $request->account_number, 
+                        'cardHolder' => $request->account_name, 
+                        'expiryDate' => $request->expiry_date
+                    ]
+                ]);
+            }
 
             $user = $request->user();
-
-            //Géler le montant à retirer du wallet de l'utilisateur
-            $wallet->withdrawFunds($totalAmount, $request->currency, "withdrawal", self::STATUS_PENDING, [
-                'withdrawal_request_id' => $withdrawalRequest->id,
-                'Opération' => 'Retrait des fonds',
-                'Dévise' => $request->currency,
-                'Méthode de paiement' => $request->payment_method,
-                'Montant à rétirer' => $amount,
-                'Frais de retrait' => $frais_de_transaction,
-                'Frais de commission' => $frais_de_commission,
-                'Montant total à débiter' => $totalAmount,
-                'Détails de paiement' => $request->payment_details,
-                'Statut de paiement' => 'en attente',
-            ]);
 
             DB::commit();
 
@@ -547,7 +505,6 @@ class WithdrawalController extends Controller
             
             // Récupérer les paramètres de filtrage
             $paymentMethod = $request->query('payment_method');
-            $currency = $request->query('currency');
             $initiatedBy = $request->query('initiated_by');
             $startDate = $request->query('start_date');
             $endDate = $request->query('end_date');
@@ -561,10 +518,6 @@ class WithdrawalController extends Controller
             // Appliquer les filtres si présents
             if ($paymentMethod) {
                 $query->where('payment_method', $paymentMethod);
-            }
-            
-            if ($currency) {
-                $query->where('currency', $currency);
             }
             
             if ($initiatedBy) {
@@ -605,7 +558,6 @@ class WithdrawalController extends Controller
                     'wallet_balance_cdf' => $request->user->wallet->balance_cdf,
                     'amount' => $request->amount,
                     'status' => $request->status,
-                    'payment_status' => $request->payment_status,
                     'payment_method' => $request->payment_method,
                     'payment_details' => $request->payment_details,
                     'admin_note' => $request->admin_note,
@@ -712,63 +664,6 @@ class WithdrawalController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de l\'annulation de la demande',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Supprimer définitivement une demande de retrait
-     * 
-     * @param int $id L'identifiant de la demande de retrait à supprimer
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function delete($id)
-    {
-        try {
-            $withdrawal = WithdrawalRequest::find($id);
-
-            if (!$withdrawal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Demande de retrait non trouvée'
-                ], 404);
-            }
-
-            if (!auth()->user()->is_admin) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'avez pas les permissions nécessaires pour effectuer cette action'
-                ], 403);
-            }
-
-            // Utiliser le service pour supprimer la demande
-            $withdrawalService = app(\App\Services\WithdrawalService::class);
-            $result = $withdrawalService->deleteWithdrawal($withdrawal);
-
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message']
-            ], $result['status_code']);
-        } catch (ModelNotFoundException $e) {
-            // Gestion spécifique des erreurs de modèle non trouvé
-            Log::error('Erreur: modèle non trouvé lors de la suppression de la demande', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Ressource non trouvée',
-                'error' => $e->getMessage()
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la suppression de la demande', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la suppression de la demande',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -1044,7 +939,6 @@ class WithdrawalController extends Controller
     {
         try {
             $user = Auth::user();
-            $currency = $request->input('currency', 'USD');
             $paymentMethod = $request->input('payment_method');
             $initiatedBy = $request->input('initiated_by');
             $startDate = $request->input('start_date');
@@ -1055,8 +949,7 @@ class WithdrawalController extends Controller
             $query = WithdrawalRequest::with(['user' => function($query) {
                 $query->select('id', 'name', 'email', 'phone');
             }])
-            ->where('status', self::STATUS_PENDING)
-            ->where('currency', $currency);
+            ->where('status', self::STATUS_PENDING);
             
             // Appliquer les filtres
             if ($paymentMethod) {
@@ -1121,7 +1014,6 @@ class WithdrawalController extends Controller
     public function exportAllWithdrawals(Request $request)
     {
         try {
-            $currency = $request->input('currency', 'USD');
             $status = $request->input('status');
             $paymentMethod = $request->input('payment_method');
             $startDate = $request->input('start_date');
@@ -1131,8 +1023,7 @@ class WithdrawalController extends Controller
             // Construire la requête de base pour toutes les demandes
             $query = WithdrawalRequest::with(['user' => function($query) {
                 $query->select('id', 'name', 'email', 'phone');
-            }])
-            ->where('currency', $currency);
+            }]);
             
             // Appliquer les filtres
             if ($status) {

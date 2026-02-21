@@ -78,6 +78,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'key' => 'serdipay_fees',
+                'value' => '0',
+                'description' => 'Pourcentage général des frais de l\'api de paiement',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
             // Réseaux sociaux
             [
                 'key' => 'facebook_url',

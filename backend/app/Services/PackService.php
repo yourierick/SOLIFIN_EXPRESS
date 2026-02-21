@@ -37,23 +37,31 @@ class PackService
     {
         // Traiter le paiement selon la méthode
         if ($paymentData['payment_method'] === 'solifin-wallet') {
-            $this->processWalletPayment($user, $pack, $paymentData, 'renewal');
+            $this->processWalletPayment($user, $pack, $paymentData);
         } else {
-            $this->recordExternalPayment($user, $pack, $paymentData, 'renewal');
+            $this->recordExternalPayment($user, $pack, $paymentData);
         }
 
         // Mettre à jour la date d'expiration du pack
         $userPack->expiry_date = Carbon::now()->addMonths($durationMonths);
         $userPack->status = 'active';
+        $userPack->payment_status = 'completed';
         $userPack->save();
 
-        // Enregistrer la transaction système à partir d'ici seulement si c'est un paiement par wallet
-        if ($paymentData['payment_method'] === 'solifin-wallet') {
-            $this->recordSystemTransaction($user, $pack, $paymentData, 'purchase');
-        }
-
         // Distribuer les commissions
-        $this->commissionService->distributeCommissions($userPack, $paymentData['currency'], $paymentData['amount'], $durationMonths);
+        $this->commissionService->distributeCommissions($userPack, $paymentData['amount'], $durationMonths);
+
+        $metadata = [ 
+            "type" => $paymentData['payment_type'],
+            "method" => $paymentData['payment_method'], 
+            "details" => $paymentData['payment_details'] ?? [],
+            "amount" => $paymentData['amount'],
+            "fees" => $paymentData['fees'],
+        ];
+
+        \Log::info($metadata);
+        // Envoyer la notification d'achat de pack
+        $user->notify(new \App\Notifications\PackPurchased($userPack, $durationMonths, $metadata));
 
         return $userPack->fresh(['pack', 'sponsor']);
     }
@@ -82,14 +90,9 @@ class PackService
 
         // Traiter le paiement selon la méthode
         if ($paymentData['payment_method'] === 'solifin-wallet') {
-            $this->processWalletPayment($user, $pack, $paymentData, 'purchase');
+            $this->processWalletPayment($user, $pack, $paymentData);
         } else {
-            $this->recordExternalPayment($user, $pack, $paymentData, 'purchase');
-        }
-
-        // Enregistrer la transaction système à partir d'ici seulement si c'est un paiement par wallet
-        if ($paymentData['payment_method'] === 'solifin-wallet') {
-            $this->recordSystemTransaction($user, $pack, $paymentData, 'purchase');
+            $this->recordExternalPayment($user, $pack, $paymentData);
         }
 
         // Créer l'association utilisateur-pack
@@ -102,7 +105,17 @@ class PackService
         }
 
         // Distribuer les commissions
-        $this->commissionService->distributeCommissions($userPack, $paymentData['currency'], $paymentData['amount'], $durationMonths);
+        $this->commissionService->distributeCommissions($userPack, $paymentData['amount'], $durationMonths);
+
+        $metadata = [ 
+            "type" => $paymentData['payment_type'],
+            "method" => $paymentData['payment_method'], 
+            "details" => $paymentData['payment_details'] ?? [],
+            "amount" => $paymentData['amount'],
+            "fees" => $paymentData['fees'],
+        ];
+        // Envoyer la notification d'achat de pack
+        $user->notify(new \App\Notifications\PackPurchased($userPack, $durationMonths, $metadata));
 
         return $userPack;
     }
@@ -116,29 +129,45 @@ class PackService
      * @param string $operationType
      * @return void
      */
-    private function processWalletPayment(User $user, Pack $pack, array $paymentData, string $operationType)
+    private function processWalletPayment(User $user, Pack $pack, array $paymentData)
     {
         $userWallet = $user->wallet;
+        $walletsystem = WalletSystem::first();
         
-        $description = $operationType === 'purchase' 
-            ? "Vous avez acheté le pack " . $pack->name . " via " . $paymentData['payment_method']
-            : "Vous avez renouvelé votre pack " . $pack->name . " via " . $paymentData['payment_method'];
-
-        $metadata = [
-            "Opération" => $operationType === 'purchase' ? "Achat d'un nouveau pack" : "Renouvellement de pack",
+        $description_user = "Vous avez acheté un abonnement pour le pack " . $pack->name . " via " . $paymentData['payment_method'] . "";
+        $description_system = "Vous avez vendu un abonnement pour le pack " . $pack->name . " via " . $paymentData['payment_method'] . "";
+        
+        $metadata_user = [
+            "Opération" => "Souscription au pack",
             "Pack_ID" => $pack->id, 
             "Nom du pack" => $pack->name, 
             "Durée de souscription" => $paymentData['duration_months'] . " mois", 
             "Type de paiement" => $paymentData['payment_type'],
             "Méthode de paiement" => $paymentData['payment_method'],
             "Détails de paiement" => $paymentData['payment_details'] ?? [],
-            "Dévise" => $paymentData['currency'],
-            "Montant net payé" => $paymentData['amount'] . $paymentData['currency'],
-            "Frais de transaction" => $paymentData['fees'] . $paymentData['currency'],
-            "Description" => $description
+            "Montant net payé" => $paymentData['amount'] . '$',
+            "Frais de transaction" => $paymentData['fees'] . '$',
+            "Déscription" => $description_user
         ];
 
-        $userWallet->withdrawFunds($paymentData['amount'], $paymentData['currency'], "purchase", "completed", $metadata);
+        $metadata_system = [
+            "Opération" => "Souscription au pack",
+            "Pack_ID" => $pack->id, 
+            "Nom du pack" => $pack->name, 
+            "Durée de souscription" => $paymentData['duration_months'] . " mois", 
+            "Type de paiement" => $paymentData['payment_type'],
+            "Méthode de paiement" => $paymentData['payment_method'],
+            "Détails de paiement" => $paymentData['payment_details'] ?? [],
+            "Montant net payé" => $paymentData['amount'] . '$',
+            "Frais de transaction" => $paymentData['fees'] . '$',
+            "Déscription" => $description_system
+        ];
+
+        //Montant total payé à débiter du wallet de l'acheteur
+        $totalAmount = $paymentData['amount'] + $paymentData['fees'];
+
+        $userWallet->withdrawFunds($totalAmount, $paymentData['fees'], 0, "internal", "pack_purchase", "completed", $description_user, auth()->id(), $metadata_user);
+        $walletsystem->addProfits($totalAmount, 'pack_sale', 'completed', $description_system, auth()->id(), $metadata_system);
     }
 
     /**
@@ -152,128 +181,51 @@ class PackService
      */
     private function recordExternalPayment(User $user, Pack $pack, array $paymentData, string $operationType)
     {
-        $description = $operationType === 'purchase' 
-            ? "Vous avez acheté le pack " . $pack->name . " via " . $paymentData['payment_method']
-            : "Vous avez renouvelé votre pack " . $pack->name . " via " . $paymentData['payment_method'];
+        $wallet = $user->wallet;
+        $walletsystem = WalletSystem::first();
+        $description_user = "Vous avez acheté un abonnement pour le pack " . $pack->name . " via " . $paymentData['payment_method'] . "";
+        $description_system = "Vous avez vendu un abonnement pour le pack " . $pack->name . " via " . $paymentData['payment_method'] . "";
 
-        $metadata = [
-            "Opération" => $operationType === 'purchase' ? "Achat d'un nouveau pack" : "Renouvellement de pack",
+        $metadata_user = [
+            "Opération" => "Souscription au pack",
             "Pack_ID" => $pack->id,
             "Nom du pack" => $pack->name,
             "Durée de souscription" => $paymentData['duration_months'] . " mois",
             "Type de paiement" => $paymentData['payment_type'],
             "Méthode de paiement" => $paymentData['payment_method'],
             "Détails de paiement" => $paymentData['payment_details'] ?? [],
-            "Dévise" => $paymentData['currency'],
-            "Montant net payé" => $paymentData['amount'] . " " . $paymentData['currency'],
-            "Frais de transaction" => $paymentData['fees'] . " " . $paymentData['currency'],
-            "Description" => $description
+            "Montant net payé" => $paymentData['amount'] . " $",
+            "Description" => $description_user
         ];
 
-        $user->wallet->transactions()->create([
-            "wallet_id" => $user->wallet->id,
-            "mouvment" => 'out',
-            "type" => "purchase",
-            "amount" => $paymentData['amount'],
-            "currency" => $paymentData['currency'],
-            "status" => "completed",
-            "metadata" => $metadata
-        ]);
-
-        //Traitement pour le wallet System
-        $description = $operationType === 'purchase' 
-            ? "Achat du pack " . $pack->name . " via " . $paymentData['payment_method']
-            : "Renouvellement du pack " . $pack->name . " via " . $paymentData['payment_method'];
-
-        $metadataSystem = [
-            "Opération" => $operationType === 'purchase' ? "Achat d'un nouveau pack" : "Rénouvellement de pack",
-            "user" => $user->name, 
-            "Pack_ID" => $pack->id, 
-            "Nom du pack" => $pack->name, 
-            "Durée de souscription" => $paymentData['duration_months'] . " mois", 
+        $metadata_system = [
+            "Opération" => "Souscription au pack",
+            "Pack_ID" => $pack->id,
+            "Nom du pack" => $pack->name,
+            "Durée de souscription" => $paymentData['duration_months'] . " mois",
             "Type de paiement" => $paymentData['payment_type'],
-            "Méthode de paiement" => $paymentData['payment_method'], 
+            "Méthode de paiement" => $paymentData['payment_method'],
             "Détails de paiement" => $paymentData['payment_details'] ?? [],
-            "Dévise" => $paymentData['currency'],
-            "Montant net payé" => $paymentData['amount'] . " " . $paymentData['currency'],
-            "Frais de transaction" => $paymentData['fees'] . " " . $paymentData['currency'],
-            "Description" => $description
+            "Montant net payé" => $paymentData['amount'] . " $",
+            "Description" => $description_system
         ];
 
-        // Récupérer le wallet système existant ou le créer avec des soldes par défaut
-        $walletSystem = WalletSystem::first();
-        if (!$walletSystem) {
-            $walletSystem = WalletSystem::create([
-                'balance_usd' => 0,
-                'balance_cdf' => 0,
-                'total_in_usd' => 0,
-                'total_in_cdf' => 0,
-                'total_out_usd' => 0,
-                'total_out_cdf' => 0,
-            ]);
-        }
+        //Montant total payé (montant + frais)
+        $totalAmount = $paymentData['amount'] + $paymentData['fees'];
 
-        $amount = $paymentData['amount'];
-        
         $walletSystem->addFunds(
-            $amount, 
-            $paymentData['currency'], 
-            $operationType === "purchase" ? "pack_sale" : "renew_pack_sale",
-            "completed", 
-            $metadataSystem
+            $totalAmount, 
+            "pack_sale",
+            "completed",
+            $description_system,
+            $user->id,
+            $metadata_system
         );
-    }
 
-    /**
-     * Enregistre une transaction dans le wallet système
-     *
-     * @param User $user
-     * @param Pack $pack
-     * @param array $paymentData
-     * @param string $operationType
-     * @return void
-     */
-    private function recordSystemTransaction(User $user, Pack $pack, array $paymentData, string $operationType)
-    {
-        $walletsystem = WalletSystem::first();
-        if (!$walletsystem) {
-            $walletsystem = WalletSystem::create([
-                'balance_usd' => 0,
-                'balance_cdf' => 0,
-                'total_in_usd' => 0,
-                'total_in_cdf' => 0,
-                'total_out_usd' => 0,
-                'total_out_cdf' => 0,
-            ]);
-        }
-
-        $description = $operationType === 'purchase' 
-            ? "Achat du pack " . $pack->name . " via " . $paymentData['payment_method']
-            : "Renouvellement du pack " . $pack->name . " via " . $paymentData['payment_method'];
-
-        $metadata = [
-            "Opération" => $operationType === 'purchase' ? "Achat d'un nouveau pack" : "Rénouvellement de pack",
-            "user" => $user->name, 
-            "Pack_ID" => $pack->id, 
-            "Nom du pack" => $pack->name, 
-            "Durée de souscription" => $paymentData['duration_months'] . " mois", 
-            "Type de paiement" => $paymentData['payment_type'],
-            "Méthode de paiement" => $paymentData['payment_method'], 
-            "Détails de paiement" => $paymentData['payment_details'] ?? [],
-            "Dévise" => $paymentData['currency'],
-            "Montant net payé" => $paymentData['amount'] . " " . $paymentData['currency'],
-            "Frais de transaction" => $paymentData['fees'] . " " . $paymentData['currency'],
-            "Description" => $description
-        ];
-
-        $walletsystem->transactions()->create([
-            'wallet_system_id' => $walletsystem->id,
-            'mouvment' => 'out',
-            'type' => $operationType === "purchase" ? 'pack_sale' : 'renew_pack_sale',
-            'amount' => $paymentData['amount'],
-            'currency' => $paymentData['currency'],
+        $user->wallet->transactions()->where('session_id', $paymentData['session_id'])->where('transaction_id', $paymentData['transaction_id'])->update([
             'status' => 'completed',
-            'metadata' => $metadata
+            'description' => $description_user,
+            'metadata' => $metadata_user,
         ]);
     }
 

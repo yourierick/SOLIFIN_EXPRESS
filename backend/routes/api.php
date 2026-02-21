@@ -13,7 +13,6 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AdvertisementValidationController;
 use App\Http\Controllers\Admin\BusinessOpportunityValidationController;
 use App\Http\Controllers\Admin\JobOfferValidationController;
-use App\Http\Controllers\PackPurchaseController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\CommissionRateController;
 use App\Http\Controllers\Admin\PackController;
@@ -97,10 +96,6 @@ Route::get('/faqs', [App\Http\Controllers\FaqController::class, 'index']);
 Route::get('/faq/categories', [App\Http\Controllers\FaqController::class, 'getCategories']);
 Route::post('/faqs/{id}/vote', [App\Http\Controllers\FaqController::class, 'vote']);
 Route::get('/faqs/search', [App\Http\Controllers\FaqController::class, 'search']);
-// Routes d'achat de pack (achat d'un pack lors de l'enregistrement)
-Route::get('/purchases/{sponsor_code}', [PackPurchaseController::class, 'show']);
-// Route::post('/purchases/initiate', [PackPurchaseController::class, 'initiate']);
-// Route::post('/purchases/{id}/process', [PackPurchaseController::class, 'process']);
 
 // Routes publiques pour les frais de transaction (avec throttle:api pour éviter les abus)
 Route::middleware('throttle:api')->group(function () {
@@ -280,7 +275,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Routes pour les demandes de retrait
     Route::post('/withdrawal/request/{walletId}', [WithdrawalController::class, 'request']);
     Route::post('/withdrawal/request/{id}/cancel', [WithdrawalController::class, 'cancel']);
-    Route::delete('/withdrawal/requests/{id}', [WithdrawalController::class, 'delete']);
     Route::get('/withdrawal/referral-commission', [WithdrawalController::class, 'getReferralCommissionPercentage']);
     Route::get('/withdrawal/requests', [WithdrawalController::class, 'getUserWithdrawalRequests']);
     
@@ -571,13 +565,12 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::post('/commissions/{id}/retry', [\App\Http\Controllers\Admin\CommissionController::class, 'retry']);
     });
 
-    Route::middleware('permission:manage-wallets')->group(function () {
-        // Routes pour la gestion des wallets
-        Route::get('/wallets/data', [WalletController::class, 'getWalletData']);
-        Route::get('/wallets/export-admin', [WalletController::class, 'exportAdminTransactions']);
-        Route::get('/wallets/export-system', [WalletController::class, 'exportSystemTransactions']);
-        Route::post('/admin/wallets/withdraw', [WalletController::class, 'withdraw']);
-    });
+    // Routes pour la gestion des wallets
+    Route::get('/wallets/data', [WalletController::class, 'getWalletData']);
+    Route::get('/wallets/export-admin', [WalletController::class, 'exportAdminTransactions']);
+    Route::get('/wallets/export-system', [WalletController::class, 'exportSystemTransactions']);
+    Route::post('/wallets/withdraw-benefits', [WalletController::class, 'withdrawBenefits']);
+
 
     Route::middleware('permission:manage-content')->group(function () {
         // Routes pour la modération des témoignages
@@ -612,7 +605,6 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
             Route::get('/', [\App\Http\Controllers\Admin\FormationController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\Admin\FormationController::class, 'store']);
             Route::get('/packs', [\App\Http\Controllers\Admin\FormationController::class, 'getPacks']);
-            Route::get('/pending/count', [\App\Http\Controllers\Admin\FormationController::class, 'pendingCount']);
             Route::get('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'show']);
             Route::put('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'update']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\FormationController::class, 'destroy']);
@@ -631,12 +623,10 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         // Routes pour la validation des produits numériques
         Route::patch('digital-products/{id}/status', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'updateStatus']);    
         Route::get('/digital-products', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'index']);
-        Route::get('/digital-products/pending/count', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'pendingCount']);
         Route::post('/digital-products/{id}/approve', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'approve']);
         Route::post('/digital-products/{id}/reject', [App\Http\Controllers\Admin\DigitalProductValidationController::class, 'reject']);
         // Routes pour les publicités
         Route::get('/publications', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'index']);
-        Route::get('/publications/pending/count', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'pendingCount']);
         Route::post('/publications/{id}/approve', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'approve']);
         Route::post('/publications/{id}/reject', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'reject']);
         Route::patch('/publications/{id}/status', [App\Http\Controllers\Admin\AdvertisementValidationController::class, 'updateStatus']);
@@ -645,7 +635,6 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         
         // Routes pour les offres d'emploi
         Route::get('/job-offers', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'index']);
-        Route::get('/job-offers/pending/count', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'pendingCount']);
         Route::post('/job-offers/{id}/approve', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'approve']);
         Route::post('/job-offers/{id}/reject', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'reject']);
         Route::patch('/job-offers/{id}/status', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'updateStatus']);
@@ -653,11 +642,9 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::delete('/job-offers/{id}', [App\Http\Controllers\Admin\JobOfferValidationController::class, 'destroy']);
         // Routes pour les opportunités d'affaires
         Route::get('/business-opportunities', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'index']);
-        Route::get('/business-opportunities/pending/count', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'pendingCount']);
         Route::post('/business-opportunities/{id}/approve', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'approve']);
         // Routes pour les statuts sociaux
         Route::get('/social-events', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'index']);
-        Route::get('/social-events/pending/count', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'pendingCount']);
         Route::post('/social-events/{id}/approve', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'approve']);
         Route::post('/social-events/{id}/reject', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'reject']);
         Route::patch('/social-events/{id}/status', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'updateStatus']);
@@ -703,11 +690,12 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::get('/finances', [\App\Http\Controllers\Admin\FinanceController::class, 'index']);
         Route::get('/finances/export', [\App\Http\Controllers\Admin\FinanceController::class, 'exportFinanceTransactions']);
         Route::get('/finances/stats-by-type', [\App\Http\Controllers\Admin\FinanceController::class, 'getStatsByType']);
-        Route::get('/finances/stats-by-period', [\App\Http\Controllers\Admin\FinanceController::class, 'getStatsByPeriod']);
         Route::get('/finances/transaction-types', [\App\Http\Controllers\Admin\FinanceController::class, 'getTransactionTypes']);
         Route::get('/finances/system-balance', [\App\Http\Controllers\Admin\FinanceController::class, 'getSystemBalance']);
         Route::get('/finances/summary', [\App\Http\Controllers\Admin\FinanceController::class, 'getSummary']);
-        
+        // Routes pour le suivi financier des transactions solifin
+        Route::get('/solifin-financial-transactions/statistics', [\App\Http\Controllers\Admin\FinanceController::class, 'financialTransactionsStatistics']); 
+        Route::get('/solifin-financial-transactions/export', [\App\Http\Controllers\Admin\FinanceController::class, 'exportFinancialTransactions']);
     });
     
     Route::middleware('permission:manage-faqs')->group(function () {
@@ -763,6 +751,9 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         
         // Routes pour la gestion des paramètres système
         Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index']);
+        
+        // Route centralisée pour tous les compteurs du dashboard
+        Route::get('/dashboard/counters', [\App\Http\Controllers\Admin\DashboardCountersController::class, 'getAllCounters']);
         Route::get('/settings/key/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'getByKey']);
         Route::put('/settings/key/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateByKey']);
         Route::post('/settings/upload/{key}', [\App\Http\Controllers\Admin\SettingsController::class, 'uploadImage']);

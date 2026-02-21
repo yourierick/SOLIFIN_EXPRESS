@@ -98,7 +98,7 @@ class TestimonialPromptService
         
         // Récupérer toutes les transactions de retrait en une seule requête
         $withdrawalTransactions = $user->wallet->transactions()
-            ->where('type', 'withdrawal')
+            ->where('type', 'funds_withdrawal')
             ->where('status', 'completed')
             ->orderBy('created_at', 'asc')
             ->get();

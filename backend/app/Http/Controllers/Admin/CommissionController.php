@@ -26,11 +26,6 @@ class CommissionController extends Controller
     {
         $query = Commission::with(['sponsor_user', 'source_user', 'pack']);
 
-        // Filtre par devise
-        if ($request->has('currency') && in_array($request->currency, ['USD', 'CDF'])) {
-            $query->where('currency', $request->currency);
-        }
-
         // Filtres
         if ($request->has('status') && $request->status != 'all') {
             $query->where('status', $request->status);
@@ -79,104 +74,40 @@ class CommissionController extends Controller
      */
     public function statistics(Request $request)
     {
-        // Filtre par devise pour les statistiques principales
-        $currency = $request->has('currency') && in_array($request->currency, ['USD', 'CDF']) 
-            ? $request->currency 
-            : null;
-
-        $baseQuery = Commission::when($currency, function($query) use ($currency) {
-            return $query->where('currency', $currency);
-        });
-
+        $baseQuery = Commission::query();
         $stats = [
             'total_commissions' => $baseQuery->count(),
             'total_amount' => $baseQuery->sum('amount'),
-            'pending_count' => Commission::when($currency, function($query) use ($currency) {
-                return $query->where('currency', $currency);
-            })->where('status', 'pending')->count(),
-            'pending_amount' => Commission::when($currency, function($query) use ($currency) {
-                return $query->where('currency', $currency);
-            })->where('status', 'pending')->sum('amount'),
-            'completed_count' => Commission::when($currency, function($query) use ($currency) {
-                return $query->where('currency', $currency);
-            })->where('status', 'completed')->count(),
-            'completed_amount' => Commission::when($currency, function($query) use ($currency) {
-                return $query->where('currency', $currency);
-            })->where('status', 'completed')->sum('amount'),
-            'failed_count' => Commission::when($currency, function($query) use ($currency) {
-                return $query->where('currency', $currency);
-            })->where('status', 'failed')->count(),
-            'failed_amount' => Commission::when($currency, function($query) use ($currency) {
-                return $query->where('currency', $currency);
-            })->where('status', 'failed')->sum('amount'),
+            'pending_count' => Commission::where('status', 'pending')->count(),
+            'pending_amount' => Commission::where('status', 'pending')->sum('amount'),
+            'completed_count' => Commission::where('status', 'completed')->count(),
+            'completed_amount' => Commission::where('status', 'completed')->sum('amount'),
+            'failed_count' => Commission::where('status', 'failed')->count(),
+            'failed_amount' => Commission::where('status', 'failed')->sum('amount'),
             'recent_commissions' => $baseQuery->with(['sponsor_user', 'source_user', 'pack'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get(),
             'commissions_by_status' => [
-                'pending' => Commission::when($currency, function($query) use ($currency) {
-                    return $query->where('currency', $currency);
-                })->where('status', 'pending')->count(),
-                'completed' => Commission::when($currency, function($query) use ($currency) {
-                    return $query->where('currency', $currency);
-                })->where('status', 'completed')->count(),
-                'failed' => Commission::when($currency, function($query) use ($currency) {
-                    return $query->where('currency', $currency);
-                })->where('status', 'failed')->count()
+                'pending' => Commission::where('status', 'pending')->count(),
+                'completed' => Commission::where('status', 'completed')->count(),
+                'failed' => Commission::where('status', 'failed')->count()
             ],
             'commissions_by_pack' => DB::table('commissions')
                 ->join('packs', 'commissions.pack_id', '=', 'packs.id')
                 ->select('packs.name', DB::raw('count(*) as count'), DB::raw('sum(commissions.amount) as total_amount'))
-                ->where('commissions.status', 'completed')
-                ->when($currency, function($query) use ($currency) {
-                    return $query->where('commissions.currency', $currency);
-                })
-                ->groupBy('packs.name')
+                ->where('commissions.status', 'completed')->groupBy('packs.name')
                 ->get(),
             'commissions_by_level' => DB::table('commissions')
                 ->select('level', DB::raw('count(*) as count'), DB::raw('sum(amount) as total_amount'))
-                ->where('status', 'completed')
-                ->when($currency, function($query) use ($currency) {
-                    return $query->where('currency', $currency);
-                })
-                ->groupBy('level')
+                ->where('status', 'completed')->groupBy('level')
                 ->get(),
             'monthly_commissions' => DB::table('commissions')
                 ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('sum(amount) as total_amount'))
-                ->where('status', 'completed')
-                ->when($currency, function($query) use ($currency) {
-                    return $query->where('currency', $currency);
-                })
-                ->groupBy('month')
+                ->where('status', 'completed')->groupBy('month')
                 ->orderBy('month', 'desc')
                 ->get()
         ];
-
-        // Ajouter les statistiques séparées par devise si aucune devise spécifique n'est demandée
-        if (!$currency) {
-            $stats['stats_by_currency'] = [
-                'usd' => [
-                    'total_count' => Commission::where('currency', 'USD')->count(),
-                    'total_amount' => Commission::where('currency', 'USD')->sum('amount'),
-                    'completed_count' => Commission::where('currency', 'USD')->where('status', 'completed')->count(),
-                    'completed_amount' => Commission::where('currency', 'USD')->where('status', 'completed')->sum('amount'),
-                    'pending_count' => Commission::where('currency', 'USD')->where('status', 'pending')->count(),
-                    'pending_amount' => Commission::where('currency', 'USD')->where('status', 'pending')->sum('amount'),
-                    'failed_count' => Commission::where('currency', 'USD')->where('status', 'failed')->count(),
-                    'failed_amount' => Commission::where('currency', 'USD')->where('status', 'failed')->sum('amount'),
-                ],
-                'cdf' => [
-                    'total_count' => Commission::where('currency', 'CDF')->count(),
-                    'total_amount' => Commission::where('currency', 'CDF')->sum('amount'),
-                    'completed_count' => Commission::where('currency', 'CDF')->where('status', 'completed')->count(),
-                    'completed_amount' => Commission::where('currency', 'CDF')->where('status', 'completed')->sum('amount'),
-                    'pending_count' => Commission::where('currency', 'CDF')->where('status', 'pending')->count(),
-                    'pending_amount' => Commission::where('currency', 'CDF')->where('status', 'pending')->sum('amount'),
-                    'failed_count' => Commission::where('currency', 'CDF')->where('status', 'failed')->count(),
-                    'failed_amount' => Commission::where('currency', 'CDF')->where('status', 'failed')->sum('amount'),
-                ]
-            ];
-        }
 
         return response()->json([
             'success' => true,
@@ -202,32 +133,46 @@ class CommissionController extends Controller
      */
     public function retry($id)
     {
-        $commission = Commission::findOrFail($id);
+        try {
+            $commission = Commission::findOrFail($id);
 
-        if ($commission->status !== 'failed') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Seules les commissions échouées peuvent être relancées'
-            ], 400);
-        }
+            if ($commission->status !== 'failed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Seules les commissions échouées peuvent être relancées'
+                ], 400);
+            }
 
-        // Mettre à jour le statut à pending
-        $commission->update([
-            'status' => 'pending',
-            'error_message' => null
-        ]);
+            DB::beginTransaction();
 
-        // Relancer le traitement
-        $duration_months = $commission->duree;
-        $result = $this->commissionService->processCommission($commission->id, $duration_months);
-
-        if ($result) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Commission relancée avec succès',
-                'data' => Commission::with(['sponsor_user', 'source_user', 'pack'])->find($id)
+            // Mettre à jour le statut à pending
+            $commission->update([
+                'status' => 'pending',
+                'error_message' => null
             ]);
-        } else {
+
+            // Relancer le traitement
+            $duration_months = $commission->duree;
+            $result = $this->commissionService->processCommission($commission->id, $duration_months);
+
+            if ($result) {
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Commission relancée avec succès',
+                    'data' => Commission::with(['sponsor_user', 'source_user', 'pack'])->find($id)
+                ]);
+            } else {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Échec de la relance de la commission',
+                    'data' => Commission::with(['sponsor_user', 'source_user', 'pack'])->find($id)
+                ], 500);
+            }
+        }catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Échec de la relance de la commission',

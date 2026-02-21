@@ -71,7 +71,7 @@ class OffreEmploiController extends Controller
     public function getPendingJobs()
     {
         $offres = OffreEmploi::with('page.user')
-            ->where('statut', 'en_attente')
+            ->where('statut', 'pending')
             ->orderBy('created_at', 'asc')
             ->paginate(10);
         
@@ -146,8 +146,8 @@ class OffreEmploiController extends Controller
 
         $data = $request->all();
         $data['page_id'] = $page->id;
-        $data['statut'] = 'en_attente';
-        $data['etat'] = 'disponible';
+        $data['statut'] = 'pending';
+        $data['etat'] = 'available';
 
         // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
         if ($user->pack_de_publication) {
@@ -226,14 +226,6 @@ class OffreEmploiController extends Controller
     {
         $offre = OffreEmploi::findOrFail($id);
         $user = Auth::user();
-        
-        // Vérifier si l'utilisateur est autorisé
-        // if (!$user->is_admin && $offre->page->user_id !== $user->id) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'êtes pas autorisé à modifier cette offre d\'emploi.'
-        //     ], 403);
-        // }
 
         $validator = Validator::make($request->all(), [
             'type' => 'nullable|in:offre_emploi,appel_manifestation_intéret',
@@ -250,8 +242,8 @@ class OffreEmploiController extends Controller
             'contacts' => 'nullable|string|max:255',
             'offer_file' => 'nullable|file|mimes:pdf|max:5120', // 5MB max
             'lien' => 'nullable|url|max:255',
-            'statut' => 'nullable|in:en_attente,approuvé,rejeté,expiré',
-            'etat' => 'nullable|in:disponible,terminé',
+            'statut' => 'nullable|in:pending,approved,rejected,expired',
+            'etat' => 'nullable|in:available,unavailable',
         ]);
 
         if ($validator->fails()) {
@@ -265,7 +257,7 @@ class OffreEmploiController extends Controller
         
         // Si l'utilisateur n'est pas admin, l'offre revient en attente
         if (!$user->is_admin) {
-            $data['statut'] = 'en_attente';
+            $data['statut'] = 'pending';
         }
         
         // Traitement du fichier PDF
@@ -310,7 +302,7 @@ class OffreEmploiController extends Controller
     public function changeEtat(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'etat' => 'required|in:disponible,terminé',
+            'etat' => 'required|in:available,unavailable',
         ]);
 
         if ($validator->fails()) {
@@ -352,7 +344,7 @@ class OffreEmploiController extends Controller
     public function changeStatut(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'statut' => 'required|in:en_attente,approuvé,rejeté,expiré',
+            'statut' => 'required|in:pending,approved,rejected,expired',
         ]);
 
         if ($validator->fails()) {

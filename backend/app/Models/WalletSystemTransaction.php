@@ -11,18 +11,35 @@ class WalletSystemTransaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'wallet_system_id',
         'reference',
-        'amount',
-        'currency',
-        'mouvment',
+        'session_id', // Pour Serdipay (nullable)
+        'transaction_id', // Pour Serdipay (nullable)
+        'flow',
+        'nature',
         'type',
+        'amount',
         'status',
-        'metadata'
+        'description',
+        'metadata',
+        'solde_marchand_before',
+        'solde_marchand_after',
+        'engagement_users_before',
+        'engagement_users_after',
+        'plateforme_benefices_before',
+        'plateforme_benefices_after',
+        'processed_by',
+        'processed_at',
+        'rejection_reason',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'solde_marchand_before' => 'decimal:2',
+        'solde_marchand_after' => 'decimal:2',
+        'engagement_users_before' => 'decimal:2',
+        'engagement_users_after' => 'decimal:2',
+        'plateforme_benefices_before' => 'decimal:2',
+        'plateforme_benefices_after' => 'decimal:2',
         'metadata' => 'array',
     ];
 
@@ -65,5 +82,10 @@ class WalletSystemTransaction extends Model
     public function walletSystem()
     {
         return $this->belongsTo(WalletSystem::class);
+    }
+
+    public function processor()
+    {
+        return $this->belongsTo(User::class, 'processed_by');
     }
 }

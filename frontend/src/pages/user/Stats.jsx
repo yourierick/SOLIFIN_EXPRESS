@@ -1337,8 +1337,7 @@ export default function Stats() {
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                Aucun paiement trouvé pour la devise{" "}
-                                {selectedCurrency}
+                                Aucun paiement trouvé
                               </Typography>
                             </TableCell>
                           </TableRow>

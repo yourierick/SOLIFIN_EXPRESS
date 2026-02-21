@@ -43,10 +43,10 @@ class DigitalProductSold extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Votre produit numérique a été vendu')
+            ->subject('Votre produit a été vendu')
             ->greeting('Bonjour ' . $notifiable->name . ',')
-            ->line('Votre produit numérique "' . $this->data['product_title'] . '" a été acheté.')
-            ->line('Montant reçu: ' . $this->data['amount'] . ' ' . $this->data['currency'])
+            ->line('Votre produit "' . $this->data['product_title'] . '" a été acheté.')
+            ->line('Montant reçu: ' . $this->data['amount'] . '$')
             ->line('Acheteur: ' . $this->data['buyer_name'])
             ->line('Merci d\'utiliser notre plateforme!');
     }
@@ -61,10 +61,10 @@ class DigitalProductSold extends Notification
     {
         return [
             'type' => 'info',
-            'titre' => 'Vente de produit numérique',
+            'titre' => 'Vente de produit',
             'icon' => 'exclamation-circle',
             'link' => '/dashboard/finances',
-            'message' => 'Votre produit numérique "' . $this->data['product_title'] . '" a été acheté par ' . $this->data['buyer_name'] . ' pour ' . $this->data['amount'] . ' ' . $this->data['currency'] . '.'
+            'message' => 'Votre produit "' . $this->data['product_title'] . '" a été acheté par ' . $this->data['buyer_name'] . ' pour ' . $this->data['amount'] . ' $'
         ];
     }
 }

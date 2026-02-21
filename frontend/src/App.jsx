@@ -58,7 +58,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const SuiviDashboard = lazy(() => import("./pages/admin/components/suivitab/SuiviTab"))
 const UsersManagement = lazy(() => import("./pages/admin/UsersManagement"));
 const UserDetails = lazy(() => import("./pages/admin/UserDetails"));
-const Wallets = lazy(() => import("./pages/admin/Wallets"));
+const WalletAdmin = lazy(() => import("./pages/admin/Wallet"));
 const Packs = lazy(() => import("./pages/admin/Packs"));
 const AddPack = lazy(() => import("./pages/admin/AddPack"));
 const EditPack = lazy(() => import("./pages/admin/EditPack"));
@@ -268,10 +268,10 @@ function App() {
                     }
                   />
                   <Route
-                    path="wallets"
+                    path="wallet"
                     element={
                       <Suspense fallback={<LoadingSpinner />}>
-                        <Wallets />
+                        <WalletAdmin />
                       </Suspense>
                     }
                   />

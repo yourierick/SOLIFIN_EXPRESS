@@ -14,20 +14,6 @@ use Illuminate\Http\JsonResponse;
 class DigitalProductValidationController extends Controller
 {
     /**
-     * Compter le nombre de produits numériques en attente
-     *
-     * @return JsonResponse
-     */
-    public function pendingCount(): JsonResponse
-    {
-        try {
-            $count = DigitalProduct::where('statut', 'en_attente')->count();
-            return response()->json(['count' => $count]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors du comptage des produits numériques en attente', 'error' => $e->getMessage()], 500);
-        }
-    }
-    /**
      * Récupérer tous les produits numériques en attente de validation avec pagination
      *
      * @param  \Illuminate\Http\Request  $request
@@ -99,7 +85,7 @@ class DigitalProductValidationController extends Controller
     public function approve($id)
     {
         $product = DigitalProduct::with('page.user')->findOrFail($id);
-        $product->statut = 'approuve';
+        $product->statut = 'approved';
         $product->raison_rejet = null;
         $product->save();
         
@@ -109,7 +95,7 @@ class DigitalProductValidationController extends Controller
             'type' => 'produit_numerique',
             'id' => $product->id,
             'titre' => $product->titre,
-            'statut' => 'approuve',
+            'statut' => 'approved',
             'message' => 'Votre produit numérique "' . $product->titre . '" a été approuvé et est maintenant disponible à la vente.'
         ]));
 
@@ -137,7 +123,7 @@ class DigitalProductValidationController extends Controller
         }
 
         $product = DigitalProduct::with('page.user')->findOrFail($id);
-        $product->statut = 'rejete';
+        $product->statut = 'rejected';
         $product->raison_rejet = $request->raison_rejet;
         $product->save();
         
@@ -147,7 +133,7 @@ class DigitalProductValidationController extends Controller
             'type' => 'produit_numerique',
             'id' => $product->id,
             'titre' => $product->titre,
-            'statut' => 'rejete',
+            'statut' => 'rejected',
             'raison' => $request->raison_rejet,
             'message' => 'Votre produit numérique "' . $product->titre . '" a été rejeté.'
         ]));

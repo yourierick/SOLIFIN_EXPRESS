@@ -17,20 +17,6 @@ use Illuminate\Http\JsonResponse;
 class BusinessOpportunityValidationController extends Controller
 {
     /**
-     * Compter le nombre d'opportunités d'affaires en attente
-     *
-     * @return JsonResponse
-     */
-    public function pendingCount(): JsonResponse
-    {
-        try {
-            $count = OpportuniteAffaire::where('statut', 'en_attente')->count();
-            return response()->json(['count' => $count]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors du comptage des opportunités d\'affaires en attente', 'error' => $e->getMessage()], 500);
-        }
-    }
-    /**
      * Afficher la liste des opportunités d'affaires pour validation avec pagination
      *
      * @param  \Illuminate\Http\Request  $request
@@ -102,7 +88,7 @@ class BusinessOpportunityValidationController extends Controller
         }
         
         // Mettre à jour le statut
-        $opportuniteAffaire->statut = 'approuvé';
+        $opportuniteAffaire->statut = 'approved';
         $opportuniteAffaire->created_at = now();
         $opportuniteAffaire->save();
         
@@ -115,7 +101,7 @@ class BusinessOpportunityValidationController extends Controller
                 ][$opportuniteAffaire->type] ?? 'Opportunité d\'affaire',
             'id' => $opportuniteAffaire->id,
             'titre' => $opportuniteAffaire->titre,
-            'statut' => 'approuvé',
+            'statut' => 'approved',
             'message' => 'Votre opportunité d\'affaire a été approuvée et est maintenant visible par tous les utilisateurs pendant '. $opportuniteAffaire->duree_affichage . ' jours.'
         ]));
         
@@ -146,7 +132,7 @@ class BusinessOpportunityValidationController extends Controller
         }
         
         // Mettre à jour le statut
-        $opportuniteAffaire->statut = 'rejeté';
+        $opportuniteAffaire->statut = 'rejected';
         $opportuniteAffaire->raison_rejet = $request->reason;
         $opportuniteAffaire->save();
         
@@ -159,7 +145,7 @@ class BusinessOpportunityValidationController extends Controller
                 ][$opportuniteAffaire->type] ?? 'Opportunité d\'affaire',
             'id' => $opportuniteAffaire->id,
             'titre' => $opportuniteAffaire->titre,
-            'statut' => 'rejeté',
+            'statut' => 'rejected',
             'message' => 'Votre opportunité d\'affaire a été rejetée.',
             'raison' => $request->reason
         ]));
@@ -180,7 +166,7 @@ class BusinessOpportunityValidationController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'statut' => 'required|string|in:en_attente,approuve,rejete',
+            'statut' => 'required|string|in:pending,approved,rejected',
         ]);
         
         $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
@@ -223,7 +209,7 @@ class BusinessOpportunityValidationController extends Controller
     public function updateEtat(Request $request, $id)
     {
         $request->validate([
-            'etat' => 'required|string|in:disponible,terminé',
+            'etat' => 'required|string|in:available,unavailable',
         ]);
         
         $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);

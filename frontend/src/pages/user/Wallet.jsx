@@ -7,6 +7,8 @@ import VirtualPurchaseForm from "../../components/VirtualPurchaseForm";
 import FundsTransferModal from "../../components/FundsTransferModal";
 import TransactionsTable from "./components/TransactionsTable";
 import WalletExportButtons from "./components/WalletExportButtons";
+import { getOperationType } from "../../components/OperationTypeFormatter";
+import FiltreParTypeOperationUser from "../../components/FiltreParTypeOperationUser";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createPortal } from "react-dom";
@@ -26,26 +28,15 @@ import {
 import { FaFilter, FaTimes, FaExchangeAlt, FaFileExcel } from "react-icons/fa";
 import {
   Alert,
+  Drawer,
+  Box,
+  Typography,
+  IconButton,
+  Paper,
+  Grid,
+  Chip,
 } from "@mui/material";
-
-const getStatusColor = (status, isDarkMode) => {
-  switch (status) {
-    case "active":
-      return isDarkMode
-        ? "bg-green-900 text-green-300"
-        : "bg-green-100 text-green-800";
-    case "pending":
-      return isDarkMode
-        ? "bg-yellow-900 text-yellow-300"
-        : "bg-yellow-100 text-yellow-800";
-    case "inactive":
-      return isDarkMode ? "bg-red-900 text-red-300" : "bg-red-100 text-red-800";
-    default:
-      return isDarkMode
-        ? "bg-gray-700 text-gray-300"
-        : "bg-gray-100 text-gray-800";
-  }
-};
+import { Close as CloseIcon } from "@mui/icons-material";
 
 const getStatusText = (status) => {
   switch (status) {
@@ -95,6 +86,194 @@ const formatDate = (dateString) => {
   }
 };
 
+// Drawer pour afficher les détails de transaction
+const TransactionDetailsDrawer = () => (
+  <Drawer
+    anchor="right"
+    open={showTransactionDetails}
+    onClose={() => setShowTransactionDetails(false)}
+    sx={{
+      '& .MuiDrawer-paper': {
+        width: 500,
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+        borderLeft: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+      },
+    }}
+  >
+    {selectedTransaction && (
+      <Box sx={{ p: 3, height: '100%', overflowY: 'auto' }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+            Détails de la transaction
+          </Typography>
+          <IconButton onClick={() => setShowTransactionDetails(false)}>
+            <CloseIcon sx={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }} />
+          </IconButton>
+        </Box>
+
+        {/* Carte principale avec montant */}
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            background: selectedTransaction.flow === "out"
+              ? isDarkMode
+                ? "linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)"
+                : "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)"
+              : isDarkMode
+              ? "linear-gradient(135deg, #14532d 0%, #166534 100%)"
+              : "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+            border: `1px solid ${selectedTransaction.flow === "out"
+              ? isDarkMode ? '#7f1d1d' : '#fca5a5'
+              : isDarkMode ? '#166534' : '#86efac'}`,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1, color: selectedTransaction.flow === "out"
+                ? isDarkMode ? "#fca5a5" : "#991b1b"
+                : isDarkMode ? "#86efac" : "#14532d"
+              }}>
+                {selectedTransaction.flow === "out" ? "Montant débité" : "Montant crédité"}
+              </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: selectedTransaction.flow === "out"
+                ? isDarkMode ? "#fca5a5" : "#991b1b"
+                : isDarkMode ? "#86efac" : "#14532d"
+              }}>
+                {selectedTransaction.flow === "out" ? "-" : "+"}
+                {selectedTransaction.amount} $
+              </Typography>
+            </Box>
+            <Chip
+              label={selectedTransaction.status === "pending"
+                ? "En attente"
+                : selectedTransaction.status === "approved"
+                ? "Approuvé"
+                : selectedTransaction.status === "rejected"
+                ? "Rejeté"
+                : selectedTransaction.status === "completed"
+                ? "Complété"
+                : selectedTransaction.status === "failed"
+                ? "Échouée"
+                : selectedTransaction.status}
+              size="small"
+              color={selectedTransaction.status === "completed" ? "success" : 
+                     selectedTransaction.status === "pending" ? "warning" :
+                     selectedTransaction.status === "failed" ? "error" : "default"}
+            />
+          </Box>
+        </Paper>
+
+        {/* Informations principales */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, background: isDarkMode ? '#374151' : '#f9fafb' }}>
+              <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#6b7280', mb: 1 }}>
+                ID de transaction
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'medium', color: isDarkMode ? '#ffffff' : '#111827' }}>
+                #{selectedTransaction.id}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, background: isDarkMode ? '#374151' : '#f9fafb' }}>
+              <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#6b7280', mb: 1 }}>
+                Type de transaction
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'medium', color: isDarkMode ? '#ffffff' : '#111827' }}>
+                {getOperationType(selectedTransaction.type)}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, background: isDarkMode ? '#374151' : '#f9fafb' }}>
+              <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#6b7280', mb: 1 }}>
+                Date de la transaction
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'medium', color: isDarkMode ? '#ffffff' : '#111827' }}>
+                {formatDate(selectedTransaction.created_at)}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper sx={{ p: 2, background: isDarkMode ? '#374151' : '#f9fafb' }}>
+              <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#6b7280', mb: 1 }}>
+                Dernière mise à jour
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'medium', color: isDarkMode ? '#ffffff' : '#111827' }}>
+                {formatDate(selectedTransaction.updated_at)}
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* Métadonnées */}
+        {selectedTransaction.metadata && Object.keys(selectedTransaction.metadata).length > 0 && (
+          <Paper sx={{ p: 3, background: isDarkMode ? '#374151' : '#f9fafb' }}>
+            <Typography variant="h6" sx={{ mb: 2, color: isDarkMode ? '#ffffff' : '#111827' }}>
+              Informations supplémentaires
+            </Typography>
+            {Object.entries(selectedTransaction.metadata).map(([key, value]) => {
+              const frenchLabels = {
+                withdrawal_request_id: "Identifiant de la demande de retrait",
+                payment_method: "Méthode de paiement",
+                montant_a_retirer: "Montant à retirer",
+                fee_percentage: "Pourcentage de frais",
+                frais_de_retrait: "Frais de retrait",
+                frais_de_commission: "Frais de commission",
+                montant_total_a_payer: "Montant total à payer",
+                devise: "Dévise choisie pour le retrait",
+                payment_details: "Détails du paiement",
+                status: "Statut",
+                source: "Source",
+                type: "Type",
+                amount: "Montant",
+                currency: "Devise",
+                description: "Description",
+                reference: "Référence",
+              };
+
+              const label = frenchLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+              
+              let formattedValue = value;
+              if (key === "status" || key.endsWith("_status")) {
+                if (value === "pending") formattedValue = "En attente";
+                else if (value === "approved") formattedValue = "Approuvé";
+                else if (value === "rejected") formattedValue = "Rejeté";
+                else if (value === "cancelled" || value === "canceled") formattedValue = "Annulé";
+                else if (value === "completed") formattedValue = "Complété";
+                else if (value === "failed") formattedValue = "Échoué";
+              }
+
+              if (key === "amount" || key === "montant_a_retirer" || key === "frais_de_retrait" || 
+                    key === "frais_de_commission" || key === "montant_total_a_payer" || key.includes("montant") || key.includes("amount")) {
+                formattedValue = `${value} $`;
+              }
+
+              if (key === "fee_percentage" || key.includes("percentage") || key.includes("pourcentage")) {
+                formattedValue = `${value} %`;
+              }
+
+              return (
+                <Box key={key} sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#6b7280', mb: 0.5 }}>
+                    {label}
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium', color: isDarkMode ? '#ffffff' : '#111827', wordBreak: 'break-word' }}>
+                    {typeof formattedValue === "object" ? JSON.stringify(formattedValue, null, 2) : String(formattedValue)}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Paper>
+        )}
+      </Box>
+    )}
+  </Drawer>
+);
+
 export default function Wallets() {
   const { isDarkMode } = useTheme();
   const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
@@ -121,6 +300,7 @@ export default function Wallets() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [flowFilter, setFlowFilter] = useState("all");
   const [user, setUser] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState({ startDate: "", endDate: "" });
@@ -244,7 +424,7 @@ export default function Wallets() {
   useEffect(() => {
     setCurrentPage(0);
     fetchTransactions(false); // Pas de loading global pour les filtres
-  }, [debouncedSearchQuery, statusFilter, typeFilter, dateFilter, selectedCurrency]);
+  }, [debouncedSearchQuery, statusFilter, flowFilter, typeFilter, dateFilter, selectedCurrency]);
 
   // Effet pour recharger les données lorsque la pagination change
   useEffect(() => {
@@ -257,13 +437,10 @@ export default function Wallets() {
       const response = await axios.get("/api/userwallet/data");
       if (response.data.success) {
         setuserWallet(response.data.userWallet);
-        setTransactionsUSD(response.data.transactions_usd || []);
-        setTransactionsCDF(response.data.transactions_cdf || []);
-        // Définir les transactions actives selon la devise sélectionnée
-        setTransactions(
-          selectedCurrency === "USD"
-            ? response.data.transactions_usd || []
-            : response.data.transactions_cdf || []
+
+        setTransactions(response.data.data.data);
+        setTotalTransactions(
+          response.data.total_count || response.data.data.total
         );
         setUser(response.data.user);
       }
@@ -288,12 +465,10 @@ export default function Wallets() {
       params.per_page = rowsPerPage;
       params.page = currentPage + 1; // Laravel pagination commence à 1
 
-      // Filtrer par devise
-      params.currency = selectedCurrency;
-
       // Ajouter les filtres de recherche
       if (debouncedSearchQuery) params.search = debouncedSearchQuery;
       if (statusFilter !== "all") params.status = statusFilter;
+      if (flowFilter !== "all") params.flow = flowFilter;
       if (typeFilter !== "all") params.type = typeFilter;
       if (dateFilter.startDate) params.date_from = dateFilter.startDate;
       if (dateFilter.endDate) params.date_to = dateFilter.endDate;
@@ -336,6 +511,11 @@ export default function Wallets() {
     setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
   };
 
+  const handleFlowFilter = (e) => {
+    setFlowFilter(e.target.value);
+    setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
+  };
+
   const handleTypeFilter = (e) => {
     setTypeFilter(e.target.value);
     setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
@@ -354,13 +534,25 @@ export default function Wallets() {
       // Préparer les données de la page actuelle
       const currentPageData = transactions.map(transaction => ({
         Référence: transaction.reference || '',
-        Type: transaction.type || '',
-        Mouvement: transaction.mouvment === 'in' ? 'Entrée' : 'Sortie',
-        Montant: `${transaction.amount} ${selectedCurrency}`,
-        Statut: transaction.status || '',
+        Type: getOperationType(transaction.type) || '',
+        Mouvement: transaction.flow === 'in' ? 'Entrée' : transaction.flow === 'out' ? 'Sortie' : transaction.flow === 'freeze' ? 'Blocage' : 'Déblocage',
+        Montant: `${transaction.amount} $`,
+        Frais: `${transaction.fee_amount} $`,
+        Commission: `${transaction.commission_amount} $`,
+        Statut: getStatusText(transaction.status) || '',
+        Balance_avant: `${transaction.balance_before} $`,
+        Balance_après: `${transaction.balance_after} $`,
+        Traité_par : transaction.processor,
+        Traité_le : formatDate(transaction.processed_at),
+        Déscription : transaction.description,
+        Raison : transaction.rejection_reason,
         Date: formatDate(transaction.created_at),
-        'Méthode de paiement': transaction.metadata?.['Méthode de paiement'] || '-',
       }));
+
+      if (transaction.metadata) {
+        // Si les métadonnées sont déjà un objet
+
+      }
 
       // Créer le fichier Excel
       const ws = XLSX.utils.json_to_sheet(currentPageData);
@@ -380,19 +572,27 @@ export default function Wallets() {
     }
   };
 
+  const formatAmount = (amount) => {
+    if (amount === undefined || amount === null) return "0,00";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
   const exportFiltered = async () => {
     try {
       setExportLoading(true);
       
       // Récupérer toutes les données filtrées depuis l'API
       const params = {
-        currency: selectedCurrency,
         export: 'all', // Indiquer au backend de retourner toutes les données filtrées
       };
       
       // Ajouter les filtres actifs
       if (debouncedSearchQuery) params.search = debouncedSearchQuery;
       if (statusFilter !== 'all') params.status = statusFilter;
+      if (flowFilter !== 'all') params.flow = flowFilter;
       if (typeFilter !== 'all') params.type = typeFilter;
       if (dateFilter.startDate) params.date_from = dateFilter.startDate;
       if (dateFilter.endDate) params.date_to = dateFilter.endDate;
@@ -496,8 +696,8 @@ export default function Wallets() {
     }
   };
 
-  const handleWithdrawalClick = (walletId, type) => {
-    setSelectedWalletForWithdrawal({ id: walletId, type });
+  const handleWithdrawalClick = (walletId, available_balance) => {
+    setSelectedWalletForWithdrawal({ id: walletId, available_balance });
     setShowWithdrawalForm(true);
   };
 
@@ -514,83 +714,6 @@ export default function Wallets() {
     // Ouvrir le modal d'achat de virtuel
     setShowVirtualPurchaseForm(true);
   };
-
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch = JSON.stringify(transaction.metadata)
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      transaction.status.toLowerCase() === statusFilter;
-    const matchesType = typeFilter === "all" || transaction.type === typeFilter;
-
-    // Amélioration du filtrage par date
-    let matchesDate = true;
-
-    if (dateFilter.startDate || dateFilter.endDate) {
-      try {
-        // Convertir la date de transaction en objet Date
-        let transactionDate;
-
-        if (typeof transaction.created_at === "string") {
-          // Si la date est au format "JJ/MM/AAAA HH:MM:SS" (format français)
-          if (transaction.created_at.includes("/")) {
-            // Extraire seulement la partie date (JJ/MM/AAAA)
-            const parts = transaction.created_at.split("/");
-            if (parts.length === 3) {
-              // Format JJ/MM/AAAA
-              const day = parseInt(parts[0], 10);
-              const month = parseInt(parts[1], 10) - 1; // Les mois commencent à 0 en JavaScript
-
-              // Extraire l'année et l'heure si présente
-              let year, time;
-              if (parts[2].includes(" ")) {
-                [year, time] = parts[2].split(" ");
-                year = parseInt(year, 10);
-              } else {
-                year = parseInt(parts[2], 10);
-              }
-
-              transactionDate = new Date(year, month, day);
-            } else {
-              transactionDate = new Date(transaction.created_at);
-            }
-          } else {
-            // Format standard ISO
-            transactionDate = new Date(transaction.created_at);
-          }
-        } else {
-          transactionDate = new Date(transaction.created_at);
-        }
-
-        // Convertir les dates de filtre en objets Date
-        // Pour la date de début, on définit l'heure à 00:00:00
-        let startDate = null;
-        if (dateFilter.startDate) {
-          startDate = new Date(dateFilter.startDate);
-          startDate.setHours(0, 0, 0, 0);
-        }
-
-        // Pour la date de fin, on définit l'heure à 23:59:59
-        let endDate = null;
-        if (dateFilter.endDate) {
-          endDate = new Date(dateFilter.endDate);
-          endDate.setHours(23, 59, 59, 999);
-        }
-
-        // Vérifier si la date de transaction est dans la plage
-        matchesDate =
-          (!startDate || transactionDate >= startDate) &&
-          (!endDate || transactionDate <= endDate);
-      } catch (error) {
-        console.error("Erreur lors du filtrage par date:", error);
-        matchesDate = false;
-      }
-    }
-
-    return matchesSearch && matchesStatus && matchesType && matchesDate;
-  });
 
   // Fonction d'exportation Excel améliorée
   const exportToExcel = (exportAll = false) => {
@@ -621,39 +744,19 @@ export default function Wallets() {
     // Formater les données pour l'export
     const formattedData = dataToExport.map((transaction) => {
       // Traduire le type en français
-      const typeTraduction = 
-        transaction.mouvment === "withdrawal"
-          ? "Retrait"
-          : transaction.type === "purchase"
-          ? "Achat"
-          : transaction.type === "virtual_purchase"
-          ? "Virtuels"
-          : transaction.type === "reception"
-          ? "Réception des fonds"
-          : transaction.type === "transfer"
-          ? "Transfert des fonds"
-          : transaction.type === "remboursement"
-          ? "Remboursement"
-          : transaction.type === "digital_product_sale"
-          ? "Vente de produit numérique"
-          : transaction.type === "commission de parrainage"
-          ? "Commission de parrainage"
-          : transaction.type === "commission de transfert"
-          ? "Commission de transfert"
-          : transaction.type === "commission de retrait"
-          ? "Commission de retrait"
-          : transaction.type;
-
+      const typeTraduction = getOperationType(transaction.type);
       // Traduire le statut en français
       const getStatusText = (status) =>
         status === "pending"
           ? "en attente"
-          : status === "completed"
-          ? "completé"
+          : status === "processing"
+          ? "En cours de traitement"
           : status === "failed"
-          ? "failed"
-          : status === "cancelled"
+          ? "echoué"
+          : status === "reversed"
           ? "annulé"
+          : status === "completed"
+          ? "Complété"
           : status;
 
       // Formater les métadonnées pour une meilleure lisibilité
@@ -730,23 +833,15 @@ export default function Wallets() {
           }, ${
             typeFilter !== "all"
               ? `Type: ${
-                  typeFilter === "deposit"
-                    ? "Dépôt"
-                    : typeFilter === "withdrawal"
-                    ? "Retrait"
-                    : typeFilter === "transfer"
-                    ? "Transfert"
-                    : typeFilter === "payment"
-                    ? "Paiement"
-                    : typeFilter === "refund"
-                    ? "Remboursement"
-                    : typeFilter === "commission"
-                    ? "Commission"
-                    : typeFilter === "conversion"
-                    ? "Conversion"
-                    : typeFilter
+                  getOperationType(typeFilter)
                 }`
               : "Tous les types"
+          }, ${
+            flowFilter !== "all"
+              ? `Type: ${
+                  getOperationType(flowFilter)
+                }`
+              : "Tous les mouvements"
           }`,
         ],
         [
@@ -811,6 +906,801 @@ export default function Wallets() {
     };
   }, [showExportMenu]);
 
+  // Drawer pour afficher les détails de transaction
+  const TransactionDetailsDrawer = () => (
+    <Drawer
+      anchor="right"
+      open={showTransactionDetails}
+      onClose={() => setShowTransactionDetails(false)}
+      sx={{
+        '& .MuiDrawer-paper': {
+          width: 540,
+          background: isDarkMode 
+            ? 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)' 
+            : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+          borderLeft: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+          boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.1)',
+        },
+      }}
+    >
+      {selectedTransaction && (
+        <Box sx={{ height: '100%', overflowY: 'auto', position: 'relative' }}>
+          {/* Header moderne */}
+          <Box 
+            sx={{
+              p: 4,
+              background: selectedTransaction.flow === "out"
+                ? isDarkMode
+                  ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)"
+                  : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)"
+                : isDarkMode
+                ? "linear-gradient(135deg, #064e3b 0%, #065f46 100%)"
+                : "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Éléments décoratifs */}
+            <Box sx={{ position: 'absolute', top: -30, right: -30, opacity: 0.05 }}>
+              <Box sx={{ 
+                width: 150, 
+                height: 150, 
+                borderRadius: '50%', 
+                background: selectedTransaction.flow === "out" 
+                  ? isDarkMode ? '#ef4444' : '#dc2626'
+                  : isDarkMode ? '#10b981' : '#059669'
+              }} />
+            </Box>
+            <Box sx={{ position: 'absolute', bottom: -20, left: -20, opacity: 0.03 }}>
+              <Box sx={{ 
+                width: 100, 
+                height: 100, 
+                borderRadius: '50%', 
+                background: selectedTransaction.flow === "out" 
+                  ? isDarkMode ? '#f87171' : '#ef4444'
+                  : isDarkMode ? '#34d399' : '#10b981'
+              }} />
+            </Box>
+            
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              {/* Barre supérieure */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                mb: 3 
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '12px',
+                    background: selectedTransaction.flow === "out"
+                      ? isDarkMode 
+                        ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
+                        : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                      : isDarkMode
+                      ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                      : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '1.2rem'
+                      }}
+                    >
+                      {selectedTransaction.flow === "out" ? "-" : "+"}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontWeight: 700,
+                        mb: 0.5,
+                        fontSize: '1.1rem'
+                      }}
+                    >
+                      {selectedTransaction.flow === "out" || selectedTransaction.flow === "freeze"  ? "Débit" : "Crédit"}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {getOperationType(selectedTransaction.type)}
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <IconButton 
+                  onClick={() => setShowTransactionDetails(false)}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '10px',
+                    '&:hover': {
+                      background: isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+                      transform: 'scale(1.05)',
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <CloseIcon sx={{ 
+                    color: isDarkMode ? '#ffffff' : '#111827',
+                    fontSize: '1.2rem'
+                  }} />
+                </IconButton>
+              </Box>
+              
+              {/* Carte montant améliorée */}
+              <Box sx={{ 
+                p: 3.5, 
+                borderRadius: 3, 
+                background: selectedTransaction.flow === "out" || selectedTransaction.flow === "freeze" 
+                  ? isDarkMode
+                    ? "linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(185, 28, 28, 0.05) 100%)"
+                    : "linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)"
+                  : isDarkMode
+                  ? "linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(4, 120, 87, 0.05) 100%)"
+                  : "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)",
+                border: `1px solid ${selectedTransaction.flow === "out" || selectedTransaction.flow === "freeze"
+                  ? isDarkMode ? 'rgba(220, 38, 38, 0.2)' : 'rgba(239, 68, 68, 0.2)'
+                  : isDarkMode ? 'rgba(5, 150, 105, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`,
+                backdropFilter: 'blur(10px)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Ligne décorative */}
+                <Box sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 3,
+                  background: selectedTransaction.flow === "out" || selectedTransaction.flow === "freeze"
+                    ? isDarkMode 
+                      ? "linear-gradient(90deg, #dc2626 0%, #ef4444 100%)"
+                      : "linear-gradient(90deg, #ef4444 0%, #f87171 100%)"
+                    : isDarkMode
+                    ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
+                    : "linear-gradient(90deg, #10b981 0%, #34d399 100%)"
+                }} />
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                  <Box>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        mb: 1.5, 
+                        color: isDarkMode ? '#cbd5e1' : '#475569',
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        fontWeight: 500
+                      }}
+                    >
+                      Montant total
+                    </Typography>
+                    <Typography 
+                      variant="h2" 
+                      sx={{ 
+                        fontWeight: 800, 
+                        color: selectedTransaction.flow === "out" || selectedTransaction.flow === "freeze"
+                          ? isDarkMode ? '#f87171' : '#dc2626'
+                          : isDarkMode ? '#34d399' : '#059669',
+                        lineHeight: 1.1,
+                        fontSize: '2.5rem',
+                        mb: 2
+                      }}
+                    >
+                      {selectedTransaction.amount} $
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Chip
+                      label={selectedTransaction.status === "pending"
+                        ? "En attente"
+                        : selectedTransaction.status === "approved"
+                        ? "Approuvé"
+                        : selectedTransaction.status === "rejected"
+                        ? "Rejeté"
+                        : selectedTransaction.status === "completed"
+                        ? "Complété"
+                        : selectedTransaction.status === "failed"
+                        ? "Échouée"
+                        : selectedTransaction.status}
+                      size="medium"
+                      sx={{
+                        background: selectedTransaction.status === "completed" 
+                          ? isDarkMode ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)'
+                          : selectedTransaction.status === "pending" 
+                          ? isDarkMode ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.1)'
+                          : selectedTransaction.status === "failed" || selectedTransaction.status === "rejected"
+                          ? isDarkMode ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)'
+                          : isDarkMode ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.1)',
+                        color: selectedTransaction.status === "completed" 
+                          ? isDarkMode ? '#4ade80' : '#16a34a'
+                          : selectedTransaction.status === "pending" 
+                          ? isDarkMode ? '#fbbf24' : '#d97706'
+                          : selectedTransaction.status === "failed" || selectedTransaction.status === "rejected"
+                          ? isDarkMode ? '#f87171' : '#dc2626'
+                          : isDarkMode ? '#cbd5e1' : '#64748b',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${selectedTransaction.status === "completed" 
+                          ? isDarkMode ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)'
+                          : selectedTransaction.status === "pending" 
+                          ? isDarkMode ? 'rgba(251, 191, 36, 0.3)' : 'rgba(251, 191, 36, 0.2)'
+                          : selectedTransaction.status === "failed" || selectedTransaction.status === "rejected"
+                          ? isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)'
+                          : isDarkMode ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.2)'}`,
+                        '& .MuiChip-label': {
+                          px: 2,
+                          py: 0.5
+                        }
+                      }}
+                    />
+                  </Box>
+                </Box>
+                
+                {/* Informations secondaires */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  pt: 2,
+                  borderTop: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`
+                }}>
+                  <Box>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}
+                    >
+                      Identifiant de transaction
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: isDarkMode ? '#e2e8f0' : '#475569',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      #{selectedTransaction.id}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}
+                    >
+                      Date
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: isDarkMode ? '#e2e8f0' : '#475569',
+                        fontWeight: 600,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {formatDate(selectedTransaction.created_at)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Contenu principal */}
+          <Box sx={{ p: 3 }}>
+            {/* Informations essentielles */}
+            <Box sx={{ mb: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  color: isDarkMode ? '#ffffff' : '#111827',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                <Box sx={{ 
+                  width: 4, 
+                  height: 20, 
+                  borderRadius: 2,
+                  background: selectedTransaction.flow === "out" || selectedTransaction.flow === "freeze"
+                    ? isDarkMode ? '#dc2626' : '#ef4444'
+                    : isDarkMode ? '#059669' : '#10b981'
+                }} />
+                Informations de la transaction
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: isDarkMode 
+                          ? '0 4px 20px rgba(0, 0, 0, 0.3)'
+                          : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                      }
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Date de création
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {formatDate(selectedTransaction.created_at)}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: isDarkMode 
+                          ? '0 4px 20px rgba(0, 0, 0, 0.3)'
+                          : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                      }
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Dernière mise à jour
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {formatDate(selectedTransaction.updated_at)}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Détails du traitement */}
+            <Box sx={{ mb: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  color: isDarkMode ? '#ffffff' : '#111827',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                <Box sx={{ 
+                  width: 4, 
+                  height: 20, 
+                  borderRadius: 2,
+                  background: isDarkMode ? '#3b82f6' : '#2563eb'
+                }} />
+                Détails du traitement
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Traité par
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {selectedTransaction.processor || 'Non spécifié'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Date de traitement
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {selectedTransaction.processed_at ? formatDate(selectedTransaction.processed_at) : 'Non traité'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Informations additionnelles */}
+            <Box sx={{ mb: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  color: isDarkMode ? '#ffffff' : '#111827',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                <Box sx={{ 
+                  width: 4, 
+                  height: 20, 
+                  borderRadius: 2,
+                  background: isDarkMode ? '#8b5cf6' : '#7c3aed'
+                }} />
+                Informations additionnelles
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Flow
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {selectedTransaction.flow === 'in' ? 'Entrée' : 
+                       selectedTransaction.flow === 'out' ? 'Sortie' : 
+                       selectedTransaction.flow === 'freeze' ? 'Blocage' : 
+                       selectedTransaction.flow === 'unfreeze' ? 'Déblocage' : 'Inconnu'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Session
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem',
+                        wordBreak: 'break-all'
+                      }}
+                    >
+                      {selectedTransaction.session_id || 'Aucune'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12}>
+                  <Paper 
+                    sx={{ 
+                      p: 2.5, 
+                      background: isDarkMode ? '#1e293b' : '#f8fafc',
+                      border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                      borderRadius: 2
+                    }}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontSize: '0.75rem',
+                        mb: 1,
+                        display: 'block'
+                      }}
+                    >
+                      Description
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? '#ffffff' : '#111827',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {selectedTransaction.description || 'Aucune description'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                {selectedTransaction.rejection_reason && (
+                  <Grid item xs={12}>
+                    <Paper 
+                      sx={{ 
+                        p: 2.5, 
+                        background: isDarkMode ? '#1e293b' : '#fef2f2',
+                        border: `1px solid ${isDarkMode ? '#334155' : '#fecaca'}`,
+                        borderRadius: 2
+                      }}
+                    >
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: isDarkMode ? '#f87171' : '#dc2626',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          fontSize: '0.75rem',
+                          mb: 1,
+                          display: 'block'
+                        }}
+                      >
+                        Raison du rejet/échec
+                      </Typography>
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          color: isDarkMode ? '#fca5a5' : '#991b1b',
+                          fontSize: '0.95rem'
+                        }}
+                      >
+                        {selectedTransaction.rejection_reason}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+
+            {/* Métadonnées */}
+            {selectedTransaction.metadata && Object.keys(selectedTransaction.metadata).length > 0 && (
+              <Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mb: 2, 
+                    color: isDarkMode ? '#ffffff' : '#111827',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  <Box sx={{ 
+                    width: 4, 
+                    height: 20, 
+                    borderRadius: 2,
+                    background: isDarkMode ? '#f59e0b' : '#d97706'
+                  }} />
+                  Métadonnées
+                </Typography>
+                <Paper 
+                  sx={{ 
+                    p: 3, 
+                    background: isDarkMode ? '#1e293b' : '#f8fafc',
+                    border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
+                    borderRadius: 2
+                  }}
+                >
+                  {Object.entries(selectedTransaction.metadata).map(([key, value]) => {
+                    const frenchLabels = {
+                      withdrawal_request_id: "Identifiant de la demande de retrait",
+                      payment_method: "Méthode de paiement",
+                      montant_a_retirer: "Montant à retirer",
+                      fee_percentage: "Pourcentage de frais",
+                      frais_de_retrait: "Frais de retrait",
+                      frais_de_commission: "Frais de commission",
+                      montant_total_a_payer: "Montant total à payer",
+                      devise: "Dévise choisie pour le retrait",
+                      payment_details: "Détails du paiement",
+                      status: "Statut",
+                      source: "Source",
+                      type: "Type",
+                      amount: "Montant",
+                      currency: "Devise",
+                      description: "Description",
+                      reference: "Référence",
+                    };
+
+                    const label = frenchLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+                    
+                    let formattedValue = value;
+                    if (key === "status" || key.endsWith("_status")) {
+                      if (value === "pending") formattedValue = "En attente";
+                      else if (value === "approved") formattedValue = "Approuvé";
+                      else if (value === "rejected") formattedValue = "Rejeté";
+                      else if (value === "cancelled" || value === "canceled") formattedValue = "Annulé";
+                      else if (value === "completed") formattedValue = "Complété";
+                      else if (value === "failed") formattedValue = "Échoué";
+                    }
+
+                    if (key === "amount" || key === "montant_a_retirer" || key === "frais_de_retrait" || 
+                          key === "frais_de_commission" || key === "montant_total_a_payer" || key.includes("montant") || key.includes("amount")) {
+                      formattedValue = `${value} $`;
+                    }
+
+                    if (key === "fee_percentage" || key.includes("percentage") || key.includes("pourcentage")) {
+                      formattedValue = `${value} %`;
+                    }
+
+                    return (
+                      <Box key={key} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: isDarkMode ? '#94a3b8' : '#64748b',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontSize: '0.75rem',
+                            mb: 0.5,
+                            display: 'block'
+                          }}
+                        >
+                          {label}
+                        </Typography>
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            color: isDarkMode ? '#ffffff' : '#111827',
+                            fontSize: '0.95rem',
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {typeof formattedValue === "object" ? JSON.stringify(formattedValue, null, 2) : String(formattedValue)}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Paper>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      )}
+    </Drawer>
+  );
+
   if (initialLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -859,150 +1749,271 @@ export default function Wallets() {
                 : "bg-gradient-to-br from-white to-gray-50 border border-gray-200"
             }`}
           >
-            <div className="sm:flex-row sm:items-start sm:justify-between gap-6">
-              {/* En-tête du wallet */}
-              <div className="flex items-center gap-4 mb-3">
-                <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
-                  <WalletIcon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-                </div>
-                <div>
-                  <h3
-                    className={`text-base sm:text-lg font-semibold ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    Portefeuille Personnel
-                  </h3>
-                  <p
-                    className={`text-sm ${
-                      isDarkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Gérez vos fonds en {selectedCurrency}
-                  </p>
+            <div className="space-y-6">
+              {/* Header principal avec icône et titre */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-xl">
+                      <WalletIcon className="h-7 w-7 text-white" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                  </div>
+                  <div>
+                    <h3
+                      className={`text-xl font-bold bg-gradient-to-r ${
+                        isDarkMode
+                          ? "from-blue-400 to-purple-400 text-transparent bg-clip-text"
+                          : "from-blue-600 to-purple-600 text-transparent bg-clip-text"
+                      }`}
+                    >
+                      Portefeuille Personnel
+                    </h3>
+                    <p
+                      className={`text-sm ${
+                        isDarkMode ? "text-gray-400" : "text-gray-600"
+                      }`}
+                    >
+                      Gérez vos fonds intelligemment
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Informations de la devise sélectionnée */}
-              <div className="grid gap-4 sm:gap-6 grid-cols-1">
-                {/* Carte de la devise sélectionnée */}
-                <div
-                  className={`p-4 rounded-xl border ${
-                    selectedCurrency === "USD"
-                      ? isDarkMode
-                        ? "bg-blue-900/20 border-blue-700/30"
-                        : "bg-blue-50 border-blue-200"
-                      : isDarkMode
-                      ? "bg-green-900/20 border-green-700/30"
-                      : "bg-green-50 border-green-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div
-                      className={`p-1.5 rounded-lg bg-gradient-to-br ${
-                        selectedCurrency === "USD"
-                          ? "from-blue-500 to-blue-600"
-                          : "from-green-500 to-green-600"
-                      }`}
-                    >
-                      <BanknotesIcon className="h-4 w-4 text-white" />
+              {/* Grille de sous-cartes */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                
+                {/* Carte principale - Balance */}
+                <div className="lg:col-span-2">
+                  <div
+                    className={`p-6 rounded-2xl border shadow-xl ${
+                      isDarkMode
+                        ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 border-gray-700/50"
+                        : "bg-gradient-to-br from-white via-gray-50 to-white border-gray-200/50"
+                    }`}
+                  >
+                    {/* Header de la carte */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+                          <BanknotesIcon className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h4
+                            className={`text-lg font-bold ${
+                              isDarkMode ? "text-white" : "text-gray-900"
+                            }`}
+                          >
+                            Balance Principale
+                          </h4>
+                          <p
+                            className={`text-sm ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            Solde total disponible
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <h4
-                      className={`text-sm font-semibold ${
-                        selectedCurrency === "USD"
-                          ? isDarkMode
-                            ? "text-blue-300"
-                            : "text-blue-700"
-                          : isDarkMode
-                          ? "text-green-300"
-                          : "text-green-700"
-                      }`}
-                    >
-                      {selectedCurrency === "USD" ? "Dollars Américains" : "Francs Congolais"}
-                    </h4>
-                  </div>
 
-                  <div className="space-y-2">
-                    <div>
+                    {/* Montant principal */}
+                    <div className="mb-6">
                       <p
-                        className={`text-xs font-medium ${
+                        className={`text-4xl font-bold bg-gradient-to-r bg-clip-text ${
+                          isDarkMode
+                            ? "from-blue-400 to-purple-400 text-transparent"
+                            : "from-blue-600 to-purple-600 text-transparent"
+                        }`}
+                      >
+                        {formatAmount(userWallet.balance)}
+                      </p>
+                      <p
+                        className={`text-sm mt-2 ${
                           isDarkMode ? "text-gray-400" : "text-gray-600"
                         }`}
                       >
-                        Solde disponible
-                      </p>
-                      <p
-                        className={`text-xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${
-                          selectedCurrency === "USD"
-                            ? "from-blue-600 to-blue-700"
-                            : "from-green-600 to-green-700"
-                        }`}
-                      >
-                        {selectedCurrency === "USD"
-                          ? `${userWallet.balance_usd} $`
-                          : `${userWallet.balance_cdf} FC`}
+                        Dollars Américains (USD)
                       </p>
                     </div>
 
-                    <div
-                      className={`grid grid-cols-2 gap-3 pt-2 border-t ${
-                        selectedCurrency === "USD"
-                          ? "border-blue-700/20"
-                          : "border-green-700/20"
-                      }`}
-                    >
-                      <div>
+                    {/* Mini statistiques */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          isDarkMode
+                            ? "bg-gray-800/50 border-gray-700/50"
+                            : "bg-gray-50 border-gray-200/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full bg-green-400" />
+                          <p
+                            className={`text-xs ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            Disponibles
+                          </p>
+                        </div>
                         <p
-                          className={`text-xs ${
-                            isDarkMode ? "text-gray-400" : "text-gray-600"
+                          className={`text-sm font-bold ${
+                            isDarkMode ? "text-green-400" : "text-green-600"
                           }`}
                         >
-                          Total gagné
-                        </p>
-                        <p
-                          className={`text-sm font-semibold ${
-                            selectedCurrency === "USD"
-                              ? isDarkMode
-                                ? "text-blue-300"
-                                : "text-blue-700"
-                              : isDarkMode
-                              ? "text-green-300"
-                              : "text-green-700"
-                          }`}
-                        >
-                          + {selectedCurrency === "USD"
-                            ? `${userWallet.total_earned_usd} $`
-                            : `${userWallet.total_earned_cdf} FC`}
+                          {formatAmount(userWallet.available_balance)}
                         </p>
                       </div>
-                      <div>
+
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          isDarkMode
+                            ? "bg-gray-800/50 border-gray-700/50"
+                            : "bg-gray-50 border-gray-200/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full bg-red-400" />
+                          <p
+                            className={`text-xs ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            Gelés
+                          </p>
+                        </div>
                         <p
-                          className={`text-xs ${
-                            isDarkMode ? "text-gray-400" : "text-gray-600"
+                          className={`text-sm font-bold ${
+                            isDarkMode ? "text-red-400" : "text-red-600"
                           }`}
                         >
-                          Total retiré
+                          {formatAmount(userWallet.frozen_balance)}
                         </p>
+                      </div>
+
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          isDarkMode
+                            ? "bg-gray-800/50 border-gray-700/50"
+                            : "bg-gray-50 border-gray-200/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full bg-purple-400" />
+                          <p
+                            className={`text-xs ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}
+                          >
+                            Points
+                          </p>
+                        </div>
                         <p
-                          className={`text-sm font-semibold ${
-                            isDarkMode ? "text-red-300" : "text-red-700"
+                          className={`text-sm font-bold ${
+                            isDarkMode ? "text-purple-400" : "text-purple-600"
                           }`}
                         >
-                          - {selectedCurrency === "USD"
-                            ? `${userWallet.total_withdrawn_usd} $`
-                            : `${userWallet.total_withdrawn_cdf} FC`}
+                          {formatAmount(userWallet.points)}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Carte secondaire - Transactions */}
+                <div className="space-y-4">
+                  <div
+                    className={`rounded-2xl border shadow-xl ${
+                      isDarkMode
+                        ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 border-gray-700/50"
+                        : "bg-gradient-to-br from-white via-gray-50 to-white border-gray-200/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 p-2">
+                      <div className="ml-2 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4
+                          className={`text-lg font-bold ${
+                            isDarkMode ? "text-white" : "text-gray-900"
+                          }`}
+                        >
+                          Entrées
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="text-center py-4">
+                      <p
+                        className={`text-3xl font-bold ${
+                          isDarkMode ? "text-green-400" : "text-green-600"
+                        }`}
+                      >
+                        {formatAmount(userWallet.total_in)}
+                      </p>
+                      <p
+                        className={`text-sm mt-2 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        Total reçu
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`rounded-2xl border shadow-xl p-1 ${
+                      isDarkMode
+                        ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 border-gray-700/50"
+                        : "bg-gradient-to-br from-white via-gray-50 to-white border-gray-200/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="ml-2 rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg">
+                        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4
+                          className={`text-lg font-bold ${
+                            isDarkMode ? "text-white" : "text-gray-900"
+                          }`}
+                        >
+                          Sorties
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="text-center py-4">
+                      <p
+                        className={`text-3xl font-bold ${
+                          isDarkMode ? "text-red-400" : "text-red-600"
+                        }`}
+                      >
+                        {formatAmount(userWallet.total_out)} 
+                      </p>
+                      <p
+                        className={`text-sm mt-2 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        Total dépensé
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Boutons d'action */}
             <div className="mt-6 sm:mt-8 flex justify-center space-x-3 sm:space-x-4">
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
-                  onClick={() => handleWithdrawalClick(userWallet.id, "admin")}
+                  onClick={() => handleWithdrawalClick(userWallet.id, userWallet.available_balance)}
                   className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
                     isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-blue-500"
@@ -1042,7 +2053,6 @@ export default function Wallets() {
                 <span className="tooltip-text">Transférer des fonds</span>
               </div>
             </div>
-            </div>
           </motion.div>
         )}
       </div>
@@ -1065,7 +2075,7 @@ export default function Wallets() {
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  Historique des transactions ({selectedCurrency})
+                  Historique des transactions
                 </h2>
               </div>
               <div className="flex items-center space-x-1 sm:space-x-2">
@@ -1091,7 +2101,7 @@ export default function Wallets() {
                   )}
                 </button>
                 
-                {/* Bouton d'exportation moderne */}
+                {/* Bouton d'exportation */}
                 <div className="relative">
                   <button
                     onClick={() => setShowExportMenu(!showExportMenu)}
@@ -1137,7 +2147,7 @@ export default function Wallets() {
                         
                         <button
                           onClick={() => {
-                            exportCurrentPage();
+                            exportCurrentPageTransactions();
                             setShowExportMenu(false);
                           }}
                           className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
@@ -1287,7 +2297,33 @@ export default function Wallets() {
                     <option value="pending">En attente</option>
                     <option value="failed">Echoué</option>
                     <option value="completed">complété</option>
-                    <option value="cancelled">Annulé</option>
+                    <option value="reversed">Annulé</option>
+                    <option value="processing">En cours</option>
+                  </select>
+                </div>
+
+                <div className="w-full">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Mouvement
+                  </label>
+                  <select
+                    value={flowFilter}
+                    onChange={handleFlowFilter}
+                    className={`w-full px-3 py-2 rounded-md ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500"
+                        : "border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                    } transition-all duration-200`}
+                  >
+                    <option value="all">Tous</option>
+                    <option value="in">Entrées</option>
+                    <option value="out">Sorties</option>
+                    <option value="freeze">Blocage</option>
+                    <option value="unfreeze">Déblocage</option>
                   </select>
                 </div>
 
@@ -1299,32 +2335,11 @@ export default function Wallets() {
                   >
                     Type
                   </label>
-                  <select
+                  <FiltreParTypeOperationUser
                     value={typeFilter}
                     onChange={handleTypeFilter}
-                    className={`w-full px-3 py-2 rounded-md ${
-                      isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500"
-                        : "border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                    } transition-all duration-200`}
-                  >
-                    <option value="all">Tous les types</option>
-                    <option value="purchase">Achat</option>
-                    <option value="virtual_purchase">Achat des virtuels</option>
-                    <option value="digital_product_sale">
-                      Vente des produits num.
-                    </option>
-                    <option value="withdrawal">Retrait</option>
-                    <option value="commission de parrainage">
-                      Commission de parrainage
-                    </option>
-                    <option value="commission de retrait">
-                      Commission de retrait
-                    </option>
-                    <option value="remboursement">Remboursement</option>
-                    <option value="transfer">Transfert</option>
-                    <option value="reception">Réception</option>
-                  </select>
+                    isDarkMode={isDarkMode}
+                  />
                 </div>
 
                 <div className="w-full">
@@ -1362,13 +2377,6 @@ export default function Wallets() {
             )}
           </div>
 
-          {/* En-tête avec bouton d'exportation */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-              Transactions {selectedCurrency}
-            </h3>
-          </div>
-
           {/* Tableau des transactions avec composant séparé */}
           <TransactionsTable
             transactions={transactions}
@@ -1376,6 +2384,7 @@ export default function Wallets() {
             error={error}
             totalTransactions={totalTransactions}
             currentPage={currentPage}
+            page={currentPage}
             rowsPerPage={rowsPerPage}
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
@@ -1388,508 +2397,8 @@ export default function Wallets() {
         </div>
       </div>
 
-      {/* Modal de détails de transaction */}
-      {showTransactionDetails &&
-        selectedTransaction &&
-        createPortal(
-          <div
-            className="fixed inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: "100vw",
-              height: "100vh",
-            }}
-          >
-            <div
-              className={`relative p-6 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 border ${
-                isDarkMode
-                  ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 border-gray-700/50"
-                  : "bg-gradient-to-br from-white via-white to-gray-50 border-gray-200/50"
-              }`}
-            >
-              {/* En-tête avec décoration */}
-              <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200/20">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      selectedTransaction.mouvment === "out"
-                        ? "bg-gradient-to-br from-red-500 to-red-600"
-                        : "bg-gradient-to-br from-green-500 to-green-600"
-                    }`}
-                  >
-                    {selectedTransaction.mouvment === "out" ? (
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 11l5-5m0 0l5 5m-5-5v12"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <div>
-                    <h3
-                      className={`text-xl font-bold bg-gradient-to-r ${
-                        isDarkMode
-                          ? "text-white from-blue-400 to-purple-400"
-                          : "text-gray-900 from-blue-600 to-purple-600"
-                      }`}
-                    >
-                      Détails de la transaction
-                    </h3>
-                    <p
-                      className={`text-sm ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      {selectedTransaction.type === "withdrawal"
-                        ? "Retrait de fonds"
-                        : selectedTransaction.type === "purchase"
-                        ? "Achat de pack"
-                        : selectedTransaction.type === "virtual_purchase"
-                        ? "Achat virtuel"
-                        : selectedTransaction.type === "transfer"
-                        ? "Transfert des fonds"
-                        : selectedTransaction.type === "reception"
-                        ? "Réception des fonds"
-                        : selectedTransaction.type === "digital_product_sale"
-                        ? "Vente de produit numérique"
-                        : selectedTransaction.type}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowTransactionDetails(false)}
-                  className={`p-2 rounded-full transition-all duration-200 ${
-                    isDarkMode
-                      ? "hover:bg-gray-700/50 text-gray-400 hover:text-white"
-                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              <div
-                className={`mb-6 ${
-                  isDarkMode ? "text-gray-300" : "text-gray-600"
-                } overflow-y-auto max-h-[60vh] pr-2 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent`}
-              >
-                {/* Carte principale avec montant */}
-                <div
-                  className={`p-6 rounded-xl mb-6 ${
-                    selectedTransaction.mouvment === "out"
-                      ? isDarkMode
-                        ? "bg-gradient-to-br from-red-900/20 to-red-800/10 border border-red-700/30"
-                        : "bg-gradient-to-br from-red-50 to-orange-50 border border-red-200/50"
-                      : isDarkMode
-                      ? "bg-gradient-to-br from-green-900/20 to-green-800/10 border border-green-700/30"
-                      : "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p
-                        className={`text-sm font-medium mb-2 ${
-                          selectedTransaction.mouvment === "out"
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-green-600 dark:text-green-400"
-                        }`}
-                      >
-                        {selectedTransaction.mouvment === "out"
-                          ? "Montant débité"
-                          : "Montant crédité"}
-                      </p>
-                      <p
-                        className={`text-3xl font-bold ${
-                          selectedTransaction.mouvment === "out"
-                            ? "text-red-700 dark:text-red-300"
-                            : "text-green-700 dark:text-green-300"
-                        }`}
-                      >
-                        {selectedTransaction.mouvment === "out" ? "-" : "+"}
-                        {selectedTransaction.amount}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span
-                        className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTransactionStatusColor(
-                          selectedTransaction.status
-                        )}`}
-                      >
-                        {selectedTransaction.status === "pending"
-                          ? "En attente"
-                          : selectedTransaction.status === "approved"
-                          ? "Approuvé"
-                          : selectedTransaction.status === "rejected"
-                          ? "Rejeté"
-                          : selectedTransaction.status === "completed"
-                          ? "Complété"
-                          : selectedTransaction.status === "failed"
-                          ? "Échouée"
-                          : selectedTransaction.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Informations principales */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <div
-                    className={`p-4 rounded-lg border ${
-                      isDarkMode
-                        ? "bg-gray-800/50 border-gray-700/50"
-                        : "bg-gray-50 border-gray-200/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className={`w-4 h-4 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-                        />
-                      </svg>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        ID de transaction
-                      </p>
-                    </div>
-                    <p
-                      className={`font-mono font-semibold ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      #{selectedTransaction.id}
-                    </p>
-                  </div>
-
-                  <div
-                    className={`p-4 rounded-lg border ${
-                      isDarkMode
-                        ? "bg-gray-800/50 border-gray-700/50"
-                        : "bg-gray-50 border-gray-200/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className={`w-4 h-4 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Type de transaction
-                      </p>
-                    </div>
-                    <p
-                      className={`font-medium capitalize ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {selectedTransaction.type === "withdrawal"
-                        ? "retrait"
-                        : selectedTransaction.type === "purchase"
-                        ? "achat"
-                        : selectedTransaction.type === "virtual_purchase"
-                        ? "Virtuels"
-                        : selectedTransaction.type === "transfer"
-                        ? "Transfert des fonds"
-                        : selectedTransaction.type === "reception"
-                        ? "Réception des fonds"
-                        : selectedTransaction.type === "digital_product_sale"
-                        ? "Vente de produit numérique"
-                        : selectedTransaction.type}
-                    </p>
-                  </div>
-
-                  <div
-                    className={`p-4 rounded-lg border ${
-                      isDarkMode
-                        ? "bg-gray-800/50 border-gray-700/50"
-                        : "bg-gray-50 border-gray-200/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className={`w-4 h-4 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Date de la transaction
-                      </p>
-                    </div>
-                    <p
-                      className={`font-medium ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {formatDate(selectedTransaction.created_at)}
-                    </p>
-                  </div>
-
-                  <div
-                    className={`p-4 rounded-lg border ${
-                      isDarkMode
-                        ? "bg-gray-800/50 border-gray-700/50"
-                        : "bg-gray-50 border-gray-200/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className={`w-4 h-4 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Dernière mise à jour
-                      </p>
-                    </div>
-                    <p
-                      className={`font-medium ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {formatDate(selectedTransaction.updated_at)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Métadonnées */}
-                {selectedTransaction.metadata &&
-                  Object.keys(selectedTransaction.metadata).length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            isDarkMode
-                              ? "bg-gradient-to-br from-purple-600 to-purple-700"
-                              : "bg-gradient-to-br from-purple-500 to-purple-600"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </div>
-                        <h4
-                          className={`text-lg font-semibold ${
-                            isDarkMode ? "text-white" : "text-gray-900"
-                          }`}
-                        >
-                          Informations supplémentaires
-                        </h4>
-                      </div>
-                      <div
-                        className={`p-4 rounded-xl border ${
-                          isDarkMode
-                            ? "bg-gradient-to-br from-gray-800/50 to-gray-900/30 border-gray-700/50"
-                            : "bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200/50"
-                        }`}
-                      >
-                        {Object.entries(selectedTransaction.metadata).map(
-                          ([key, value]) => {
-                            // Traduire les clés en français
-                            const frenchLabels = {
-                              withdrawal_request_id:
-                                "Identifiant de la demande de retrait",
-                              payment_method: "Méthode de paiement",
-                              montant_a_retirer: "Montant à retirer",
-                              fee_percentage: "Pourcentage de frais",
-                              frais_de_retrait: "Frais de retrait",
-                              frais_de_commission: "Frais de commission",
-                              montant_total_a_payer: "Montant total à payer",
-                              devise: "Dévise choisie pour le retrait",
-                              payment_details: "Détails du paiement",
-                              status: "Statut",
-                              source: "Source",
-                              type: "Type",
-                              amount: "Montant",
-                              currency: "Devise",
-                              description: "Description",
-                              reference: "Référence",
-                            };
-
-                            const label =
-                              frenchLabels[key] ||
-                              key
-                                .replace(/_/g, " ")
-                                .replace(/\b\w/g, (l) => l.toUpperCase());
-
-                            // Formater la valeur selon son type
-                            let formattedValue = value;
-
-                            // Traduction des statuts
-                            if (key === "status" || key.endsWith("_status")) {
-                              if (value === "pending")
-                                formattedValue = "En attente";
-                              else if (value === "approved")
-                                formattedValue = "Approuvé";
-                              else if (value === "rejected")
-                                formattedValue = "Rejeté";
-                              else if (
-                                value === "cancelled" ||
-                                value === "canceled"
-                              )
-                                formattedValue = "Annulé";
-                              else if (value === "completed")
-                                formattedValue = "Complété";
-                              else if (value === "failed")
-                                formattedValue = "Échoué";
-                            }
-
-                            // Ajout de symboles pour les valeurs monétaires
-                            if (
-                              key === "amount" ||
-                              key === "montant_a_retirer" ||
-                              key === "frais_de_retrait" ||
-                              key === "frais_de_commission" ||
-                              key === "montant_total_a_payer" ||
-                              key.includes("montant") ||
-                              key.includes("amount")
-                            ) {
-                              formattedValue = `${value} $`;
-                            }
-
-                            // Ajout de symboles pour les pourcentages
-                            if (
-                              key === "fee_percentage" ||
-                              key.includes("percentage") ||
-                              key.includes("pourcentage")
-                            ) {
-                              formattedValue = `${value} %`;
-                            }
-
-                            return (
-                              <div key={key} className="mb-3 last:mb-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div
-                                    className={`w-1.5 h-1.5 rounded-full ${
-                                      isDarkMode
-                                        ? "bg-purple-400"
-                                        : "bg-purple-500"
-                                    }`}
-                                  />
-                                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    {label}
-                                  </p>
-                                </div>
-                                <p
-                                  className={`font-medium break-words ml-3.5 ${
-                                    isDarkMode ? "text-white" : "text-gray-900"
-                                  }`}
-                                >
-                                  {typeof formattedValue === "object"
-                                    ? JSON.stringify(formattedValue, null, 2)
-                                    : String(formattedValue)}
-                                </p>
-                              </div>
-                            );
-                          }
-                        )}
-                      </div>
-                    </div>
-                  )}
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-gray-200/20">
-                <button
-                  onClick={() => setShowTransactionDetails(false)}
-                  className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 ${
-                    isDarkMode
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl"
-                      : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg"
-                  }`}
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
+      {/* Drawer pour afficher les détails de transaction */}
+      <TransactionDetailsDrawer />
 
       {/* Modal de retrait */}
       {showWithdrawalForm &&
@@ -1915,15 +2424,14 @@ export default function Wallets() {
             >
               <WithdrawalForm
                 walletId={selectedWalletForWithdrawal?.id}
-                walletType={selectedWalletForWithdrawal?.type}
-                balance_usd={userWallet?.balance_usd || 0}
-                balance_cdf={userWallet?.balance_cdf || 0}
+                available_balance={selectedWalletForWithdrawal?.available_balance || 0}
                 onClose={() => setShowWithdrawalForm(false)}
                 onSuccess={() => {
                   // Mettre à jour les données du portefeuille après un retrait réussi
                   // Utiliser un petit délai pour éviter les interférences avec la fermeture du modal
                   setTimeout(() => {
                     fetchWalletData();
+                    fetchTransactions();
                   }, 100);
                 }}
               />
@@ -1937,8 +2445,7 @@ export default function Wallets() {
         isOpen={showTransferModal}
         onClose={() => setShowTransferModal(false)}
         onSuccess={handleRefresh}
-        balance_usd={userWallet?.balance_usd || 0}
-        balance_cdf={userWallet?.balance_cdf || 0}
+        available_balance={userWallet?.available_balance || 0}
         userInfo={user}
         isAdmin={false}
       />

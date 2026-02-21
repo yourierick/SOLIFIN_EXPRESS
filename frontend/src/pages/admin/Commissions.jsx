@@ -73,7 +73,6 @@ import { Doughnut, Bar } from "react-chartjs-2";
 import axios from "../../utils/axios";
 import { useTheme } from "@mui/material/styles";
 import { useTheme as useAppTheme } from "../../contexts/ThemeContext";
-import { useCurrency } from "../../contexts/CurrencyContext";
 import { toast } from "react-toastify";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -95,7 +94,6 @@ const Commissions = () => {
   // Hooks
   const theme = useTheme();
   const { isDarkMode } = useAppTheme();
-  const { selectedCurrency, toggleCurrency, isCDFEnabled } = useCurrency();
 
   // États
   const [activeTab, setActiveTab] = useState(0);
@@ -134,7 +132,7 @@ const Commissions = () => {
     fetchCommissions();
     fetchStatistics();
     fetchCommonErrors();
-  }, [selectedCurrency, isCDFEnabled, page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, filters]);
 
   useEffect(() => {
     fetchPacks();
@@ -184,13 +182,6 @@ const Commissions = () => {
       if (filters.pack) params.pack_id = filters.pack;
       if (filters.dateFrom) params.date_from = filters.dateFrom;
       if (filters.dateTo) params.date_to = filters.dateTo;
-      
-      // Filtrer par devise si CDF est activé
-      if (isCDFEnabled) {
-        params.currency = selectedCurrency;
-      } else {
-        params.currency = "USD";
-      }
 
       // Pagination backend
       params.per_page = rowsPerPage;
@@ -232,16 +223,7 @@ const Commissions = () => {
 
   const fetchStatistics = async () => {
     try {
-      const params = {};
-      
-      // Toujours filtrer par devise sélectionnée
-      if (isCDFEnabled) {
-        params.currency = selectedCurrency;
-      } else {
-        params.currency = "USD";
-      }
-      
-      const response = await axios.get("/api/admin/commissions/statistics", { params });
+      const response = await axios.get("/api/admin/commissions/statistics");
       if (response.data.success) {
         setStatistics(response.data.data);
       }
@@ -435,27 +417,18 @@ const Commissions = () => {
   };
 
   // Les statistiques sont déjà filtrées par devise, pas besoin de helper
-  const formatAmount = (amount, currency = selectedCurrency) => {
+  const formatAmount = (amount) => {
     if (amount === undefined || amount === null) return "-";
 
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount)) return "-";
 
-    if (currency === "CDF") {
-      return new Intl.NumberFormat("fr-CD", {
-        style: "currency",
-        currency: "CDF",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(numericAmount);
-    } else {
-      return new Intl.NumberFormat("fr-FR", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(numericAmount);
-    }
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numericAmount);
   };
 
   const getStatusLabel = (status) => {
@@ -1334,7 +1307,7 @@ const Commissions = () => {
                                   whiteSpace: "nowrap",
                                 }}
                               >
-                                {formatAmount(commission.amount, commission.currency)}
+                                {formatAmount(commission.amount)}
                               </Typography>
                             </Box>
                           </TableCell>
@@ -1979,27 +1952,8 @@ const Commissions = () => {
                                   color: isDarkMode ? "#f9fafb" : "#111827",
                                 }}
                               >
-                                {formatAmount(selectedCommission.amount, selectedCommission.currency)}
+                                {formatAmount(selectedCommission.amount)}
                               </Typography>
-                              <Chip
-                                label={selectedCommission.currency}
-                                size="small"
-                                sx={{
-                                  fontSize: "0.7rem",
-                                  height: 22,
-                                  fontWeight: 700,
-                                  borderRadius: 1.5,
-                                  background: selectedCommission.currency === "USD" 
-                                    ? "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1))"
-                                    : "linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))",
-                                  color: selectedCommission.currency === "USD" 
-                                    ? "#3b82f6" 
-                                    : "#10b981",
-                                  border: selectedCommission.currency === "USD"
-                                    ? "1px solid rgba(59, 130, 246, 0.3)"
-                                    : "1px solid rgba(16, 185, 129, 0.3)",
-                                }}
-                              />
                             </Box>
                           </CardContent>
                         </Card>
@@ -2245,7 +2199,7 @@ const Commissions = () => {
                               letterSpacing: "0.5px",
                             }}
                           >
-                            Total des commissions ({selectedCurrency})
+                            Total des commissions
                           </Typography>
                           <Box
                             sx={{
@@ -2310,7 +2264,7 @@ const Commissions = () => {
                               fontWeight: 700,
                             }}
                           >
-                            {formatAmount(statistics.total_amount || 0, selectedCurrency)}
+                            {formatAmount(statistics.total_amount)} $
                           </Typography>
                         </Box>
                       </CardContent>
@@ -2387,7 +2341,7 @@ const Commissions = () => {
                               letterSpacing: "0.5px",
                             }}
                           >
-                            En attente ({selectedCurrency})
+                            En attente
                           </Typography>
                           <Box
                             sx={{
@@ -2452,7 +2406,7 @@ const Commissions = () => {
                               fontWeight: 700,
                             }}
                           >
-                            {formatAmount(statistics.pending_amount || 0, selectedCurrency)}
+                            {formatAmount(statistics.pending_amount)}
                           </Typography>
                         </Box>
                       </CardContent>
@@ -2529,7 +2483,7 @@ const Commissions = () => {
                               letterSpacing: "0.5px",
                             }}
                           >
-                            Échouées ({selectedCurrency})
+                            Échouées
                           </Typography>
                           <Box
                             sx={{
@@ -2594,7 +2548,7 @@ const Commissions = () => {
                               fontWeight: 700,
                             }}
                           >
-                            {formatAmount(statistics.failed_amount || 0, selectedCurrency)}
+                            {formatAmount(statistics.failed_amount)}
                           </Typography>
                         </Box>
                       </CardContent>
@@ -2616,7 +2570,7 @@ const Commissions = () => {
                     >
                       <CardContent>
                         <Typography variant="h6" sx={{ mb: 2 }}>
-                          Commissions par statut ({selectedCurrency})
+                          Commissions par statut
                         </Typography>
                         <Box sx={{ height: 300, position: "relative" }}>
                           {(!parseInt(statistics.commissions_by_status?.completed) && 
@@ -2631,7 +2585,7 @@ const Commissions = () => {
                               color: isDarkMode ? '#9ca3af' : '#6b7280'
                             }}>
                               <Typography variant="body2">
-                                Aucune commission {selectedCurrency} trouvée
+                                Aucune commission trouvée
                               </Typography>
                             </Box>
                           ) : (
@@ -2783,7 +2737,7 @@ const Commissions = () => {
                                       ) {
                                         return `${
                                           context.dataset.label
-                                        }: ${formatAmount(context.raw, selectedCurrency)}`;
+                                        }: ${formatAmount(context.raw)}`;
                                       }
                                       return `${context.dataset.label}: ${context.raw}`;
                                     },
@@ -2886,7 +2840,7 @@ const Commissions = () => {
                                       ) {
                                         return `${
                                           context.dataset.label
-                                        }: ${formatAmount(context.raw, selectedCurrency)}`;
+                                        }: ${formatAmount(context.raw)}`;
                                       }
                                       return `${context.dataset.label}: ${context.raw}`;
                                     },

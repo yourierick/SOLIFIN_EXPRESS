@@ -12,14 +12,12 @@ class CommissionReceived extends Notification implements ShouldQueue
     use Queueable;
 
     protected $commission;
-    protected $currency;
     protected $pack;
     protected $generation;
 
-    public function __construct($commission, $currency, $pack, $generation)
+    public function __construct($commission, $pack, $generation)
     {
         $this->commission = $commission;
-        $this->currency = $currency;
         $this->pack = $pack;
         $this->generation = $generation;
     }
@@ -36,7 +34,7 @@ class CommissionReceived extends Notification implements ShouldQueue
             ->greeting('Bonjour ' . $notifiable->name)
             ->line('Vous avez reçu une nouvelle commission!')
             ->line('Détails de la commission:')
-            ->line('- Montant: ' . number_format($this->commission, 2) . $this->currency === "USD" ? ' $' : ' FC')
+            ->line('- Montant: ' . number_format($this->commission, 2) . " $")
             ->line('- Pack: ' . $this->pack->name)
             ->line('- Génération: ' . $this->generation)
             ->line('Merci de votre participation au programme de fidélité Solifin!');
@@ -47,7 +45,7 @@ class CommissionReceived extends Notification implements ShouldQueue
         return [
             'type' => 'info',
             'titre' => 'Commission de parrainage',
-            'message' => 'Vous avez reçu une nouvelle commission sur votre pack ' . $this->pack->name . ' d\'un montant de ' . number_format($this->commission, 2) . $this->currency === "USD" ? ' $' : ' FC',
+            'message' => 'Vous avez reçu une nouvelle commission sur votre pack ' . $this->pack->name . ' d\'un montant de ' . number_format($this->commission, 2) . " $",
             'icon' => 'exclamation-circle',
         ];
     }

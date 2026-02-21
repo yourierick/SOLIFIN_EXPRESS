@@ -15,76 +15,357 @@ use Illuminate\Support\Facades\DB;
 class FinanceController extends Controller
 {
     /**
-     * Récupérer toutes les transactions du système de portefeuille
+     * Liste des transactions financières avec filtres
      */
     public function index(Request $request)
     {
-        try {
-            $query = WalletSystemTransaction::query()
-                ->with('walletSystem')
-                ->orderBy('created_at', 'desc');
+        $period = $request->get('period', 'all');
+        $type = $request->get('type', 'all');
+        $nature = $request->get('nature');
+        $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 15);
 
-            // Filtrer par type si spécifié
-            if ($request->has('type') && !empty($request->type)) {
-                $query->where('type', $request->type);
-            }
-
-            // Filtrer par date de début si spécifiée
-            if ($request->has('date_from') && !empty($request->date_from)) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
-
-            // Filtrer par date de fin si spécifiée
-            if ($request->has('date_to') && !empty($request->date_to)) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
-
-            // Filtrer par statut si spécifié
-            if ($request->has('status') && !empty($request->status)) {
-                $query->where('status', $request->status);
-            }
-
-            // Filtrer par devise si spécifié
-            if ($request->has('currency') && !empty($request->currency)) {
-                $query->where('currency', $request->currency);
-            }
-
-            // Pagination : par défaut 25, mais configurable via le paramètre per_page
-            $perPage = $request->get('per_page', 25);
-            $transactions = $query->paginate($perPage);
-
-            // Récupérer le nombre total de transactions avec les mêmes filtres (sans pagination)
-            $countQuery = WalletSystemTransaction::query();
+        $flow = $request->get('flow');
+        $search = $request->get('search');
+        $packId = $request->get('pack_id');
+        $dateStart = $request->get('date_start');
+        $dateEnd = $request->get('date_end');
+        
+        // Définir les dates de début et fin selon la période
+        if ($period === 'all') {
+            $query = WalletSystemTransaction::with('processor');
+        } else {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
             
-            // Appliquer les mêmes filtres pour le comptage
-            if ($request->has('type') && !empty($request->type)) {
-                $countQuery->where('type', $request->type);
-            }
-            if ($request->has('date_from') && !empty($request->date_from)) {
-                $countQuery->whereDate('created_at', '>=', $request->date_from);
-            }
-            if ($request->has('date_to') && !empty($request->date_to)) {
-                $countQuery->whereDate('created_at', '<=', $request->date_to);
-            }
-            if ($request->has('status') && !empty($request->status)) {
-                $countQuery->where('status', $request->status);
-            }
-            if ($request->has('currency') && !empty($request->currency)) {
-                $countQuery->where('currency', $request->currency);
-            }
-            
-            $totalCount = $countQuery->count();
+            $query = WalletSystemTransaction::with('processor')->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+        
+        // Filtre par statut (par défaut 'completed')
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
 
-            return response()->json([
-                'success' => true,
-                'data' => $transactions,
-                'total_count' => $totalCount
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération des transactions: ' . $e->getMessage()
-            ], 500);
+        // Recherche par référence
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where('reference', 'LIKE', '%' . $searchTerm . '%');
+        }
+        
+        // Filtre par mouvement (entrée/sortie)
+        if ($flow) {
+            $query->where('flow', $flow);
+        }
+
+        // Filtre par nature (interne/externe)
+        if ($nature) {
+            $query->where('nature', $nature);
+        }
+        
+        // Filtre par pack (dans les métadonnées)
+        if ($packId) {
+            $query->where(function($q) use ($packId) {
+                // Essayer plusieurs formats pour Pack_ID
+                $q->whereJsonContains('metadata->Pack_ID', (string)$packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', $packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', (int)$packId)
+                  // Aussi vérifier si pack_id existe comme clé alternative
+                  ->orWhereJsonContains('metadata->pack_id', (string)$packId)
+                  ->orWhereJsonContains('metadata->pack_id', $packId)
+                  ->orWhereJsonContains('metadata->pack_id', (int)$packId);
+            });
+        }
+        
+        // Filtre par date personnalisée
+        if ($dateStart) {
+            $query->whereDate('created_at', '>=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $query->whereDate('created_at', '<=', $dateEnd);
+        }
+
+        // Tri
+        $query->orderBy('id', 'desc');
+
+        // Pagination
+        $transactions = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $transactions->items(),
+            'pagination' => [
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage(),
+                'per_page' => $transactions->perPage(),
+                'total' => $transactions->total(),
+                'from' => $transactions->firstItem(),
+                'to' => $transactions->lastItem(),
+            ]
+        ]);
+    }
+
+    /**
+     * Statistiques des transactions financières par type et période
+     */
+    public function financialTransactionsStatistics(Request $request)
+    {
+        $period = $request->get('period', 'all');
+        $type = $request->get('type', 'all');
+        $nature = $request->get('nature');
+        $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
+        $flow = $request->get('flow');
+        $search = $request->get('search');
+        $packId = $request->get('pack_id');
+        $dateStart = $request->get('date_start');
+        $dateEnd = $request->get('date_end');
+        
+        // Définir les dates de début et fin selon la période
+        if ($period === 'all') {
+            $query = WalletSystemTransaction::query();
+        } else {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+            $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate]);
+        }
+        
+        // Filtrer par type si spécifié
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+
+        // Filtrer par nature si spécifié
+        if ($nature) {
+            $query->where('nature', $nature);
+        }
+        
+        // Filtre par statut (par défaut 'completed')
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+        
+        // Filtre par mouvement (entrée/sortie)
+        if ($flow) {
+            $query->where('flow', $flow);
+        }
+        
+        // Filtre par recherche (référence)
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'LIKE', "%{$search}%")
+                  ->orWhere('id', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        // Filtre par pack (dans les métadonnées)
+        if ($packId) {
+            $query->where(function($q) use ($packId) {
+                // Essayer plusieurs formats pour Pack_ID
+                $q->whereJsonContains('metadata->Pack_ID', (string)$packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', $packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', (int)$packId)
+                  // Aussi vérifier si pack_id existe comme clé alternative
+                  ->orWhereJsonContains('metadata->pack_id', (string)$packId)
+                  ->orWhereJsonContains('metadata->pack_id', $packId)
+                  ->orWhereJsonContains('metadata->pack_id', (int)$packId);
+            });
+        }
+        
+        // Filtre par date personnalisée
+        if ($dateStart) {
+            $query->whereDate('created_at', '>=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $query->whereDate('created_at', '<=', $dateEnd);
+        }
+        
+        $creditQuery = clone $query;
+        $debitQuery = clone $query;
+        
+        $creditAmount = $creditQuery->where('flow', 'in')->sum('amount');
+        $debitAmount = abs($debitQuery->where('flow', 'out')->sum('amount'));
+
+        return response()->json([
+            'credit_amount' => $creditAmount,
+            'debit_amount' => $debitAmount,
+            'solde' => $creditAmount - $debitAmount,
+        ]);
+    }
+
+    /**
+     * Export des transactions financières vers Excel
+     */
+    public function exportFinancialTransactions(Request $request)
+    {
+        $period = $request->get('period', 'all');
+        $type = $request->get('type', 'all');
+        $nature = $request->get('nature');
+        $status = $request->get('status', 'completed');
+        $exportType = $request->get('export_type', 'filtered');
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 15);
+        
+        // Nouveaux filtres
+        $flow = $request->get('flow');
+        $search = $request->get('search');
+        $packId = $request->get('pack_id');
+        $dateStart = $request->get('date_start');
+        $dateEnd = $request->get('date_end');
+        
+        // Définir les dates de début et fin selon la période
+        if ($period === 'all') {
+            $query = WalletSystemTransaction::query();
+        } else {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+            $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate]);
+        }
+        
+        // Appliquer les filtres
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+        
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // Recherche par référence
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where('reference', 'LIKE', '%' . $searchTerm . '%');
+        }
+        
+        // Filtre par mouvement (entrée/sortie)
+        if ($flow) {
+            $query->where('flow', $flow);
+        }
+
+        // Filtre par nature (entrée/sortie)
+        if ($nature) {
+            $query->where('nature', $nature);
+        }
+        
+        // Filtre par pack (dans les métadonnées)
+        if ($packId) {
+            $query->where(function($q) use ($packId) {
+                // Essayer plusieurs formats pour Pack_ID
+                $q->whereJsonContains('metadata->Pack_ID', (string)$packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', $packId)
+                  ->orWhereJsonContains('metadata->Pack_ID', (int)$packId)
+                  // Aussi vérifier si pack_id existe comme clé alternative
+                  ->orWhereJsonContains('metadata->pack_id', (string)$packId)
+                  ->orWhereJsonContains('metadata->pack_id', $packId)
+                  ->orWhereJsonContains('metadata->pack_id', (int)$packId);
+            });
+        }
+        
+        // Filtre par date personnalisée
+        if ($dateStart) {
+            $query->whereDate('created_at', '>=', $dateStart);
+        }
+        
+        if ($dateEnd) {
+            $query->whereDate('created_at', '<=', $dateEnd);
+        }
+
+        // Appliquer la pagination selon le type d'export
+        if ($exportType === 'current_page') {
+            $query->offset(($page - 1) * $perPage)->limit($perPage);
+        } elseif ($exportType === 'filtered') {
+            // Pour l'export filtré, limiter à un nombre raisonnable pour éviter les timeouts
+            $query->limit(10000);
+        }
+        // Pour 'all', on ne limite pas (attention aux performances)
+
+        // Trier par date de création
+        $transactions = $query->orderBy('created_at', 'desc')->get();
+
+        // Préparer les données pour l'export (sans la ligne d'en-tête)
+        $exportData = [];
+
+        foreach ($transactions as $transaction) {
+            $metadata = '';
+            if ($transaction->metadata) {
+                $metadataArray = [];
+                foreach ($transaction->metadata as $key => $value) {
+                    if (is_array($value)) {
+                        $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+                    }
+                    $metadataArray[] = "$key: $value";
+                }
+                $metadata = implode("\n", $metadataArray);
+            }
+
+            $exportData[] = [
+                'reference' => $transaction->reference ?? 'TRX-' . $transaction->id,
+                'nature' => $transaction->nature === 'internal' ? 'interne' : ($transaction->nature === 'external' ? 'externe' : 'N/A'),
+                'flow' => $transaction->flow === 'in' ? 'Entrée' : 'Sortie',
+                'type' => $transaction->type ?? '-',
+                'amount' => $transaction->amount,
+                'status' => $this->getStatusLabel($transaction->status),
+                'description' => $transaction->description,
+                'solde_marchand_before' => $transaction->solde_marchand_before,
+                'solde_marchand_after' => $transaction->solde_marchand_after,
+                'engagement_users_before' => $transaction->engagement_users_before,
+                'engagement_users_after' => $transaction->engagement_users_after,
+                'plateforme_benefices_before' => $transaction->plateforme_benefices_before,
+                'plateforme_benefices_after' => $transaction->plateforme_benefices_after,
+                'processor' => $transaction->processor?->name,
+                'processed_at' => $transaction->processed_at,
+                'rejection_reason' => $transaction->rejection_reason,
+                'created_at' => $transaction->created_at,
+                'metadata' => $metadata
+            ];
+        }
+
+        return response()->json([
+            'data' => $exportData,
+            'filename' => 'transactions-financieres-' . $exportType . '-' . date('Y-m-d-H-i-s') . '.xlsx'
+        ]);
+    }
+
+    /**
+     * Obtenir le libellé du statut
+     */
+    private function getStatusLabel($status)
+    {
+        $labels = [
+            'completed' => 'Complétée',
+            'pending' => 'En attente',
+            'failed' => 'Échouée',
+            'cancelled' => 'Annulée',
+        ];
+        
+        return $labels[$status] ?? $status;
+    }
+
+    /**
+     * Obtenir la date de début selon la période
+     */
+    private function getStartDate($period)
+    {
+        if ($period === 'all') {
+            return null; // Retourner null pour "all" - pas de filtre de date
+        }
+        
+        $now = Carbon::now();
+        
+        switch ($period) {
+            case 'day':
+                return $now->startOfDay();
+            case 'week':
+                return $now->startOfWeek();
+            case 'month':
+                return $now->startOfMonth();
+            case 'year':
+                return $now->startOfYear();
+            default:
+                return $now->startOfMonth();
         }
     }
 
@@ -96,33 +377,11 @@ class FinanceController extends Controller
         try {
             $query = WalletSystemTransaction::query();
 
-            // Filtrer par date de début si spécifiée
-            if ($request->has('date_from') && !empty($request->date_from)) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
-
-            // Filtrer par date de fin si spécifiée
-            if ($request->has('date_to') && !empty($request->date_to)) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
-
-            // Regrouper par type et calculer les totaux (par devise)
-            // Debug: Vérifier les devises disponibles dans les transactions
-            $availableCurrencies = WalletSystemTransaction::distinct()->pluck('currency');
-            \Log::info('Devises disponibles: ' . $availableCurrencies);
+            $query->where('status', 'completed');
             
             // Debug: Compter les transactions par devise (avec différentes variations)
-            $countUsd = WalletSystemTransaction::where('currency', 'USD')->count();
-            $countCdf = WalletSystemTransaction::where('currency', 'CDF')->count();
-            $countCdfLower = WalletSystemTransaction::where('currency', 'cdf')->count();
-            $countCdfUpper = WalletSystemTransaction::where('currency', 'Cdf')->count();
-            \Log::info('Count USD: ' . $countUsd . ', Count CDF: ' . $countCdf . ', Count cdf: ' . $countCdfLower . ', Count Cdf: ' . $countCdfUpper);
-            
-            // Debug: Voir quelques transactions CDF récentes
-            $recentCdfTransactions = WalletSystemTransaction::where('currency', 'like', '%CD%')->limit(5)->get(['id', 'currency', 'type', 'amount', 'created_at']);
-            \Log::info('Transactions CDF récentes: ' . $recentCdfTransactions);
-
-            $statsUsd = $query->where('currency', 'USD')->select('type', 
+            $count = WalletSystemTransaction::count();
+            $stats = $query->select('type', 
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(amount) as total_amount'),
                 DB::raw('MIN(created_at) as first_transaction'),
@@ -130,199 +389,21 @@ class FinanceController extends Controller
             )
             ->groupBy('type')
             ->get();
-
-            // Créer une nouvelle requête pour CDF (pour éviter les conflits)
-            $queryCdf = WalletSystemTransaction::query();
-            
-            // Appliquer les mêmes filtres de date
-            if ($request->has('date_from') && !empty($request->date_from)) {
-                $queryCdf->whereDate('created_at', '>=', $request->date_from);
-            }
-            if ($request->has('date_to') && !empty($request->date_to)) {
-                $queryCdf->whereDate('created_at', '<=', $request->date_to);
-            }
-            
-            // Essayer avec différentes variations de CDF
-            $statsCdf = $queryCdf->whereIn('currency', ['CDF', 'cdf', 'Cdf'])->select('type', 
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(amount) as total_amount'),
-                DB::raw('MIN(created_at) as first_transaction'),
-                DB::raw('MAX(created_at) as last_transaction')
-            )
-            ->groupBy('type')
-            ->get();
-
-            \Log::info('Stats CDF: ' . $statsCdf);
 
             // Calculer le total général par devise
-            $totalAmountUsd = $query->where('currency', 'USD')->sum('amount');
-            $totalAmountCdf = $queryCdf->whereIn('currency', ['CDF', 'cdf', 'Cdf'])->sum('amount');
+            $totalAmount = $query->sum('amount');
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'stats_usd' => $statsUsd,
-                    'stats_cdf' => $statsCdf,
-                    'total_amount_usd' => $totalAmountUsd,
-                    'total_amount_cdf' => $totalAmountCdf
+                    'stats' => $stats,
+                    'total_amount' => $totalAmount,
                 ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des statistiques: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Récupérer les statistiques des transactions par période (jour, semaine, mois)
-     */
-    public function getStatsByPeriod(Request $request)
-    {
-        try {
-            $period = $request->period ?? 'month';
-            $type = $request->type ?? null;
-            
-            $query = WalletSystemTransaction::query();
-            
-            // Filtrer par type si spécifié
-            if (!empty($type)) {
-                $query->where('type', $type);
-            }
-
-            // Filtrer par date de début si spécifiée
-            if ($request->has('date_from') && !empty($request->date_from)) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
-
-            // Filtrer par date de fin si spécifiée
-            if ($request->has('date_to') && !empty($request->date_to)) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
-
-            // Grouper par période (par devise)
-            switch ($period) {
-                case 'day':
-                    // Créer des requêtes séparées pour éviter les conflits
-                    $queryUsd = WalletSystemTransaction::query();
-                    $queryCdf = WalletSystemTransaction::query();
-                    
-                    // Appliquer les mêmes filtres de date
-                    if ($request->has('date_from') && !empty($request->date_from)) {
-                        $queryUsd->whereDate('created_at', '>=', $request->date_from);
-                        $queryCdf->whereDate('created_at', '>=', $request->date_from);
-                    }
-                    if ($request->has('date_to') && !empty($request->date_to)) {
-                        $queryUsd->whereDate('created_at', '<=', $request->date_to);
-                        $queryCdf->whereDate('created_at', '<=', $request->date_to);
-                    }
-                    
-                    $statsUsd = $queryUsd->where('currency', 'USD')->select(
-                        DB::raw('DATE(created_at) as period'),
-                        DB::raw('COUNT(*) as count'),
-                        DB::raw('SUM(amount) as total_amount')
-                    )
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->get();
-
-                    $statsCdf = $queryCdf->whereIn('currency', ['CDF', 'cdf', 'Cdf'])->select(
-                        DB::raw('DATE(created_at) as period'),
-                        DB::raw('COUNT(*) as count'),
-                        DB::raw('SUM(amount) as total_amount')
-                    )
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->get();
-                    break;
-                
-                case 'week':
-                    // Créer des requêtes séparées pour éviter les conflits
-                    $queryUsd = WalletSystemTransaction::query();
-                    $queryCdf = WalletSystemTransaction::query();
-                    
-                    // Appliquer les mêmes filtres de date
-                    if ($request->has('date_from') && !empty($request->date_from)) {
-                        $queryUsd->whereDate('created_at', '>=', $request->date_from);
-                        $queryCdf->whereDate('created_at', '>=', $request->date_from);
-                    }
-                    if ($request->has('date_to') && !empty($request->date_to)) {
-                        $queryUsd->whereDate('created_at', '<=', $request->date_to);
-                        $queryCdf->whereDate('created_at', '<=', $request->date_to);
-                    }
-                    
-                    $statsUsd = $queryUsd->where('currency', 'USD')->select(
-                        DB::raw('YEARWEEK(created_at) as period'),
-                        DB::raw('COUNT(*) as count'),
-                        DB::raw('SUM(amount) as total_amount'),
-                        DB::raw('MIN(DATE(created_at)) as start_date'),
-                        DB::raw('MAX(DATE(created_at)) as end_date')
-                    )
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->get();
-
-                    $statsCdf = $queryCdf->whereIn('currency', ['CDF', 'cdf', 'Cdf'])->select(
-                        DB::raw('YEARWEEK(created_at) as period'),
-                        DB::raw('COUNT(*) as count'),
-                        DB::raw('SUM(amount) as total_amount'),
-                        DB::raw('MIN(DATE(created_at)) as start_date'),
-                        DB::raw('MAX(DATE(created_at)) as end_date')
-                    )
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->get();
-                    break;
-                
-                case 'month':
-                default:
-                    // Créer des requêtes séparées pour éviter les conflits
-                    $queryUsd = WalletSystemTransaction::query();
-                    $queryCdf = WalletSystemTransaction::query();
-                    
-                    // Appliquer les mêmes filtres de date
-                    if ($request->has('date_from') && !empty($request->date_from)) {
-                        $queryUsd->whereDate('created_at', '>=', $request->date_from);
-                        $queryCdf->whereDate('created_at', '>=', $request->date_from);
-                    }
-                    if ($request->has('date_to') && !empty($request->date_to)) {
-                        $queryUsd->whereDate('created_at', '<=', $request->date_to);
-                        $queryCdf->whereDate('created_at', '<=', $request->date_to);
-                    }
-                    
-                    $statsUsd = $queryUsd->where('currency', 'USD')->select(
-                        DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
-                        DB::raw('COUNT(*) as count'),
-                        DB::raw('SUM(amount) as total_amount')
-                    )
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->get();
-
-                    $statsCdf = $queryCdf->whereIn('currency', ['CDF', 'cdf', 'Cdf'])->select(
-                        DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
-                        DB::raw('COUNT(*) as count'),
-                        DB::raw('SUM(amount) as total_amount')
-                    )
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->get();
-                    break;
-            }
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'stats_usd' => $statsUsd,
-                    'stats_cdf' => $statsCdf,
-                    'period_type' => $period
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération des statistiques par période: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -367,12 +448,9 @@ class FinanceController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'balance_usd' => $walletSystem->balance_usd,
-                    'balance_cdf' => $walletSystem->balance_cdf,
-                    'total_in_usd' => $walletSystem->total_in_usd,
-                    'total_in_cdf' => $walletSystem->total_in_cdf,
-                    'total_out_usd' => $walletSystem->total_out_usd,
-                    'total_out_cdf' => $walletSystem->total_out_cdf,
+                    'solde_marchand' => $walletSystem->solde_marchand,
+                    'engagement_users' => $walletSystem->engagement_users,
+                    'plateforme_benefices' => $walletSystem->plateforme_benefices,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -413,67 +491,35 @@ class FinanceController extends Controller
                 ->groupBy('type')
                 ->get();
 
-            // Récupérer le total des entrées et sorties pour la période (par devise)
-            $totalInUsd = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('type', ['sales', 'commission de parrainage', 'frais de retrait', 'frais de transfert', 'commission de retrait', 'bonus'])
-                ->where('currency', 'USD')
+            // Récupérer le total des entrées et sorties pour la période
+            $totalIn = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+                ->where('flow', 'in')
+                ->where('status', 'completed')
                 ->sum('amount');
 
-            $totalInCdf = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('type', ['sales', 'commission de parrainage', 'frais de retrait', 'frais de transfert', 'commission de retrait', 'bonus'])
-                ->where('currency', 'CDF')
+            $totalOut = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+                ->where('flow', 'out')
+                ->where('status', 'completed')
                 ->sum('amount');
 
-            $totalOutUsd = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->where('type', 'withdrawal')->where('status', 'completed')
-                ->where('currency', 'USD')
-                ->sum('amount');
-
-            $totalOutCdf = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->where('type', 'withdrawal')->where('status', 'completed')
-                ->where('currency', 'CDF')
-                ->sum('amount');
-
-            // Récupérer les statistiques par type pour la période (par devise)
-            $statsByTypeUsd = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+            // Récupérer les statistiques par type pour la période
+            $statsByType = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
                 ->select('type', 
                     DB::raw('COUNT(*) as count'),
                     DB::raw('SUM(amount) as total_amount')
                 )
                 ->where('status', 'completed')
-                ->where('currency', 'USD')
                 ->groupBy('type')
                 ->get();
 
-            $statsByTypeCdf = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->select('type', 
+            // Récupérer le nombre de transactions par jour pour la période
+            $transactionsByDay = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
+                ->select(
+                    DB::raw('DATE(created_at) as date'),
                     DB::raw('COUNT(*) as count'),
                     DB::raw('SUM(amount) as total_amount')
                 )
                 ->where('status', 'completed')
-                ->where('currency', 'CDF')
-                ->groupBy('type')
-                ->get();
-
-            // Récupérer le nombre de transactions par jour pour la période (par devise)
-            $transactionsByDayUsd = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->select(
-                    DB::raw('DATE(created_at) as date'),
-                    DB::raw('COUNT(*) as count'),
-                    DB::raw('SUM(amount) as total_amount')
-                )
-                ->where('currency', 'USD')
-                ->groupBy('date')
-                ->orderBy('date')
-                ->get();
-
-            $transactionsByDayCdf = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-                ->select(
-                    DB::raw('DATE(created_at) as date'),
-                    DB::raw('COUNT(*) as count'),
-                    DB::raw('SUM(amount) as total_amount')
-                )
-                ->where('currency', 'CDF')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
@@ -481,23 +527,16 @@ class FinanceController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'current_balance_usd' => $walletSystem->balance_usd,
-                    'current_balance_cdf' => $walletSystem->balance_cdf,
-                    'total_in_usd_all_time' => $walletSystem->total_in_usd,
-                    'total_in_cdf_all_time' => $walletSystem->total_in_cdf,
-                    'total_out_usd_all_time' => $walletSystem->total_out_usd,
-                    'total_out_cdf_all_time' => $walletSystem->total_out_cdf,
-                    'period_total_in_usd' => $totalInUsd,
-                    'period_total_in_cdf' => $totalInCdf,
-                    'period_total_out_usd' => $totalOutUsd,
-                    'period_total_out_cdf' => $totalOutCdf,
-                    'stats_by_type_usd' => $statsByTypeUsd,
-                    'stats_by_type_cdf' => $statsByTypeCdf,
-                    'transactions_by_day_usd' => $transactionsByDayUsd,
-                    'transactions_by_day_cdf' => $transactionsByDayCdf,
+                    'solde_marchand' => $walletSystem->solde_marchand,
+                    'engagement_users' => $walletSystem->engagement_users,
+                    'plateforme_benefices' => $walletSystem->plateforme_benefices,
+                    'total_in' => $totalIn,
+                    'total_out' => $totalOut,
+                    'stats_by_type' => $statsByType,
+                    'transactions_by_day' => $transactionsByDay,
                     'period' => [
-                        'start' => $startDate->format('Y-m-d'),
-                        'end' => $endDate->format('Y-m-d')
+                        'start' => $startDate,
+                        'end' => $endDate
                     ]
                 ]
             ]);
@@ -509,212 +548,6 @@ class FinanceController extends Controller
         }
     }
 
-    /**
-     * Récupérer l'historique des points bonus
-     */
-    public function getBonusPointsHistory(Request $request)
-    {
-        try {
-            $query = UserBonusPointHistory::with(['user', 'pack'])
-                ->orderBy('created_at', 'desc');
-
-            // Filtrer par utilisateur si spécifié
-            if ($request->has('user_id') && !empty($request->user_id)) {
-                $query->where('user_id', $request->user_id);
-            }
-
-            // Filtrer par pack si spécifié
-            if ($request->has('pack_id') && !empty($request->pack_id)) {
-                $query->where('pack_id', $request->pack_id);
-            }
-
-            // Filtrer par type si spécifié
-            if ($request->has('type') && !empty($request->type)) {
-                $query->where('type', $request->type);
-            }
-
-            // Filtrer par date de début si spécifiée
-            if ($request->has('date_from') && !empty($request->date_from)) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
-
-            // Filtrer par date de fin si spécifiée
-            if ($request->has('date_to') && !empty($request->date_to)) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
-            
-            // Recherche par terme si spécifié
-            if ($request->has('search') && !empty($request->search)) {
-                $searchTerm = '%' . $request->search . '%';
-                $query->where(function($q) use ($searchTerm) {
-                    $q->where('description', 'like', $searchTerm)
-                      ->orWhere('id', 'like', $searchTerm)
-                      ->orWhereHas('user', function($userQuery) use ($searchTerm) {
-                          $userQuery->where('name', 'like', $searchTerm)
-                                   ->orWhere('email', 'like', $searchTerm);
-                      });
-                });
-            }
-
-            $history = $query->paginate(20);
-
-            return response()->json([
-                'success' => true,
-                'data' => $history
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération de l\'historique des points bonus: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Récupérer les statistiques des points bonus
-     */
-    public function getBonusPointsStats(Request $request)
-    {
-        try {
-            // Définir la période de filtrage
-            $startDate = $request->has('date_from') && !empty($request->date_from) 
-                ? Carbon::parse($request->date_from)->startOfDay() 
-                : Carbon::now()->subMonths(1)->startOfDay();
-                
-            $endDate = $request->has('date_to') && !empty($request->date_to) 
-                ? Carbon::parse($request->date_to)->endOfDay() 
-                : Carbon::now()->endOfDay();
-            
-            // Construire la requête de base avec les filtres de date
-            $baseQuery = UserBonusPointHistory::whereBetween('created_at', [$startDate, $endDate]);
-            
-            // Filtrer par utilisateur si spécifié
-            if ($request->has('user_id') && !empty($request->user_id)) {
-                $baseQuery->where('user_id', $request->user_id);
-            }
-            
-            // Filtrer par pack si spécifié
-            if ($request->has('pack_id') && !empty($request->pack_id)) {
-                $baseQuery->where('pack_id', $request->pack_id);
-            }
-            
-            // Statistiques par type
-            $statsByType = (clone $baseQuery)
-                ->select('type', 
-                    DB::raw('COUNT(*) as count'),
-                    DB::raw('SUM(points) as total_points')
-                )
-                ->groupBy('type')
-                ->get();
-
-            // Statistiques par pack
-            $packQuery = (clone $baseQuery)->whereNotNull('pack_id');
-            $statsByPack = $packQuery
-                ->select('pack_id', 
-                    DB::raw('COUNT(*) as count'),
-                    DB::raw('SUM(points) as total_points')
-                )
-                ->groupBy('pack_id')
-                ->get();
-
-            // Récupérer les noms des packs
-            $packIds = $statsByPack->pluck('pack_id')->toArray();
-            $packs = Pack::whereIn('id', $packIds)->get(['id', 'name']);
-            
-            // Ajouter les noms des packs aux statistiques
-            $statsByPack = $statsByPack->map(function($stat) use ($packs) {
-                $pack = $packs->firstWhere('id', $stat->pack_id);
-                $stat->pack_name = $pack ? $pack->name : 'Pack inconnu';
-                return $stat;
-            });
-
-            // Top utilisateurs avec le plus de points
-            $topUsersQuery = DB::table('user_bonus_points');
-            
-            // Filtrer par utilisateur si spécifié
-            if ($request->has('user_id') && !empty($request->user_id)) {
-                $topUsersQuery->where('user_id', $request->user_id);
-            }
-            
-            // Filtrer par pack si spécifié
-            if ($request->has('pack_id') && !empty($request->pack_id)) {
-                $userIds = (clone $baseQuery)->where('pack_id', $request->pack_id)->pluck('user_id')->unique();
-                if ($userIds->count() > 0) {
-                    $topUsersQuery->whereIn('user_id', $userIds);
-                }
-            }
-            
-            $topUsers = $topUsersQuery
-                ->select('user_id', DB::raw('SUM(points_disponibles) as total_points'))
-                ->groupBy('user_id')
-                ->orderBy('total_points', 'desc')
-                ->limit(10)
-                ->get();
-
-            // Récupérer les informations des utilisateurs
-            $userIds = $topUsers->pluck('user_id')->toArray();
-            $users = User::whereIn('id', $userIds)->get(['id', 'name', 'email']);
-            
-            // Ajouter les noms des utilisateurs aux statistiques
-            $topUsers = $topUsers->map(function($user) use ($users) {
-                $userInfo = $users->firstWhere('id', $user->user_id);
-                $user->user_name = $userInfo ? $userInfo->name : 'Utilisateur inconnu';
-                $user->user_email = $userInfo ? $userInfo->email : '';
-                return $user;
-            });
-
-            // Total des points attribués et convertis
-            $totalPointsGained = (clone $baseQuery)
-                ->where('type', 'gain')
-                ->sum('points');
-
-            $totalPointsConverted = (clone $baseQuery)
-                ->where('type', 'conversion')
-                ->sum('points');
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'stats_by_type' => $statsByType,
-                    'stats_by_pack' => $statsByPack,
-                    'top_users' => $topUsers,
-                    'total_points_gained' => $totalPointsGained,
-                    'total_points_converted' => $totalPointsConverted,
-                    'period' => [
-                        'start' => $startDate->format('Y-m-d'),
-                        'end' => $endDate->format('Y-m-d')
-                    ]
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération des statistiques des points bonus: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Récupérer les types d'historique de points bonus disponibles
-     */
-    public function getBonusPointsTypes()
-    {
-        try {
-            $types = UserBonusPointHistory::select('type')
-                ->distinct()
-                ->pluck('type');
-
-            return response()->json([
-                'success' => true,
-                'data' => $types
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération des types de points bonus: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Exporter les transactions financières
@@ -744,10 +577,6 @@ class FinanceController extends Controller
 
             if ($request->has('date_to') && !empty($request->date_to)) {
                 $query->whereDate('created_at', '<=', $request->date_to);
-            }
-
-            if ($request->has('currency') && !empty($request->currency)) {
-                $query->where('currency', $request->currency);
             }
 
             if ($request->has('user_id') && !empty($request->user_id)) {

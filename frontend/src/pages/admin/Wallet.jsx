@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useCurrency } from "../../contexts/CurrencyContext";
 import axios from "axios";
 import Notification from "../../components/Notification";
+import { getOperationType } from "../../components/OperationTypeFormatter";
 import WithdrawalForm from "../../components/WithdrawalForm";
 import FundsTransferModal from "../../components/FundsTransferModal";
 import VirtualPurchaseForm from "../../components/VirtualPurchaseForm";
@@ -12,132 +12,24 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../../styles/tooltip.css";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import { motion } from "framer-motion";
 import {
   BanknotesIcon,
   ArrowPathIcon,
-  EyeIcon,
   WalletIcon,
   CurrencyDollarIcon,
-  ArrowDownTrayIcon,
   DocumentArrowDownIcon,
   MagnifyingGlassIcon,
-  PhoneIcon,
-  CreditCardIcon,
-  CircleStackIcon,
-  CurrencyEuroIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import {
   FaFilter,
   FaTimes,
   FaExchangeAlt,
-  FaFileExcel,
-  FaUser,
   FaDollarSign,
-  FaFileAlt,
-  FaPercent,
-  FaCheckCircle,
   FaMoneyBillWave,
-  FaLock,
-  FaArrowLeft,
-  FaPercentage,
 } from "react-icons/fa";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Paper,
-  Alert,
-} from "@mui/material";
-
-const paymentMethods = [
-  {
-    id: "orange-money",
-    name: "Orange Money",
-    icon: PhoneIcon,
-    color: "from-orange-500 to-orange-600",
-  },
-  {
-    id: "airtel-money",
-    name: "Airtel Money",
-    icon: PhoneIcon,
-    color: "from-red-500 to-red-600",
-  },
-  {
-    id: "m-pesa",
-    name: "M-Pesa",
-    icon: PhoneIcon,
-    color: "from-green-500 to-green-600",
-  },
-  {
-    id: "visa",
-    name: "Visa",
-    icon: CreditCardIcon,
-    color: "from-blue-500 to-blue-600",
-  },
-  {
-    id: "mastercard",
-    name: "Mastercard",
-    icon: CreditCardIcon,
-    color: "from-red-500 to-red-600",
-  },
-  {
-    id: "paypal",
-    name: "PayPal",
-    icon: CurrencyEuroIcon,
-    color: "from-blue-600 to-blue-700",
-  },
-  {
-    id: "bitcoin",
-    name: "Bitcoin",
-    icon: CircleStackIcon,
-    color: "from-yellow-500 to-yellow-600",
-  },
-  {
-    id: "credit-card",
-    name: "Carte de crédit",
-    icon: CreditCardIcon,
-    color: "from-gray-600 to-gray-700",
-  },
-];
-
-const getStatusColor = (status, isDarkMode) => {
-  switch (status) {
-    case "active":
-      return isDarkMode
-        ? "bg-green-900 text-green-300"
-        : "bg-green-100 text-green-800";
-    case "pending":
-      return isDarkMode
-        ? "bg-yellow-900 text-yellow-300"
-        : "bg-yellow-100 text-yellow-800";
-    case "inactive":
-      return isDarkMode ? "bg-red-900 text-red-300" : "bg-red-100 text-red-800";
-    default:
-      return isDarkMode
-        ? "bg-gray-700 text-gray-300"
-        : "bg-gray-100 text-gray-800";
-  }
-};
-
-const getStatusText = (status) => {
-  switch (status) {
-    case "active":
-      return "Actif";
-    case "pending":
-      return "En attente";
-    case "inactive":
-      return "Inactif";
-    default:
-      return status;
-  }
-};
+import FiltreParTypeOperationUser from "../../components/FiltreParTypeOperationUser";
 
 const formatDate = (dateString) => {
   if (!dateString) return "Non disponible";
@@ -175,9 +67,8 @@ const formatDate = (dateString) => {
 };
 
 
-export default function Wallets() {
+export default function Wallet() {
   const { isDarkMode } = useTheme();
-  const { selectedCurrency, isCDFEnabled } = useCurrency();
   const [initialLoading, setInitialLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -190,9 +81,7 @@ export default function Wallets() {
   });
   const [user, setUser] = useState(null);
   const [adminTransactions, setAdminTransactions] = useState([]);
-  const [systemTransactions, setSystemTransactions] = useState([]);
   const [adminWallet, setAdminWallet] = useState(null);
-  const [systemWallet, setSystemWallet] = useState(null);
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
   const [selectedWalletForWithdrawal, setSelectedWalletForWithdrawal] =
     useState(null);
@@ -203,7 +92,6 @@ export default function Wallets() {
   const [totalTransactions, setTotalTransactions] = useState(0);
 
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState("system"); // 'system' ou 'admin'
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
@@ -306,20 +194,12 @@ export default function Wallets() {
   useEffect(() => {
     setPage(0);
     fetchWalletData(false); // Pas de loading global pour les filtres
-  }, [debouncedSearchTerm, statusFilter, typeFilter, dateFilter, activeTab]);
+  }, [debouncedSearchTerm, statusFilter, typeFilter, dateFilter]);
 
   // Effet pour recharger les données lorsque la pagination change
   useEffect(() => {
     fetchWalletData(false);
   }, [page, rowsPerPage]);
-
-  // Effet pour recharger les données lorsque la devise change
-  useEffect(() => {
-    if (selectedCurrency) {
-      setPage(0); // Réinitialiser la page au changement de devise
-      fetchWalletData(false);
-    }
-  }, [selectedCurrency]);
 
   // Gérer le clic en dehors du menu d'exportation
   useEffect(() => {
@@ -353,7 +233,6 @@ export default function Wallets() {
       const params = new URLSearchParams({
         page: page + 1, // Material-UI uses 0-based indexing
         per_page: rowsPerPage,
-        currency: selectedCurrency,
         status: statusFilter || 'all',
         type: typeFilter || 'all',
         search: debouncedSearchTerm || '',
@@ -364,16 +243,9 @@ export default function Wallets() {
       const response = await axios.get(`/api/admin/wallets/data?${params}`);
       if (response.data.success) {
         setAdminWallet(response.data.adminWallet);
-        setSystemWallet(response.data.systemWallet);
         setUser(response.data.adminWallet.user);
         setAdminTransactions(response.data.adminwallettransactions || []);
-        setSystemTransactions(response.data.systemwallettransactions || []);
-
-        // Utiliser le total correct selon l'onglet actif
-        const totalForActiveTab = activeTab === 'admin'
-          ? response.data.totalAdminTransactions
-          : response.data.totalSystemTransactions;
-        setTotalTransactions(totalForActiveTab || 0);
+        setTotalTransactions(response.data.totalAdminTransactions || 0);
       }
     } catch (error) {
       Notification.error("Erreur lors du chargement des données");
@@ -439,8 +311,8 @@ export default function Wallets() {
     }
   };
 
-  const handleWithdrawalClick = (walletId, type) => {
-    setSelectedWalletForWithdrawal({ id: walletId, type, adminWallet });
+  const handleWithdrawalClick = (walletId, available_balance) => {
+    setSelectedWalletForWithdrawal({ id: walletId, available_balance });
     setShowWithdrawalForm(true);
   };
 
@@ -453,15 +325,10 @@ export default function Wallets() {
     setShowTransactionDetails(true);
   };
 
-  // La fonction fetchRecipientInfo a été supprimée car elle est maintenant gérée par le composant FundsTransferModal
-
-  // La fonction fetchTransferFees a été supprimée car elle est maintenant gérée par le composant FundsTransferModal
-
   // Fonctions d'exportation
   const fetchAllAdminTransactionsForExport = async () => {
     try {
       const params = {
-        currency: selectedCurrency,
         status: statusFilter || 'all',
         type: typeFilter || 'all',
         search: debouncedSearchTerm || '',
@@ -482,37 +349,10 @@ export default function Wallets() {
     }
   };
 
-  const fetchAllSystemTransactionsForExport = async () => {
-    try {
-      const params = {
-        currency: selectedCurrency,
-        status: statusFilter || 'all',
-        type: typeFilter || 'all',
-        search: debouncedSearchTerm || '',
-        start_date: dateFilter.startDate || '',
-        end_date: dateFilter.endDate || '',
-      };
-
-      const response = await axios.get(`/api/admin/wallets/export-system?${params}`);
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Erreur lors de la récupération des données système');
-      }
-
-      return response.data.transactions;
-    } catch (error) {
-      console.error('Erreur lors de la récupération de toutes les données système:', error);
-      throw error;
-    }
-  };
-
   const exportTransactionsFiltered = async () => {
     setExportLoading(true);
     try {
-      const data = activeTab === 'admin' 
-        ? await fetchAllAdminTransactionsForExport()
-        : await fetchAllSystemTransactionsForExport();
-      
+      const data = await fetchAllAdminTransactionsForExport();
       // Formater les données pour l'export Excel
       return data.map((transaction) => {
         // Formater les métadonnées pour une meilleure lisibilité
@@ -608,7 +448,6 @@ export default function Wallets() {
     try {
       // Appeler l'API sans filtres pour obtenir toutes les données selon l'onglet
       const params = {
-        currency: selectedCurrency,
         status: 'all',
         type: 'all',
         search: '',
@@ -616,9 +455,7 @@ export default function Wallets() {
         end_date: '',
       };
 
-      const endpoint = activeTab === 'admin' 
-        ? '/api/admin/wallets/export-admin'
-        : '/api/admin/wallets/export-system';
+      const endpoint = '/api/admin/wallets/export-admin';
 
       const response = await axios.get(`${endpoint}?${params}`);
       
@@ -684,8 +521,7 @@ export default function Wallets() {
   };
 
   // Filtrer les transactions selon l'onglet actif (le backend gère déjà la pagination et les filtres)
-  const transactions =
-    activeTab === "admin" ? adminTransactions || [] : systemTransactions || [];
+  const transactions = adminTransactions;
 
   // Utiliser directement les transactions du backend (déjà paginées et filtrées)
   const currentTransactions = transactions;
@@ -748,7 +584,7 @@ export default function Wallets() {
       </motion.div>
 
       {/* Portefeuilles */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div>
         {/* Portefeuille Admin */}
         {adminWallet && (
           <motion.div
@@ -765,8 +601,9 @@ export default function Wallets() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full -mr-16 -mt-16"></div>
 
             <div className="p-4 sm:p-6 relative z-10">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                {/* Carte Balance */}
+                <div className="flex items-start gap-3">
                   <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
                     <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
@@ -776,25 +613,68 @@ export default function Wallets() {
                         isDarkMode ? "text-gray-300" : "text-gray-600"
                       }`}
                     >
-                      Mon portefeuille
+                      Solde Total
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <p
-                        className={`text-lg sm:text-xl font-bold bg-gradient-to-r ${
-                          selectedCurrency === 'USD' 
-                            ? 'from-blue-600 to-blue-500' 
-                            : 'from-green-600 to-green-500'
-                        } bg-clip-text text-transparent`}
+                        className={`text-lg sm:text-xl font-bold bg-gradient-to-r ${isDarkMode ? 'from-blue-600 to-blue-500' : 'from-gray-600 to-gray-500' } bg-clip-text text-transparent`}
                       >
-                        {parseFloat(
-                          selectedCurrency === 'USD' 
-                            ? adminWallet.balance_usd || 0
-                            : adminWallet.balance_cdf || 0
-                        ).toLocaleString("fr-FR", {
+                        {parseFloat(adminWallet.balance).toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}{" "}
-                        {selectedCurrency === 'USD' ? '$' : 'FC'}
+                        })}{" $"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Carte Available Balance */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                    <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3
+                      className={`text-sm sm:text-base font-semibold ${
+                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    >
+                      Solde Disponible
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p
+                        className={`text-lg sm:text-xl font-bold bg-gradient-to-r ${isDarkMode ? 'from-green-600 to-green-500' : 'from-emerald-600 to-emerald-500' } bg-clip-text text-transparent`}
+                      >
+                        {parseFloat(adminWallet.available_balance).toLocaleString("fr-FR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" $"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Carte Frozen Balance */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg">
+                    <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3
+                      className={`text-sm sm:text-base font-semibold ${
+                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    >
+                      Solde gélé
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p
+                        className={`text-lg sm:text-xl font-bold bg-gradient-to-r ${isDarkMode ? 'from-orange-600 to-orange-500' : 'from-red-600 to-red-500' } bg-clip-text text-transparent`}
+                      >
+                        {parseFloat(adminWallet.frozen_balance).toLocaleString("fr-FR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" $"}
                       </p>
                     </div>
                   </div>
@@ -805,33 +685,19 @@ export default function Wallets() {
               <div className="mb-4 sm:mb-6">
                 <div
                   className={`p-4 rounded-xl ${
-                    selectedCurrency === 'USD'
-                      ? isDarkMode
+                    isDarkMode
                         ? "bg-blue-900/20 border border-blue-800/30"
                         : "bg-blue-50 border border-blue-200"
-                      : isDarkMode
-                        ? "bg-green-900/20 border border-green-800/30"
-                        : "bg-green-50 border border-green-200"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div className={`p-2 rounded-lg ${
-                      selectedCurrency === 'USD' ? 'bg-blue-500/20' : 'bg-green-500/20'
-                    }`}>
-                      {selectedCurrency === 'USD' ? (
-                        <FaDollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      ) : (
-                        <FaMoneyBillWave className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      )}
+                    <div className={`p-2 rounded-lg ${'bg-blue-500/20'}`}>
+                      <FaDollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <h4
-                      className={`text-sm font-semibold ${
-                        selectedCurrency === 'USD'
-                          ? isDarkMode ? "text-blue-300" : "text-blue-700"
-                          : isDarkMode ? "text-green-300" : "text-green-700"
-                      }`}
+                      className={`text-sm font-semibold ${isDarkMode ? "text-green-300" : "text-green-700"}`}
                     >
-                      Statistiques {selectedCurrency}
+                      Statistiques financières
                     </h4>
                   </div>
                   <div className="space-y-2">
@@ -841,22 +707,17 @@ export default function Wallets() {
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        Total gagné
+                        Total entrée
                       </span>
                       <span
                         className={`text-sm font-bold ${
                           isDarkMode ? "text-green-400" : "text-green-600"
                         }`}
                       >
-                        {parseFloat(
-                          selectedCurrency === 'USD'
-                            ? adminWallet.total_earned_usd || 0
-                            : adminWallet.total_earned_cdf || 0
-                        ).toLocaleString("fr-FR", {
+                        {parseFloat(adminWallet.total_in).toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}{" "}
-                        {selectedCurrency === 'USD' ? '$' : 'FC'}
+                        })}{" $"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -865,22 +726,17 @@ export default function Wallets() {
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        Total retiré
+                        Total sortie
                       </span>
                       <span
                         className={`text-sm font-bold ${
                           isDarkMode ? "text-red-400" : "text-red-600"
                         }`}
                       >
-                        {parseFloat(
-                          selectedCurrency === 'USD'
-                            ? adminWallet.total_withdrawn_usd || 0
-                            : adminWallet.total_withdrawn_cdf || 0
-                        ).toLocaleString("fr-FR", {
+                        {parseFloat(adminWallet.total_out).toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}{" "}
-                        {selectedCurrency === 'USD' ? '$' : 'FC'}
+                        })}{" $"}
                       </span>
                     </div>
                   </div>
@@ -890,7 +746,7 @@ export default function Wallets() {
               <div className="flex flex-row sm:flex-row gap-2 sm:gap-3 justify-center">
                 <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                   <button
-                    onClick={() => handleWithdrawalClick(adminWallet.id, "admin")}
+                    onClick={() => handleWithdrawalClick(adminWallet.id, adminWallet.available_balance)}
                     className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium rounded-full shadow-md hover:shadow-lg transition-all duration-200"
                   >
                     <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -927,212 +783,6 @@ export default function Wallets() {
             </div>
           </motion.div>
         )}
-
-        {/* Portefeuille Système */}
-        {systemWallet && (
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className={`relative overflow-hidden rounded-2xl shadow-xl ${
-              isDarkMode
-                ? "bg-gradient-to-br from-gray-800 to-gray-900"
-                : "bg-gradient-to-br from-white to-gray-50"
-            } border ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}
-          >
-            {/* Badge décoratif */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-full -mr-16 -mt-16"></div>
-
-            <div className="p-4 sm:p-6 relative z-10">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
-                    <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3
-                      className={`text-sm sm:text-base font-semibold ${
-                        isDarkMode ? "text-gray-300" : "text-gray-600"
-                      }`}
-                    >
-                      Portefeuille Système
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p
-                        className={`text-lg sm:text-xl font-bold bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent`}
-                      >
-                        {parseFloat(
-                          systemWallet.balance_usd || 0
-                        ).toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        $
-                      </p>
-                      <span
-                        className={`text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        |
-                      </span>
-                      <p
-                        className={`text-lg sm:text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent`}
-                      >
-                        {parseFloat(
-                          systemWallet.balance_cdf || 0
-                        ).toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        FC
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid des statistiques par devise */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Section USD */}
-                <div
-                  className={`p-4 rounded-xl ${
-                    isDarkMode
-                      ? "bg-green-900/20 border border-green-800/30"
-                      : "bg-green-50 border border-green-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg bg-green-500/20">
-                      <FaDollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h4
-                      className={`text-sm font-semibold ${
-                        isDarkMode ? "text-green-300" : "text-green-700"
-                      }`}
-                    >
-                      Mouvements USD
-                    </h4>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={`text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Total entré
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${
-                          isDarkMode ? "text-green-400" : "text-green-600"
-                        }`}
-                      >
-                        {parseFloat(
-                          systemWallet.total_in_usd || 0
-                        ).toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        $
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={`text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Total sorti
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${
-                          isDarkMode ? "text-orange-400" : "text-orange-600"
-                        }`}
-                      >
-                        {parseFloat(
-                          systemWallet.total_out_usd || 0
-                        ).toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        $
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section CDF */}
-                <div
-                  className={`p-4 rounded-xl ${
-                    isDarkMode
-                      ? "bg-emerald-900/20 border border-emerald-800/30"
-                      : "bg-emerald-50 border border-emerald-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg bg-emerald-500/20">
-                      <FaMoneyBillWave className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <h4
-                      className={`text-sm font-semibold ${
-                        isDarkMode ? "text-emerald-300" : "text-emerald-700"
-                      }`}
-                    >
-                      Mouvements CDF
-                    </h4>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={`text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Total entré
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${
-                          isDarkMode ? "text-green-400" : "text-green-600"
-                        }`}
-                      >
-                        {parseFloat(
-                          systemWallet.total_in_cdf || 0
-                        ).toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        FC
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={`text-xs ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Total sorti
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${
-                          isDarkMode ? "text-orange-400" : "text-orange-600"
-                        }`}
-                      >
-                        {parseFloat(
-                          systemWallet.total_out_cdf || 0
-                        ).toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        FC
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* Historique des transactions */}
@@ -1157,44 +807,7 @@ export default function Wallets() {
             </h2>
           </div>
 
-          {/* Navigation entre les onglets */}
-          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
-            <button
-              onClick={() => setActiveTab("system")}
-              className={`flex-1 sm:flex-none py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all duration-200 ${
-                activeTab === "system"
-                  ? `border-b-2 border-blue-500 ${
-                      isDarkMode ? "text-blue-400" : "text-blue-600"
-                    }`
-                  : `${
-                      isDarkMode
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`
-              }`}
-            >
-              <span className="hidden sm:inline">Portefeuille Système</span>
-              <span className="sm:hidden">Système</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("admin")}
-              className={`flex-1 sm:flex-none py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all duration-200 ${
-                activeTab === "admin"
-                  ? `border-b-2 border-blue-500 ${
-                      isDarkMode ? "text-blue-400" : "text-blue-600"
-                    }`
-                  : `${
-                      isDarkMode
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`
-              }`}
-            >
-              <span className="hidden sm:inline">Portefeuille Personnel</span>
-              <span className="sm:hidden">Personnel</span>
-            </button>
-          </div>
-
+          
           <div className="mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
@@ -1220,34 +833,20 @@ export default function Wallets() {
                   )}
                 </button>
 
-                <div className="flex items-center gap-2">
-                  {activeTab === "admin" ? (
-                    <WalletExportButtons
-                      data={currentTransactions}
-                      filteredData={currentTransactions}
-                      currentPageData={exportTransactionsCurrentPage()}
-                      fileName="transactions_admin"
-                      isLoading={exportLoading}
-                      sheetName="Transactions Admin"
-                      buttonColor="primary"
-                      onExportFiltered={exportTransactionsFiltered}
-                      onExportCurrentPage={exportTransactionsCurrentPage}
-                      onExportAll={exportTransactionsAll}
-                    />
-                  ) : (
-                    <WalletExportButtons
-                      data={currentTransactions}
-                      filteredData={currentTransactions}
-                      currentPageData={exportTransactionsCurrentPage()}
-                      fileName="transactions_system"
-                      isLoading={exportLoading}
-                      sheetName="Transactions System"
-                      buttonColor="secondary"
-                      onExportFiltered={exportTransactionsFiltered}
-                      onExportCurrentPage={exportTransactionsCurrentPage}
-                      onExportAll={exportTransactionsAll}
-                    />
-                  )}
+                <div className="flex items-center gap-2 ml-auto">
+                  <WalletExportButtons
+                    data={currentTransactions}
+                    filteredData={currentTransactions}
+                    currentPageData={exportTransactionsCurrentPage()}
+                    fileName="transactions_admin"
+                    isLoading={exportLoading}
+                    sheetName="Transactions Admin"
+                    buttonColor="primary"
+                    onExportFiltered={exportTransactionsFiltered}
+                    onExportCurrentPage={exportTransactionsCurrentPage}
+                    onExportAll={exportTransactionsAll}
+                    compact
+                  />
                 </div>
               </div>
             </div>
@@ -1304,6 +903,8 @@ export default function Wallets() {
                     <option value="pending">En attente</option>
                     <option value="completed">Complété</option>
                     <option value="failed">Echoué</option>
+                    <option value="reversed">Annulé</option>
+                    <option value="processing">En cours de traitement</option>
                   </select>
                 </div>
 
@@ -1315,37 +916,11 @@ export default function Wallets() {
                   >
                     Type
                   </label>
-                  <select
+                  <FiltreParTypeOperationUser
                     value={typeFilter}
                     onChange={handleTypeFilter}
-                    className={`w-full px-3 py-2 rounded-md ${
-                      isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500"
-                        : "border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                    } transition-all duration-200`}
-                  >
-                    <option value="all">Tous les types</option>
-                    <option value="pack_sale">Vente de pack</option>
-                    <option value="renew_pack_sale">
-                      Rénouvellement de pack
-                    </option>
-                    <option value="boost_sale">Boost de publication</option>
-                    <option value="digital_product_sale">
-                      Vente de produit numérique
-                    </option>
-                    <option value="virtual_sale">Vente des virtuels</option>
-                    <option value="withdrawal">Retrait</option>
-                    <option value="commission de parrainage">
-                      Commission de parrainage
-                    </option>
-                    <option value="commission de retrait">
-                      Commission de retrait
-                    </option>
-                    <option value="commission de transfert">
-                      Commission de transfert
-                    </option>
-                    <option value="transfer">Transfert des fonds</option>
-                  </select>
+                    isDarkMode={isDarkMode}
+                  />
                 </div>
 
                 <div className="w-full">
@@ -1394,7 +969,6 @@ export default function Wallets() {
             isDarkMode={isDarkMode}
             loading={tableLoading}
             onTransactionClick={handleTransactionClick}
-            activeTab={activeTab}
             getTransactionStatusColor={getTransactionStatusColor}
             formatDate={formatDate}
           />
@@ -1447,39 +1021,24 @@ export default function Wallets() {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      ID de transaction
+                      Référence
                     </p>
-                    <p className="font-medium">{selectedTransaction.id}</p>
+                    <p className="font-medium">{selectedTransaction.reference}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Type de transaction
                     </p>
-                    <p className="font-medium capitalize">
-                      {selectedTransaction.type === "withdrawal"
-                        ? "retrait"
-                        : selectedTransaction.type === "pack_sale"
-                        ? "Achat de pack"
-                        : selectedTransaction.type === "renew_pack_sale"
-                        ? "Rénouvellement de pack"
-                        : selectedTransaction.type === "boost_sale"
-                        ? "Boost de publication"
-                        : selectedTransaction.type === "virtual_sale"
-                        ? "Vente de virtuel"
-                        : selectedTransaction.type === "digital_product_sale"
-                        ? "Vente de produits numériques"
-                        : selectedTransaction.type === "transfer"
-                        ? "Transfert des fonds"
-                        : selectedTransaction.type === "reception"
-                        ? "Réception des fonds"
-                        : selectedTransaction.type ===
-                          "commission de parrainage"
-                        ? "Commission de parrainage"
-                        : selectedTransaction.type === "commission de retrait"
-                        ? "Commission de retrait"
-                        : selectedTransaction.type === "commission de transfert"
-                        ? "Commission de transfert"
-                        : selectedTransaction.type}
+                    <p className="font-medium">
+                      {getOperationType(selectedTransaction.type)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Direction
+                    </p>
+                    <p className="font-medium">
+                      {selectedTransaction.direction === "out" ? "Sortie" : selectedTransaction.direction === "in" ? "Entrée" : selectedTransaction.direction === "freeze" ? 'Blocage' : 'Déblocage'}
                     </p>
                   </div>
                   <div>
@@ -1488,14 +1047,29 @@ export default function Wallets() {
                     </p>
                     <p
                       className={`font-medium ${
-                        selectedTransaction.mouvment === "out"
+                        selectedTransaction.direction === "out"
                           ? "text-red-500"
                           : "text-green-500"
                       }`}
                     >
-                      {selectedTransaction.mouvment === "out" ? "-" : "+"}
-                      {selectedTransaction.amount}{" "}
-                      {selectedTransaction.currency === "USD" ? "$" : "FC"}
+                      {selectedTransaction.direction === "out" ? "-" : "+"}
+                      {selectedTransaction.amount}{" $"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Frais
+                    </p>
+                    <p className="font-medium text-orange-500">
+                      {selectedTransaction.fee_amount}{" $"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Commission
+                    </p>
+                    <p className="font-medium text-purple-500">
+                      {selectedTransaction.commission_amount}{" $"}
                     </p>
                   </div>
                   <div>
@@ -1513,6 +1087,10 @@ export default function Wallets() {
                         ? "Complété"
                         : selectedTransaction.status === "failed"
                         ? "Échouée"
+                        : selectedTransaction.status === "processing"
+                        ? "En cours de traitement"
+                        : selectedTransaction.status === "reversed"
+                        ? "Annulée"
                         : selectedTransaction.status}
                     </span>
                   </div>
@@ -1526,13 +1104,101 @@ export default function Wallets() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Dernière mise à jour
+                      Traité par
                     </p>
                     <p className="font-medium">
-                      {formatDate(selectedTransaction.updated_at)}
+                      {selectedTransaction.processed_by || "Non traité"}
                     </p>
                   </div>
                 </div>
+
+                {/* Soldes avant/après */}
+                <div className="mb-6">
+                  <h4
+                    className={`text-lg font-medium mb-3 ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    Évolution des soldes
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div
+                      className={`p-4 rounded-lg ${
+                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Solde avant
+                      </p>
+                      <p className="font-medium text-lg">
+                        {selectedTransaction.balance_before}{" $"}
+                      </p>
+                    </div>
+                    <div
+                      className={`p-4 rounded-lg ${
+                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Solde après
+                      </p>
+                      <p className="font-medium text-lg">
+                        {selectedTransaction.balance_after}{" $"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informations de traitement */}
+                <div className="mb-6">
+                  <h4
+                    className={`text-lg font-medium mb-3 ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    Informations de traitement
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Date de traitement
+                      </p>
+                      <p className="font-medium">
+                        {selectedTransaction.processed_at 
+                          ? formatDate(selectedTransaction.processed_at)
+                          : "Non traité"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Raison de rejet
+                      </p>
+                      <p className="font-medium text-red-500">
+                        {selectedTransaction.rejection_reason || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {selectedTransaction.description && (
+                  <div className="mb-6">
+                    <h4
+                      className={`text-lg font-medium mb-3 ${
+                        isDarkMode ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      Description
+                    </h4>
+                    <div
+                      className={`p-4 rounded-lg ${
+                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <p className="font-medium">{selectedTransaction.description}</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Métadonnées */}
                 {selectedTransaction.metadata &&
@@ -1568,6 +1234,7 @@ export default function Wallets() {
                               source: "Source",
                               type: "Type",
                               amount: "Montant",
+                              Durée: "Durée de souscription",
                               currency: "Devise",
                               description: "Description",
                               reference: "Référence",
@@ -1609,13 +1276,16 @@ export default function Wallets() {
                             if (
                               key === "amount" ||
                               key === "montant_a_retirer" ||
-                              key === "frais_de_retrait" ||
-                              key === "frais_de_commission" ||
+                              key === "commission_de_retrait" ||
                               key === "montant_total_a_payer" ||
                               key.includes("montant") ||
                               key.includes("amount")
                             ) {
                               formattedValue = `${value} $`;
+                            } else {
+                              if (key === "Durée") {
+                                formattedValue = `${value} mois`;
+                              }
                             }
 
                             // Ajout de symboles pour les pourcentages
@@ -1629,7 +1299,7 @@ export default function Wallets() {
 
                             return (
                               <div key={key} className="mb-2">
-                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 capitalize">
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                                   {label}
                                 </p>
                                 <p className="font-medium break-words">
@@ -1681,19 +1351,15 @@ export default function Wallets() {
             <div className="max-w-md w-full relative z-[51]">
               <WithdrawalForm
                 walletId={selectedWalletForWithdrawal?.id}
-                walletType={selectedWalletForWithdrawal?.type}
-                balance_usd={
-                  selectedWalletForWithdrawal?.adminWallet?.balance_usd || 0
-                }
-                balance_cdf={
-                  selectedWalletForWithdrawal?.adminWallet?.balance_cdf || 0
+                available_balance={
+                  selectedWalletForWithdrawal?.available_balance || 0
                 }
                 onClose={() => setShowWithdrawalForm(false)}
                 onSuccess={() => {
                   // Mettre à jour les données des portefeuilles après un retrait réussi
                   // Utiliser un petit délai pour éviter les interférences avec la fermeture du modal
                   setTimeout(() => {
-                    fetchWallets();
+                    fetchWalletData();
                   }, 100);
                 }}
               />
@@ -1708,11 +1374,10 @@ export default function Wallets() {
           isOpen={showTransferModal}
           onClose={() => setShowTransferModal(false)}
           onSuccess={() => {
-            fetchWallets();
+            fetchWalletData();
             toast.success("Transfert effectué avec succès");
           }}
-          balance_usd={adminWallet?.balance_usd || 0}
-          balance_cdf={adminWallet?.balance_cdf || 0}
+          available_balance={adminWallet?.available_balance || 0}
           userInfo={user}
           isAdmin={true}
         />
@@ -1725,7 +1390,7 @@ export default function Wallets() {
             onClose={() => {
               setShowVirtualPurchaseForm(false);
               // Rafraîchir les données du wallet après un achat réussi
-              fetchWallets();
+              fetchWalletData();
             }}
           />,
           document.body

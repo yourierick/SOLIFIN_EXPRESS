@@ -61,13 +61,8 @@ class BoostService
                 ];
             }
             
-            // Paramètres de paiement
-            $paymentMethod = 'solifin-wallet'; // Seule méthode de paiement disponible
-            $paymentType = 'wallet';
-            $currency = $currency; //
-            
             // Calculer le prix du boost
-            $boostPrice = $this->calculateBoostPrice($user, $days, $currency);
+            $boostPrice = $this->calculateBoostPrice($user, $days);
             
             // Vérifier que le montant est suffisant
             if ($amount < $boostPrice) {
@@ -83,32 +78,22 @@ class BoostService
             
             // Vérifier le solde du wallet
             $wallet = $user->wallet;
-            if ($currency === 'USD') {
-                if (!$wallet || $wallet->balance_usd < $amount) {
-                    return [
-                        'success' => false,
-                        'message' => 'Solde insuffisant dans votre wallet.',
-                        'status_code' => 400
-                    ];
-                }
-            }else {
-                if (!$wallet || $wallet->balance_cdf < $amount) {
-                    return [
-                        'success' => false,
-                        'message' => 'Solde insuffisant dans votre wallet.',
-                        'status_code' => 400
-                    ];
-                }
+            if (!$wallet || $wallet->available_balance < $amount) {
+                return [
+                    'success' => false,
+                    'message' => 'Solde insuffisant dans votre wallet.',
+                    'status_code' => 400
+                ];
             }
             
             // Préparer les métadonnées pour la transaction
-            $metadata = $this->prepareBoostMetadata($publication, $publicationType, $days, $amount, $currency, $paymentMethod, $paymentType);
-            
-            // Débiter le wallet utilisateur
-            $this->debitUserWallet($wallet, $amount, $currency, $metadata);
+            $metadata = $this->prepareBoostMetadata($publication, $publicationType, $days, $amount);
             
             // Enregistrer la transaction dans le wallet system
-            $this->updateWalletSystem($user, $amount, $currency, $metadata);
+            $this->updateWalletSystem($user, $amount, $days, $metadata);
+
+            // Débiter le wallet utilisateur
+            $this->debitUserWallet($wallet, $amount, $days, $publication, $metadata);
             
             // Mettre à jour la durée d'affichage de la publication
             $this->updatePublicationDuration($publication, $days, $publicationType);
@@ -154,11 +139,14 @@ class BoostService
     {
         switch ($publicationType) {
             case 'publicite':
-                return $publication->statut === 'approuvé' || $publication->statut === 'expiré';
+                return $publication->statut === 'approved' && $publication->etat === 'available' || 
+                $publication->statut === 'expired' && $publication->etat === 'available';
             case 'offre_emploi':
-                return $publication->statut === 'approuvé' && $publication->etat === 'disponible';
+                return $publication->statut === 'approved' && $publication->etat === 'available' || 
+                $publication->statut === 'expired' && $publication->etat === 'available';
             case 'opportunite_affaire':
-                return $publication->statut === 'approuvé' && $publication->etat === 'disponible';
+                return $publication->statut === 'approved' && $publication->etat === 'available' || 
+                $publication->statut === 'expired' && $publication->etat === 'available';
             default:
                 return false;
         }
@@ -185,15 +173,11 @@ class BoostService
      * @param int $days
      * @return float
      */
-    private function calculateBoostPrice($user, $days, $currency)
+    private function calculateBoostPrice($user, $days)
     {
         // Récupérer le paramètre de prix du boost
         $boostPercentage = $user->pack_de_publication->boost_percentage;
-        if ($currency === 'CDF') {
-            $packPrice = $user->pack_de_publication->price_cdf;
-        }else {
-            $packPrice = $user->pack_de_publication->price;
-        }
+        $packPrice = $user->pack_de_publication->price;
 
         $price = $packPrice * $boostPercentage / 100;
         
@@ -218,7 +202,7 @@ class BoostService
      * @param string $paymentType
      * @return array
      */
-    private function prepareBoostMetadata($publication, $publicationType, $days, $amount, $currency, $paymentMethod, $paymentType)
+    private function prepareBoostMetadata($publication, $publicationType, $days, $amount)
     {
         $publicationTypeLabel = $this->getPublicationTypeLabel($publicationType);
         
@@ -226,12 +210,10 @@ class BoostService
             'Opération' => "Boost de publication",
             'Titre de la publication' => $publication->titre,
             'Type de publication' => $publicationTypeLabel,
-            'Type de paiement' => $paymentType,
-            'Méthode de paiement' => $paymentMethod,
+            'Type de paiement' => 'solifin-wallet',
+            'Méthode de paiement' => 'solifin-wallet',
             'Durée' => $days . " jours",
-            'Montant' => $amount . ($currency === "USD" ? "$" : "FC"),
-            'Devise' => $currency,
-            'Description' => "Vous avez booster votre " . $publicationTypeLabel . " titrée " . $publication->titre . " pour " . $days . " jours"
+            'Montant' => $amount . "$",
         ];
     }
     
@@ -244,10 +226,11 @@ class BoostService
      * @param array $metadata
      * @return void
      */
-    private function debitUserWallet($wallet, $amount, $currency, $metadata)
+    private function debitUserWallet($wallet, $amount, $days, $publication, $metadata)
     {
         // Utiliser la méthode withdrawFunds du modèle Wallet
-        $wallet->withdrawFunds($amount, $currency, 'purchase', 'completed', $metadata);
+        $description = "Vous avez booster votre publication titrée " . $publication->titre . " pour " . $days . " jours";
+        $wallet->withdrawFunds($amount, 0, 0, 'internal', 'boost_purchase', 'completed', $description, $wallet->user->id, $metadata);
     }
     
     /**
@@ -259,19 +242,12 @@ class BoostService
      * @param array $metadata
      * @return void
      */
-    private function updateWalletSystem($user, $amount, $currency, $metadata)
+    private function updateWalletSystem($user, $amount, $days, $metadata)
     {
-        $systemMetadata = array_merge(['user' => $user->name], $metadata);
-        
-        // Utiliser le service wallet pour enregistrer la transaction système
-        $this->walletService->recordSystemTransaction([
-            'amount' => $amount,
-            'currency' => $currency,
-            'mouvment' => 'in',
-            'type' => 'boost_sale',
-            'status' => 'completed',
-            'metadata' => $systemMetadata
-        ]);
+        $systemMetadata = array_merge(['user' => $user->name . ' / ' . $user->account_id], $metadata);
+        $walletsystem = WalletSystem::first();
+        $description = 'Vous avez vendu un boost de publication pour ' . $days . ' jours d\'une valeur de ' . $amount . ' $';
+        $walletsystem->addProfits($amount, 'boost_sale', 'completed', $description, $user->id, $metadata);
     }
     
     /**

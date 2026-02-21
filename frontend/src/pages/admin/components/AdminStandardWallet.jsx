@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { useCurrency } from "../../../contexts/CurrencyContext";
 import axios from "axios";
 import Notification from "../../../components/Notification";
 import WithdrawalForm from "../../../components/WithdrawalForm";

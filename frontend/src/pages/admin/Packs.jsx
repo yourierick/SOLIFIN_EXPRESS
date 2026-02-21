@@ -898,9 +898,6 @@ export default function Packs() {
                             Prix
                           </th>
                           <th className="w-1/8 px-2 sm:px-3 py-3 sm:py-3.5 text-left text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-200">
-                            Prix en CDF
-                          </th>
-                          <th className="w-1/8 px-2 sm:px-3 py-3 sm:py-3.5 text-left text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-200">
                             Status
                           </th>
                           <th className="w-1/6 px-2 sm:px-3 py-3 sm:py-3.5 text-center text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-200">
@@ -928,9 +925,6 @@ export default function Packs() {
                             </td>
                             <td className="px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-gray-200">
                               {pack.price} $
-                            </td>
-                            <td className="px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-gray-200">
-                              {pack.cdf_price ? pack.cdf_price + "FC" : "-"}
                             </td>
                             <td className="px-2 sm:px-3 py-3 sm:py-4 text-xs sm:text-sm">
                               <button

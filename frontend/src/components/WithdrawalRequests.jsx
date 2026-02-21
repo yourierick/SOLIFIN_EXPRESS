@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
-import { useCurrency } from "../contexts/CurrencyContext";
 import ConfirmationModal from "./ConfirmationModal";
 import WithdrawalExportButtons from "./WithdrawalExportButtons";
 import axios from "axios";
@@ -40,7 +39,6 @@ import {
   Close,
   Save,
   Visibility,
-  Delete,
   Warning,
   FilterList,
   Search,
@@ -94,37 +92,15 @@ ChartJS.register(
   LineElement
 );
 
-// Fonction pour formater les montants
-const formatCurrency = (amount, currency = 'USD') => {
-  if (!amount) return '0.00';
-  
-  const numAmount = parseFloat(amount);
-  if (isNaN(numAmount)) return '0.00';
-  
-  // Symboles des devises
-  const symbols = {
-    USD: '$',
-    CDF: 'FC'
-  };
-  
-  // Formatage selon la devise
-  if (currency === 'CDF') {
-    return `${symbols[currency]} ${numAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-  } else {
-    return `${symbols[currency]}${numAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-  }
-};
 
 const WithdrawalRequests = () => {
   const { isDarkMode } = useTheme();
-  const { selectedCurrency, toggleCurrency, isCDFEnabled } = useCurrency();
 
   // États principaux
   const [requestsArray, setRequestsArray] = useState([]);
   const [filteredRequestsArray, setFilteredRequestsArray] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [requestToDelete, setRequestToDelete] = useState(null);
   const [adminNote, setAdminNote] = useState("");
 
   // États pour les filtres de l'onglet demandes en attente
@@ -144,7 +120,6 @@ const WithdrawalRequests = () => {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // États pour les modals
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [requestToCancel, setRequestToCancel] = useState(null);
 
@@ -172,7 +147,6 @@ const WithdrawalRequests = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     status: "",
-    payment_status: "",
     payment_method: "",
     start_date: "",
     end_date: "",
@@ -189,18 +163,6 @@ const WithdrawalRequests = () => {
       fetchAllRequests(1);
     }
   }, [activeTab]);
-
-  // Effet pour recharger les données lorsque la devise change
-  useEffect(() => {
-    // Réinitialiser la page courante et recharger les données
-    setCurrentPage(1);
-    
-    if (activeTab === "pending") {
-      fetchPendingRequests(1);
-    } else if (activeTab === "all") {
-      fetchAllRequests(1);
-    }
-  }, [selectedCurrency]);
 
   // Effet pour filtrer les demandes en attente ou recharger avec les filtres
   useEffect(() => {
@@ -222,13 +184,6 @@ const WithdrawalRequests = () => {
 
       // Construire l'URL avec les paramètres de pagination et filtrage
       let url = `/api/admin/withdrawal/requests?page=${page}&per_page=${rowsPerPage}`;
-
-      // Toujours filtrer par devise sélectionnée
-      if (isCDFEnabled) {
-        url += `&currency=${selectedCurrency}`;
-      } else {
-        url += `&currency=USD`;
-      }
 
       if (pendingFilters.payment_method) {
         url += `&payment_method=${pendingFilters.payment_method}`;
@@ -321,6 +276,21 @@ const WithdrawalRequests = () => {
     }
   };
 
+  // Fonction pour formater les montants selon la devise sélectionnée
+  const formatAmount = (amount) => {
+    if (amount === null || amount === undefined) return "0.00";
+
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount)) return "0.00";
+
+    return new Intl.NumberFormat("fr-Fr", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numericAmount);
+  };
+
   // Fonction pour appliquer les filtres aux demandes en attente
   const applyPendingFilters = () => {
     // Si nous utilisons la pagination backend, les filtres sont déjà appliqués via l'API
@@ -406,19 +376,8 @@ const WithdrawalRequests = () => {
       // Construire l'URL avec les paramètres de filtrage
       let url = `/api/admin/withdrawal/all?page=${page}&per_page=${rowsPerPage}`;
 
-      // Toujours filtrer par devise sélectionnée
-      if (isCDFEnabled) {
-        url += `&currency=${selectedCurrency}`;
-      } else {
-        url += `&currency=USD`;
-      }
-
       if (filters.status) {
         url += `&status=${filters.status}`;
-      }
-
-      if (filters.payment_status) {
-        url += `&payment_status=${filters.payment_status}`;
       }
 
       if (filters.payment_method) {
@@ -438,8 +397,6 @@ const WithdrawalRequests = () => {
       }
 
       const response = await axios.get(url);
-
-      console.log(`All withdrawal requests for ${selectedCurrency}:`, response.data);
 
       if (response.data.success) {
         // Vérifier si les données sont paginées
@@ -466,8 +423,6 @@ const WithdrawalRequests = () => {
 
         // Adapter les données pour correspondre à la structure attendue par le composant
         const statsData = response.data.stats || {};
-
-        console.log(`Statistics for ${selectedCurrency}:`, statsData);
 
         // S'assurer que toutes les propriétés nécessaires sont présentes
         const formattedStats = {
@@ -636,37 +591,6 @@ const WithdrawalRequests = () => {
     setRequestToCancel(null);
   };
 
-  const confirmDeleteRequest = async () => {
-    if (!requestToDelete) return;
-
-    try {
-      setIsDeleting(true);
-      const response = await axios.delete(
-        `/api/admin/withdrawal/requests/${requestToDelete.id}`
-      );
-
-      if (response.data.success) {
-        toast.success("Demande supprimée avec succès");
-        setShowDeleteConfirmation(false);
-        setRequestToDelete(null);
-
-        // Rafraîchir les données selon l'onglet actif
-        if (activeTab === "pending") {
-          fetchPendingRequests();
-        } else {
-          fetchAllRequests(allRequestsMeta.current_page);
-        }
-      } else {
-        toast.error("Erreur lors de la suppression de la demande");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la suppression de la demande:", error);
-      toast.error("Erreur lors de la suppression de la demande");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   // Fonctions pour les filtres
   const applyFilters = () => {
     fetchAllRequests(1); // Réinitialiser à la première page lors de l'application des filtres
@@ -675,7 +599,6 @@ const WithdrawalRequests = () => {
   const resetFilters = () => {
     setFilters({
       status: "",
-      payment_status: "",
       payment_method: "",
       start_date: "",
       end_date: "",
@@ -804,7 +727,6 @@ const WithdrawalRequests = () => {
     try {
       const response = await axios.get('/api/admin/withdrawal/export-pending', {
         params: {
-          currency: selectedCurrency,
           payment_method: pendingFilters.payment_method || undefined,
           initiated_by: pendingFilters.initiated_by || undefined,
           start_date: pendingFilters.start_date || undefined,
@@ -823,7 +745,6 @@ const WithdrawalRequests = () => {
     try {
       const response = await axios.get('/api/admin/withdrawal/export-all', {
         params: {
-          currency: selectedCurrency,
           status: filters.status || undefined,
           payment_method: filters.payment_method || undefined,
           start_date: filters.start_date || undefined,
@@ -846,11 +767,12 @@ const WithdrawalRequests = () => {
         'Utilisateur': request.user?.name || 'N/A',
         'Email': request.user?.email || 'N/A',
         'Montant': request.amount,
-        'Devise': request.currency,
         'Méthode de paiement': request.payment_method,
         'Statut': request.status === 'pending' ? 'En attente' : 
                  request.status === 'approved' ? 'Approuvé' : 
-                 request.status === 'rejected' ? 'Rejeté' : 
+                 request.status === 'rejected' ? 'Rejeté' :
+                 request.status === 'failed' ? 'Echoué' :
+                 request.status === 'paid' ? 'Payé' : 
                  request.status === 'cancelled' ? 'Annulé' : request.status,
         'Date de demande': format(new Date(request.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
         'Date de traitement': request.processed_at ? 
@@ -870,7 +792,6 @@ const WithdrawalRequests = () => {
         { wch: 20 }, // Utilisateur
         { wch: 25 }, // Email
         { wch: 12 }, // Montant
-        { wch: 8 },  // Devise
         { wch: 18 }, // Méthode de paiement
         { wch: 12 }, // Statut
         { wch: 20 }, // Date de demande
@@ -970,7 +891,7 @@ const WithdrawalRequests = () => {
             Demandes de retrait
           </h3>
           <span className="text-sm sm:text-base font-normal text-gray-500 dark:text-gray-400">
-            Gestion et analyse des demandes de retrait ({selectedCurrency})
+            Gestion et analyse des demandes de retrait
           </span>
         </div>
       </div>
@@ -1225,8 +1146,8 @@ const WithdrawalRequests = () => {
               }`}
             >
               {requestsArray.length === 0
-                ? `Aucune demande de retrait ${selectedCurrency} en cours`
-                : `Aucune demande ${selectedCurrency} ne correspond aux critères de recherche`}
+                ? `Aucune demande de retrait en cours`
+                : `Aucune demande ne correspond aux critères de recherche`}
             </div>
           ) : (
             <>
@@ -1316,18 +1237,6 @@ const WithdrawalRequests = () => {
                             borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                           }}
                         >
-                          Statut de paiement
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#6b7280",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}
-                        >
                           Date
                         </TableCell>
                         <TableCell
@@ -1386,7 +1295,7 @@ const WithdrawalRequests = () => {
                           >
                             {new Intl.NumberFormat("fr-FR", {
                               style: "currency",
-                              currency: selectedCurrency,
+                              currency: "USD",
                             }).format(request.amount)}
                           </TableCell>
                           <TableCell
@@ -1416,28 +1325,6 @@ const WithdrawalRequests = () => {
                                   {request.status === "rejected" && "Rejeté"}
                                   {request.status === "cancelled" && "Annulé"}
                                   {request.status === "failed" && "Échoué"}
-                                </span>
-                              </span>
-                            </span>
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}
-                          >
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                                request.payment_status
-                              )}`}
-                            >
-                              <span className="flex items-center">
-                                {getStatusIcon(request.payment_status)}
-                                <span className="ml-1">
-                                  {request.payment_status === "pending" &&
-                                    "En attente"}
-                                  {request.payment_status === "paid" && "Payé"}
-                                  {request.payment_status === "failed" &&
-                                    "Échoué"}
                                 </span>
                               </span>
                             </span>
@@ -1483,7 +1370,7 @@ const WithdrawalRequests = () => {
                               )}
                               
                               {/* Bouton réessayer le paiement - seulement pour les demandes approuvées mais échouées */}
-                              {request.status === 'approved' && request.payment_status === 'failed' && (
+                              {request.status === 'failed' && (
                                 <button
                                   onClick={() => handleRetryPayment(request)}
                                   className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
@@ -1492,16 +1379,6 @@ const WithdrawalRequests = () => {
                                   <ArrowPathIcon className="w-5 h-5" />
                                 </button>
                               )}
-                              
-                              <button
-                                onClick={() => {
-                                  setRequestToDelete(request);
-                                  setShowDeleteConfirmation(true);
-                                }}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                <TrashIcon className="w-5 h-5" />
-                              </button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1525,7 +1402,7 @@ const WithdrawalRequests = () => {
                   `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
                 }
                 sx={{
-                  color: isDarkMode ? "#fff" : "#475569",
+                  color: isDarkMode ? "#ffffff" : "#475569",
                   fontSize: { xs: "0.75rem", sm: "0.875rem" },
                   "& .MuiTablePagination-toolbar": {
                     minHeight: { xs: "40px", sm: "52px" },
@@ -1535,7 +1412,7 @@ const WithdrawalRequests = () => {
                     fontSize: { xs: "0.75rem", sm: "0.875rem" },
                   },
                   "& .MuiTablePagination-selectIcon": {
-                    color: isDarkMode ? "#fff" : "#475569",
+                    color: isDarkMode ? "#ffffff" : "#475569",
                   },
                   "& .MuiTablePagination-select": {
                     backgroundColor: isDarkMode ? "#1f2937" : "#f8fafc",
@@ -1547,7 +1424,7 @@ const WithdrawalRequests = () => {
                     fontSize: { xs: "0.75rem", sm: "0.875rem" },
                   },
                   "& .MuiTablePagination-actions button": {
-                    color: isDarkMode ? "#fff" : "#475569",
+                    color: isDarkMode ? "#ffffff" : "#475569",
                     fontSize: { xs: "0.75rem", sm: "0.875rem" },
                     "&:hover": {
                       backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
@@ -1561,265 +1438,575 @@ const WithdrawalRequests = () => {
       ) : (
         // Onglet d'analyse complète
         <div>
-          {/* Section des filtres */}
-          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                Filtres
-              </h4>
-              <div className="flex items-center gap-3">
-                <WithdrawalExportButtons
-                  onExportCurrentPage={exportCurrentPage}
-                  onExportFiltered={exportFiltered}
-                  onExportAll={exportAll}
-                  loading={exportLoading}
-                  disabled={allRequestsLoading}
-                  currentPageCount={allRequests.slice((page) * rowsPerPage, (page + 1) * rowsPerPage).length}
-                  filteredCount={totalAllRequests}
-                  totalCount={totalAllRequests}
-                />
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                >
-                  <FunnelIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+          {/* Section des filtres - Design Moderne */}
+          <Box
+            sx={{
+              background: isDarkMode ? "#1f2937" : "#ffffff",
+              borderRadius: 2,
+              p: { xs: 2, sm: 3 },
+              mb: 3,
+              border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+              boxShadow: isDarkMode 
+                ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            {/* Header de la section filtres */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <FilterList sx={{ 
+                  fontSize: 20, 
+                  color: "#3b82f6", 
+                  mr: 1 
+                }} />
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 600, 
+                  color: isDarkMode ? "#ffffff" : "#1e293b",
+                  fontSize: { xs: "1rem", sm: "1.125rem" }
+                }}>
+                  Filtres de recherche
+                </Typography>
+              </Box>
+              <WithdrawalExportButtons
+                data={filteredRequestsArray}
+                filename="retrait_demandes"
+                title="Demandes de retrait"
+              />
+            </Box>
 
-              {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Statut
-                  </label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) =>
-                      setFilters({ ...filters, status: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Tous</option>
-                    <option value="pending">En attente</option>
-                    <option value="approved">Approuvé</option>
-                    <option value="rejected">Rejeté</option>
-                    <option value="cancelled">Annulé</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Statut de paiement
-                  </label>
-                  <select
-                    value={filters.payment_status}
-                    onChange={(e) =>
-                      setFilters({ ...filters, payment_status: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Tous</option>
-                    <option value="pending">En attente</option>
-                    <option value="paid">Payé</option>
-                    <option value="failed">Échoué</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Méthode de paiement
-                  </label>
-                  <select
-                    value={filters.payment_method}
-                    onChange={(e) =>
-                      setFilters({ ...filters, payment_method: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Toutes</option>
-                    <option value="visa">Visa</option>
-                    <option value="mastercard">Mastercard</option>
-                    <option value="orange-money">Orange Money</option>
-                    <option value="airtel-money">Airtel Money</option>
-                    <option value="afrimoney">Afrimoney</option>
-                    <option value="m-pesa">M-Pesa</option>
-                    <option value="american-express">American Express</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Ligne 2 pour les filtres de dates */}
-            {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Date de début
-                </label>
-                <input
-                  type="date"
-                  value={filters.start_date}
-                  onChange={(e) =>
-                    setFilters({ ...filters, start_date: e.target.value })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Date de fin
-                </label>
-                <input
-                  type="date"
-                  value={filters.end_date}
-                  onChange={(e) =>
-                    setFilters({ ...filters, end_date: e.target.value })
-                  }
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
+            {/* Bouton toggle pour filtres avancés */}
+            <Box sx={{ mb: 2 }}>
+              <Button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                startIcon={<FunnelIcon />}
+                size="small"
+                sx={{
+                  backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
+                  color: isDarkMode ? "#ffffff" : "#475569",
+                  fontWeight: 500,
+                  textTransform: "none",
+                  px: 2,
+                  py: 1,
+                  "&:hover": {
+                    backgroundColor: isDarkMode ? "#4b5563" : "#e2e8f0",
+                  },
+                }}
+              >
+                {showAdvancedFilters ? "Masquer" : "Afficher"} les filtres avancés
+              </Button>
+            </Box>
+            
+            {/* Filtres avancés */}
+            {showAdvancedFilters && (
+              <Box
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  backgroundColor: isDarkMode ? "#111827" : "#f8fafc",
+                  borderRadius: 1.5,
+                  border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                }}
+              >
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" sx={{ 
+                      color: isDarkMode ? "#9ca3af" : "#64748b",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      display: "block",
+                      mb: 0.5
+                    }}>
+                      Statut
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      value={filters.status}
+                      onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                      sx={{
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        "& .MuiOutlinedInput-root": {
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: "0.875rem",
+                        },
+                      }}
+                    >
+                      <MenuItem value="">Tous</MenuItem>
+                      <MenuItem value="pending">En attente</MenuItem>
+                      <MenuItem value="approved">Approuvé</MenuItem>
+                      <MenuItem value="rejected">Rejeté</MenuItem>
+                      <MenuItem value="cancelled">Annulé</MenuItem>
+                    </TextField>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" sx={{ 
+                      color: isDarkMode ? "#9ca3af" : "#64748b",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      display: "block",
+                      mb: 0.5
+                    }}>
+                      Méthode de paiement
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      value={filters.payment_method}
+                      onChange={(e) => setFilters({ ...filters, payment_method: e.target.value })}
+                      sx={{
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        "& .MuiOutlinedInput-root": {
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: "0.875rem",
+                        },
+                      }}
+                    >
+                      <MenuItem value="">Toutes</MenuItem>
+                      <MenuItem value="visa">Visa</MenuItem>
+                      <MenuItem value="mastercard">Mastercard</MenuItem>
+                      <MenuItem value="orange-money">Orange Money</MenuItem>
+                      <MenuItem value="airtel-money">Airtel Money</MenuItem>
+                      <MenuItem value="afrimoney">Afrimoney</MenuItem>
+                      <MenuItem value="m-pesa">M-Pesa</MenuItem>
+                      <MenuItem value="american-express">American Express</MenuItem>
+                    </TextField>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" sx={{ 
+                      color: isDarkMode ? "#9ca3af" : "#64748b",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      display: "block",
+                      mb: 0.5
+                    }}>
+                      Date de début
+                    </Typography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      size="small"
+                      value={filters.start_date}
+                      onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+                      sx={{
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        "& .MuiOutlinedInput-root": {
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: "0.875rem",
+                        },
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" sx={{ 
+                      color: isDarkMode ? "#9ca3af" : "#64748b",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      display: "block",
+                      mb: 0.5
+                    }}>
+                      Date de fin
+                    </Typography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      size="small"
+                      value={filters.end_date}
+                      onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                      sx={{
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        "& .MuiOutlinedInput-root": {
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: "0.875rem",
+                        },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
             )}
             
+            {/* Barre de recherche et boutons d'action */}
+            <Box sx={{ 
+              display: "flex", 
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
+              alignItems: { xs: "stretch", sm: "center" }
+            }}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  placeholder="Rechercher par ID, utilisateur..."
+                  InputProps={{
+                    startAdornment: <Search sx={{ color: "#9ca3af", mr: 1 }} />,
+                  }}
+                  sx={{
+                    backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                    "& .MuiOutlinedInput-root": {
+                      color: isDarkMode ? "#ffffff" : "#1e293b",
+                      fontSize: "0.875rem",
+                    },
+                  }}
+                />
+              </Box>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center">
-              <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={filters.search}
-                    onChange={(e) =>
-                      setFilters({ ...filters, search: e.target.value })
-                    }
-                    placeholder="Rechercher par ID, utilisateur..."
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <button
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
                   onClick={applyFilters}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  variant="contained"
+                  size="small"
+                  sx={{
+                    backgroundColor: "#3b82f6",
+                    "&:hover": { backgroundColor: "#2563eb" },
+                    fontWeight: 500,
+                    textTransform: "none",
+                    px: 2,
+                  }}
                 >
                   Appliquer
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={resetFilters}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    borderColor: isDarkMode ? "#4b5563" : "#d1d5db",
+                    color: isDarkMode ? "#ffffff" : "#374151",
+                    "&:hover": {
+                      borderColor: isDarkMode ? "#6b7280" : "#9ca3af",
+                      backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
+                    },
+                    fontWeight: 500,
+                    textTransform: "none",
+                    px: 2,
+                  }}
                 >
                   Réinitialiser
-                </button>
-              </div>
-            </div>
-          </div>
-          {/* Section des statistiques */}
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          {/* Section des statistiques - Design Moderne */}
           {allRequestsLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: 200,
+                background: isDarkMode ? "#1f2937" : "#ffffff",
+                borderRadius: 2,
+                border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+              }}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <Box sx={{ 
+                  width: 40, 
+                  height: 40, 
+                  border: "3px solid #3b82f6",
+                  borderTop: "3px solid transparent",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite"
+                }} />
+                <Typography variant="body2" sx={{ color: isDarkMode ? "#9ca3af" : "#64748b" }}>
+                  Chargement des statistiques...
+                </Typography>
+              </Box>
+            </Box>
           ) : (
             <>
               {stats && (
-                <div className="mb-6">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                    Statistiques générales ({selectedCurrency})
-                  </h4>
+                <Box sx={{ mb: 3 }}>
+                  {/* Header de la section statistiques */}
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 4,
+                        height: 24,
+                        background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                        borderRadius: 2,
+                        mr: 2,
+                      }}
+                    />
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 600, 
+                      color: isDarkMode ? "#ffffff" : "#1e293b",
+                      fontSize: { xs: "1rem", sm: "1.125rem" }
+                    }}>
+                      Statistiques générales
+                    </Typography>
+                  </Box>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-primary-500">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-primary-100 dark:bg-primary-900 rounded-full p-3">
-                          <CurrencyDollarIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {/* Cartes de statistiques */}
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box
+                        sx={{
+                          background: isDarkMode ? "#1f2937" : "#ffffff",
+                          borderRadius: 2,
+                          p: 2,
+                          border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                          borderLeft: "4px solid #3b82f6",
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: isDarkMode 
+                              ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                              : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#eff6ff",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <CurrencyDollarIcon sx={{ 
+                              fontSize: 20, 
+                              color: "#3b82f6" 
+                            }} />
+                          </Box>
+                          <Typography variant="caption" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}>
                             Montant total
-                          </p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {new Intl.NumberFormat("fr-FR", {
-                              style: "currency",
-                              currency: selectedCurrency,
-                            }).format(stats.total_amount)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 700,
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: { xs: "1.1rem", sm: "1.25rem" }
+                        }}>
+                          ${stats.total_amount?.toFixed(2)}
+                        </Typography>
+                      </Box>
+                    </Grid>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-yellow-100 dark:bg-yellow-900 rounded-full p-3">
-                          <ClockIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box
+                        sx={{
+                          background: isDarkMode ? "#1f2937" : "#ffffff",
+                          borderRadius: 2,
+                          p: 2,
+                          border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                          borderLeft: "4px solid #f59e0b",
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: isDarkMode 
+                              ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                              : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#fef3c7",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <ClockIcon sx={{ 
+                              fontSize: 20, 
+                              color: "#f59e0b" 
+                            }} />
+                          </Box>
+                          <Typography variant="caption" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}>
                             En attente
-                          </p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {stats.pending_requests} (
-                            {new Intl.NumberFormat("fr-FR", {
-                              style: "currency",
-                              currency: selectedCurrency,
-                            }).format(stats.pending_amount)}
-                            )
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 700,
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: { xs: "1.1rem", sm: "1.25rem" }
+                        }}>
+                          {stats.pending_requests} (${stats.pending_amount?.toFixed(2)})
+                        </Typography>
+                      </Box>
+                    </Grid>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-green-500">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-green-100 dark:bg-green-900 rounded-full p-3">
-                          <CheckCircleIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box
+                        sx={{
+                          background: isDarkMode ? "#1f2937" : "#ffffff",
+                          borderRadius: 2,
+                          p: 2,
+                          border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                          borderLeft: "4px solid #10b981",
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: isDarkMode 
+                              ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                              : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#d1fae5",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <CheckCircleIcon sx={{ 
+                              fontSize: 20, 
+                              color: "#10b981" 
+                            }} />
+                          </Box>
+                          <Typography variant="caption" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}>
                             Payés
-                          </p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {stats.approved_requests} (
-                            {new Intl.NumberFormat("fr-FR", {
-                              style: "currency",
-                              currency: selectedCurrency,
-                            }).format(stats.approved_amount)}
-                            )
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 700,
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: { xs: "1.1rem", sm: "1.25rem" }
+                        }}>
+                          {stats.approved_requests} (${stats.approved_amount?.toFixed(2)})
+                        </Typography>
+                      </Box>
+                    </Grid>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-red-500">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-red-100 dark:bg-red-900 rounded-full p-3">
-                          <XCircleIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box
+                        sx={{
+                          background: isDarkMode ? "#1f2937" : "#ffffff",
+                          borderRadius: 2,
+                          p: 2,
+                          border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                          borderLeft: "4px solid #ef4444",
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: isDarkMode 
+                              ? "0 8px 25px rgba(0, 0, 0, 0.3)"
+                              : "0 8px 25px rgba(0, 0, 0, 0.1)",
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <Box
+                            sx={{
+                              backgroundColor: isDarkMode ? "#374151" : "#fee2e2",
+                              borderRadius: "50%",
+                              p: 1,
+                              mr: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <XCircleIcon sx={{ 
+                              fontSize: 20, 
+                              color: "#ef4444" 
+                            }} />
+                          </Box>
+                          <Typography variant="caption" sx={{ 
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}>
                             Rejetés
-                          </p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {stats.rejected_requests} (
-                            {new Intl.NumberFormat("fr-FR", {
-                              style: "currency",
-                              currency: selectedCurrency,
-                            }).format(stats.rejected_amount)}
-                            )
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Section des graphiques */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    {/* Graphique en barres - Demandes par mois */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                      <h5 className="text-md font-medium text-gray-900 dark:text-white mb-4">
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ 
+                          fontWeight: 700,
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: { xs: "1.1rem", sm: "1.25rem" }
+                        }}>
+                          {stats.rejected_requests} (${stats.rejected_amount?.toFixed(2)})
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+
+              {/* Section des graphiques - Design Moderne */}
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 4,
+                      height: 24,
+                      background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                      borderRadius: 2,
+                      mr: 2,
+                    }}
+                  />
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 600, 
+                    color: isDarkMode ? "#ffffff" : "#1e293b",
+                    fontSize: { xs: "1rem", sm: "1.125rem" }
+                  }}>
+                    Visualisations
+                  </Typography>
+                </Box>
+
+                <Grid container spacing={2}>
+                  {/* Graphique en barres - Demandes par mois */}
+                  <Grid item xs={12} lg={6}>
+                    <Box
+                      sx={{
+                        background: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: 2,
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        height: 300,
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? "#ffffff" : "#1e293b",
+                        mb: 2,
+                        fontSize: "0.875rem"
+                      }}>
                         Demandes par mois
-                      </h5>
-                      <div className="h-64">
+                      </Typography>
+                      <Box sx={{ height: 240 }}>
                         {stats.monthly_stats && (
                           <Bar
                             data={{
@@ -1833,9 +2020,9 @@ const WithdrawalRequests = () => {
                                     (item) => item.total_amount
                                   ),
                                   backgroundColor: isDarkMode
-                                    ? "rgba(79, 70, 229, 0.7)"
-                                    : "rgba(79, 70, 229, 0.5)",
-                                  borderColor: "#4F46E5",
+                                    ? "rgba(139, 92, 246, 0.7)"
+                                    : "rgba(139, 92, 246, 0.5)",
+                                  borderColor: "#8b5cf6",
                                   borderWidth: 1,
                                 },
                               ],
@@ -1848,6 +2035,7 @@ const WithdrawalRequests = () => {
                                   beginAtZero: true,
                                   ticks: {
                                     color: isDarkMode ? "#D1D5DB" : "#4B5563",
+                                    fontSize: "0.75rem",
                                   },
                                   grid: {
                                     color: isDarkMode
@@ -1858,6 +2046,7 @@ const WithdrawalRequests = () => {
                                 x: {
                                   ticks: {
                                     color: isDarkMode ? "#D1D5DB" : "#4B5563",
+                                    fontSize: "0.75rem",
                                   },
                                   grid: {
                                     color: isDarkMode
@@ -1870,21 +2059,37 @@ const WithdrawalRequests = () => {
                                 legend: {
                                   labels: {
                                     color: isDarkMode ? "#D1D5DB" : "#4B5563",
+                                    fontSize: "0.75rem",
                                   },
                                 },
                               },
                             }}
                           />
                         )}
-                      </div>
-                    </div>
+                      </Box>
+                    </Box>
+                  </Grid>
 
-                    {/* Graphique en camembert - Méthodes de paiement */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                      <h5 className="text-md font-medium text-gray-900 dark:text-white mb-4">
+                  {/* Graphique en camembert - Méthodes de paiement */}
+                  <Grid item xs={12} lg={6}>
+                    <Box
+                      sx={{
+                        background: isDarkMode ? "#1f2937" : "#ffffff",
+                        borderRadius: 2,
+                        p: 2,
+                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                        height: 300,
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ 
+                        fontWeight: 600, 
+                        color: isDarkMode ? "#ffffff" : "#1e293b",
+                        mb: 2,
+                        fontSize: "0.875rem"
+                      }}>
                         Méthodes de paiement
-                      </h5>
-                      <div className="h-64">
+                      </Typography>
+                      <Box sx={{ height: 240 }}>
                         {stats.payment_method_stats && (
                           <Pie
                             data={{
@@ -1897,16 +2102,16 @@ const WithdrawalRequests = () => {
                                     (item) => item.total_amount
                                   ),
                                   backgroundColor: [
-                                    "rgba(79, 70, 229, 0.7)",
+                                    "rgba(59, 130, 246, 0.7)",
                                     "rgba(245, 158, 11, 0.7)",
                                     "rgba(16, 185, 129, 0.7)",
                                     "rgba(239, 68, 68, 0.7)",
                                   ],
                                   borderColor: [
-                                    "#4F46E5",
-                                    "#F59E0B",
-                                    "#10B981",
-                                    "#EF4444",
+                                    "#3b82f6",
+                                    "#f59e0b",
+                                    "#10b981",
+                                    "#ef4444",
                                   ],
                                   borderWidth: 1,
                                 },
@@ -1920,31 +2125,267 @@ const WithdrawalRequests = () => {
                                   position: "right",
                                   labels: {
                                     color: isDarkMode ? "#D1D5DB" : "#4B5563",
+                                    fontSize: "0.75rem",
                                   },
                                 },
                               },
                             }}
                           />
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* Tableau des demandes filtrées */}
-              <div className="mb-6">
-                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                  Liste des demandes
-                </h4>
+                      </Box>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Tableau des demandes filtrées - Design Moderne */}
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 4,
+                      height: 24,
+                      background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                      borderRadius: 2,
+                      mr: 2,
+                    }}
+                  />
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 600, 
+                    color: isDarkMode ? "#ffffff" : "#1e293b",
+                    fontSize: { xs: "1rem", sm: "1.125rem" }
+                  }}>
+                    Liste des demandes
+                  </Typography>
+                </Box>
 
                 <Paper
                   sx={{
                     borderRadius: 2,
                     overflow: "hidden",
-                    boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    boxShadow: isDarkMode 
+                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                     backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                    border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
                   }}
                 >
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow sx={{ 
+                          backgroundColor: isDarkMode ? "#111827" : "#f8fafc" 
+                        }}>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            ID
+                          </TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            Utilisateur
+                          </TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            Montant
+                          </TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            Méthode
+                          </TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            Statut
+                          </TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            Date
+                          </TableCell>
+                          <TableCell sx={{ 
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: isDarkMode ? "#9ca3af" : "#64748b",
+                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                          }}>
+                            Actions
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredRequestsArray.map((request) => (
+                          <TableRow
+                            key={request.id}
+                            sx={{
+                              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                              "&:hover": {
+                                backgroundColor: isDarkMode ? "rgba(55, 65, 81, 0.5)" : "#f9fafb",
+                              },
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}
+                          >
+                            <TableCell sx={{ 
+                              fontSize: "0.875rem",
+                              fontWeight: 500,
+                              color: isDarkMode ? "#ffffff" : "#111827",
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              #{request.id}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              fontSize: "0.875rem",
+                              color: isDarkMode ? "#d1d5db" : "#6b7280",
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              {request.user ? request.user.name : "Utilisateur inconnu"}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              fontSize: "0.875rem",
+                              fontWeight: 600,
+                              color: "#3b82f6",
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              ${request.amount?.toFixed(2)}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              fontSize: "0.875rem",
+                              color: isDarkMode ? "#d1d5db" : "#6b7280",
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              {request.payment_method}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              <Chip
+                                label={
+                                  request.status === "pending" ? "En attente" :
+                                  request.status === "approved" ? "Approuvé" :
+                                  request.status === "rejected" ? "Rejeté" :
+                                  request.status === "cancelled" ? "Annulé" :
+                                  request.status === "failed" ? "Échoué" :
+                                  request.status
+                                }
+                                color={
+                                  request.status === "paid" ? "success" :
+                                  request.status === "rejected" || request.status === "failed" ? "error" :
+                                  request.status === "cancelled" ? "warning" :
+                                  "default"
+                                }
+                                size="small"
+                                sx={{ fontSize: "0.7rem", height: 24 }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ 
+                              fontSize: "0.875rem",
+                              color: isDarkMode ? "#d1d5db" : "#6b7280",
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              {new Date(request.created_at).toLocaleDateString("fr-FR")}
+                            </TableCell>
+                            <TableCell sx={{ 
+                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
+                            }}>
+                              <Box sx={{ display: "flex", gap: 1 }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleViewRequest(request)}
+                                  sx={{
+                                    color: "#3b82f6",
+                                    "&:hover": {
+                                      backgroundColor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(59, 130, 246, 0.05)",
+                                    },
+                                  }}
+                                >
+                                  <Visibility sx={{ fontSize: 16 }} />
+                                </IconButton>
+                                
+                                {request.user_id === 1 && request.status === 'pending' && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleCancelClick(request)}
+                                    disabled={isCancelling}
+                                    sx={{
+                                      color: "#f59e0b",
+                                      "&:hover": {
+                                        backgroundColor: isDarkMode ? "rgba(245, 158, 11, 0.1)" : "rgba(245, 158, 11, 0.05)",
+                                      },
+                                    }}
+                                  >
+                                    {isCancelling ? (
+                                      <Box sx={{ 
+                                        width: 16, 
+                                        height: 16, 
+                                        border: "2px solid #f59e0b",
+                                        borderTop: "2px solid transparent",
+                                        borderRadius: "50%",
+                                        animation: "spin 1s linear infinite"
+                                      }} />
+                                    ) : (
+                                      <Close sx={{ fontSize: 16 }} />
+                                    )}
+                                  </IconButton>
+                                )}
+                                
+                                {request.status === 'failed' && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleRetryPayment(request)}
+                                    sx={{
+                                      color: "#10b981",
+                                      "&:hover": {
+                                        backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.05)",
+                                      },
+                                    }}
+                                  >
+                                    <ArrowPathIcon sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                )}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+                <Paper>
                   <TableContainer>
                     <Table>
                       <TableHead
@@ -2023,18 +2464,6 @@ const WithdrawalRequests = () => {
                               borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                             }}
                           >
-                            Statut de paiement
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontSize: "0.75rem",
-                              fontWeight: 600,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              color: isDarkMode ? "#9ca3af" : "#6b7280",
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}
-                          >
                             Date
                           </TableCell>
                           <TableCell
@@ -2063,7 +2492,7 @@ const WithdrawalRequests = () => {
                                 borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
                               }}
                             >
-                              Aucune demande {selectedCurrency} trouvée
+                              Aucune demande trouvée
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -2108,7 +2537,7 @@ const WithdrawalRequests = () => {
                               >
                                 {new Intl.NumberFormat("fr-FR", {
                                   style: "currency",
-                                  currency: selectedCurrency,
+                                  currency: "USD",
                                 }).format(request.amount)}
                               </TableCell>
                               <TableCell
@@ -2135,36 +2564,16 @@ const WithdrawalRequests = () => {
                                     <span className="ml-1">
                                       {request.status === "pending" &&
                                         "En attente"}
-                                      {request.status === "approved" &&
-                                        "Approuvé"}
+                                      {request.status === "processing" &&
+                                        "En cours de traitement"}
                                       {request.status === "rejected" &&
                                         "Rejeté"}
                                       {request.status === "cancelled" &&
                                         "Annulé"}
-                                      {request.status === "failed" && "Échoué"}
-                                    </span>
-                                  </span>
-                                </span>
-                              </TableCell>
-                              <TableCell
-                                sx={{
-                                  borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                                }}
-                              >
-                                <span
-                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                                    request.payment_status
-                                  )}`}
-                                >
-                                  <span className="flex items-center">
-                                    {getStatusIcon(request.payment_status)}
-                                    <span className="ml-1">
-                                      {request.payment_status === "pending" &&
-                                        "En attente"}
-                                      {request.payment_status === "paid" &&
-                                        "Payé"}
-                                      {request.payment_status === "failed" &&
+                                      {request.status === "failed" && 
                                         "Échoué"}
+                                      {request.status === "paid" && 
+                                        "Payé"}
                                     </span>
                                   </span>
                                 </span>
@@ -2210,7 +2619,7 @@ const WithdrawalRequests = () => {
                                   )}
                                   
                                   {/* Bouton réessayer le paiement - seulement pour les demandes approuvées mais échouées */}
-                                  {request.status === 'approved' && request.payment_status === 'failed' && (
+                                  {request.status === 'failed' && (
                                     <button
                                       onClick={() => handleRetryPayment(request)}
                                       className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
@@ -2219,16 +2628,6 @@ const WithdrawalRequests = () => {
                                       <ArrowPathIcon className="w-5 h-5" />
                                     </button>
                                   )}
-                                  
-                                  <button
-                                    onClick={() => {
-                                      setRequestToDelete(request);
-                                      setShowDeleteConfirmation(true);
-                                    }}
-                                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                  >
-                                    <TrashIcon className="w-5 h-5" />
-                                  </button>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -2283,76 +2682,17 @@ const WithdrawalRequests = () => {
                     },
                   }}
                 />
-              </div>
+              </Box>
             </>
           )}
         </div>
       )}
-      {/* Modal de confirmation de suppression */}
-      {showDeleteConfirmation && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity"
-              aria-hidden="true"
-              style={{
-                backdropFilter: 'blur(3px)',
-                WebkitBackdropFilter: 'blur(4px)',
-              }}
-            >
-              <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-            </div>
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
-                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                      Supprimer la demande de retrait
-                    </h3>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Êtes-vous sûr de vouloir supprimer cette demande de
-                        retrait ? Cette action est irréversible.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  onClick={confirmDeleteRequest}
-                  disabled={isDeleting}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  {isDeleting ? "Suppression..." : "Supprimer"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirmation(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
       {/* Modal de détails de la demande - Design Moderne */}
       <Dialog
         open={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
         BackdropComponent={Backdrop}
         BackdropProps={{
@@ -2535,7 +2875,7 @@ const WithdrawalRequests = () => {
                   </Typography>
                   
                   <Grid container spacing={{ xs: 2, sm: 2.5 }}>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={12} md={4}>
                       <Box sx={{ 
                         backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
                         borderRadius: 2,
@@ -2569,7 +2909,7 @@ const WithdrawalRequests = () => {
                       </Box>
                     </Grid>
                     
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={12} md={4}>
                       <Box sx={{ 
                         backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
                         borderRadius: 2,
@@ -2601,12 +2941,12 @@ const WithdrawalRequests = () => {
                           alignItems: "center",
                           gap: 0.5,
                         }}>
-                          {formatCurrency(selectedRequest.amount, selectedCurrency)}
+                          {selectedRequest.amount} $
                         </Typography>
                       </Box>
                     </Grid>
                     
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={12} md={4}>
                       <Box sx={{ 
                         backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
                         borderRadius: 2,
@@ -2644,73 +2984,18 @@ const WithdrawalRequests = () => {
                                 ? "Annulé"
                                 : selectedRequest.status === "failed"
                                 ? "Échoué"
+                                : selectedRequest.status === "paid"
+                                ? "Payé"
                                 : selectedRequest.status
                             }
                             color={
-                              selectedRequest.status === "approved"
+                              selectedRequest.status === "paid"
                                 ? "success"
                                 : selectedRequest.status === "rejected" ||
                                   selectedRequest.status === "failed"
                                 ? "error"
                                 : selectedRequest.status === "cancelled"
                                 ? "warning"
-                                : "default"
-                            }
-                            size="small"
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box sx={{ 
-                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                        borderRadius: 2,
-                        p: { xs: 1.5, sm: 2 },
-                        border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          transform: "translateY(-2px)",
-                          boxShadow: isDarkMode 
-                            ? "0 8px 25px rgba(0, 0, 0, 0.3)"
-                            : "0 8px 25px rgba(0, 0, 0, 0.1)",
-                        }
-                      }}>
-                        <Typography variant="body2" sx={{ 
-                          color: isDarkMode ? "#9ca3af" : "#64748b",
-                          mb: { xs: 0.5, sm: 0.75 },
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                          letterSpacing: "0.05em",
-                        }}>
-                          Paiement
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          {getStatusIcon(selectedRequest.payment_status)}
-                          <Chip
-                            label={
-                              selectedRequest.payment_status === "pending"
-                                ? "En attente"
-                                : selectedRequest.payment_status === "paid"
-                                ? "Payé"
-                                : selectedRequest.payment_status === "failed"
-                                ? "Échoué"
-                                : selectedRequest.payment_status === "initiated"
-                                ? "Initialisé"
-                                : selectedRequest.payment_status
-                            }
-                            color={
-                              selectedRequest.payment_status === "paid"
-                                ? "success"
-                                : selectedRequest.payment_status === "failed"
-                                ? "error"
-                                : selectedRequest.payment_status === "initiated"
-                                ? "info"
                                 : "default"
                             }
                             size="small"
@@ -3179,12 +3464,12 @@ const WithdrawalRequests = () => {
                       }}
                     >
                       <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                        {isProcessing ? "Traitement..." : "Rejeter"}
+                        {isProcessing ? "Traitement..." : "Rejéter"}
                       </Box>
                     </Button>
                   </>
                 )}
-                {selectedRequest.status === 'approved' && selectedRequest.payment_status === 'failed' && (
+                {selectedRequest.status === 'failed' && (
                   <Button
                     onClick={() => handleRetryPayment(selectedRequest, adminNote)}
                     variant="contained"
@@ -3268,7 +3553,7 @@ const WithdrawalRequests = () => {
         }}
         onConfirm={confirmCancelRequest}
         title="Annuler la demande de retrait"
-        message={`Êtes-vous sûr de vouloir annuler votre demande de retrait de ${requestToCancel ? formatCurrency(requestToCancel.amount, requestToCancel.currency) : ''} ? Cette action est irréversible.`}
+        message={`Êtes-vous sûr de vouloir annuler votre demande de retrait de ${requestToCancel ? formatAmount(requestToCancel.amount) : ''} ? Cette action est irréversible.`}
         confirmText="Oui, annuler"
         cancelText="Non, garder"
         type="warning"

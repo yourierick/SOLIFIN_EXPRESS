@@ -58,7 +58,6 @@ export default function AddPack() {
     description: "",
     abonnement: "",
     price: "",
-    cdf_price: "",
     duree_publication_en_jour: "",
     peux_publier_formation: false,
     boost_percentage: "",
@@ -143,7 +142,6 @@ export default function AddPack() {
       formDataToSend.append("name", formData.name.trim());
       formDataToSend.append("description", formData.description.trim());
       formDataToSend.append("price", formData.price);
-      formDataToSend.append("cdf_price", formData.cdf_price);
       formDataToSend.append("status", formData.status ? "1" : "0");
 
       formDataToSend.append(
@@ -347,31 +345,6 @@ export default function AddPack() {
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <CurrencyDollarIcon className="h-4 w-4 mr-2 text-gray-500" />
-                    Prix de rénouvellement (FC) Optionnel
-                  </label>
-                  <div className="relative rounded-lg shadow-sm">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                      <span className="text-gray-500 dark:text-gray-400 sm:text-sm font-semibold">
-                        FC
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      name="cdf_price"
-                      value={formData.cdf_price}
-                      onChange={handleInputChange}
-                      min="0"
-                      step="0.01"
-                      className="block w-full rounded-lg border-gray-300 pl-8 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 sm:text-sm"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
                 <div>
                   <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <ClockIcon className="h-4 w-4 mr-2 text-gray-500" />

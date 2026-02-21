@@ -20,105 +20,133 @@ class TableauDeSuiviController extends Controller
 {
     public function suiviAbonnement(Request $request)
     {
-        $period = $request->get('period', 'month');
-        $currency = $request->get('currency', 'USD');
+        $period = $request->get('period', 'all');
         
-        // Définir les dates de début et fin selon la période
-        $startDate = $this->getStartDate($period);
-        $endDate = Carbon::now();
+        // Gérer le cas où period = "all"
+        if ($period === 'all') {
+            $startDate = null;
+            $endDate = null;
+        } else {
+            // Définir les dates de début et fin selon la période
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+        }
 
         // Statistiques des utilisateurs
-        $usersStats = [
-            'active' => User::where('status', 'active')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'inactive' => User::where('status', 'inactive')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'trial' => User::where('status', 'trial')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'total' => User::whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-        ];
-
-        // Statistiques des wallets avec conversion selon la devise
-        $totalBalanceUsd = Wallet::sum('balance_usd');
-        $totalBalanceCdf = Wallet::sum('balance_cdf');
-        $totalEarnedUsd = Wallet::sum('total_earned_usd');
-        $totalEarnedCdf = Wallet::sum('total_earned_cdf');
-        $totalWithdrawnUsd = Wallet::sum('total_withdrawn_usd');
-        $totalWithdrawnCdf = Wallet::sum('total_withdrawn_cdf');
-        
-        if ($currency === 'CDF') {
-            // Convertir le solde USD en CDF (taux de 25000 CDF = 1 USD)
-            $totalBalanceUsdInCdf = $totalBalanceUsd * 25000;
-            $totalEarnedUsdInCdf = $totalEarnedUsd * 25000;
-            $totalWithdrawnUsdInCdf = $totalWithdrawnUsd * 25000;
-            $walletsStats = [
-                'total_balance_usd' => $totalBalanceUsdInCdf, // Converti en CDF
-                'total_balance_cdf' => $totalBalanceCdf, // Reste en CDF
-                'total_earned_usd' => $totalEarnedUsdInCdf, // Converti en CDF
-                'total_earned_cdf' => $totalEarnedCdf, // Reste en CDF
-                'total_withdrawn_usd' => $totalWithdrawnUsdInCdf, // Converti en CDF
-                'total_withdrawn_cdf' => $totalWithdrawnCdf, // Reste en CDF
+        if ($period === 'all') {
+            $usersStats = [
+                'active' => User::where('status', 'active')->count(),
+                'inactive' => User::where('status', 'inactive')->count(),
+                'trial' => User::where('status', 'trial')->count(),
+                'total' => User::count(),
             ];
         } else {
-            $walletsStats = [
-                'total_balance_usd' => $totalBalanceUsd, // Reste en USD
-                'total_balance_cdf' => $totalBalanceCdf / 25000, // Converti en USD
-                'total_earned_usd' => $totalEarnedUsd, // Reste en USD
-                'total_earned_cdf' => $totalEarnedCdf / 25000, // Converti en USD
-                'total_withdrawn_usd' => $totalWithdrawnUsd, // Reste en USD
-                'total_withdrawn_cdf' => $totalWithdrawnCdf / 25000, // Converti en USD
+            $usersStats = [
+                'active' => User::where('status', 'active')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'inactive' => User::where('status', 'inactive')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'trial' => User::where('status', 'trial')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'total' => User::whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
             ];
         }
 
-        // Statistiques des jetons esengo
-        $jetonsStats = [
-            'total_unused' => UserJetonEsengo::where('is_used', false)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'total_used' => UserJetonEsengo::where('is_used', true)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
+        // Statistiques des wallets avec conversion selon la devise
+        $totalBalance = Wallet::sum('balance');
+        $availableBalance = Wallet::sum('available_balance');
+        $frozenBalance = Wallet::sum('frozen_balance');
+        $total_in = WalletTransaction::where('flow', 'in')->where('status', 'completed')->sum('amount');
+        $total_out = WalletTransaction::where('flow', 'out')->where('status', 'completed')->sum('amount');
+        
+        $walletsStats = [
+            'total_balance' => $totalBalance,
+            'available_balance' => $availableBalance,
+            'frozen_balance' => $frozenBalance,
+            'total_in' => $total_in,
+            'total_out' => $total_out,
         ];
+
+        // Statistiques des jetons esengo
+        if ($period === 'all') {
+            $jetonsStats = [
+                'total_unused' => UserJetonEsengo::where('is_used', false)->count(),
+                'total_used' => UserJetonEsengo::where('is_used', true)->count(),
+            ];
+        } else {
+            $jetonsStats = [
+                'total_unused' => UserJetonEsengo::where('is_used', false)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'total_used' => UserJetonEsengo::where('is_used', true)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+            ];
+        }
 
         // Statistiques des retraits
-        $withdrawalsStats = [
-            'pending' => WithdrawalRequest::where('status', 'pending')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'approved' => WithdrawalRequest::where('status', 'approved')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'rejected' => WithdrawalRequest::where('status', 'rejected')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'cancelled' => WithdrawalRequest::where('status', 'cancelled')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'failed' => WithdrawalRequest::where('status', 'failed')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'total' => WithdrawalRequest::whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-        ];
+        if ($period === 'all') {
+            $withdrawalsStats = [
+                'pending' => WithdrawalRequest::where('status', 'pending')->count(),
+                'processing' => WithdrawalRequest::where('status', 'processing')->count(),
+                'rejected' => WithdrawalRequest::where('status', 'rejected')->count(),
+                'cancelled' => WithdrawalRequest::where('status', 'cancelled')->count(),
+                'failed' => WithdrawalRequest::where('status', 'failed')->count(),
+                'paid' => WithdrawalRequest::where('status', 'paid')->count(),
+                'total' => WithdrawalRequest::count(),
+            ];
+        } else {
+            $withdrawalsStats = [
+                'pending' => WithdrawalRequest::where('status', 'pending')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'processing' => WithdrawalRequest::where('status', 'processing')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'rejected' => WithdrawalRequest::where('status', 'rejected')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'cancelled' => WithdrawalRequest::where('status', 'cancelled')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'failed' => WithdrawalRequest::where('status', 'failed')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'paid' => WithdrawalRequest::where('status', 'paid')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'total' => WithdrawalRequest::whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+            ];
+        }
 
         // Statistiques des abonnements (user_packs)
-        $subscriptionsStats = [
-            'active' => UserPack::where('status', 'active')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'inactive' => UserPack::where('status', 'inactive')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'expired' => UserPack::where('status', 'expired')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-            'total' => UserPack::whereBetween('created_at', [$startDate, $endDate])
-                ->count(),
-        ];
+        if ($period === 'all') {
+            $subscriptionsStats = [
+                'active' => UserPack::where('status', 'active')->count(),
+                'inactive' => UserPack::where('status', 'inactive')->count(),
+                'expired' => UserPack::where('status', 'expired')->count(),
+                'total' => UserPack::count(),
+            ];
+        } else {
+            $subscriptionsStats = [
+                'active' => UserPack::where('status', 'active')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'inactive' => UserPack::where('status', 'inactive')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'expired' => UserPack::where('status', 'expired')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+                'total' => UserPack::whereBetween('created_at', [$startDate, $endDate])
+                    ->count(),
+            ];
+        }
 
         return response()->json([
             'users' => $usersStats,
@@ -127,10 +155,9 @@ class TableauDeSuiviController extends Controller
             'withdrawals' => $withdrawalsStats,
             'subscriptions' => $subscriptionsStats,
             'period' => $period,
-            'currency' => $currency,
             'date_range' => [
-                'start' => $startDate->format('Y-m-d H:i:s'),
-                'end' => $endDate->format('Y-m-d H:i:s'),
+                'start' => $startDate ? $startDate : null,
+                'end' => $endDate ? $endDate : null,
             ],
         ]);
     }
@@ -139,7 +166,7 @@ class TableauDeSuiviController extends Controller
     {
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 25);
-        $period = $request->get('period', 'month');
+        $period = $request->get('period', 'all');
         $packId = $request->get('pack_id');
         $status = $request->get('status');
         $paymentStatus = $request->get('payment_status');
@@ -154,7 +181,7 @@ class TableauDeSuiviController extends Controller
             ->orderBy('created_at', 'desc');
         
         // Filtrer par période (sur created_at)
-        if ($period) {
+        if ($period && $period !== 'all') {
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
             $query->whereBetween('created_at', [$startDate, $endDate]);
@@ -230,7 +257,7 @@ class TableauDeSuiviController extends Controller
     public function getPacks()
     {
         $packs = \App\Models\Pack::where('status', true)
-            ->select('id', 'name', 'categorie', 'price', 'cdf_price', 'abonnement')
+            ->select('id', 'name', 'categorie', 'price', 'abonnement')
             ->orderBy('categorie')
             ->orderBy('price')
             ->get();
@@ -240,7 +267,7 @@ class TableauDeSuiviController extends Controller
 
     public function userPacksStatistics(Request $request)
     {
-        $period = $request->get('period', 'month');
+        $period = $request->get('period', 'all');
         $packId = $request->get('pack_id');
         $status = $request->get('status');
         $paymentStatus = $request->get('payment_status');
@@ -253,7 +280,7 @@ class TableauDeSuiviController extends Controller
             ->orderBy('created_at', 'desc');
         
         // Appliquer les mêmes filtres que userPacks
-        if ($period) {
+        if ($period && $period !== 'all') {
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
             $query->whereBetween('created_at', [$startDate, $endDate]);
@@ -319,7 +346,7 @@ class TableauDeSuiviController extends Controller
             ->join('packs', 'user_packs.pack_id', '=', 'packs.id')
             ->where(function($q) use ($period, $packId, $status, $paymentStatus, $purchaseDateStart, $purchaseDateEnd, $search) {
                 // Appliquer les mêmes filtres que la requête principale
-                if ($period) {
+                if ($period && $period !== 'all') {
                     $startDate = $this->getStartDate($period);
                     $endDate = Carbon::now();
                     $q->whereBetween('user_packs.created_at', [$startDate, $endDate]);
@@ -360,19 +387,23 @@ class TableauDeSuiviController extends Controller
             ->get();
         
         // Évolution quotidienne (derniers 30 jours ou selon la période)
-        $startDate = $this->getStartDate($period);
-        $dailyEvolution = $query->selectRaw('DATE(user_packs.created_at) as date, COUNT(*) as new_subscriptions, SUM(CASE WHEN user_packs.status = "active" THEN 1 ELSE 0 END) as active_subscriptions')
-            ->where('user_packs.created_at', '>=', $startDate)
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->map(function($item) {
-                return [
-                    'date' => \Carbon\Carbon::parse($item->date)->format('d/m'),
-                    'new_subscriptions' => (int) $item->new_subscriptions,
-                    'active_subscriptions' => (int) $item->active_subscriptions,
-                ];
-            });
+        if ($period === 'all') {
+            $dailyEvolution = []; // Pas d'évolution pour "all"
+        } else {
+            $startDate = $this->getStartDate($period);
+            $dailyEvolution = $query->selectRaw('DATE(user_packs.created_at) as date, COUNT(*) as new_subscriptions, SUM(CASE WHEN user_packs.status = "active" THEN 1 ELSE 0 END) as active_subscriptions')
+                ->where('user_packs.created_at', '>=', $startDate)
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'date' => \Carbon\Carbon::parse($item->date)->format('d/m'),
+                        'new_subscriptions' => (int) $item->new_subscriptions,
+                        'active_subscriptions' => (int) $item->active_subscriptions,
+                    ];
+                });
+        }
         
         return response()->json([
             'total' => $total,
@@ -400,6 +431,10 @@ class TableauDeSuiviController extends Controller
 
     private function getStartDate($period)
     {
+        if ($period === 'all') {
+            return null; // Retourner null pour "all" - pas de filtre de date
+        }
+        
         $now = Carbon::now();
         
         switch ($period) {
@@ -421,39 +456,52 @@ class TableauDeSuiviController extends Controller
      */
     public function walletStatistics(Request $request)
     {
-        $period = $request->get('period', 'month');
-        $currency = $request->get('currency', 'USD');
+        $period = $request->get('period', 'all');
         
         // Calculer la date de début selon la période
         $startDate = $this->getStartDate($period);
         
         // Statistiques des soldes totaux selon la devise
-        if ($currency === 'CDF') {
-            $totalBalance = Wallet::sum('balance_cdf');
-        } else {
-            $totalBalance = Wallet::sum('balance_usd');
-        }
         
-        // Statistiques des transactions par mouvement pour la période et la devise
-        $transactionStats = WalletTransaction::where('created_at', '>=', $startDate)
-            ->where('currency', $currency)
-            ->selectRaw('
-                mouvment,
-                SUM(amount) as total_amount
-            ')
-            ->groupBy('mouvment')
-            ->get()
-            ->keyBy('mouvment');
+        $totalBalance = Wallet::sum('balance');
+        $availableBalance = Wallet::sum('available_balance');
+        $frozenBalance = Wallet::sum('frozen_balance');
+        
+        // Statistiques des transactions par mouvement pour la période
+        if ($startDate) {
+            $transactionStats = WalletTransaction::where('created_at', '>=', $startDate)
+                ->where('status', 'completed')
+                ->selectRaw('
+                    flow,
+                    SUM(amount) as total_amount
+                ')
+                ->groupBy('flow')
+                ->get()
+                ->keyBy('flow');
+        } else {
+            // Si period = "all", on prend toutes les transactions
+            $transactionStats = WalletTransaction::where('status', 'completed')
+                ->selectRaw('
+                    flow,
+                    SUM(amount) as total_amount
+                ')
+                ->groupBy('flow')
+                ->get()
+                ->keyBy('flow');
+        }
         
         // Calculer les totaux entrés/sortis selon la devise
         $totalIn = $transactionStats->get('in')?->total_amount ?? 0;
         $totalOut = $transactionStats->get('out')?->total_amount ?? 0;
+        $solde = $totalIn - $totalOut;
         
         return response()->json([
             'total_balance' => $totalBalance,
+            'availableBalance' => $availableBalance,
+            'frozenBalance' => $frozenBalance,
             'total_in' => $totalIn,
             'total_out' => $totalOut,
-            'currency' => $currency,
+            'solde' => $solde
         ]);
     }
     
@@ -462,15 +510,11 @@ class TableauDeSuiviController extends Controller
      */
     public function walletTransactions(Request $request)
     {
-        $query = WalletTransaction::with(['wallet.user']);
-        
-        // Filtre par devise
-        $currency = $request->get('currency', 'USD');
-        $query->where('currency', $currency);
+        $query = WalletTransaction::with(['wallet.user', 'processor']);
         
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== 'all') {
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
             $query->whereBetween('created_at', [$startDate, $endDate]);
@@ -495,8 +539,8 @@ class TableauDeSuiviController extends Controller
         }
         
         // Filtre par type de mouvement
-        if ($request->has('movement') && !empty($request->movement)) {
-            $query->where('mouvment', $request->movement);
+        if ($request->has('flow') && !empty($request->flow)) {
+            $query->where('flow', $request->flow);
         }
         
         // Filtre par statut
@@ -528,7 +572,6 @@ class TableauDeSuiviController extends Controller
             'per_page' => $transactions->perPage(),
             'current_page' => $transactions->currentPage(),
             'last_page' => $transactions->lastPage(),
-            'currency' => $currency,
         ]);
     }
 
@@ -540,10 +583,12 @@ class TableauDeSuiviController extends Controller
         $query = UserJetonEsengo::query();
 
         // Filtre par période
-        $period = $request->get('period', 'month');
-        $startDate = $this->getStartDate($period);
-        $endDate = Carbon::now();
-        $query->whereBetween('created_at', [$startDate, $endDate]);
+        $period = $request->get('period', 'all');
+        if ($period && $period !== 'all') {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
 
         // Recherche par utilisateur ou code unique
         if ($request->has('search') && !empty($request->search)) {
@@ -627,7 +672,7 @@ class TableauDeSuiviController extends Controller
 
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== 'all') {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
         }
@@ -733,7 +778,7 @@ class TableauDeSuiviController extends Controller
         $query = TicketGagnant::query();
 
         // Filtre par période
-        $period = $request->get('period', 'month');
+        $period = $request->get('period', 'all');
         $startDate = $this->getStartDate($period);
         $endDate = Carbon::now();
         $query->whereBetween('created_at', [$startDate, $endDate]);
@@ -803,7 +848,7 @@ class TableauDeSuiviController extends Controller
 
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== 'all') {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
         }
@@ -876,7 +921,7 @@ class TableauDeSuiviController extends Controller
 
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== "all") {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
         }
@@ -951,7 +996,7 @@ class TableauDeSuiviController extends Controller
 
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== "all") {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
         }
@@ -1006,32 +1051,28 @@ class TableauDeSuiviController extends Controller
     public function retraitsStatistics(Request $request)
     {
         $period = $request->get('period');
-        $currency = $request->get('currency', 'USD');
         
         $query = WithdrawalRequest::query();
         
         // Filtre par période
-        if ($period) {
+        if ($period && $period !== 'all') {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
         }
-        
-        // Filtre par devise
-        $query->where('currency', $currency);
         
         // Statistiques générales
         $total = $query->count();
         $totalAmount = $query->sum('amount');
         
         // Statuts de paiement
-        $paid = $query->clone()->where('payment_status', 'paid')->count();
-        $paidAmount = $query->clone()->where('payment_status', 'paid')->sum('amount');
+        $paid = $query->clone()->where('status', 'paid')->count();
+        $paidAmount = $query->clone()->where('status', 'paid')->sum('amount');
         
-        $pending = $query->clone()->where('payment_status', 'pending')->count();
-        $pendingAmount = $query->clone()->where('payment_status', 'pending')->sum('amount');
+        $pending = $query->clone()->whereIn('status', ['pending', 'processing'])->count();
+        $pendingAmount = $query->clone()->whereIn('status', ['pending', 'processing'])->sum('amount');
         
-        $rejected = $query->clone()->whereIn('payment_status', ['rejected', 'cancelled'])->count();
-        $rejectedAmount = $query->clone()->whereIn('payment_status', ['rejected', 'cancelled'])->sum('amount');
+        $rejected = $query->clone()->whereIn('status', ['rejected', 'cancelled', 'failed'])->count();
+        $rejectedAmount = $query->clone()->whereIn('status', ['rejected', 'cancelled', 'failed'])->sum('amount');
         
         return response()->json([
             'total' => $total,
@@ -1054,24 +1095,14 @@ class TableauDeSuiviController extends Controller
 
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== "all") {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
-        }
-
-        // Filtre par devise
-        if ($request->has('currency')) {
-            $query->where('currency', $request->get('currency'));
         }
 
         // Filtre par statut
         if ($request->has('status') && !empty($request->get('status'))) {
             $query->where('status', $request->get('status'));
-        }
-
-        // Filtre par statut de paiement
-        if ($request->has('payment_status') && !empty($request->get('payment_status'))) {
-            $query->where('payment_status', $request->get('payment_status'));
         }
 
         // Filtre par méthode de paiement
@@ -1132,14 +1163,9 @@ class TableauDeSuiviController extends Controller
 
         // Filtre par période
         $period = $request->get('period');
-        if ($period) {
+        if ($period && $period !== "all") {
             $startDate = $this->getStartDate($period);
             $query->whereBetween('created_at', [$startDate, Carbon::now()]);
-        }
-
-        // Filtre par devise
-        if ($request->has('currency')) {
-            $query->where('currency', $request->get('currency'));
         }
 
         // Appliquer les mêmes filtres que la méthode principale
@@ -1147,9 +1173,6 @@ class TableauDeSuiviController extends Controller
             $query->where('status', $request->get('status'));
         }
 
-        if ($request->has('payment_status') && !empty($request->get('payment_status'))) {
-            $query->where('payment_status', $request->get('payment_status'));
-        }
 
         if ($request->has('payment_method') && !empty($request->get('payment_method'))) {
             $query->where('payment_method', $request->get('payment_method'));
@@ -1200,25 +1223,23 @@ class TableauDeSuiviController extends Controller
      */
     public function financialTransactionsStatistics(Request $request)
     {
-        $period = $request->get('period', 'month');
-        $currency = $request->get('currency', 'USD');
+        $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
-        
-        // Nouveaux filtres
-        $mouvment = $request->get('mouvment');
+        $flow = $request->get('flow');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
         $dateStart = $request->get('date_start');
         $dateEnd = $request->get('date_end');
         
         // Définir les dates de début et fin selon la période
-        $startDate = $this->getStartDate($period);
-        $endDate = Carbon::now();
-
-        // Construire la query de base avec filtrage par devise
-        $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-            ->where('currency', $currency);
+        if ($period === 'all') {
+            $query = WalletTransaction::query();
+        } else {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+            $query = WalletTransaction::whereBetween('created_at', [$startDate, $endDate]);
+        }
         
         // Filtrer par type si spécifié
         if ($type !== 'all') {
@@ -1231,8 +1252,8 @@ class TableauDeSuiviController extends Controller
         }
         
         // Filtre par mouvement (entrée/sortie)
-        if ($mouvment) {
-            $query->where('mouvment', $mouvment);
+        if ($flow) {
+            $query->where('flow', $flow);
         }
         
         // Filtre par recherche (référence)
@@ -1265,36 +1286,17 @@ class TableauDeSuiviController extends Controller
         if ($dateEnd) {
             $query->whereDate('created_at', '<=', $dateEnd);
         }
-
-        // Statistiques de base
-        $totalTransactions = $query->count();
-        $totalAmount = $query->sum('amount');
         
-        // Statistiques par mouvement (in/out)
-        $creditTransactions = $query->where('mouvment', 'in')->count();
-        $debitTransactions = $query->where('mouvment', 'out')->count();
-        $creditAmount = $query->where('mouvment', 'in')->sum('amount');
-        $debitAmount = abs($query->where('mouvment', 'out')->sum('amount'));
+        $creditQuery = clone $query;
+        $debitQuery = clone $query;
         
-        // Statistiques par statut
-        $statusStats = $query->selectRaw('status, COUNT(*) as count, SUM(amount) as total_amount')
-            ->groupBy('status')
-            ->get()
-            ->keyBy('status');
+        $creditAmount = $creditQuery->where('flow', 'in')->sum('amount');
+        $debitAmount = abs($debitQuery->where('flow', 'out')->sum('amount'));
 
         return response()->json([
-            'total_transactions' => $totalTransactions,
-            'total_amount' => $totalAmount,
-            'credit_transactions' => $creditTransactions,
-            'debit_transactions' => $debitTransactions,
             'credit_amount' => $creditAmount,
             'debit_amount' => $debitAmount,
-            'net_amount' => $creditAmount - $debitAmount,
-            'status_breakdown' => $statusStats,
-            'period' => $period,
-            'currency' => $currency,
-            'type' => $type,
-            'status' => $status, // ✅ AJOUTÉ
+            'solde' => $creditAmount - $debitAmount,
         ]);
     }
 
@@ -1303,29 +1305,27 @@ class TableauDeSuiviController extends Controller
      */
     public function financialTransactions(Request $request)
     {
-        $period = $request->get('period', 'month');
-        $currency = $request->get('currency', 'USD');
+        $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 15);
-        
-        // Nouveaux filtres
-        $mouvment = $request->get('mouvment');
+
+        $flow = $request->get('flow');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
         $dateStart = $request->get('date_start');
         $dateEnd = $request->get('date_end');
         
         // Définir les dates de début et fin selon la période
-        $startDate = $this->getStartDate($period);
-        $endDate = Carbon::now();
-
-        // Construire la query de base avec filtrage par devise
-        $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-            ->where('currency', $currency);
-        
-        // Appliquer les filtres
+        if ($period === 'all') {
+            $query = WalletTransaction::with('processor');
+        } else {
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
+            
+            $query = WalletTransaction::with('processor')->whereBetween('created_at', [$startDate, $endDate]);
+        }
         if ($type !== 'all') {
             $query->where('type', $type);
         }
@@ -1342,8 +1342,8 @@ class TableauDeSuiviController extends Controller
         }
         
         // Filtre par mouvement (entrée/sortie)
-        if ($mouvment) {
-            $query->where('mouvment', $mouvment);
+        if ($flow) {
+            $query->where('flow', $flow);
         }
         
         // Filtre par pack (dans les métadonnées)
@@ -1395,8 +1395,7 @@ class TableauDeSuiviController extends Controller
      */
     public function exportFinancialTransactions(Request $request)
     {
-        $period = $request->get('period', 'month');
-        $currency = $request->get('currency', 'USD');
+        $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $status = $request->get('status', 'completed');
         $exportType = $request->get('export_type', 'filtered');
@@ -1404,25 +1403,34 @@ class TableauDeSuiviController extends Controller
         $perPage = $request->get('per_page', 15);
         
         // Nouveaux filtres
-        $mouvment = $request->get('mouvment');
+        $flow = $request->get('flow');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
         $dateStart = $request->get('date_start');
         $dateEnd = $request->get('date_end');
         
         // Définir les dates de début et fin selon la période
-        $startDate = $this->getStartDate($period);
-        $endDate = Carbon::now();
-
-        // Construire la query de base avec filtrage par devise
-        $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate])
-            ->where('currency', $currency);
-        
-        // Appliquer les filtres
-        if ($type !== 'all') {
-            $query->where('type', $type);
+        if ($period === 'all') {
+            $startDate = null;
+            $startDate = $this->getStartDate($period);
+            $endDate = Carbon::now();
         }
+
+    // Construire la query de base avec filtrage par devise
+    $query = WalletTransaction::with('processor');
+    if ($startDate) {
+        $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
         
+    // Appliquer les filtres
+    if ($type !== 'all') {
+        $query->where('type', $type);
+    }
+        
+    // Filtre par statut (par défaut 'completed')
+    if ($status !== 'all') {
+        $query->where('status', $status);
+    }
         if ($status !== 'all') {
             $query->where('status', $status);
         }
@@ -1434,8 +1442,8 @@ class TableauDeSuiviController extends Controller
         }
         
         // Filtre par mouvement (entrée/sortie)
-        if ($mouvment) {
-            $query->where('mouvment', $mouvment);
+        if ($flow) {
+            $query->where('flow', $flow);
         }
         
         // Filtre par pack (dans les métadonnées)
@@ -1491,12 +1499,19 @@ class TableauDeSuiviController extends Controller
 
             $exportData[] = [
                 'reference' => $transaction->reference ?? 'TRX-' . $transaction->id,
+                'flow' => $transaction->flow === 'in' ? 'Entrée' : ($transaction->flow === 'out' ? 'Sortie' : ($transaction->flow === 'freeze' ? 'Blocage' : 'Déblocage')),
                 'type' => $transaction->type ?? '-',
-                'mouvment' => $transaction->mouvment === 'in' ? 'Entrée' : ($transaction->mouvment === 'out' ? 'Sortie' : $transaction->mouvment),
                 'amount' => $transaction->amount,
-                'currency' => $transaction->currency,
+                'fee_amount' => $transaction->fee_amount,
+                'commission_amount' => $transaction->commission_amount,
                 'status' => $this->getStatusLabel($transaction->status),
-                'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
+                'balance_before' => $transaction->balance_before,
+                'balance_after' => $transaction->balance_after,
+                'description' => $transaction->description,
+                'processor' => $transaction->processor?->name,
+                'processed_at' => $transaction->processed_at,
+                'rejection_reason' => $transaction->rejection_reason,
+                'created_at' => $transaction->created_at,
                 'metadata' => $metadata
             ];
         }

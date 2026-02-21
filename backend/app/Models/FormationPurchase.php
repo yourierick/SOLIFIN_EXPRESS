@@ -19,7 +19,6 @@ class FormationPurchase extends Model
         'user_id',
         'formation_id',
         'amount_paid',
-        'currency',
         'payment_method',
         'payment_status',
         'transaction_id',

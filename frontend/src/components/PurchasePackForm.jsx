@@ -1013,26 +1013,14 @@ export default function PurchasePackForm({
     feesError,
   ]);
 
-  const getUserWalletBalance = async (currency = selectedCurrency) => {
+  const getUserWalletBalance = async () => {
     setLoadingBalance(true);
     try {
       const response = await axios.get("/api/userwallet/balance");
 
       if (response.data.success) {
         // Récupérer le solde selon la devise
-        let balance = 0;
-        if (currency === "USD") {
-          const usdBalance =
-            response.data.balance_usd || response.data.balance || "0";
-          // Nettoyer la chaîne USD (ex: "7.90 $" -> "7.90")
-          balance = parseFloat(usdBalance.replace(/[^0-9.]/g, ""));
-        } else if (currency === "CDF") {
-          const cdfBalance = response.data.balance_cdf || "0";
-          // Nettoyer la chaîne CDF (ex: "9,930.00 FC" -> "9930.00")
-          balance = parseFloat(
-            cdfBalance.replace(/[^0-9.]/g, "").replace(/,/g, "")
-          );
-        }
+        let balance = response.data.available_balance;
 
         setWalletBalance(balance);
       } else {
@@ -1143,8 +1131,6 @@ export default function PurchasePackForm({
               noSponsorCode: noSponsorCode, // Indiquer si l'utilisateur n'avait pas de code parrain initialement
             }),
         amount: totalAmount.toFixed(2), // Utiliser totalAmount qui est déjà dans la bonne devise
-        currency:
-          paymentMethod === PAYMENT_TYPES.WALLET ? "USD" : selectedCurrency,
         fees: transactionFees.toFixed(2) || 0,
         packId: pack?.id,
       };
@@ -1180,8 +1166,8 @@ export default function PurchasePackForm({
           navigate(`/dashboard/packs/:id`, { replace: true });
         }
       } else {
+        console.error(response.data.message)
         setError(
-          response.data.message ||
             `Une erreur est survenue lors de ${
               isRenewal ? "du renouvellement" : "l'achat"
             } du pack`
@@ -1195,7 +1181,6 @@ export default function PurchasePackForm({
         error
       );
       setError(
-        error.response?.data?.message ||
           `Une erreur est survenue lors de ${
             isRenewal ? "du renouvellement" : "l'achat"
           } du pack`
@@ -1359,8 +1344,7 @@ export default function PurchasePackForm({
                   <CircularProgress size={12} />
                 ) : (
                   <>
-                    {walletBalance.toFixed(2)}{" "}
-                    {selectedCurrency === "USD" ? "$" : "FC"}
+                    {walletBalance.toFixed(2)}{" $"}
                   </>
                 )}
               </strong>
@@ -1705,8 +1689,7 @@ export default function PurchasePackForm({
                                         : "bg-green-100 text-green-700"
                                     }`}
                                   >
-                                    {walletBalance}{" "}
-                                    {selectedCurrency === "USD" ? "$" : "FC"}
+                                    {walletBalance} $
                                   </div>
                                 )}
                               </div>
@@ -2323,9 +2306,8 @@ export default function PurchasePackForm({
                           className="mt-2 mb-0 rounded-lg text-xs"
                         >
                           Solde insuffisant. Besoin de{" "}
-                          {(totalAmount + (transactionFees || 0)).toFixed(2)}{" "}
-                          {selectedCurrency} mais votre solde est de{" "}
-                          {walletBalance.toFixed(2)} {selectedCurrency}.
+                          {(totalAmount + (transactionFees || 0)).toFixed(2)}{" $"} mais votre solde est de{" "}
+                          {walletBalance.toFixed(2)} $.
                         </Alert>
                       )}
                   </div>

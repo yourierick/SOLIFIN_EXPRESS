@@ -14,9 +14,7 @@ return new class extends Migration
             $table->string('session_id')->nullable();
             $table->string('transaction_id')->nullable();
             $table->decimal('amount', 10, 2);
-            $table->enum('currency', ['USD', 'CDF'])->default('USD');
-            $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled', 'failed'])->default('pending');
-            $table->enum('payment_status', ['pending', 'failed', 'paid', 'initiated']);
+            $table->enum('status', ['pending', 'processing', 'rejected', 'cancelled', 'failed', 'paid'])->default('pending');
             $table->string('payment_method');
             $table->json('payment_details');
             $table->text('admin_note')->nullable();

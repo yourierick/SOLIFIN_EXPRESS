@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { useCurrency } from "../../contexts/CurrencyContext";
 import DashboardCarousel from "../../components/DashboardCarousel";
 import TrialAlert from "../../components/TrialAlert";
 import Confetti from "react-confetti";
@@ -219,7 +218,6 @@ const GradeCelebrationModal = ({ showGradeCelebration, currentGrade, nextGrade, 
 export default function UserDashboard() {
   const { isDarkMode } = useTheme();
   const { user } = useAuth();
-  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -238,7 +236,7 @@ export default function UserDashboard() {
   useEffect(() => {
     fetchStats();
     checkTrialStatus();
-  }, [selectedCurrency]); // Recharger les stats quand la devise change
+  }, []);
 
   // Vérifier si l'utilisateur est en période d'essai en utilisant localStorage
   const checkTrialStatus = () => {
@@ -276,15 +274,7 @@ export default function UserDashboard() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      // Inclure la devise dans les paramètres de l'API
-      const params = new URLSearchParams();
-      if (isCDFEnabled) {
-        params.append('currency', selectedCurrency);
-      } else {
-        params.append('currency', 'USD');
-      }
-      
-      const response = await axios.get(`/api/stats/global?${params.toString()}`);
+      const response = await axios.get(`/api/stats/global`);
       if (response.data.success) {
         setStats(response.data.data);
       }
@@ -360,7 +350,7 @@ export default function UserDashboard() {
   useEffect(() => {
     fetchStats();
     checkTrialStatus();
-  }, [selectedCurrency]); // Recharger les stats quand la devise change
+  }, []);
 
   useEffect(() => {
     if (stats) {
@@ -768,22 +758,9 @@ export default function UserDashboard() {
               value={
                 <div className="space-y-1">
                   <div className="text-sm">
-                    {selectedCurrency === "USD" ? (
-                      <>USD: ${parseFloat(
-                        stats?.general_stats?.wallet?.balance_usd || "0"
-                      ).toFixed(2) || "0.00"}</>
-                    ) : (
-                      <>CDF: {new Intl.NumberFormat("fr-CD", {
-                        style: "currency",
-                        currency: "CDF",
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(
-                        parseFloat(
-                          stats?.general_stats?.wallet?.balance_cdf || "0"
-                        )
-                      )}</>
-                    )}
+                    USD: ${parseFloat(
+                      stats?.general_stats?.wallet?.balance || "0"
+                    ).toFixed(2) || "0.00"}
                   </div>
                   <div className='text-sm'>
                     POINTS: <span>{stats?.general_stats?.wallet?.points}</span>
@@ -802,28 +779,14 @@ export default function UserDashboard() {
                   }`}
                 />
               }
-              title={`Commissions mensuelles (${selectedCurrency})`}
+              title="Commissions mensuelles"
               value={
                 <div className="space-y-1">
                   <div className="text-sm">
-                    {selectedCurrency === "USD" ? (
-                      <>USD: ${parseFloat(
-                        stats?.financial_info?.commission_by_currency?.usd
-                          ?.completed || "0"
-                      ).toFixed(2) || "0.00"}</>
-                    ) : (
-                      <>CDF: {new Intl.NumberFormat("fr-CD", {
-                        style: "currency",
-                        currency: "CDF",
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(
-                        parseFloat(
-                          stats?.financial_info?.commission_by_currency?.cdf
-                            ?.completed || "0"
-                        )
-                      )}</>
-                    )}
+                    USD: ${parseFloat(
+                      stats?.financial_info?.commission_by_currency?.usd
+                        ?.completed || "0"
+                    ).toFixed(2) || "0.00"}
                   </div>
                 </div>
               }
@@ -909,17 +872,8 @@ export default function UserDashboard() {
                   isDarkMode ? "text-white" : "text-gray-900"
                 }`}
               >
-                Évolution des commissions ({selectedCurrency})
+                Évolution des commissions
               </h3>
-              {selectedCurrency === "CDF" && (
-                <p
-                  className={`text-sm mb-4 ${
-                    isDarkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  * Les montants CDF sont affichés en milliers (K CDF)
-                </p>
-              )}
               {stats?.progression?.monthly_commissions && (
                 <div className="h-64">
                   <Line
@@ -929,22 +883,16 @@ export default function UserDashboard() {
                       ).reverse(),
                       datasets: [
                         {
-                          label: selectedCurrency === "USD" 
-                            ? "Commissions USD ($)" 
-                            : "Commissions CDF (K)",
+                          label: "Commissions",
                           data: Object.values(
                             stats.progression.monthly_commissions
                           )
                             .map((item) => 
-                              selectedCurrency === "USD" 
-                                ? (item.usd || 0)
-                                : (item.cdf || 0) / 1000 // Convertir en milliers pour CDF
+                              (item.usd || 0)
                             )
                             .reverse(),
-                          borderColor: selectedCurrency === "USD" ? "#3b82f6" : "#10b981",
-                          backgroundColor: selectedCurrency === "USD" 
-                            ? "rgba(59, 130, 246, 0.5)" 
-                            : "rgba(16, 185, 129, 0.5)",
+                          borderColor: "#3b82f6",
+                          backgroundColor: "rgba(59, 130, 246, 0.5)",
                           tension: 0.3,
                         },
                       ],
@@ -965,9 +913,6 @@ export default function UserDashboard() {
                           ticks: {
                             color: isDarkMode ? "#9ca3af" : "#6b7280",
                             callback: function(value) {
-                              if (selectedCurrency === "CDF") {
-                                return value + 'K';
-                              }
                               return '$' + value;
                             }
                           },
@@ -1255,14 +1200,7 @@ export default function UserDashboard() {
                           isDarkMode ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        {withdrawal.currency === "USD"
-                          ? `$${parseFloat(withdrawal.amount).toFixed(2)}`
-                          : new Intl.NumberFormat("fr-CD", {
-                              style: "currency",
-                              currency: "CDF",
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0,
-                            }).format(parseFloat(withdrawal.amount))}
+                        $ {parseFloat(withdrawal.amount).toFixed(2)}
                       </td>
                       <td
                         className={`px-6 py-4 whitespace-nowrap text-sm ${
@@ -1270,13 +1208,9 @@ export default function UserDashboard() {
                         }`}
                       >
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            withdrawal.currency === "USD"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                              : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          }`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`}
                         >
-                          {withdrawal.currency === "USD" ? "$US" : "FC"}
+                          USD
                         </span>
                       </td>
                       <td
@@ -1466,18 +1400,9 @@ export default function UserDashboard() {
                           Commissions
                         </p>
                         <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {selectedCurrency === "USD"
-                            ? `$${Number(
-                                pack?.total_commissions_usd || 0
-                              ).toFixed(2)}`
-                            : new Intl.NumberFormat("fr-CD", {
-                                style: "currency",
-                                currency: "CDF",
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0,
-                              }).format(
-                                Number(pack?.total_commissions_cdf || 0)
-                              )}
+                          ${Number(
+                            pack?.total_commissions || 0
+                          ).toFixed(2)}
                         </p>
                       </div>
                     </div>

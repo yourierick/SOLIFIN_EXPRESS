@@ -36,33 +36,27 @@ class WalletUserController extends Controller
             // Récupérer le wallet de l'utilisateur connecté
             $userWallet = Wallet::where('user_id', Auth::id())->first();
             $userWallet ?? $userWallet = $walletservice->createUserWallet(Auth::id());
-            $Wallet = $userWallet ? [
-                'balance_usd' => number_format($userWallet->balance_usd, 2) . ' $',
-                'total_earned_usd' => number_format($userWallet->total_earned_usd, 2) . ' $',
-                'total_withdrawn_usd' => number_format($userWallet->total_withdrawn_usd, 2) . ' $',
-                'balance_cdf' => number_format($userWallet->balance_cdf, 2) . ' FC',
-                'total_earned_cdf' => number_format($userWallet->total_earned_cdf, 2) . ' FC',
-                'total_withdrawn_cdf' => number_format($userWallet->total_withdrawn_cdf, 2) . ' FC',
+            $totalIn = WalletTransaction::where('wallet_id', $userWallet->id)->where('flow', 'in')->where('status', 'completed')->sum('amount');
+            $totalOut = WalletTransaction::where('wallet_id', $userWallet->id)->where('flow', 'out')->where('status', 'completed')->sum('amount');
+            $wallet = $userWallet ? [
+                'balance' => number_format($userWallet->balance, 2),
+                'available_balance' => number_format($userWallet->available_balance, 2),
+                'frozen_balance' => number_format($userWallet->frozen_balance, 2),
+                'total_in' => number_format($totalIn, 2),
+                'total_out' => number_format($totalOut, 2),
+                'points' => $userWallet->points,
             ] : null;
 
             // Construire la requête de base pour les transactions
             $query = WalletTransaction::with('wallet')
                 ->where('wallet_id', $userWallet->id)
-                ->orderBy('created_at', 'desc');
-
-            // Filtrer par devise si spécifié
-            if ($request->has('currency') && !empty($request->currency)) {
-                $query->where('currency', strtolower($request->currency));
-            }
+                ->orderBy('id', 'desc');
 
             // Filtrer par recherche (recherche dans les métadonnées)
             if ($request->has('search') && !empty($request->search)) {
                 $searchTerm = $request->search;
                 $query->where(function($q) use ($searchTerm) {
-                    $q->where('type', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('status', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('reference', 'LIKE', "%{$searchTerm}%")
+                    $q->where('reference', 'LIKE', "%{$searchTerm}%")
                       ->orWhereJsonContains('metadata', $searchTerm);
                 });
             }
@@ -70,6 +64,11 @@ class WalletUserController extends Controller
             // Filtrer par statut si spécifié
             if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
                 $query->where('status', $request->status);
+            }
+
+            // Filtrer par mouvement si spécifié
+            if ($request->has('flow') && !empty($request->flow) && $request->flow !== 'all') {
+                $query->where('flow', $request->flow);
             }
 
             // Filtrer par type si spécifié
@@ -93,17 +92,23 @@ class WalletUserController extends Controller
 
             // Formater les transactions pour le frontend
             $formattedTransactions = $transactions->getCollection()->map(function ($transaction) {
-                $currency = strtoupper($transaction->currency);
                 return [
                     'id' => $transaction->id,
                     'amount' => (float) $transaction->amount, // Envoyer comme nombre pour le frontend
                     'reference' => $transaction->reference,
-                    'mouvment' => $transaction->mouvment,
+                    'flow' => $transaction->flow,
                     'type' => $transaction->type,
+                    'fee_amount' => $transaction->fee_amount,
+                    'commission_amount' => $transaction->commission_amount,
+                    'balance_before' => $transaction->balance_before,
+                    'balance_after' => $transaction->balance_after,
+                    'description' => $transaction->description,
+                    'rejection_reason' => $transaction->rejection_reason,
+                    'processor' => $transaction->processor?->name,
+                    'processed_at' => $transaction->processed_at->toISOString(),
                     'status' => $transaction->status,
                     'metadata' => $transaction->metadata,
                     'created_at' => $transaction->created_at->toISOString(),
-                    'currency' => $currency
                 ];
             });
 
@@ -118,23 +123,23 @@ class WalletUserController extends Controller
 
             // Récupérer le nombre total de transactions avec les mêmes filtres (sans pagination)
             $countQuery = WalletTransaction::where('wallet_id', $userWallet->id);
-            
-            // Appliquer les mêmes filtres pour le comptage
-            if ($request->has('currency') && !empty($request->currency)) {
-                $countQuery->where('currency', strtolower($request->currency));
-            }
+
             if ($request->has('search') && !empty($request->search)) {
                 $searchTerm = $request->search;
                 $countQuery->where(function($q) use ($searchTerm) {
-                    $q->where('type', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('status', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
+                    $q->where('reference', 'LIKE', "%{$searchTerm}%")
                       ->orWhereJsonContains('metadata', $searchTerm);
                 });
             }
             if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
                 $countQuery->where('status', $request->status);
             }
+
+            // Filtrer par mouvement si spécifié
+            if ($request->has('flow') && !empty($request->flow) && $request->flow !== 'all') {
+                $countQuery->where('flow', $request->flow);
+            }
+
             if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
                 $countQuery->where('type', $request->type);
             }
@@ -151,7 +156,7 @@ class WalletUserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'userWallet' => $userWallet,
+                'userWallet' => $wallet,
                 'data' => $responseData,
                 'total_count' => $totalCount,
                 'user' => $user
@@ -172,8 +177,9 @@ class WalletUserController extends Controller
             $userWallet = Wallet::where('user_id', Auth::id())->first();
             return response()->json([
                 'success' => true,
-                'balance_usd' => number_format($userWallet->balance_usd, 2) . ' $',
-                'balance_cdf' => number_format($userWallet->balance_cdf, 2) . ' FC'
+                'balance' => number_format($userWallet->balance, 2),
+                'available_balance' => number_format($userWallet->available_balance, 2),
+                'frozen_balance' => number_format($userWallet->available_balance, 2),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -201,7 +207,6 @@ class WalletUserController extends Controller
                     'recipients.*.amount' => 'required|numeric|min:0',
                     'recipients.*.frais_de_transaction' => 'required|numeric|min:0',
                     'recipients.*.frais_de_commission' => 'required|numeric|min:0',
-                    'currency' => 'required|in:USD,CDF',
                     'password' => 'required',
                     'description' => 'nullable|string'
                 ]);
@@ -209,7 +214,6 @@ class WalletUserController extends Controller
                 $request->validate([
                     'recipient_account_id' => 'required',
                     'amount' => 'required|numeric|min:0',
-                    'currency' => 'required|in:USD,CDF',
                     'frais_de_transaction' => 'required|numeric',
                     'frais_de_commission' => 'required|numeric',
                     'password' => 'required',
@@ -277,44 +281,14 @@ class WalletUserController extends Controller
             ], 400);
         }
 
-        $currency = $request->currency;
         $montant_total = $request->amount + $request->frais_de_transaction + $request->frais_de_commission;
         
-        if ($currency === "USD") {
-            if ($userWallet->balance_usd < $montant_total) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solde insuffisant'
-                ], 400);
-            }
-        } else {
-            if ($userWallet->balance_cdf < $montant_total) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solde insuffisant'
-                ], 400);
-            }
+        if ($userWallet->available_balance < $montant_total) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solde insuffisant'
+            ], 400);
         }
-
-        // Préparer les métadonnées pour l'expéditeur
-        $senderMetadata = [
-            "Bénéficiaire" => $recipientWallet->user->name,
-            "Opération" => "Transfert des fonds",
-            "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Frais de transaction" => number_format($request->frais_de_transaction, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Frais de commission" => number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Description" => $request->description ?? 'Transfert de fonds',
-            "Détails" => "Vous avez transféré " . number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC") . " au compte " . $recipientWallet->user->account_id
-        ];
-
-        // Préparer les métadonnées pour le destinataire
-        $recipientMetadata = [
-            "Expéditeur" => $userWallet->user->name,
-            "Opération" => "Réception des fonds",
-            "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Description" => $request->description ?? 'Transfert de fonds',
-            "Détails" => "Vous avez reçu " . number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC") . " du compte " . $userWallet->user->account_id
-        ];
 
         DB::beginTransaction();
 
@@ -337,75 +311,100 @@ class WalletUserController extends Controller
                 if ($isActivePackSponsor) {
                     $sponsorWallet = $sponsor->wallet ?? $walletService->createUserWallet($sponsor->id);
                     $sponsorName = $sponsor->name;
+                    $description_parrain = "Vous avez gagné une commission de " . number_format($request->frais_de_commission, 2) . "$ sur un transfert effectué par votre filleul " . $user->name;
                     
                     $sponsorMetadata = [
                         "Source" => $user->name, 
-                        "Opération" => "commission de transfert",
-                        "Montant" => number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC"),
-                        "Description" => "Vous avez gagné une commission de ". number_format($request->frais_de_commission, 2) . 
-                                        ($currency === 'USD' ? ' $' : ' FC') . " pour le transfert d'un montant de ". number_format($request->amount, 2) .
-                                        ($currency === 'USD' ? ' $' : ' FC') . " par votre filleul " . $user->name,
+                        "Opération" => "Commission de transfert",
+                        "Montant" => number_format($request->frais_de_commission, 2) . " $",
+                        "Déscription" => $description_parrain
                     ];
 
                     if ($sponsorWallet->id !== $recipientWallet->id) {
-                        $sponsorWallet->addFunds(
-                            $request->frais_de_commission,
-                            $currency, 
-                            "commission de transfert", 
-                            self::STATUS_COMPLETED, 
-                            $sponsorMetadata
-                        );
                         $frais_de_commission = $request->frais_de_commission;
                     }
                 }
             }
         }
 
+        // Préparer les métadonnées pour l'expéditeur
+        $senderMetadata = [
+            "Bénéficiaire" => $recipient->name,
+            "Opération" => "Transfert des fonds",
+            "Montant" => number_format($request->amount, 2) . "$",
+            "Frais de transaction" => number_format($request->frais_de_transaction, 2) . "$",
+            "Frais de commission" => number_format($frais_de_commission, 2) . "$",
+            "Déscription" => "Vous avez effectué un transfert des fonds de " . number_format($request->amount, 2) . "$ à " . $recipient->name
+        ];
+
+        // Préparer les métadonnées pour le destinataire
+        $recipientMetadata = [
+            "Expéditeur" => $user->name,
+            "Opération" => "Dépôt des fonds",
+            "Montant" => number_format($request->amount, 2) . "$",
+            "Déscription" => "Vous avez reçu un dépôt des fonds de " . number_format($request->amount, 2) . "$ de " . $user->name
+        ];
+
         //Récalculer le montant total
         $montant_total = $request->amount + $request->frais_de_transaction + $frais_de_commission;
 
-        // // Effectuer les transactions
+        // Effectuer les transactions
         $userWallet->withdrawFunds(
             $montant_total, 
-            $currency,
-            "transfer", 
-            self::STATUS_COMPLETED, 
+            $request->frais_de_transaction,
+            $frais_de_commission,
+            "internal",
+            "funds_transfer", 
+            self::STATUS_COMPLETED,
+            "Vous avez effectué un transfert des fonds de " . $request->amount . "$ à " . $recipient->name,
+            $user->id, 
             $senderMetadata
         );
         
         $recipientWallet->addFunds(
             $request->amount, 
-            $currency,
-            "reception", 
+            0,
+            0,
+            "funds_receipt", 
             self::STATUS_COMPLETED, 
+            "Vous avez reçu un dépôt des fonds de " . $request->amount . "$ de " . $user->name,
+            $user->id,
             $recipientMetadata
         );
 
-        // Enregistrer la transaction système
+        //Payer la commission au parrain
+        if ($frais_de_commission) {
+                $sponsorWallet->addFunds(
+                $request->frais_de_commission,
+                0,
+                0,
+                "transfer_commission", 
+                self::STATUS_COMPLETED, 
+                $description_parrain,
+                $user->id,
+                $sponsorMetadata
+            );
+        }
+
+        // Enregistrer la commission système
         $systemMetadata = [
-            "User_ID" => $user->id,
-            "user" => $user->name, 
-            "Montant" => number_format($request->amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Dévise" => $currency,
-            "Frais de transaction" => number_format($request->frais_de_transaction, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Frais de commission" => $sponsorWallet ? 
-                "Paiement d'une commission de " . number_format($request->frais_de_commission, 2) . ($currency === 'USD' ? " $" : " FC") . " à " . $sponsorName : 
-                "Aucune commission payée pour cause de non activation du pack ou d'inexistance du parrain",
-            "Description" => "Transfert de ". number_format($request->amount, 2) . 
-                            ($currency === 'USD' ? " $" : " FC") . " par le compte " . $user->account_id . " au compte " . $request->recipient_account_id,
+            "User ID" => $user->id,
+            "Emetteur" => $user->name . ' / ' . $user->account_id,
+            "Béneficiaire" => $recipient->name . ' / ' . $recipient->account_id, 
+            "Montant net transféré" => number_format($request->amount, 2) . "$",
+            "Déscription" => "Vous avez reçu une commission de " . number_format($request->frais_de_transaction, 2) . "$ sur le transfert 
+            effectué par " . $user->name . " à " . $recipient->name . " d'un montant de " . $request->amount . "$", 
         ];
 
-        $transactionData = [
-            'amount' => number_format($request->amount, 2),
-            'currency' => $currency,
-            'mouvment' => 'out',
-            'type' => 'transfer',
-            'status' => 'completed',
-            'metadata' => $systemMetadata,
-        ];
-
-        $walletService = app(\App\Services\WalletService::class);
-        $walletService->recordSystemTransaction($transactionData);
+        $systemwallet = WalletSystem::first();
+        $systemwallet->addProfits(
+            $request->frais_de_transaction,
+            'transfer_commission',
+            self::STATUS_COMPLETED,
+            "Vous avez reçu une commission de transfert d'un montant de " . $request->frais_de_transaction . "$",
+            $user->id,
+            $systemMetadata,
+        );
 
         DB::commit();
 
@@ -414,17 +413,14 @@ class WalletUserController extends Controller
             // Notification destinataire
             $recipient->notify(new FundsReceivedNotification(
                 $request->amount,
-                $currency,
                 $user->name,
                 $user->account_id,
-                'transfer'
             ));
 
             // Notification parrain
             if ($sponsorWallet && $frais_de_commission > 0) {
                 $sponsor->notify(new CommissionReceivedNotification(
                     $frais_de_commission,
-                    $currency,
                     $user->name,
                     $user->account_id
                 ));
@@ -434,7 +430,6 @@ class WalletUserController extends Controller
             $user->notify(new MultipleTransferStatusNotification(
                 true, // Succès
                 $request->amount,
-                $currency,
                 1, // 1 transfert réussi
                 0, // 0 transfert échoué
                 [] // Aucun transfert échoué
@@ -452,7 +447,6 @@ class WalletUserController extends Controller
             'message' => 'Transfert effectué avec succès',
             'data' => [
                 'amount' => $request->amount,
-                'currency' => $currency,
                 'transaction_id' => uniqid(),
                 'recipient' => $recipient->name,
                 'fees' => $request->frais_de_transaction + $frais_de_commission
@@ -465,27 +459,17 @@ class WalletUserController extends Controller
      */
     private function processMultipleTransfer($request, $user, $userWallet, $walletService)
     {
-        $currency = $request->currency;
         $totalAmount = $request->total_amount;
         $totalAmountSucceed = 0; // pour stocker le montant total des transferts réussis
         $totalFees = $request->total_fees;
         $grandTotal = $totalAmount + $totalFees;
 
         // Vérifier le solde
-        if ($currency === "USD") {
-            if ($userWallet->balance_usd < $grandTotal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solde insuffisant pour tous les transferts'
-                ], 400);
-            }
-        } else {
-            if ($userWallet->balance_cdf < $grandTotal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solde insuffisant pour tous les transferts'
-                ], 400);
-            }
+        if ($userWallet->available_balance < $grandTotal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solde insuffisant pour tous les transferts'
+            ], 400);
         }
 
         DB::beginTransaction();
@@ -493,6 +477,7 @@ class WalletUserController extends Controller
         $successfulTransfers = [];
         $failedTransfers = [];
         $totalCommission = 0;
+        $totalCommissionSystem = 0; //Total des frais des transferts réussis.
 
         $sponsorWallet = null;
         $sponsorName = null;
@@ -538,48 +523,47 @@ class WalletUserController extends Controller
 
                 $amount = $recipientData['amount'];
                 $transactionFee = $recipientData['frais_de_transaction'];
-                $commissionFee = $recipientWallet->id !== $sponsorWallet->id ? $recipientData['frais_de_commission'] : 0;
+                $commissionFee = $sponsorWallet && $recipientWallet->id !== $sponsorWallet->id ? $recipientData['frais_de_commission'] : 0;
                 $recipientTotal = $amount + $transactionFee + $commissionFee;
 
                 // Préparer les métadonnées
                 $senderMetadata = [
-                    "Bénéficiaire" => $recipientWallet->user->name,
-                    "Opération" => "Transfert multiple des fonds",
-                    "Montant" => number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-                    "Frais de transaction" => number_format($transactionFee, 2) . ($currency === 'USD' ? " $" : " FC"),
-                    "Frais de commission" => number_format($commissionFee, 2) . ($currency === 'USD' ? " $" : " FC"),
-                    "Description" => $request->description ?? 'Transfert multiple de fonds',
-                    "Détails" => "Vous avez transféré " . number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC") . " au compte " . $recipientWallet->user->account_id . 
-                        ($sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? 
-                            " (votre parrain - commission incluse dans le transfert)" : 
-                            " (Transfert multiple)")
+                    "Bénéficiaire" => $recipient->name,
+                    "Opération" => "Transfert des fonds",
+                    "Montant" => number_format($amount, 2) . "$",
+                    "Frais de transaction" => number_format($transactionFee, 2) . "$",
+                    "Frais de commission" => number_format($commissionFee, 2) . "$",
+                    "Déscription" => "Vous avez effectué un transfert des fonds de " . number_format($amount, 2) . "$ à " . $recipient->name
                 ];
 
                 $recipientMetadata = [
-                    "Expéditeur" => $userWallet->user->name,
-                    "Opération" => "Réception des fonds (transfert multiple)",
-                    "Montant" => number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC"),
-                    "Description" => $request->description ?? 'Transfert multiple de fonds',
-                    "Détails" => "Vous avez reçu " . number_format($amount, 2) . ($currency === 'USD' ? " $" : " FC") . " du compte " . $userWallet->user->account_id . 
-                        ($sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? 
-                            " (votre filleul)" : 
-                            " (Transfert multiple)")
+                    "Expéditeur" => $user->name,
+                    "Opération" => "Dépôt des fonds",
+                    "Montant" => number_format($amount, 2) . "$",
+                    "Déscription" => "Vous avez reçu un dépôt des fonds de " . number_format($amount, 2) . "$" . " de " . $user->name,
                 ];
 
                 // Effectuer le transfert
                 $userWallet->withdrawFunds(
-                    $recipientTotal, 
-                    $currency,
-                    "transfer", 
+                    $recipientTotal,
+                    $transactionFee,
+                    $commissionFee,
+                    'internal', 
+                    "funds_transfer", 
                     self::STATUS_COMPLETED, 
+                    "Vous avez fait un transfert des fonds de " . number_format($amount, 2) . "$" . " à " . $recipient->name,
+                    $user->id,
                     $senderMetadata
                 );
                 
                 $recipientWallet->addFunds(
                     $amount, 
-                    $currency,
-                    "reception", 
+                    0,
+                    0,
+                    "funds_receipt", 
                     self::STATUS_COMPLETED, 
+                    "Vous avez reçu un dépôt des fonds de " . number_format($amount, 2) . "$" . " de " . $user->name,
+                    $user->id,
                     $recipientMetadata
                 );
 
@@ -592,17 +576,15 @@ class WalletUserController extends Controller
                     }
                 }
 
+                $totalCommissionSystem += $transactionFee;
                 $totalAmountSucceed += $amount;
 
                 $successfulTransfers[] = [
                     'recipient_account_id' => $recipientData['recipient_account_id'],
                     'recipient_name' => $recipient->name,
                     'amount' => $amount,
-                    'fees' => $transactionFee + $commissionFee,
-                    'is_sponsor' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id,
-                    'commission_paid' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? $commissionFee : 0,
-                    'total_received' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? $amount + $commissionFee : $amount,
-                    'operation_type' => $sponsorWallet && $recipientWallet->id == $sponsorWallet->id ? 'reception_avec_commission' : 'reception'
+                    'fees' => $transactionFee,
+                    'commission' => $commissionFee,
                 ];
 
             } catch (\Exception $e) {
@@ -618,51 +600,54 @@ class WalletUserController extends Controller
             $sponsorMetadata = [
                 "Source" => $user->name, 
                 "Opération" => "Commission de transfert",
-                "Montant" => number_format($totalCommission, 2) . ($currency === 'USD' ? " $" : " FC"),
+                "Montant" => number_format($totalCommission, 2) . "$",
                 "Description" => "Vous avez gagné une commission de ". number_format($totalCommission, 2) . 
-                                ($currency === 'USD' ? ' $' : ' FC') . " pour un transfert de fonds effectué par votre filleul" . $user->name,
+                                "$" . " pour des transferts de fonds effectué par votre filleul" . $user->name,
             ];
             
             $sponsorWallet->addFunds(
                 $totalCommission,
-                $currency, 
-                "commission de transfert", 
+                0,
+                0,
+                "transfer_commission", 
                 self::STATUS_COMPLETED, 
-                $sponsorMetadata
+                "Vous avez gagné une commission de ". number_format($totalCommission, 2) . 
+                                "$" . " pour des transferts de fonds effectué par votre filleul" . $user->name,
+                $user->id,
+                $sponsorMetadata,
+                
             );
         }
 
         // Enregistrer la transaction système
         $systemMetadata = [
-            "User_ID" => $user->id,
-            "user" => $user->name,
-            "Type" => "Transfert multiple",
+            "Opération" => "Transfert multiple des fonds",
+            "Expéditeur" => $user->name . ' / ' . $user->account_id,
+            "Béneficiaire" => $recipient->name . ' / ' . $recipient->account_id,
             "Nombre de destinataires" => count($successfulTransfers),
             "Transferts réussis" => count($successfulTransfers),
             "Transferts échoués" => count($failedTransfers),
-            "Montant total du transfert" => number_format($totalAmount, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Montant total transferé" => number_format($totalAmountSucceed, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Montant total echoué" => (number_format($totalAmountSucceed, 2) - number_format($totalAmount, 2)) . ($currency === 'USD' ? " $" : " FC"),
-            "Dévise" => $currency,
-            "Frais totaux" => number_format($totalFees, 2) . ($currency === 'USD' ? " $" : " FC"),
-            "Commission totale" => $sponsorWallet ? 
-                "Paiement d'une commission totale de " . number_format($totalCommission, 2) . ($currency === 'USD' ? " $" : " FC") . " à " . $sponsorName : 
+            "Montant total du transfert" => number_format($totalAmount, 2) . "$",
+            "Montant total transferé" => number_format($totalAmountSucceed, 2) . "$",
+            "Montant total echoué" => number_format($totalAmount - $totalAmountSucceed, 2) . "$",
+            "Frais totaux sur les transferts réussis" => number_format($totalCommissionSystem, 2) . "$",
+            "Commission totale du premier parrain" => $sponsorWallet ? 
+                "Paiement d'une commission totale de " . number_format($totalCommission, 2) . "$" . " à " . $sponsorName . ' / ' . $sponsor->account_id : 
                 "Aucune commission payée",
-            "Description" => "Transfert multiple de ". number_format($totalAmount, 2) . 
-                            ($currency === 'USD' ? " $" : " FC") . " vers " . count($successfulTransfers) . " destinataires",
+            "Déscription" => "Transfert multiple de fonds d'un montant de ". number_format($totalAmount, 2) . 
+                            "$" . " vers " . count($request->recipients) . " destinataires",
         ];
 
-        $transactionData = [
-            'amount' => number_format($totalAmountSucceed, 2),
-            'currency' => $currency,
-            'mouvment' => 'out',
-            'type' => 'transfer',
-            'status' => $totalAmountSucceed > 0 ? 'completed' : 'failed',
-            'metadata' => $systemMetadata,
-        ];
-
-        $walletService = app(\App\Services\WalletService::class);
-        $walletService->recordSystemTransaction($transactionData);
+        $walletsystem = WalletSystem::first();
+        $walletsystem->addProfits(
+            $totalCommissionSystem,
+            "transfer_commission",
+            self::STATUS_COMPLETED,
+            "Commission reçu d'un montant de " . number_format($totalCommissionSystem, 2) . 
+                            "$" . " pour des transferts de fonds effectué par " . $user->name,
+            $user->id,
+            $systemMetadata
+        );
 
         DB::commit();
 
@@ -674,10 +659,8 @@ class WalletUserController extends Controller
                 if ($recipient) {
                     $recipient->notify(new FundsReceivedNotification(
                         $transfer['amount'],
-                        $currency,
                         $user->name,
                         $user->account_id,
-                        'transfer_multiple'
                     ));
                 }
             }
@@ -686,7 +669,6 @@ class WalletUserController extends Controller
             if ($sponsorWallet && $totalCommission > 0) {
                 $sponsor->notify(new CommissionReceivedNotification(
                     $totalCommission,
-                    $currency,
                     $user->name,
                     $user->account_id
                 ));
@@ -696,7 +678,6 @@ class WalletUserController extends Controller
             $user->notify(new MultipleTransferStatusNotification(
                 count($successfulTransfers) > 0, // Succès si au moins un transfert réussi
                 $totalAmount,
-                $currency,
                 count($successfulTransfers),
                 count($failedTransfers),
                 $failedTransfers
@@ -720,7 +701,6 @@ class WalletUserController extends Controller
                 'failed_transfers' => $failedTransfers,
                 'total_amount' => $totalAmount,
                 'total_fees' => $totalFees,
-                'currency' => $currency,
                 'commission_paid' => $totalCommission,
                 'sponsor_name' => $sponsorName
             ]
@@ -866,8 +846,16 @@ class WalletUserController extends Controller
     {
         try {
             $walletService = new \App\Services\WalletService();
-            $user = isset($request->user_id) ? User::findOrFail($request->user_id) : Auth::user();
+            $user = isset($request->user_id) ? User::findOrFail($request->user_id): null;
+            if (!$user) {
+                \Log::error("L'utilisateur est introuvable pour effectuer l'achat des virtuels");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'L\'utilisateur est introuvable pour effectuer l\'achat des virtuels',
+                ]);
+            }
             $userWallet = $user->wallet;
+            $walletsystem = WalletSystem::first();
 
             if (!$userWallet) {
                 $userWallet = $walletService->createUserWallet($user->id);
@@ -876,54 +864,62 @@ class WalletUserController extends Controller
             DB::beginTransaction();
 
             // Préparer les métadonnées pour la transaction utilisateur
-            $metadata = [
+            $metadata_user = [
                 'Méthode de paiement' => $request->payment_method,
                 'Téléphone' => $request->phoneNumber,
-                'Dévise' => $request->currency,
-                'Montant net payé' => number_format($request->amount, 2) . " " . $request->currency,
-                'Frais de transaction' => number_format($request->fees, 2) . " " . $request->currency,
+                'Montant net payé' => number_format($request->amount, 2) . " $",
+                'Frais de transaction' => number_format($request->fees, 2) . " $",
                 'Description' => 'Achat des virtuels solifin via ' . $request->payment_method
             ];
 
-            // Ajouter les fonds au portefeuille de l'utilisateur
-            $userWallet->addFunds(
-                $request->amount, 
-                $request->currency,
-                self::TYPE_VIRTUAL_PURCHASE,
-                self::STATUS_COMPLETED,
-                array_merge($metadata, [
-                    'Opération' => 'Achat des virtuels'
-                ])
-            );
+            // Préparer les métadonnées pour la transaction utilisateur
+            $metadata_system = [
+                'Méthode de paiement' => $request->payment_method,
+                'Téléphone' => $request->phoneNumber,
+                'Montant net payé' => number_format($request->amount, 2) . " $",
+                'Frais de transaction' => number_format($request->fees, 2) . " $",
+                'Description' => 'Vente des virtuels solifin via ' . $request->payment_method
+            ];
 
             $montant_net_avec_frais = $request->amount + $request->fees;
 
-            $walletSystem = WalletSystem::first();
-            if (!$walletSystem) {
-                $walletSystem = WalletSystem::create([
-                    'balance_usd' => 0,
-                    'balance_cdf' => 0,
-                    'total_in_usd' => 0,
-                    'total_in_cdf' => 0,
-                    'total_out_usd' => 0,
-                    'total_out_cdf' => 0,
-                ]);
-            }
-
+            //Ajouter les fonds comme entrée au wallet system
             $walletSystem->addFunds(
-                $montant_net_avec_frais,
-                $request->currency,
+                $montant_net_avec_frais, 
                 self::TYPE_VIRTUAL_SALE,
-                self::STATUS_COMPLETED,
-                array_merge($metadata, [
-                    'Opération' => 'Vente des virtuels',
-                    'User_ID' => $user->id,
-                    'user' => $user->name,
-                    'Id Compte' => $user->account_id,
-                    'Montant_net' => number_format($request->amount, 2) . " " . $request->currency,
-                    'Frais de transaction' => number_format($request->fees, 2) . " " . $request->currency,
-                ])
+                "completed",
+                "Vous avez vendu des virtuels pour un montant net de " . number_format($request->amount, 2) . ' $ au compte ' . $user->account_id,
+                $user->id,
+                $metadata_system
             );
+
+            //Ajouter les fonds net aux dettes utilisateur
+            $walletSystem->addEngagements(
+                $request->amount, 
+                'virtual_send', //Envoie des virtuels à l'utilisateur
+                'completed',
+                'Vous avez envoyé des virtuels d\'un montant de ' . number_format($request->amount, 2) . '$  Solifin au compte ' . $user->account_id,
+                $user->id,
+                $metadata_system
+            );
+
+            //Ajouter les fonds virtuels à l'utilisateur les ayant acheté
+            $userWallet->addFunds(
+                $request->amount,
+                $request->fees,
+                0,
+                'virtual_receipt',
+                'completed',
+                'Vous avez reçu des virtuels d\'un montant de ' . number_format($request->amount, 2) . '$ dans votre portefeuille SOLIFIN',
+                $user->id,
+                $metadata_user
+            );
+
+            $user->wallet->transactions()->where('session_id', $request->session_id)->where('transaction_id', $request->transaction_id)->update([
+                'status' => 'completed',
+                'description' => $description_user,
+                'metadata' => $metadata_user,
+            ]);
 
             DB::commit();
 
@@ -931,7 +927,7 @@ class WalletUserController extends Controller
                 'success' => true,
                 'message' => 'Achat de virtuel effectué avec succès',
                 'amount' => $request->amount,
-                'new_balance' => $request->currency === 'USD' ? number_format($userWallet->balance_usd, 2) . ' $' : number_format($userWallet->balance_cdf, 2) . ' FC'
+                'new_balance' => number_format($userWallet->balance, 2) . ' $'
             ]);
 
         } catch (\Exception $e) {
@@ -963,21 +959,13 @@ class WalletUserController extends Controller
             // Construire la requête de base pour les transactions
             $query = WalletTransaction::with('wallet')
                 ->where('wallet_id', $userWallet->id)
-                ->orderBy('created_at', 'desc');
-
-            // Filtrer par devise si spécifié
-            if ($request->has('currency') && in_array($request->currency, ['USD', 'CDF'])) {
-                $query->where('currency', $request->currency);
-            }
+                ->orderBy('id', 'desc');
 
             // Appliquer les filtres de recherche
             if ($request->has('search') && !empty($request->search)) {
                 $searchTerm = $request->search;
                 $query->where(function ($q) use ($searchTerm) {
-                    $q->where('type', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('status', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('mouvment', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('reference', 'LIKE', "%{$searchTerm}%")
+                    $q->where('reference', 'LIKE', "%{$searchTerm}%")
                       ->orWhereJsonContains('metadata', $searchTerm);
                 });
             }
@@ -1017,18 +1005,23 @@ class WalletUserController extends Controller
                 $exportData[] = [
                     'Référence' => $transaction->reference ?? '',
                     'Type' => $this->getTransactionTypeLabel($transaction->type),
-                    'Mouvement' => $transaction->mouvment === 'in' ? 'Entrée' : 'Sortie',
-                    'Montant' => number_format($transaction->amount, 2) . ' ' . $transaction->currency,
+                    'Mouvement' => $transaction->flow === 'in' ? 'Entrée' : ($transaction->flow === 'out' ? 'Sortie' : ($transaction->flow === 'freeze' ? 'Blocage' : 'Déblocage')),
+                    'Montant' => number_format($transaction->amount, 2) . ' $',
+                    'Frais' => number_format($transaction->fee_amount, 2) . ' $',
+                    'Commission' => number_format($transaction->commission_amount, 2) . ' $',
+                    'Balance avant' => number_format($transaction->balance_before, 2) . ' $',
+                    'Balance après' => number_format($transaction->balance_after, 2) . ' $',
+                    'Traité par' => $transaction->processor?->name,
+                    'Raison (rejet, echec, ...)' => $transaction->rejection_reason ?? '-',
+                    'Déscription' => $transaction->description ?? '-',
                     'Statut' => $this->getTransactionStatusLabel($transaction->status),
                     'Date' => \Carbon\Carbon::parse($transaction->created_at)->format('d/m/Y H:i:s'),
-                    'Méthode de paiement' => $metadata['Méthode de paiement'] ?? '-',
-                    'Description' => $metadata['Description'] ?? '-',
-                    'Opération' => $metadata['Opération'] ?? '-',
+                    'Metadata' => $metadata ?? '-',
                 ];
             }
 
             // Créer le fichier CSV
-            $filename = 'transactions_wallet_' . $user->name . '_' . date('Y-m-d_H-i-s') . '.csv';
+            $filename = 'transactions_portefeuille_' . $user->name . '_' . date('Y-m-d_H-i-s') . '.csv';
             
             // Headers pour le CSV
             $headers = [
@@ -1053,7 +1046,16 @@ class WalletUserController extends Controller
                 foreach ($exportData as $row) {
                     // Assurer que toutes les valeurs sont des strings pour éviter les erreurs
                     $row = array_map(function($value) {
-                        return is_string($value) ? $value : (string) $value;
+                        if (is_array($value)) {
+                            // Convertir les tableaux (métadonnées) en JSON string
+                            return json_encode($value, JSON_UNESCAPED_UNICODE);
+                        } elseif (is_null($value)) {
+                            return '';
+                        } elseif (is_bool($value)) {
+                            return $value ? 'Oui' : 'Non';
+                        } else {
+                            return is_string($value) ? $value : (string) $value;
+                        }
                     }, $row);
                     fputcsv($file, $row, ';');
                 }
@@ -1082,17 +1084,21 @@ class WalletUserController extends Controller
     private function getTransactionTypeLabel($type)
     {
         $labels = [
-            'withdrawal' => 'Retrait',
-            'purchase' => 'Achat',
+            'funds_withdrawal' => 'Retrait',
+            'pack_purchase' => 'Achat de pack',
             'virtual_purchase' => 'Virtuels',
-            'reception' => 'Réception des fonds',
-            'transfer' => 'Transfert des fonds',
-            'remboursement' => 'Remboursement',
+            'funds_receipt' => 'Réception des fonds',
+            'funds_transfer' => 'Transfert des fonds',
+            'unfreeze_funds' => 'Déblocage des fonds',
+            'freeze_funds' => 'Blocage des fonds',
+            'virtual_receipt' => 'Réception des fonds',
             'digital_product_sale' => 'Vente de produit numérique',
-            'commission de parrainage' => 'Commission de parrainage',
-            'commission de transfert' => 'Commission de transfert',
-            'commission de retrait' => 'Commission de retrait',
+            'sponsorship_commission' => 'Commission de parrainage',
+            'transfer_commission' => 'Commission de transfert',
+            'withdrawal_commission' => 'Commission de retrait',
             'virtual_sale' => 'Vente des virtuels',
+            'boost_sale' => 'Vente de boost',
+            'boost_purchase' => 'Achat de boost',
         ];
 
         return $labels[$type] ?? $type;
@@ -1107,6 +1113,8 @@ class WalletUserController extends Controller
             'pending' => 'En attente',
             'completed' => 'Complété',
             'failed' => 'Échoué',
+            'reversed' => 'Annulé',
+            'processing' => 'En cours de traitement'
         ];
 
         return $labels[$status] ?? $status;

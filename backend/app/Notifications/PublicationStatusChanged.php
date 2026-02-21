@@ -46,14 +46,14 @@ class PublicationStatusChanged extends Notification implements ShouldQueue
         $message = (new MailMessage)
             ->subject('Statut de votre publication modifié');
 
-        if ($this->data['statut'] === 'approuve') {
+        if ($this->data['statut'] === 'approved') {
             $message->line('Bonne nouvelle ! Votre publication a été approuvée.')
                 ->line('Titre: ' . $this->data['titre']);
-        } elseif ($this->data['statut'] === 'rejete') {
+        } elseif ($this->data['statut'] === 'rejected') {
             $message->line('Votre publication a été rejetée.')
                 ->line('Titre: ' . $this->data['titre'])
                 ->line(isset($this->data['raison']) ? 'Raison: ' . $this->data['raison'] : 'Veuillez contacter notre équipe pour plus d\'informations.');
-        } elseif ($this->data['statut'] === 'en_attente') {
+        } elseif ($this->data['statut'] === 'pending') {
             $message->line('Votre publication a été mise en attente.')
                 ->line('Titre: ' . $this->data['titre'])
                 ->line('Elle sera examinée par notre équipe prochainement.');
@@ -79,12 +79,12 @@ class PublicationStatusChanged extends Notification implements ShouldQueue
         $link = '/dashboard/my-page';
 
         // Déterminer le type de notification en fonction du statut
-        if ($this->data['statut'] === 'approuve') {
+        if ($this->data['statut'] === 'approved') {
             $type = 'success';
             if (empty($message)) {
                 $message = 'Votre publication "' . $this->data['titre'] . '" a été approuvée et est maintenant visible.';
             }
-        } elseif ($this->data['statut'] === 'rejete') {
+        } elseif ($this->data['statut'] === 'rejected') {
             $type = 'danger';
             if (empty($message)) {
                 $message = 'Votre publication "' . $this->data['titre'] . '" a été rejetée.';
@@ -92,7 +92,7 @@ class PublicationStatusChanged extends Notification implements ShouldQueue
                     $message .= ' Raison: ' . $this->data['raison'];
                 }
             }
-        } elseif ($this->data['statut'] === 'en_attente') {
+        } elseif ($this->data['statut'] === 'pending') {
             $type = 'warning';
             if (empty($message)) {
                 $message = 'Votre publication "' . $this->data['titre'] . '" a été mise en attente et sera examinée prochainement.';  

@@ -13,7 +13,6 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected $amount;
-    protected $currency;
     protected $sessionId;
     protected $transactionId;
     protected $transactionType;
@@ -22,16 +21,14 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
      * Create a new notification instance.
      *
      * @param float $amount
-     * @param string $currency
      * @param string $sessionId
      * @param string $transactionId
      * @param string|null $transactionType
      * @return void
      */
-    public function __construct($amount, $currency, $sessionId, $transactionId, $transactionType = null)
+    public function __construct($amount, $sessionId, $transactionId, $transactionType = null)
     {
         $this->amount = $amount;
-        $this->currency = $currency;
         $this->sessionId = $sessionId;
         $this->transactionId = $transactionId;
         $this->transactionType = $transactionType;
@@ -56,12 +53,12 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        $subject = "Paiement initié - {$this->amount} {$this->currency}";
+        $subject = "Paiement initié - {$this->amount} $";
         
         $mailMessage = (new MailMessage)
             ->subject($subject)
             ->greeting('Bonjour,')
-            ->line("Votre paiement de {$this->amount} {$this->currency} a été initié avec succès.")
+            ->line("Votre paiement de {$this->amount} $ a été initié avec succès.")
             ->line("Référence de session: {$this->sessionId}")
             ->line("ID de transaction: {$this->transactionId}");
             
@@ -92,7 +89,7 @@ class PaymentInitiatedNotification extends Notification implements ShouldQueue
             'title' => "Paiement initié",
             'icon' => 'exclamation-circle',
             'type' => 'info',
-            'message' => "Votre paiement de {$this->amount} {$this->currency} a été initié et est en attente de validation."
+            'message' => "Votre paiement de {$this->amount} $ a été initié et est en attente de validation."
         ];
     }
 

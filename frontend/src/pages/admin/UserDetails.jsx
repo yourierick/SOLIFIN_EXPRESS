@@ -13,6 +13,7 @@ import {
   IdentificationIcon,
   MapPinIcon,
   EnvelopeIcon,
+  CalendarDaysIcon,
   PhoneIcon,
   GlobeAltIcon,
   BuildingOfficeIcon,
@@ -34,6 +35,11 @@ import {
   PlusIcon,
   DocumentArrowDownIcon,
   StarIcon,
+  FunnelIcon,
+  TagIcon,
+  AdjustmentsHorizontalIcon,
+  ArrowRightIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useCurrency } from "../../contexts/CurrencyContext";
@@ -68,7 +74,7 @@ import {
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { Fullscreen, FullscreenExit } from "@mui/icons-material";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, color } from "framer-motion";
 import { Fade } from "@mui/material";
 import Tree from "react-d3-tree";
 import * as XLSX from "xlsx";
@@ -78,6 +84,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { createPortal } from "react-dom";
 import PackStatsModal from "./components/PackStatsModal";
 import { ToastContainer } from "react-toastify";
+import FiltreParTypeOperationUser from "../../components/FiltreParTypeOperationUser";
+import { getOperationType } from "../../components/OperationTypeFormatter";
+import { getTransactionColor } from "../../components/TransactionColorFormatter";
 
 export default function UserDetails({ userId }) {
   const { isDarkMode } = useTheme();
@@ -198,15 +207,10 @@ export default function UserDetails({ userId }) {
 
   const fetchPacks = async () => {
     try {
-      console.log('États packs - page:', packPage, 'rowsPerPage:', packRowsPerPage, 'totalPacks:', totalPacks, 'packs.length:', packs.length);
-
       const params = {
         per_page: packRowsPerPage,
         page: packPage + 1, // Laravel pagination commence à 1
       };
-      
-      console.log('Paramètres packs envoyés:', params);
-
       // Utiliser la route existante avec paramètres de pagination
       const response = await axios.get(
         `/api/admin/users/${effectiveId}`,
@@ -215,7 +219,6 @@ export default function UserDetails({ userId }) {
       
       if (response.data.success) {
         const packsData = response.data.data.packs?.data || response.data.data.packs || [];
-        console.log('Packs reçus:', packsData.length, 'Total:', response.data.data.packs?.total || response.data.data.packs?.total_count || response.data.data.packs?.length || 0);
         setPacks(packsData);
         setTotalPacks(response.data.data.packs?.total || response.data.data.packs?.total_count || response.data.data.packs?.length || 0);
       }
@@ -350,15 +353,15 @@ export default function UserDetails({ userId }) {
   };
 
   // Fonction pour formater les montants selon la devise
-  const formatAmount = (amount, currency = selectedCurrency) => {
-    if (!amount) return currency === "USD" ? "0 $" : "0 FC";
+  const formatAmount = (amount) => {
+    if (!amount) return "0 $";
 
     const formattedAmount = new Intl.NumberFormat("fr-FR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
 
-    return `${formattedAmount}` + (currency === 'USD' ? '$': ' FC');
+    return `${formattedAmount}` + ' $';
   };
 
   // Fonction pour obtenir la couleur du statut
@@ -2484,11 +2487,6 @@ export default function UserDetails({ userId }) {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Historique des transactions
-                    {isCDFEnabled && (
-                      <span className="ml-2 px-2 py-1 text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
-                        {selectedCurrency || "Toutes"}
-                      </span>
-                    )}
                   </h2>
                 </div>
 
@@ -2542,222 +2540,354 @@ export default function UserDetails({ userId }) {
 
                 {/* Filtres avancés pour les transactions - cachés par défaut */}
                 {showTransactionFilters && (
-                  <Paper
-                    elevation={2}
-                    className="mb-4 p-4 border-l-4 border-blue-500 dark:border-blue-600"
-                    sx={{
-                      backgroundColor: isDarkMode ? "#1d2e36" : "#fff",
-                      color: isDarkMode ? "#fff" : "inherit",
-                      transition: "all 0.3s ease-in-out",
-                    }}
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <FormControl size="small" fullWidth>
-                        <InputLabel>Type de transaction</InputLabel>
-                        <Select
-                          value={transactionFilters.type}
-                          label="Type de transaction"
-                          onChange={(e) => {
-                            setTransactionFilters((prev) => ({
-                              ...prev,
-                              type: e.target.value,
-                            }));
-                            setPage(0);
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                                color: isDarkMode ? "white" : "#333",
-                                "& .MuiMenuItem-root": {
-                                  color: isDarkMode ? "white" : "#333",
-                                  "&:hover": {
-                                    bgcolor: isDarkMode
-                                      ? "rgba(255, 255, 255, 0.08)"
-                                      : "rgba(0, 0, 0, 0.04)",
-                                  },
-                                },
+                    <Paper
+                      elevation={3}
+                      className="mb-6 border border-gray-200 dark:border-gray-700"
+                      sx={{
+                        backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+                        color: isDarkMode ? "#fff" : "#inherit",
+                        transition: "all 0.3s ease-in-out",
+                        borderRadius: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Header des filtres */}
+                      <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <FunnelIcon className="h-5 w-5 text-white" />
+                            <h3 className="text-lg font-semibold text-white">
+                              Filtres des transactions
+                            </h3>
+                          </div>
+                          <Chip
+                            label="Avancé"
+                            size="small"
+                            icon={<AdjustmentsHorizontalIcon className="h-4 w-4" />}
+                            sx={{
+                              backgroundColor: "rgba(255, 255, 255, 0.2)",
+                              color: "white",
+                              border: "1px solid rgba(255, 255, 255, 0.3)",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.3)",
                               },
-                            },
-                          }}
-                        >
-                          <MenuItem value="">Tous</MenuItem>
-                          <MenuItem value="purchase">Achat</MenuItem>
-                          <MenuItem value="withdrawal">Retrait</MenuItem>
-                          <MenuItem value="transfer">
-                            Transfert des fonds
-                          </MenuItem>
-                          <MenuItem value="virtual_purchase">
-                            Achat de virtuel
-                          </MenuItem>
-                          <MenuItem value="remboursement">
-                            Remboursement
-                          </MenuItem>
-                          <MenuItem value="reception">
-                            Réception des fonds
-                          </MenuItem>
-                          <MenuItem value="commission de retrait">
-                            Commission de retrait
-                          </MenuItem>
-                          <MenuItem value="commission de parrainage">
-                            Commission de parrainage
-                          </MenuItem>
-                          <MenuItem value="commission de transfert">
-                            Commission de transfert
-                          </MenuItem>
-                          <MenuItem value="digital_product_sale">
-                            Vente de produit numérique
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
+                            }}
+                          />
+                        </div>
+                      </div>
 
-                      <FormControl size="small" fullWidth>
-                        <InputLabel>Statut</InputLabel>
-                        <Select
-                          value={transactionFilters.status}
-                          label="Statut"
-                          onChange={(e) => {
-                            setTransactionFilters((prev) => ({
-                              ...prev,
-                              status: e.target.value,
-                            }));
-                            setPage(0);
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                bgcolor: isDarkMode ? "#1f2937" : "#fff",
-                                color: isDarkMode ? "white" : "#333",
-                                "& .MuiMenuItem-root": {
-                                  color: isDarkMode ? "white" : "#333",
-                                  "&:hover": {
-                                    bgcolor: isDarkMode
-                                      ? "rgba(255, 255, 255, 0.08)"
-                                      : "rgba(0, 0, 0, 0.04)",
+                      <div className="p-6 space-y-6">
+                        {/* Première ligne : Type, Statut, Recherche */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <TagIcon className="h-4 w-4 mr-2 text-blue-500" />
+                              Type d'opération
+                            </label>
+                            <FiltreParTypeOperationUser
+                              value={transactionFilters.type}
+                              onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    type: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                              isDarkMode={isDarkMode}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                              Statut
+                            </label>
+                            <FormControl size="small" fullWidth>
+                              <Select
+                                value={transactionFilters.status}
+                                label="Statut"
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    status: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
                                   },
+                                }}
+                                MenuProps={{
+                                  PaperProps: {
+                                    sx: {
+                                      bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                                      color: isDarkMode ? "white" : "#333",
+                                      borderRadius: 2,
+                                      "& .MuiMenuItem-root": {
+                                        color: isDarkMode ? "white" : "#333",
+                                        "&:hover": {
+                                          bgcolor: isDarkMode
+                                            ? "rgba(255, 255, 255, 0.08)"
+                                            : "rgba(0, 0, 0, 0.04)",
+                                        },
+                                      },
+                                    },
+                                  },
+                                }}
+                              >
+                                <MenuItem value="">
+                                  <div className="flex items-center">
+                                    <span className="mr-2">🔄</span>
+                                    Tous les statuts
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="pending">
+                                  <div className="flex items-center">
+                                    <ClockIcon className="h-4 w-4 mr-2 text-yellow-500" />
+                                    En attente
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="completed">
+                                  <div className="flex items-center">
+                                    <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                                    Complété
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="failed">
+                                  <div className="flex items-center">
+                                    <XCircleIcon className="h-4 w-4 mr-2 text-red-500" />
+                                    Échoué
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="cancelled">
+                                  <div className="flex items-center">
+                                    <XMarkIcon className="h-4 w-4 mr-2 text-gray-500" />
+                                    Annulé
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="processing">
+                                  <div className="flex items-center">
+                                    <ArrowPathIcon className="h-4 w-4 mr-2 text-blue-500" />
+                                    En cours
+                                  </div>
+                                </MenuItem>
+                              </Select>
+                            </FormControl>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <MagnifyingGlassIcon className="h-4 w-4 mr-2 text-purple-500" />
+                              Recherche rapide
+                            </label>
+                            <TextField
+                              placeholder="Référence, description..."
+                              variant="outlined"
+                              size="small"
+                              fullWidth
+                              value={transactionFilters.search}
+                              onChange={(e) => {
+                                setTransactionFilters((prev) => ({
+                                  ...prev,
+                                  search: e.target.value,
+                                }));
+                                setPage(0);
+                              }}
+                              InputProps={{
+                                startAdornment: (
+                                  <MagnifyingGlassIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                ),
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: 2,
                                 },
-                              },
-                            },
-                          }}
-                        >
-                          <MenuItem value="">Tous</MenuItem>
-                          <MenuItem value="pending">En attente</MenuItem>
-                          <MenuItem value="completed">Complété</MenuItem>
-                          <MenuItem value="failed">Échoué</MenuItem>
-                          <MenuItem value="cancelled">Annulé</MenuItem>
-                        </Select>
-                      </FormControl>
+                              }}
+                            />
+                          </div>
+                        </div>
 
-                      <div className="flex items-center gap-2">
-                        <TextField
-                          label="Montant min"
-                          type="number"
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                          value={transactionFilters.amount_min}
-                          onChange={(e) => {
-                            setTransactionFilters((prev) => ({
-                              ...prev,
-                              amount_min: e.target.value,
-                            }));
-                            setPage(0);
-                          }}
-                        />
-                        <span className="text-gray-500 dark:text-gray-400">
-                          -
-                        </span>
-                        <TextField
-                          label="Montant max"
-                          type="number"
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                          value={transactionFilters.amount_max}
-                          onChange={(e) => {
-                            setTransactionFilters((prev) => ({
-                              ...prev,
-                              amount_max: e.target.value,
-                            }));
-                            setPage(0);
-                          }}
-                        />
+                        {/* Deuxième ligne : Montants et Dates */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Filtre de montants */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <CurrencyDollarIcon className="h-4 w-4 mr-2 text-green-500" />
+                              Plage de montants (USD)
+                            </label>
+                            <div className="flex items-center space-x-3">
+                              <TextField
+                                label="Min"
+                                type="number"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={transactionFilters.amount_min}
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    amount_min: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                InputProps={{
+                                  startAdornment: (
+                                    <span className="text-gray-500 mr-1">$</span>
+                                  ),
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                  },
+                                }}
+                              />
+                              <div className="flex items-center text-gray-400">
+                                <ArrowRightIcon className="h-4 w-4" />
+                              </div>
+                              <TextField
+                                label="Max"
+                                type="number"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={transactionFilters.amount_max}
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    amount_max: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                InputProps={{
+                                  startAdornment: (
+                                    <span className="text-gray-500 mr-1">$</span>
+                                  ),
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                  },
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Filtre de dates */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <CalendarDaysIcon className="h-4 w-4 mr-2 text-blue-500" />
+                              Période
+                            </label>
+                            <div className="flex items-center space-x-3">
+                              <TextField
+                                label="Début"
+                                type="date"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                                value={transactionFilters.date_from}
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    date_from: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                  },
+                                }}
+                              />
+                              <div className="flex items-center text-gray-400">
+                                <ArrowRightIcon className="h-4 w-4" />
+                              </div>
+                              <TextField
+                                label="Fin"
+                                type="date"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                                value={transactionFilters.date_to}
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    date_to: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                  },
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Boutons d'action */}
+                        <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                            <InformationCircleIcon className="h-4 w-4" />
+                            <span>
+                              {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} trouvée{transactions.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-3">
+                            <Button
+                              variant="outlined"
+                              color="secondary"
+                              startIcon={<XMarkIcon className="h-5 w-5" />}
+                              onClick={() => {
+                                setTransactionFilters({
+                                  type: "",
+                                  status: "",
+                                  date_from: "",
+                                  date_to: "",
+                                  amount_min: "",
+                                  amount_max: "",
+                                  search: "",
+                                });
+                                setPage(0);
+                              }}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: "none",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Réinitialiser
+                            </Button>
+
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              onClick={() => fetchTransactions()}
+                              startIcon={<MagnifyingGlassIcon className="h-5 w-5" />}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: "none",
+                                fontWeight: 500,
+                                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                              }}
+                            >
+                              Appliquer les filtres
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                      <div className="flex items-center gap-2">
-                        <TextField
-                          label="Date début"
-                          type="date"
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                          InputLabelProps={{ shrink: true }}
-                          value={transactionFilters.date_from}
-                          onChange={(e) => {
-                            setTransactionFilters((prev) => ({
-                              ...prev,
-                              date_from: e.target.value,
-                            }));
-                            setPage(0);
-                          }}
-                        />
-                        <span className="text-gray-500 dark:text-gray-400">
-                          -
-                        </span>
-                        <TextField
-                          label="Date fin"
-                          type="date"
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                          InputLabelProps={{ shrink: true }}
-                          value={transactionFilters.date_to}
-                          onChange={(e) => {
-                            setTransactionFilters((prev) => ({
-                              ...prev,
-                              date_to: e.target.value,
-                            }));
-                            setPage(0);
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex justify-end items-center gap-2">
-                        <Button
-                          variant="outlined"
-                          color="secondary"
-                          startIcon={<ArrowPathIcon className="h-5 w-5" />}
-                          onClick={() => {
-                            setTransactionFilters({
-                              type: "",
-                              status: "",
-                              date_from: "",
-                              date_to: "",
-                              amount_min: "",
-                              amount_max: "",
-                              search: "",
-                            });
-                            setPage(0);
-                          }}
-                        >
-                          Réinitialiser
-                        </Button>
-
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          onClick={() => fetchTransactions()}
-                          startIcon={
-                            <MagnifyingGlassIcon className="h-5 w-5" />
-                          }
-                        >
-                          Appliquer
-                        </Button>
-                      </div>
-                    </div>
-                  </Paper>
+                    </Paper>
+                  </motion.div>
                 )}
 
                 <Box
@@ -2936,12 +3066,16 @@ export default function UserDetails({ userId }) {
                               },
                             }}
                           >
-                            <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                            <TableCell sx={{ width: { xs: "140px", sm: "140px" } }}>Référence</TableCell>
                             <TableCell sx={{ width: { xs: "200px", sm: "220px" } }}>Type</TableCell>
-                            <TableCell sx={{ width: { xs: "200px", sm: "220px" } }}>Référence</TableCell>
+                            <TableCell sx={{ width: { xs: "100px", sm: "100px" } }}>Mouvement</TableCell>
                             <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
-                            {isCDFEnabled && <TableCell sx={{ width: { xs: "80px", sm: "100px" } }}>Devise</TableCell>}
+                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Frais</TableCell>
+                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Commission</TableCell>
                             <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
+                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Balance avant</TableCell>
+                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Balance après</TableCell>
+                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Traité par</TableCell>
                             <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
                             <TableCell sx={{ width: { xs: "60px", sm: "80px" } }} align="center">Actions</TableCell>
                           </TableRow>
@@ -2969,56 +3103,13 @@ export default function UserDetails({ userId }) {
                               }}
                             >
                               <TableCell>
-                                <Box
-                                  sx={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    px: { xs: 0.75, sm: 1 },
-                                    py: { xs: 0.4, sm: 0.5 },
-                                    borderRadius: { xs: 0.75, sm: 1 },
-                                    background: isDarkMode
-                                      ? "rgba(59, 130, 246, 0.2)"
-                                      : "rgba(59, 130, 246, 0.1)",
-                                    border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"}`,
-                                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                                    fontWeight: 600,
-                                    color: isDarkMode ? "#60a5fa" : "#2563eb",
-                                  }}
-                                >
-                                  #{transaction.id}
-                                </Box>
+                                <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
+                                  {transaction.reference || 'N/A'}
+                                </Typography>
                               </TableCell>
                               <TableCell>
                                 <Chip
-                                  label={
-                                    transaction.type === "withdrawal"
-                                      ? "retrait"
-                                      : transaction.type === "pack_sale"
-                                      ? "Achat de pack"
-                                      : transaction.type === "purchase"
-                                      ? "Achat"
-                                      : transaction.type === "renew_pack_sale"
-                                      ? "Rénouvellement de pack"
-                                      : transaction.type === "boost_sale"
-                                      ? "Boost de publication"
-                                      : transaction.type === "virtual_sale"
-                                      ? "Vente de virtuel"
-                                      : transaction.type === "digital_product_sale"
-                                      ? "Vente de produits numériques"
-                                      : transaction.type === "transfer"
-                                      ? "Transfert des fonds"
-                                      : transaction.type === "reception"
-                                      ? "Réception des fonds"
-                                      : transaction.type ===
-                                        "commission de parrainage"
-                                      ? "Commission de parrainage"
-                                      : transaction.type === "commission de retrait"
-                                      ? "Commission de retrait"
-                                      : transaction.type ===
-                                        "commission de transfert"
-                                      ? "Commission de transfert"
-                                      : transaction.type
-                                  }
+                                  label={getOperationType(transaction.type)}
                                   size="small"
                                   sx={{
                                     fontSize: { xs: "0.65rem", sm: "0.75rem" },
@@ -3026,105 +3117,65 @@ export default function UserDetails({ userId }) {
                                     fontWeight: 600,
                                     borderRadius: { xs: 1, sm: 1.5 },
                                     bgcolor: (() => {
-                                      switch (transaction.type) {
-                                        case "withdrawal":
-                                          return isDarkMode ? "#4b5563" : "#e5e7eb"
-                                        case "pack_sale":
-                                        case "renew_pack_sale":
-                                        case "purchase":
-                                          return isDarkMode ? "rgba(34, 197, 94, 0.2)" : "rgba(34, 197, 94, 0.1)"
-                                        case "boost_sale":
-                                        case "virtual_sale":
-                                        case "digital_product_sale":
-                                          return isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)"
-                                        case "transfer":
-                                          return isDarkMode ? "rgba(251, 146, 60, 0.2)" : "rgba(251, 146, 60, 0.1)"
-                                        case "reception":
-                                          return isDarkMode ? "rgba(168, 85, 247, 0.2)" : "rgba(168, 85, 247, 0.1)"
-                                        case "commission de parrainage":
-                                        case "commission de retrait":
-                                        case "commission de transfert":
-                                          return isDarkMode ? "rgba(251, 191, 36, 0.2)" : "rgba(251, 191, 36, 0.1)"
-                                        default:
-                                          return isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(156, 163, 175, 0.1)"
-                                      }
-                                    })(),
-                                    color: (() => {
-                                      switch (transaction.mouvment) {
-                                        case "withdrawal":
-                                          return isDarkMode ? "#9ca3af" : "#6b7280"
-                                        case "pack_sale":
-                                        case "renew_pack_sale":
-                                        case "purchase":
-                                          return isDarkMode ? "#4ade80" : "#16a34a"
-                                        case "boost_sale":
-                                        case "virtual_sale":
-                                        case "digital_product_sale":
-                                          return isDarkMode ? "#60a5fa" : "#2563eb"
-                                        case "transfer":
-                                          return isDarkMode ? "#fb923c" : "#ea580c"
-                                        case "reception":
-                                          return isDarkMode ? "#a78bfa" : "#7c3aed"
-                                        case "commission de parrainage":
-                                        case "commission de retrait":
-                                        case "commission de transfert":
-                                          return isDarkMode ? "#fbbf24" : "#f59e0b"
-                                        default:
-                                          return isDarkMode ? "#9ca3af" : "#6b7280"
-                                      }
-                                    })(),
-                                    border: `1px solid ${(() => {
-                                      switch (transaction.type) {
-                                        case "withdrawal":
-                                          return isDarkMode ? "rgba(156, 163, 175, 0.3)" : "rgba(107, 114, 128, 0.2)"
-                                        case "pack_sale":
-                                        case "renew_pack_sale":
-                                        case "purchase":
-                                          return isDarkMode ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.2)"
-                                        case "boost_sale":
-                                        case "virtual_sale":
-                                        case "digital_product_sale":
-                                          return isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"
-                                        case "transfer":
-                                          return isDarkMode ? "rgba(251, 146, 60, 0.3)" : "rgba(251, 146, 60, 0.2)"
-                                        case "reception":
-                                          return isDarkMode ? "rgba(168, 85, 247, 0.3)" : "rgba(168, 85, 247, 0.2)"
-                                        case "commission de parrainage":
-                                        case "commission de retrait":
-                                        case "commission de transfert":
-                                          return isDarkMode ? "rgba(251, 191, 36, 0.3)" : "rgba(251, 191, 36, 0.2)"
-                                        default:
-                                          return isDarkMode ? "rgba(156, 163, 175, 0.3)" : "rgba(156, 163, 175, 0.2)"
-                                      }
-                                    })()}`,
+                                      getTransactionColor(transaction.type)
+                                    }
+                                    )(),
+                                    color: (() => {isDarkMode ? "#9ca3af" : "#6b7280"})(),
                                   }}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
-                                  {transaction.reference || 'N/A'}
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: transaction.flow === 'in' || transaction.flow === 'unfreeze'
+                                      ? (isDarkMode ? "#10b981" : "#059669")
+                                      : (isDarkMode ? "#ef4444" : "#dc2626"),
+                                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  }}
+                                >
+                                  {transaction.flow === 'in' ? 'Entrée' : transaction.flow === 'out' ? 'Sortie' : transaction.flow === 'freeze' ? 'Blocage' : 'Déblocage'}
                                 </Typography>
                               </TableCell>
                               <TableCell>
                                 <Typography
                                   sx={{
                                     fontWeight: 600,
-                                    color: transaction.mouvment === 'in'
+                                    color: transaction.flow === 'in' || transaction.flow === 'unfreeze'
                                       ? (isDarkMode ? "#10b981" : "#059669")
                                       : (isDarkMode ? "#ef4444" : "#dc2626"),
                                     fontSize: { xs: "0.75rem", sm: "0.875rem" },
                                   }}
                                 >
-                                  {transaction.mouvment === 'in' ? '+': '-'} {transaction.amount ? `${transaction.amount}` : '0.00'} {transaction.currency === 'USD' ? '$' : 'FC'}
+                                  {formatAmount(transaction.amount)}
                                 </Typography>
                               </TableCell>
-                              {isCDFEnabled && (
-                                <TableCell>
-                                  <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
-                                    {transaction.currency || 'USD'}
-                                  </Typography>
-                                </TableCell>
-                              )}
+                              <TableCell>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: transaction.flow === 'in' || transaction.flow === 'unfreeze'
+                                      ? (isDarkMode ? "#10b981" : "#059669")
+                                      : (isDarkMode ? "#ef4444" : "#dc2626"),
+                                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  }}
+                                >
+                                  {formatAmount(transaction.fee_amount)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: transaction.flow === 'in' || transaction.flow === 'unfreeze'
+                                      ? (isDarkMode ? "#10b981" : "#059669")
+                                      : (isDarkMode ? "#ef4444" : "#dc2626"),
+                                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  }}
+                                >
+                                  {formatAmount(transaction.commission_amount)}
+                                </Typography>
+                              </TableCell>
                               <TableCell>
                                 <Chip
                                   label={
@@ -3134,8 +3185,10 @@ export default function UserDetails({ userId }) {
                                       ? "En attente"
                                       : transaction.status === "failed"
                                       ? "Échouée"
-                                      : transaction.status === "cancelled"
+                                      : transaction.status === "reversed"
                                       ? "Annulée"
+                                      : transaction.status === "processing"
+                                      ? "En cours"
                                       : transaction.status
                                   }
                                   size="small"
@@ -3152,7 +3205,7 @@ export default function UserDetails({ userId }) {
                                           return isDarkMode ? "rgba(251, 191, 36, 0.2)" : "rgba(251, 191, 36, 0.1)"
                                         case "failed":
                                           return isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)"
-                                        case "cancelled":
+                                        case "reversed":
                                           return isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(156, 163, 175, 0.1)"
                                         default:
                                           return isDarkMode ? "rgba(156, 163, 175, 0.2)" : "rgba(156, 163, 175, 0.1)"
@@ -3166,7 +3219,7 @@ export default function UserDetails({ userId }) {
                                           return isDarkMode ? "#fbbf24" : "#f59e0b"
                                         case "failed":
                                           return isDarkMode ? "#f87171" : "#dc2626"
-                                        case "cancelled":
+                                        case "reversed":
                                           return isDarkMode ? "#9ca3af" : "#6b7280"
                                         default:
                                           return isDarkMode ? "#9ca3af" : "#6b7280"
@@ -3180,7 +3233,7 @@ export default function UserDetails({ userId }) {
                                           return isDarkMode ? "rgba(251, 191, 36, 0.3)" : "rgba(251, 191, 36, 0.2)"
                                         case "failed":
                                           return isDarkMode ? "rgba(239, 68, 68, 0.3)" : "rgba(239, 68, 68, 0.2)"
-                                        case "cancelled":
+                                        case "reversed":
                                           return isDarkMode ? "rgba(156, 163, 175, 0.3)" : "rgba(156, 163, 175, 0.2)"
                                         default:
                                           return isDarkMode ? "rgba(156, 163, 175, 0.3)" : "rgba(156, 163, 175, 0.2)"
@@ -3188,6 +3241,21 @@ export default function UserDetails({ userId }) {
                                     })()}`,
                                   }}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
+                                  {formatAmount(transaction.balance_before)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
+                                  {formatAmount(transaction.balance_after)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
+                                  {transaction.processor}
+                                </Typography>
                               </TableCell>
                               <TableCell>
                                 <Typography sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
@@ -3720,7 +3788,7 @@ export default function UserDetails({ userId }) {
                                 : "text-purple-600 dark:text-purple-400"
                             }`}>
                               <CurrencyDollarIcon className="h-4 w-4 mr-1.5" />
-                              Solde {selectedCurrency}
+                              Balance {selectedCurrency}
                             </span>
                             <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                               selectedCurrency === "USD"
@@ -3741,23 +3809,34 @@ export default function UserDetails({ userId }) {
                               ? "text-blue-900 dark:text-blue-100"
                               : "text-purple-900 dark:text-purple-100"
                           }`}>
-                            {formatAmount(
-                              selectedCurrency === "USD" 
-                                ? (userWallet?.balance_usd || 0)
-                                : (userWallet?.balance_cdf || 0),
-                              selectedCurrency
-                            )}
+                            {formatAmount(userWallet?.balance || 0)}
                           </p>
-                          <p className='text-2xl font-bold mb-1'>
-                            {userWallet?.points || 0} <span className="text-xs text-red-400">points gagnés</span>
-                          </p>
-                          <p className={`text-xs ${
-                            selectedCurrency === "USD"
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-purple-600 dark:text-purple-400"
-                          }`}>
-                            disponible
-                          </p>
+                          <div className="flex gap-5">
+                            <p className='text-sm mb-1'
+                              style={{
+                                color: isDarkMode ? '#74ff59ff':'#2db608ff'
+                              }}
+                            >
+                               Entrées :
+                              {' '}{formatAmount(userWallet?.total_in || 0)}
+                            </p>
+                            <p className='text-sm mb-1'
+                              style={{
+                                color: isDarkMode ? '#ff6459ff':'#b60808ff'
+                              }}
+                            >
+                               Entrées :
+                              {' '}{formatAmount(userWallet?.total_out || 0)}
+                            </p>
+                            <p className='text-sm mb-1'
+                              style={{
+                                color: isDarkMode ? '#5967ffff':'#083cb6ff'
+                              }}
+                            >
+                               Points :
+                              {' '}{formatAmount(userWallet?.points || 0)}
+                            </p>
+                          </div>
                         </div>
 
                         {/* Total gagné selon la devise sélectionnée */}
@@ -3765,22 +3844,17 @@ export default function UserDetails({ userId }) {
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center">
                               <ArrowPathIcon className="h-4 w-4 mr-1.5" />
-                              Total gagné {selectedCurrency}
+                              Fonds disponibles {selectedCurrency}
                             </span>
                             <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
                               <ArrowTrendingUpIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                             </div>
                           </div>
                           <p className="text-2xl font-bold text-green-900 dark:text-green-100 mb-1">
-                            {formatAmount(
-                              selectedCurrency === "USD" 
-                                ? (userWallet?.total_earned_usd || 0)
-                                : (userWallet?.total_earned_cdf || 0),
-                              selectedCurrency
-                            )}
+                            {formatAmount(userWallet?.available_balance || 0)}
                           </p>
                           <p className="text-xs text-green-600 dark:text-green-400">
-                            cumulé
+                            disponibles
                           </p>
                         </div>
 
@@ -3789,22 +3863,17 @@ export default function UserDetails({ userId }) {
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
                               <ArrowDownTrayIcon className="h-4 w-4 mr-1.5" />
-                              Total retiré {selectedCurrency}
+                              Fonds gélés {selectedCurrency}
                             </span>
                             <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-800 flex items-center justify-center">
                               <ArrowTrendingDownIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                             </div>
                           </div>
                           <p className="text-2xl font-bold text-red-900 dark:text-red-100 mb-1">
-                            {formatAmount(
-                              selectedCurrency === "USD" 
-                                ? (userWallet?.total_withdrawn_usd || 0)
-                                : (userWallet?.total_withdrawn_cdf || 0),
-                              selectedCurrency
-                            )}
+                            {formatAmount(userWallet?.frozen_balance || 0)}
                           </p>
                           <p className="text-xs text-red-600 dark:text-red-400">
-                            retiré
+                            bloqués
                           </p>
                         </div>
                       </div>
@@ -4236,65 +4305,6 @@ export default function UserDetails({ userId }) {
                         }}
                       >
                         Commissions USD
-                      </Typography>
-                    </Box>
-                    {/* Carte Commissions CDF */}
-                    <Box
-                      sx={{
-                        bgcolor: isDarkMode
-                          ? "rgba(251, 146, 60, 0.1)"
-                          : "rgba(251, 146, 60, 0.05)",
-                        border: `1px solid ${
-                          isDarkMode
-                            ? "rgba(251, 146, 60, 0.2)"
-                            : "rgba(251, 146, 60, 0.1)"
-                        }`,
-                        borderRadius: 2,
-                        p: { xs: 2, sm: 3 },
-                        textAlign: "center",
-                        display:
-                          selectedCurrency === "USD" ? "none" : "block",
-                        minWidth: "100%",
-                        maxWidth: "100%",
-                        transition: "all 0.3s ease",
-                        "&:hover": {
-                          transform: "translateY(-2px)",
-                          boxShadow: isDarkMode
-                            ? "0 8px 25px rgba(251, 146, 60, 0.15)"
-                            : "0 8px 25px rgba(251, 146, 60, 0.1)",
-                        },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          mb: 1,
-                        }}
-                      >
-                        FC
-                      </Box>
-                      <Typography
-                        variant="h4"
-                        sx={{
-                          fontWeight: 700,
-                          color: isDarkMode ? "#fb923c" : "#f97316",
-                          mb: 0.5,
-                        }}
-                      >
-                        {formatAmount(
-                          currentGenerationStats?.totalCommissionCDF || 0,
-                          "CDF"
-                        )}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: isDarkMode ? "grey.400" : "text.secondary",
-                        }}
-                      >
-                        Commissions CDF
                       </Typography>
                     </Box>
                   </Box>
@@ -5040,37 +5050,106 @@ export default function UserDetails({ userId }) {
                       <div className="flex items-center space-x-2">
                         <div
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            selectedTransaction.type_raw === "commission"
+                            selectedTransaction.flow === "in"
                               ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                              : selectedTransaction.type_raw === "transfer"
+                              : selectedTransaction.flow === "out"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-                              : selectedTransaction.type_raw === "purchase"
+                              : selectedTransaction.flow === "freeze"
                               ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
                               : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
                           }`}
                         >
-                          {selectedTransaction.type === "withdrawal"
-                            ? "Retrait"
-                            : selectedTransaction.type === "sales"
-                            ? "Achat"
-                            : selectedTransaction.type === "transfer"
-                            ? "Transfert des fonds"
-                            : selectedTransaction.type === "reception"
-                            ? "Réception des fonds"
-                            : selectedTransaction.type === "purchase"
-                            ? "Achat"
-                            : selectedTransaction.type === "virtual"
-                            ? "Achat des virtuels"
-                            : selectedTransaction.type_raw ===
-                              "digital_product_sale"
-                            ? "Vente de produit"
-                            : selectedTransaction.type_raw ===
-                              "commission de parrainage"
-                            ? "Commission de parrainage"
-                            : "Commission"}
+                          {getOperationType(selectedTransaction.type)}
                         </div>
                       </div>
                     </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Montant
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-2xl font-bold ${
+                            selectedTransaction.flow === "out" ||
+                            selectedTransaction.flow === "freeze"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-green-600 dark:text-green-400"
+                          }`}
+                        >
+                          {formatAmount(
+                            selectedTransaction.amount
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Frais
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-2xl font-bold ${
+                            selectedTransaction.flow === "out" ||
+                            selectedTransaction.flow === "freeze"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-green-600 dark:text-green-400"
+                          }`}
+                        >
+                          {formatAmount(
+                            selectedTransaction.fee_amount
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Commission
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-2xl font-bold ${
+                            selectedTransaction.flow === "out" ||
+                            selectedTransaction.flow === "freeze"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-green-600 dark:text-green-400"
+                          }`}
+                        >
+                          {formatAmount(
+                            selectedTransaction.commission_amount
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Balance avant
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-2xl font-bold text-green-600 dark:text-green-400`}
+                        >
+                          {formatAmount(
+                            selectedTransaction.balance_before
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Balance après
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-2xl font-bold text-green-600 dark:text-green-400`}
+                        >
+                          {formatAmount(
+                            selectedTransaction.balance_after
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Statut
@@ -5093,10 +5172,10 @@ export default function UserDetails({ userId }) {
                         ></div>
                         {selectedTransaction.status === "pending"
                           ? "En attente"
-                          : selectedTransaction.status === "approved"
-                          ? "Approuvé"
-                          : selectedTransaction.status === "rejected"
-                          ? "Refusé"
+                          : selectedTransaction.status === "processing"
+                          ? "En cours"
+                          : selectedTransaction.status === "reversed"
+                          ? "Annulé"
                           : selectedTransaction.status === "completed"
                           ? "Complété"
                           : selectedTransaction.status === "failed"
@@ -5106,38 +5185,97 @@ export default function UserDetails({ userId }) {
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Montant
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={`text-2xl font-bold ${
-                            selectedTransaction.type_raw === "withdrawal" ||
-                            selectedTransaction.type_raw === "purchase"
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-green-600 dark:text-green-400"
-                          }`}
-                        >
-                          {selectedTransaction.type_raw === "withdrawal" ||
-                          selectedTransaction.type_raw === "purchase"
-                            ? "-"
-                            : "+"}
-                          {parseFloat(
-                            selectedTransaction.amount
-                          ).toLocaleString("fr-FR", {
-                            style: "currency",
-                            currency: selectedTransaction.currency || "USD",
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Date
                       </p>
                       <div className="flex items-center space-x-2 text-sm font-medium">
                         <CalendarDaysIcon className="h-4 w-4 text-gray-400" />
                         <span>
                           {formatDate(selectedTransaction.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informations détaillées */}
+                <div
+                  className={`p-6 rounded-xl mb-6 ${
+                    isDarkMode
+                      ? "bg-gray-700 bg-opacity-50"
+                      : "bg-gradient-to-br from-purple-50 to-pink-50"
+                  }`}
+                >
+                  <h4
+                    className={`text-lg font-semibold mb-4 flex items-center ${
+                      isDarkMode ? "text-white" : "text-gray-800"
+                    }`}
+                  >
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                    Informations détaillées
+                  </h4>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Traité par
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedTransaction.processor || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Référence
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedTransaction.reference || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Flux
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            selectedTransaction.flow === "in"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : selectedTransaction.flow === "out"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                              : selectedTransaction.flow === "freeze"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                              : selectedTransaction.flow === "unfreeze"
+                              ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                          }`}
+                        >
+                          {selectedTransaction.flow === "in" ? "Entrée" : 
+                           selectedTransaction.flow === "out" ? "Sortie" :
+                           selectedTransaction.flow === "freeze" ? "Blocage" :
+                           selectedTransaction.flow === "unfreeze" ? "Déblocage" : selectedTransaction.flow}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Description
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedTransaction.description || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Motif de rejet
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedTransaction.rejection_reason || 'N/A'}
                         </span>
                       </div>
                     </div>

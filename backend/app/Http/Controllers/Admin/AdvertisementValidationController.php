@@ -17,20 +17,6 @@ use Illuminate\Http\JsonResponse;
 class AdvertisementValidationController extends Controller
 {
     /**
-     * Compter le nombre de publicités en attente
-     *
-     * @return JsonResponse
-     */
-    public function pendingCount(): JsonResponse
-    {
-        try {
-            $count = Publicite::where('statut', 'en_attente')->count();
-            return response()->json(['count' => $count]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors du comptage des publicités en attente', 'error' => $e->getMessage()], 500);
-        }
-    }
-    /**
      * Afficher la liste des publicités pour validation avec pagination
      *
      * @param  \Illuminate\Http\Request  $request
@@ -106,7 +92,7 @@ class AdvertisementValidationController extends Controller
         }
         
         // Mettre à jour le statut
-        $publicite->statut = 'approuvé';
+        $publicite->statut = 'approved';
         $publicite->save();
         
         // Notifier l'utilisateur que sa publication a été approuvée
@@ -114,7 +100,7 @@ class AdvertisementValidationController extends Controller
             'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
             'id' => $publicite->id,
             'titre' => $publicite->titre,
-            'statut' => 'approuvé',
+            'statut' => 'approved',
             'message' => 'Votre publicité a été approuvée et est maintenant visible par tous les utilisateurs.'
         ]));
         
@@ -150,7 +136,7 @@ class AdvertisementValidationController extends Controller
         }
         
         // Mettre à jour le statut
-        $publicite->statut = 'rejete';
+        $publicite->statut = 'rejected';
         $publicite->raison_rejet = $request->reason;
         $publicite->save();
         
@@ -160,7 +146,7 @@ class AdvertisementValidationController extends Controller
             'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
             'id' => $publicite->id,
             'titre' => $publicite->titre,
-            'statut' => 'rejete',
+            'statut' => 'rejected',
             'message' => 'Votre publicité a été rejetée.',
             'raison' => $request->reason
         ]));
@@ -181,7 +167,7 @@ class AdvertisementValidationController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'statut' => 'required|string|in:en_attente,approuve,rejete',
+            'statut' => 'required|string|in:pending,approved,rejected',
         ]);
         
         $publicite = Publicite::findOrFail($id);
@@ -206,7 +192,7 @@ class AdvertisementValidationController extends Controller
         ]));
         
         // Si la publicité est approuvée et a besoin de livreurs, notifier les livreurs approuvés
-        if ($request->statut === 'approuve' && $publicite->besoin_livreurs === 'oui') {
+        if ($request->statut === 'approved' && $publicite->besoin_livreurs === 'oui') {
             LivreurController::notifierLivreurs($publicite);
         }
         
@@ -226,7 +212,7 @@ class AdvertisementValidationController extends Controller
     public function updateEtat(Request $request, $id)
     {
         $request->validate([
-            'etat' => 'required|string|in:disponible,terminé',
+            'etat' => 'required|string|in:available,unavailable',
         ]);
         
         $publicite = Publicite::findOrFail($id);

@@ -105,38 +105,39 @@ class GradeController extends Controller
                     'grades' => $gradesWithUrls,
                     'user_points' => $userPoints,
                     'current_grade' => $currentGrade ? [
-                        'id' => $currentGrade->id,
-                        'niveau' => $currentGrade->niveau,
-                        'designation' => $currentGrade->designation,
-                        'points' => $currentGrade->points,
-                        'valeur_point' => $currentGrade->valeur_point,
-                        'symbole' => $currentGrade->symbole,
-                        'symbole_url' => $currentGrade->symbole_url,
-                        'symbole_url_or_default' => $currentGrade->symbole_url_or_default,
+                        'id' => $currentGrade?->id,
+                        'niveau' => $currentGrade?->niveau,
+                        'designation' => $currentGrade?->designation,
+                        'points' => $currentGrade?->points,
+                        'valeur_point' => $currentGrade?->valeur_point,
+                        'symbole' => $currentGrade?->symbole,
+                        'symbole_url' => $currentGrade?->symbole_url,
+                        'symbole_url_or_default' => $currentGrade?->symbole_url_or_default,
                     ] : null,
                     'next_grade' => $nextGrade ? [
-                        'id' => $nextGrade->id,
-                        'niveau' => $nextGrade->niveau,
-                        'designation' => $nextGrade->designation,
-                        'points' => $nextGrade->points,
-                        'valeur_point' => $nextGrade->valeur_point,
-                        'symbole' => $nextGrade->symbole,
-                        'symbole_url' => $nextGrade->symbole_url,
-                        'symbole_url_or_default' => $nextGrade->symbole_url_or_default,
+                        'id' => $nextGrade?->id,
+                        'niveau' => $nextGrade?->niveau,
+                        'designation' => $nextGrade?->designation,
+                        'points' => $nextGrade?->points,
+                        'valeur_point' => $nextGrade?->valeur_point,
+                        'symbole' => $nextGrade?->symbole,
+                        'symbole_url' => $nextGrade?->symbole_url,
+                        'symbole_url_or_default' => $nextGrade?->symbole_url_or_default,
                     ] : null,
                     'progress' => [
                         'percentage' => round($progressPercentage, 2),
                         'points_to_next' => $pointsToNextGrade,
                         'completed_grades_count' => $currentGrade ? $grades->search(function ($grade) use ($currentGrade) {
-                            return $grade->points <= $currentGrade->points;
+                            return $grade?->points <= $currentGrade?->points;
                         }) + 1 : 0, // +1 car search retourne l'index (commence à 0)
                         'total_grades_count' => $grades->count(),
-                        'last_grade_point' => $lastGrade->points,
+                        'last_grade_point' => $lastGrade?->points,
                     ]
                 ]
             ]);
             
         } catch (\Exception $e) {
+            \Log::info($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des grades: ' . $e->getMessage()

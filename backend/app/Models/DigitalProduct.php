@@ -18,7 +18,6 @@ class DigitalProduct extends Model
         'description',
         'type', // 'ebook', 'fichier_admin'
         'prix',
-        'devise',
         'image',
         'fichier',
         'expiry_date',

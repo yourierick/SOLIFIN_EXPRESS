@@ -148,11 +148,6 @@ const LoginForm = () => {
               <input
                 {...register("password", {
                   required: "Le mot de passe est requis",
-                  minLength: {
-                    value: 8,
-                    message:
-                      "Le mot de passe doit contenir au moins 8 caractères",
-                  },
                 })}
                 type={showPassword ? "text" : "password"}
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-gray-500 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm pl-10 ${

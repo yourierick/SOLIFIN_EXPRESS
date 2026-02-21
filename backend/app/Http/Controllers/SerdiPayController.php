@@ -13,7 +13,7 @@ use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
 use App\Models\Setting;
 use App\Models\WalletTransaction;
-use App\Models\WalletSystemTransaction;
+use App\Models\WalletSystem;
 use App\Models\SerdiPayTransaction;
 use App\Models\UserPack;
 use App\Notifications\PaymentInitiatedNotification;
@@ -35,6 +35,10 @@ class SerdiPayController extends Controller
     const STATUS_COMPLETED = 'completed';
     const STATUS_INITIATED = 'initiated';
     const STATUS_APPROVED = 'approved';
+    const STATUS_PAID = 'paid';
+    const STATUS_PROCESSING = 'processing';
+    const STATUS_REJECTED = 'rejected';
+    const STATUS_CANCELLED = 'cancelled';
 
     public function __construct(SerdiPayService $serdiPayService)
     {
@@ -49,12 +53,10 @@ class SerdiPayController extends Controller
      */
     public function initialWithdrawal($withdrawal)
     {
-        $walletTransaction = $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->first();
         try {
             // Récupérer les informations nécessaires depuis la demande de retrait
             $phoneNumber = $withdrawal->payment_details['phoneNumber'] ?? null;
             $amount = $withdrawal->payment_details['montant_a_retirer'];
-            $currency = $withdrawal->payment_details['devise'] ?? 'USD';
             $paymentMethod = $withdrawal->payment_method;
             $payment_type = $withdrawal->payment_details['payment_type'];
             
@@ -91,7 +93,7 @@ class SerdiPayController extends Controller
                 $phoneNumber = $phoneNumber;
             } else {
                 // Pour carte de crédit, vérifier les détails de la carte
-                $requiredFields = ['cardNumber', 'cardHolder', 'expiryDate', 'cvv'];
+                $requiredFields = ['cardNumber', 'cardHolder', 'expiryDate'];
                 foreach ($requiredFields as $field) {
                     if (empty($withdrawal->payment_details['payment_details'][$field])) {
                         return [
@@ -102,11 +104,10 @@ class SerdiPayController extends Controller
                 }
             }
 
-            $description = 'Retrait de ' . $withdrawal->payment_details['montant_a_retirer'] . ' ' . $withdrawal->currency;
+            $description = 'Retrait de ' . $withdrawal->payment_details['montant_a_retirer'] . '$';
 
             $paymentDetails['phoneNumber'] = $withdrawal->payment_details['phoneNumber'] ?? null;
             $paymentDetails['amount'] = $withdrawal->payment_details['montant_a_retirer'] ?? null;
-            $paymentDetails['currency'] = $withdrawal->currency;
             $paymentDetails['payment_method'] = $methode_paiement;
             $paymentDetails['payment_type'] = $payment_type;
             $paymentDetails['userId'] = $withdrawal->user_id ?? null;
@@ -142,30 +143,8 @@ class SerdiPayController extends Controller
 
             $withdrawal->session_id = $result['session_id'];
             $withdrawal->transaction_id = $result['transaction_id'];
-            $withdrawal->status = self::STATUS_APPROVED;
-            $withdrawal->payment_status = self::STATUS_INITIATED;
+            $withdrawal->status = self::STATUS_PROCESSING;
             $withdrawal->save();
-                
-            // Enregistrer la transaction dans le wallet system
-            $walletService = app(\App\Services\WalletService::class);
-            
-            $walletService->recordSystemTransaction([
-                'amount' => $withdrawal->payment_details['montant_a_retirer'],
-                'type' => 'withdrawal',
-                'status' => self::STATUS_PENDING,
-                'mouvment' => 'out',
-                'metadata' => [
-                    'user' => $withdrawal->user->name,
-                    'withdrawal_id' => $withdrawal->id,
-                    'phone_number' => $phoneNumber,
-                    'Méthode de paiement' => $paymentMethod,
-                    'Montant à retirer' => $withdrawal->payment_details['montant_a_retirer'],
-                    'Devise' => $withdrawal->payment_details['devise'],
-                    'Frais de transaction' => $withdrawal->payment_details['frais_de_retrait'] . $withdrawal->payment_details['devise'],
-                    'Frais de commission' => $withdrawal->payment_details['frais_de_commission'] . $withdrawal->payment_details['devise'],
-                    'description' => "Retrait ID: {$withdrawal->id} via {$paymentMethod} au numéro {$phoneNumber}"
-                ]
-            ]);
                 
             return [
                 'success' => true,
@@ -245,10 +224,9 @@ class SerdiPayController extends Controller
      *
      * @param string $paymentMethod Méthode de paiement
      * @param float $paymentAmount Montant du paiement
-     * @param string $paymentCurrency Devise du paiement
      * @return array Tableau contenant les frais calculés
      */
-    private function calculateFees($paymentMethod, $paymentAmount, $paymentCurrency)
+    private function calculateFees($paymentMethod, $paymentAmount)
     {
         $result = [
             'globalFees' => 0,
@@ -284,7 +262,7 @@ class SerdiPayController extends Controller
      * @param int $durationMonths Durée en mois
      * @return array Résultat de la vérification
      */
-    private function verifyPackPayment($netAmount, $pack, $durationMonths, $currency)
+    private function verifyPackPayment($netAmount, $pack, $durationMonths)
     {
         $result = [
             'success' => true,
@@ -300,13 +278,8 @@ class SerdiPayController extends Controller
 
         $baseAmount = 0;
         
-        if ($currency === "USD") {
-            // Calculer le montant de base : prix du pack * pas d'abonnement
-            $baseAmount = $pack->price * $step;
-        }else {
-            // Calculer le montant de base : prix du pack * pas d'abonnement
-            $baseAmount = $pack->cdf_price * $step;
-        }
+        // Calculer le montant de base : prix du pack * pas d'abonnement
+        $baseAmount = $pack->price * $step;
 
         
         // Calculer le nombre de périodes d'abonnement
@@ -339,7 +312,7 @@ class SerdiPayController extends Controller
         return [
             'phoneNumber' => $data['phoneNumber'] ?? null,
             'amount' => round($data['amount'], 2),
-            'currency' => $data['currency'],
+            'currency' => 'USD',
             'paymentMethod' => $data['payment_method'],
             'userId' => $data['user_id'] ?? null,
             'walletId' => $data['wallet_id'] ?? null,
@@ -369,10 +342,7 @@ class SerdiPayController extends Controller
                 'duration_months' => 'nullable|integer|min:1',
                 'amount' => 'required|numeric|min:0',
                 'fees' => 'required|numeric|min:0',
-                'currency' => 'required|string',
             ]);
-
-            \Log::info('ça passe');
             
             // Ajouter des validations conditionnelles manuellement
             if ($request->input('payment_type') === 'mobile-money') {
@@ -541,11 +511,10 @@ class SerdiPayController extends Controller
             $paymentMethod = $validated['payment_method']; // Méthode spécifique (visa, m-pesa, etc.)
             $paymentType = $validated['payment_type']; // Type général (credit-card, mobile-money, etc.)
             $paymentAmount = $validated['amount']; // Montant sans les frais
-            $paymentCurrency = $validated['currency'] ?? 'USD';
             $referralCode = $validated['referralCode'] ?? null;
             
             // Calculer les frais de transaction (globaux et spécifiques à l'API)
-            $feesResult = $this->calculateFees($paymentMethod, $paymentAmount, $paymentCurrency);
+            $feesResult = $this->calculateFees($paymentMethod, $paymentAmount);
             
             if (!$feesResult['transactionFeeModel']) {
                 return response()->json([
@@ -564,7 +533,7 @@ class SerdiPayController extends Controller
             // Vérifier le type de transaction pour la validation de pack
             if ($validated['transaction_type'] === "purchase_pack" || $validated['transaction_type'] === "renew_pack") {
                 // Vérifier que le montant net est suffisant pour couvrir le coût du pack
-                $paymentVerification = $this->verifyPackPayment($paymentAmount, $pack, $validated['duration_months'], $paymentCurrency);
+                $paymentVerification = $this->verifyPackPayment($paymentAmount, $pack, $validated['duration_months']);
                 
                 if (!$paymentVerification['success']) {
                     \Log::warning('Paiement insuffisant pour le pack', [
@@ -593,7 +562,6 @@ class SerdiPayController extends Controller
                     'referral_code' => $validated['referralCode'] ?? null,
                     'amount' => $validated['amount'],
                     'fees' => $frais_de_transaction,
-                    'currency' => $validated['currency'],
                     'payment_method' => $validated['payment_method'],
                     'payment_type' => $validated['payment_type'],
                     'payment_details' => $validated['payment_details'],
@@ -643,6 +611,22 @@ class SerdiPayController extends Controller
                     }
                     
                     $validated['phoneNumber'] = $phoneNumber;
+                
+                    // Stocker les données d'achat temporairement
+                    $purchaseData = [
+                        'user_id' => $user->id,
+                        'pack_id' => isset($pack) ? $pack->id : null,
+                        'duration_months' => $validated['duration_months'] ?? null,
+                        'referral_code' => $referralCode ?? null,
+                        'amount' => $totalAmount,
+                        'fees' => $frais_de_transaction,
+                        'payment_method' => $methode_paiement,
+                        'payment_type' => $validated['payment_type'],
+                        'payment_details' => $validated['payment_details'],
+                        'phoneNumber' => $validated['payment_details']['phoneNumber'] ?? null,
+                        'email' => $user->email,
+                        'wallet_id' => $user->wallet->id,
+                    ];
                 } elseif ($validated['payment_type'] === 'credit-card') {
                     // Pour carte de crédit, vérifier les détails de la carte
                     $requiredFields = ['cardNumber', 'cardHolder', 'expiryDate', 'cvv'];
@@ -654,27 +638,30 @@ class SerdiPayController extends Controller
                             ], 400);
                         }
                     }
+
+                    // Stocker les données d'achat temporairement
+                    $purchaseData = [
+                        'user_id' => $user->id,
+                        'pack_id' => isset($pack) ? $pack->id : null,
+                        'duration_months' => $validated['duration_months'] ?? null,
+                        'referral_code' => $referralCode ?? null,
+                        'amount' => $totalAmount,
+                        'fees' => $frais_de_transaction,
+                        'payment_method' => $methode_paiement,
+                        'payment_type' => $validated['payment_type'],
+                        'payment_details' => $validated['payment_details'],
+                        'phoneNumber' => $validated['payment_details']['phoneNumber'] ?? null,
+                        'cardNumber' => $validated['payment_details']['cardNumber'] ?? null,
+                        'cardHolder' => $validated['payment_details']['cardHolder'] ?? null,
+                        'expiryDate' => $validated['payment_details']['expiryDate'] ?? null,
+                        'cvv' => $validated['payment_details']['cvv'] ?? null,
+                        'email' => $user->email,
+                        'wallet_id' => $user->wallet->id,
+                    ];
                 }
-                
+            
                 // Générer un ID temporaire unique pour cette transaction
                 $tempPurchaseId = uniqid('purchase_', true);
-            
-                // Stocker les données d'achat temporairement
-                $purchaseData = [
-                    'user_id' => $user->id,
-                    'pack_id' => isset($pack) ? $pack->id : null,
-                    'duration_months' => $validated['duration_months'] ?? null,
-                    'referral_code' => $referralCode ?? null,
-                    'amount' => $totalAmount,
-                    'fees' => $frais_de_transaction,
-                    'currency' => $validated['currency'],
-                    'payment_method' => $methode_paiement,
-                    'payment_type' => $validated['payment_type'],
-                    'payment_details' => $validated['payment_details'],
-                    'phoneNumber' => $validated['payment_details']['phoneNumber'],
-                    'email' => $user->email,
-                    'wallet_id' => $user->wallet->id,
-                ];
 
                 // Créer une entrée dans la table purchase_temp
                 $id = DB::table('purchase_temp')->insertGetId([
@@ -726,13 +713,30 @@ class SerdiPayController extends Controller
                         'session_id' => $result['session_id'] ?? null,
                         'transaction_id' => $result['transaction_id'] ?? null
                     ]);
-                
+
+                //Créer la transaction dans le wallet utilisateur
+                $walletService = app(\App\Services\WalletService::class);
+                $walletService->recordUserTransaction([
+                    'session_id' => $result['session_id'] ?? null,
+                    'transaction_id' => $result['transaction_id'] ?? null,
+                    'flow' => 'out',
+                    'nature' => 'external',
+                    'type' => $validated['transaction_type'] === 'purchase_pack' || $validated['transaction_type'] === 'renew_pack' ? 'pack_purchase' : 'virtual_purchase',
+                    'amount' => $paymentAmount,
+                    'fee_amount' => $frais_de_transaction,
+                    'commission_amount' => 0,
+                    'balance_before' => $user->wallet->balance,
+                    'balance_after' => $user->wallet->balance,
+                    'status' => 'processing',
+                    'processed_by' => $user->id,
+                    'processed_at' => now(),
+                ]);
+                             
                 // Envoyer la notification de paiement initié
                 $purchaseTemp = PurchaseTemp::where('id', $id)->first();
                 if ($purchaseTemp && !empty($purchaseTemp->user_id)) {
                     $user->notify(new PaymentInitiatedNotification(
                         $purchaseTemp->purchase_data['amount'] ?? 0,
-                        $purchaseTemp->purchase_data['currency'] ?? 'USD',
                         $result['session_id'] ?? null,
                         $result['transaction_id'] ?? null,
                         $purchaseTemp->transaction_type
@@ -744,8 +748,7 @@ class SerdiPayController extends Controller
                     'success' => true,
                     'message' => 'Paiement initié avec succès',
                 ]);
-            }
-            
+            }  
         } catch (\Exception $e) {
             Log::error('Erreur lors de l\'initiation du paiement: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
@@ -773,6 +776,12 @@ class SerdiPayController extends Controller
                 throw new \Exception('Données d\'achat invalides');
                 \Log::error('Données d\'achat invalides');
             }
+
+            $purchaseData = array_merge(
+                [
+                    'session_id' => $tempPurchase->session_id,
+                    'transaction_id' => $tempPurchase->transaction_id
+                ], $metadata);
         
             $purchaseData = new Request($purchaseData);
 
@@ -868,9 +877,9 @@ class SerdiPayController extends Controller
             $status = $request->input('payment.status');
             $message = $request->input('message');
             $sessionId = $request->input('payment.sessionId');
-            $paymentStatus = $request->input('payment.status');
             $transactionId = $request->input('payment.transactionId');
 
+            DB::beginTransaction();
             // Traiter le callback avec le service SerdiPay
             $result = $this->serdiPayService->handleCallback($request->all());
             
@@ -878,11 +887,11 @@ class SerdiPayController extends Controller
 
             if ($type === 'payment') {
                 // Envoyer notification de statut de paiement
-                $this->sendPaymentStatusNotification($status, $paymentStatus, $sessionId);
+                $this->sendPaymentStatusNotification($status, $status, $sessionId);
             }
 
             // Si le paiement est réussi, finaliser l'achat
-            if ($status === 'success' && $paymentStatus === 'success') {    
+            if ($result['status'] === 'success') {    
                 if ($type === 'payment') {
                     $tempPurchase = PurchaseTemp::where('session_id', $sessionId)->first();
 
@@ -916,34 +925,114 @@ class SerdiPayController extends Controller
                         $this->sendTransactionNotification($tempPurchase, $success);
                     }
                 }else {
-                    $withdrawal = WithdrawalRequest::where('session_id', $sessionId)->whereNull('paid_at')->first();
+                    $withdrawal = WithdrawalRequest::where('session_id', $sessionId)->whereNull('paid_at')->first(); 
                     if ($withdrawal) {
+                        
+                        //Déduire les fonds du wallet de l'utilisateur qui a fait le retrait.
+                        $withdrawal->user->wallet->withdrawFunds(
+                            $withdrawal->payment_details['montant_total_a_debiter'],
+                            $withdrawal->payment_details['frais_de_retrait'],
+                            $withdrawal->payment_details['frais_de_commission'],
+                            'internal',
+                            'funds_withdrawal',
+                            'completed',
+                            'Vous avez rétiré un montant de ' . $withdrawal->amount . '$ avec succès',
+                            $withdrawal->user->id,
+                            $withdrawal->payment_details['payment_type'] === 'mobile-money' ? [
+                                "Opération" => "Retrait des fonds",
+                                "Type de paiement" => $withdrawal->payment_details['payment_type'],
+                                "Méthode de paiement" => $withdrawal->payment_details['payment_method'],
+                                "Montant rétiré" => $withdrawal->payment_details['montant_a_retirer'] . '$',
+                                "Frais de retrait" => $withdrawal->payment_details['frais_de_retrait'] . '$',
+                                "Frais de commission" => $withdrawal->payment_details['frais_de_commission'] . '$',
+                                "Téléphone" => $withdrawal->payment_details['phoneNumber'],
+                            ] : [
+                                "Opération" => "Retrait des fonds",
+                                "Type de paiement" => $withdrawal->payment_details['payment_type'],
+                                "Méthode de paiement" => $withdrawal->payment_details['payment_method'],
+                                "Montant rétiré" => $withdrawal->payment_details['montant_a_retirer'] . '$',
+                                "Frais de retrait" => $withdrawal->payment_details['frais_de_retrait'] . '$',
+                                "Frais de commission" => $withdrawal->payment_details['frais_de_commission'] . '$',
+                                'Numéro de la carte' => $withdrawal->payment_details['cardNumber'],
+                            ]
+                        );
+
+                        $walletSystem = WalletSystem::first();
+                        //Déduire les fonds du wallet system. (sortie réelle des fonds)
+                        $walletSystem->deductFunds(
+                            $withdrawal->amount,
+                            'funds_withdrawal',
+                            'completed',
+                            $withdrawal->user->id,
+                            'Un retrait d\'un montant de ' . number_format($withdrawal->amount, 2) . "$, a été effectué avec succès par " . $withdrawal->user->name . ' / ' . $withdrawal->user->account_id,
+                            $withdrawal->payment_details['payment_type'] === 'mobile-money' ? [
+                                "Opération" => "Retrait des fonds",
+                                "Bénéficiaire" => $withdrawal->user->name . ' / ' . $withdrawal->user->account_id,
+                                "Type de paiement" => $withdrawal->payment_details['payment_type'],
+                                "Méthode de paiement" => $withdrawal->payment_details['payment_method'],
+                                "Montant rétiré" => $withdrawal->payment_details['montant_a_retirer'] . '$',
+                                "Frais de retrait" => $withdrawal->payment_details['frais_de_retrait'] . '$',
+                                "Frais de commission" => $withdrawal->payment_details['frais_de_commission'] . '$',
+                                "Téléphone" => $withdrawal->payment_details['phoneNumber'],
+                            ] : [
+                                "Opération" => "Retrait des fonds",
+                                "Bénéficiaire" => $withdrawal->user->name . ' / ' . $withdrawal->user->account_id,
+                                "Type de paiement" => $withdrawal->payment_details['payment_type'],
+                                "Méthode de paiement" => $withdrawal->payment_details['payment_method'],
+                                "Montant rétiré" => $withdrawal->payment_details['montant_a_retirer'] . '$',
+                                "Frais de retrait" => $withdrawal->payment_details['frais_de_retrait'] . '$',
+                                "Frais de commission" => $withdrawal->payment_details['frais_de_commission'] . '$',
+                                'Numéro de la carte' => $withdrawal->payment_details['cardNumber'], 
+                                'Proptiétaire' => $withdrawal->payment_details['cardHolder'], 
+                                'Date d\'expiration' => $withdrawal->payment_details['expiryDate']
+                            ]
+                        );
+                        
+                        //payer la commission du sponsor
+                        if ($withdrawal->payment_details['frais_de_commission'] > 0) {
+                            $withdrawalService = app(WithdrawalService::class);
+                            //c'est le premier sponsor de l'utilisateur qui touche la commission de retrait
+                            $firstuserpack = UserPack::where('user_id', $withdrawal->user->id)->first();
+                            if ($firstuserpack && $firstuserpack->sponsor) {
+                                $withdrawalService->paySponsorCommission($firstuserpack->sponsor, $withdrawal->payment_details['frais_de_commission'], $withdrawal);
+                            }
+                        }
+
+                        //Payer la commission solifin
+                        $walletSystem->addProfits(
+                            $withdrawal->payment_details['frais_de_retrait'],
+                            'withdrawal_commission',
+                            'completed',
+                            'Vous avez reçu une commission de ' . $withdrawal->payment_details['frais_de_retrait'] . '$ pour le retrait des fonds effectué par ' . $withdrawal->user->name . ' / ' . $withdrawal->user->account_id,
+                            $withdrawal->user->id,
+                            $withdrawal->payment_details['payment_type'] === 'mobile-money' ? [
+                                "Opération" => "Commission SOLIFIN sur retrait",
+                                "Type de paiement" => $withdrawal->payment_details['payment_type'],
+                                "Méthode de paiement" => $withdrawal->payment_details['payment_method'],
+                                "Montant rétiré" => $withdrawal->payment_details['montant_a_retirer'] . '$',
+                                "Commission" => $withdrawal->payment_details['frais_de_retrait'] . '$',
+                                "Téléphone" => $withdrawal->payment_details['phoneNumber'],
+                            ] : [
+                                "Opération" => "Commission SOLIFIN sur retrait",
+                                "Type de paiement" => $withdrawal->payment_details['payment_type'],
+                                "Méthode de paiement" => $withdrawal->payment_details['payment_method'],
+                                "Montant rétiré" => $withdrawal->payment_details['montant_a_retirer'] . '$',
+                                "Commission" => $withdrawal->payment_details['frais_de_retrait'] . '$',
+                                'Numéro de la carte' => $withdrawal->payment_details['cardNumber'], 
+                                'Proptiétaire' => $withdrawal->payment_details['cardHolder'], 
+                                'Date d\'expiration' => $withdrawal->payment_details['expiryDate']
+                            ]
+                        );
+
+                        //Mettre à jour la demande de retrait
                         $withdrawal->update([
                             'paid_at' => now(),
                             'payment_status' => 'paid'
                         ]);
+
+                        //Envoyer la notification de retrait effectué
+                        $withdrawal->user->notify(new WithdrawalRequestPaid($withdrawal));
                     }
-
-                    $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->update([
-                        'status' => 'completed'
-                    ]);
-
-
-                    $transaction_system = WalletSystemTransaction::where('type', 'withdrawal')->where('metadata->withdrawal_id', $withdrawal->id)->first();
-                    if ($transaction_system) {
-                        $transaction_system->update([
-                            'status' => 'completed'
-                        ]);
-                    }
-
-                    //Envoyer la notification de retrait effectué
-                    $withdrawal->user->notify(new WithdrawalRequestPaid($withdrawal));
-
-                    //Payer la commission
-                    $withdrawalService = app(WithdrawalService::class);
-                    //c'est le premier sponsor de l'utilisateur qui touche la commission de retrait
-                    $firstuserpack = UserPack::where('user_id', $withdrawal->user->id)->first();
-                    $withdrawalService->paySponsorCommission($firstuserpack->sponsor, $withdrawal->payment_details['frais_de_commission'], $withdrawal);
                 }
             }else {
                 if ($type === 'payment') {
@@ -957,23 +1046,18 @@ class SerdiPayController extends Controller
                         }else {
                             $operation = 'Renouvellement de pack';
                         }
-                        $user->wallet->transactions()->create([
-                            'wallet_id' => $user->wallet->id,
-                            'amount' => $tempPurchase->purchase_data['amount'] ?? 0,
-                            'currency' => $tempPurchase->purchase_data['currency'] ?? 'USD',
-                            'mouvment' => 'out', // Sortie d'argent
-                            'type' => 'purchase',
+
+                        DB::table('purchase_temp')
+                            ->where('id', $tempPurchase->id)
+                            ->update([
+                                'completed_at' => now(),
+                                'status' => 'failed'
+                            ]);
+
+                        $user->wallet->transactions()->where('session_id', $tempPurchase->session_id)->where('transaction_id', $tempPurchase->transaction_id)->update([
                             'status' => 'failed',
-                            'metadata' => [
-                                'Opération' => $operation,
-                                'User' => $tempPurchase->user->name,
-                                'Pack' => $tempPurchase->pack->name,
-                                'Montant' => $tempPurchase->purchase_data['amount'] ?? 0,
-                                'Dévise' => $tempPurchase->purchase_data['currency'] ?? 'USD',
-                                'Statut' => 'Echoué',
-                                'Session ID' => $tempPurchase->session_id,
-                                'Transaction ID' => $tempPurchase->transaction_id,
-                            ]
+                            'metadata' => $metadata_user,
+                            'rejection_reason' => $result['message']
                         ]);
                     }
                 }else {
@@ -981,20 +1065,8 @@ class SerdiPayController extends Controller
                     $withdrawal = WithdrawalRequest::where('session_id', $sessionId)->whereNull('paid_at')->first();
                     if ($withdrawal) {
                         $withdrawal->update([
-                            'payment_status' => 'failed'
-                        ]);
-
-                        $withdrawal->user->wallet->transactions()->where('type', 'withdrawal')->where('metadata->withdrawal_request_id', $withdrawal->id)->update([
                             'status' => 'failed'
                         ]);
-
-
-                        $transaction_system = WalletSystemTransaction::where('type', 'withdrawal')->where('metadata->withdrawal_id', $withdrawal->id)->first();
-                        if ($transaction_system) {
-                            $transaction_system->update([
-                                'status' => 'failed'
-                            ]);
-                        }
 
                         //Envoyer la notification d'échec de retrait à l'admin qui a validé
                         $withdrawal->processor->notify(new WithdrawalRequestFailed($withdrawal, $status, $message, $sessionId, $transactionId));
@@ -1002,11 +1074,14 @@ class SerdiPayController extends Controller
                 }
             }
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Callback traité avec succès'
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Erreur lors du traitement du callback: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -1033,13 +1108,11 @@ class SerdiPayController extends Controller
                 
                 if ($user) {
                     $amount = $tempPurchase->purchase_data['amount'] ?? 0;
-                    $currency = $tempPurchase->purchase_data['currency'] ?? 'USD';
                     $transactionType = $tempPurchase->transaction_type ?? null;
                     
                     // Envoyer notification à l'utilisateur
                     $user->notify(new PaymentStatusNotification(
                         $amount,
-                        $currency,
                         $sessionId,
                         $status === 'success' && $paymentStatus === 'success' ? 'success' : 'failed',
                         $transactionType
@@ -1076,14 +1149,12 @@ class SerdiPayController extends Controller
             
             $transactionData = $tempPurchase->purchase_data;
             $amount = $tempPurchase->purchase_data['amount'] ?? 0;
-            $currency = $tempPurchase->purchase_data['currency'] ?? 'USD';
             $transactionType = $tempPurchase->transaction_type;
             
             // Envoyer notification de transaction (email + database)
             $user->notify(new TransactionNotification(
                 $transactionData,
                 $amount,
-                $currency,
                 $transactionType,
                 $success
             ));

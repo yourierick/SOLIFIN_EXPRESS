@@ -112,7 +112,7 @@ class TicketGagnant extends Model
         }
 
         DB::beginTransaction();
-        $admin->wallet->addFunds($this->cadeau->valeur, 'USD', 'reception', 'completed', [
+        $admin->wallet->addFunds($this->cadeau->valeur, 'USD', 'funds_receipt', 'completed', [
             'ID du Ticket' => $this->id,
             'ID du Cadeau' => $this->cadeau_id,
             'Nom du Cadeau' => $this->cadeau->nom,
@@ -125,7 +125,7 @@ class TicketGagnant extends Model
         $walletSystem->transactions()->create([
             'wallet_system_id' => $walletSystem->id,
             'mouvment' => 'out',
-            'type' => 'transfer',
+            'type' => 'esengo_funds_transfer',
             'amount' => $this->cadeau->valeur,
             'currency' => 'USD',
             'status' => 'completed',
@@ -136,7 +136,7 @@ class TicketGagnant extends Model
                 'Valeur du Cadeau' => $this->cadeau->valeur,
                 'Code du Ticket' => $this->code_verification,
                 'Distributeur' => $admin->name,
-                'Déscription' => "Paiement des fonds d'une valeur de " . $this->cadeau->valeur . " pour rémise du cadeau " . $this->cadeau->nom,
+                'Déscription' => "Transfert des fonds d'une valeur de " . $this->cadeau->valeur . " pour rémise du cadeau " . $this->cadeau->nom,
             ],
         ]);
 

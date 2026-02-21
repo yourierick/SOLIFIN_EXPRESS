@@ -21,7 +21,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
-const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, currency }) => {
+const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -48,7 +48,7 @@ const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, curre
       'Catégorie': item.pack?.categorie || '-',
       'Statut': item.status || '-',
       'Paiement': item.payment_status || '-',
-      'Prix (USD)': item.pack?.price || 0,
+      'Prix': item.pack?.price || 0,
       'Date d\'achat': formatDateForExcel(item.purchase_date),
       'Date d\'expiration': formatDateForExcel(item.expiry_date),
       'Parrain': item.sponsor?.name || '-',
@@ -103,7 +103,6 @@ const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, curre
     try {
       const params = {
         period: period,
-        currency: currency,
         ...filters,
         export: 'all', // Exporter toutes les données filtrées
       };
@@ -123,7 +122,7 @@ const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, curre
       const response = await axios.get('/api/admin/tableau-de-suivi/user-packs', { params });
       const data = response.data.data || [];
       
-      const filename = `abonnements_filtres_${currency}_${new Date().toISOString().split('T')[0]}`;
+      const filename = `abonnements_filtres_${new Date().toISOString().split('T')[0]}`;
       generateExcel(data, filename);
     } catch (error) {
       console.error('Erreur lors de l\'export des données filtrées:', error);
@@ -141,7 +140,6 @@ const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, curre
         page: currentPage + 1,
         per_page: rowsPerPage,
         period: period,
-        currency: currency,
         ...filters,
       };
       
@@ -160,7 +158,7 @@ const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, curre
       const response = await axios.get('/api/admin/tableau-de-suivi/user-packs', { params });
       const data = response.data.data || [];
       
-      const filename = `abonnements_page_${currentPage + 1}_${currency}_${new Date().toISOString().split('T')[0]}`;
+      const filename = `abonnements_page_${currentPage + 1}_${new Date().toISOString().split('T')[0]}`;
       generateExcel(data, filename);
     } catch (error) {
       console.error('Erreur lors de l\'export de la page courante:', error);
@@ -176,14 +174,13 @@ const ExportToExcel = ({ period, filters, currentPage, rowsPerPage, total, curre
     try {
       const params = {
         period: period,
-        currency: currency,
         export: 'all', // Exporter toutes les données sans filtres
       };
       
       const response = await axios.get('/api/admin/tableau-de-suivi/user-packs', { params });
       const data = response.data.data || [];
       
-      const filename = `abonnements_toutes_donnees_${currency}_${new Date().toISOString().split('T')[0]}`;
+      const filename = `abonnements_toutes_donnees_${new Date().toISOString().split('T')[0]}`;
       generateExcel(data, filename);
     } catch (error) {
       console.error('Erreur lors de l\'export de toutes les données:', error);

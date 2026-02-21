@@ -49,8 +49,6 @@ class VerifyEmailWithCredentials extends VerifyEmailFrench implements ShouldQueu
             ->line('- Email: ' . $notifiable->email)
             ->line('Veuillez avant de vous connecter, cliquer sur ce lien ci-dessous pour vérifier votre adresse email.')
             ->action('Vérifier l\'adresse e-mail', $verificationUrl)
-            ->line('Vous avez une période d\'essai de ' . $trialDurationDays . ' jours pour tester les fonctionnalités basiques, veuillez souscrire à un pack pour accéder aux fonctionnalités premium.')
-            ->line('Si vous ne souscrivez pas à un pack avant la fin de votre période d\'essai, votre compte sera supprimé')
             ->line('Si vous n\'avez pas créé de compte, aucune action supplémentaire n\'est requise.')
             ->salutation('Cordialement, L\'équipe SOLIFIN');
     }

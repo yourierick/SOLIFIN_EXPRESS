@@ -56,6 +56,7 @@ class CheckPackExpiration extends Command
                                 UserPack::whereIn('id', $packIds)
                                     ->update([
                                         'status' => 'expired',
+                                        'payment_status' => 'pending',
                                         'updated_at' => Carbon::now()
                                     ]);
                                 

@@ -43,7 +43,16 @@ class VerifyEmailFrench extends Notification implements ShouldQueue
             ]
         );
         
+        // Remplacer localhost par l'URL de production
+        $baseUrl = config('app.frontend_url', config('app.url'));
+        $currentUrl = url('');
+        
+        // Si on est en production, remplacer l'URL locale par l'URL de production
+        if (str_contains($currentUrl, 'localhost') || str_contains($currentUrl, '127.0.0.1')) {
+            $url = str_replace($currentUrl, $baseUrl, $url);
+        }
+        
         // Ajouter le préfixe /api pour correspondre aux routes API
-        return str_replace(url(''), url('') . '/api', $url);
+        return str_replace($baseUrl, $baseUrl . '/api', $url);
     }
 } 

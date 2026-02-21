@@ -9,9 +9,12 @@ class WalletService
 {
     // Constantes pour les statuts
     const STATUS_COMPLETED = 'completed';
-    const TYPE_PURCHASE = 'purchase';
-    const TYPE_SALE = 'sale';
-
+    const STATUS_PROCESSING = 'processing';
+    const STATUS_PENDING = 'pending';
+    const STATUS_FAILED = 'failed';
+    const STATUS_REVERSED = 'reversed';
+    
+    
     /**
      * Crée un wallet pour un utilisateur
      *
@@ -24,12 +27,27 @@ class WalletService
     {
         return Wallet::create([
             'user_id' => $userId,
-            'balance_usd' => 0,
-            'balance_cdf' => 0,
-            'total_earned_usd' => 0,
-            'total_earned_cdf' => 0,
-            'total_withdrawn_usd' => 0,
-            'total_withdrawn_cdf' => 0,
+            'balance' => 0,
+            'available_balance' => 0,
+            'frozen_balance' => 0,
+            'points' => 0,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Crée le wallet system
+     *
+     * @return WalletSystem
+     */
+
+    
+    public function createSystemWallet()
+    {
+        return WalletSystem::create([
+            'solde_marchand' => 0,
+            'engagement_users' => 0,
+            'plateforme_benefices' => 0,
         ]);
     }
 
@@ -43,23 +61,27 @@ class WalletService
     {
         $walletSystem = WalletSystem::first();
         if (!$walletSystem) {
-            $walletSystem = WalletSystem::create([
-                'balance_usd' => 0,
-                'balance_cdf' => 0,
-                'total_in_usd' => 0,
-                'total_in_cdf' => 0,
-                'total_out_usd' => 0,
-                'total_out_cdf' => 0,
-            ]);
+            $this->createSystemWallet();
         }
         return $walletSystem->transactions()->create([
-            'wallet_system_id' => $walletSystem->id,
+            'session_id' => $transactionData['session_id'] ?? null,
+            'transaction_id' => $transactionData['transaction_id'] ?? null,
+            'flow' => $transactionData['flow'],
+            'nature' => $transactionData['nature'],
+            'type' => $transactionData['type'],
             'amount' => $transactionData['amount'],
-            'currency' => $transactionData['currency'],
-            'mouvment' => $transactionData['mouvment'] ?? 'in',
-            'type' => $transactionData['type'] ?? self::TYPE_SALE,
-            'status' => $transactionData['status'] ?? self::STATUS_PENDING,
-            'metadata' => $transactionData['metadata'] ?? []
+            'status' => $transactionData['status'],
+            'description' => $transactionData['description'],
+            'metadata' => $transactionData['metadata'] ?? [],
+            'solde_marchand_before' => $transactionData['solde_marchand_before'],
+            'solde_marchand_after' => $transactionData['solde_marchand_after'],
+            'engagement_users_before' => $transactionData['engagement_users_before'],
+            'engagement_users_after' => $transactionData['engagement_users_after'],
+            'plateforme_benefices_before' => $transactionData['plateforme_benefices_before'],
+            'plateforme_benefices_after' => $transactionData['plateforme_benefices_after'],
+            'processed_by' => $transactionData['processed_by'] ?? null,
+            'processed_at' => $transactionData['processed_at'] ?? null,
+            'rejection_reason' => $transactionData['rejection_reason'] ?? null,
         ]);
     }
 
@@ -73,39 +95,22 @@ class WalletService
     public function recordUserTransaction($userWallet, $transactionData)
     {
         return $userWallet->transactions()->create([
-            'wallet_id' => $userWallet->id,
+            'session_id' => $transactionData['session_id'] ?? null,
+            'transaction_id' => $transactionData['transaction_id'] ?? null,
+            'flow' => $transactionData['flow'],
+            'nature' => $transactionData['nature'],
+            'type' => $transactionData['type'],
             'amount' => $transactionData['amount'],
-            'currency' => $transactionData['currency'],
-            'mouvment' => $transactionData['mouvment'] ?? 'in',
-            'type' => $transactionData['type'] ?? self::TYPE_PURCHASE,
-            'status' => $transactionData['status'] ?? self::STATUS_COMPLETED,
-            'metadata' => $transactionData['metadata'] ?? []
+            'fee_amount' => $transactionData['fee_amount'] ?? 0,
+            'commission_amount' => $transactionData['commission_amount'] ?? 0,
+            'balance_before' => $transactionData['balance_before'],
+            'balance_after' => $transactionData['balance_after'],
+            'status' => $transactionData['status'],
+            'description' => $transactionData['description'] ?? null,
+            'metadata' => $transactionData['metadata'] ?? [],
+            'processed_by' => $transactionData['processed_by'] ?? null,
+            'processed_at' => $transactionData['processed_at'] ?? null,
+            'rejection_reason' => $transactionData['rejection_reason'] ?? null,
         ]);
-    }
-
-    /**
-     * Prépare les métadonnées de transaction pour un achat de pack
-     *
-     * @param array $userData
-     * @param object $pack
-     * @param array $paymentData
-     * @return array
-     */
-    public function preparePackPurchaseMetadata($userData, $pack, $paymentData)
-    {
-        return [
-            "Opération" => "Achat d'un pack d'enregistrement",
-            "user" => $userData['name'],
-            "Pack_ID" => $pack->id, 
-            "Nom du pack" => $pack->name, 
-            "Durée de souscription" => $userData['duration_months'] . " mois", 
-            "Type de paiement" => $paymentData['payment_type'],
-            "Méthode de paiement" => $paymentData['payment_method'], 
-            "Détails de paiement" => $paymentData['payment_details'] ?? [],
-            "Dévise" => $paymentData['currency'],
-            "Montant net payé" => $paymentData['amount'] . " " . $paymentData['currency'],
-            "Frais de transaction" => $paymentData['fees'] . " " . $paymentData['currency'],
-            "Description" => "Achat du pack d'enregistrement " . $pack->name . " via " . $paymentData['payment_method']
-        ];
     }
 }

@@ -363,6 +363,14 @@ export default function AdminProfile() {
                       </div>
                       <div>
                         <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          ID Compte
+                        </dt>
+                        <dd className="mt-1 text-base text-gray-900 dark:text-white">
+                          {user.account_id}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Email
                         </dt>
                         <dd className="mt-1 text-base text-gray-900 dark:text-white">

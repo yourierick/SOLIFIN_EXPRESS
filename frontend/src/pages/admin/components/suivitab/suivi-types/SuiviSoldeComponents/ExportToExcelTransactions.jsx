@@ -20,8 +20,9 @@ import {
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { getOperationType } from "../../../../../../components/OperationTypeFormatter";
 
-const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, total, currency }) => {
+const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, total }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -41,54 +42,24 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
   // Fonction pour formater les données pour Excel
   const formatDataForExcel = (data) => {
     return data.map((item, index) => ({
-      '#': index + 1,
+      'N°': index + 1,
       'Utilisateur': item.wallet?.user?.name || '-',
       'Email': item.wallet?.user?.email || '-',
       'Référence': item.reference || '-',
-      'Type': formatType(item.type),
-      'Mouvement': item.movement || '-',
+      'Type': getOperationType(item.type),
+      'Mouvement': item.flow || '-',
       'Montant': item.amount || 0,
-      'Devise': item.currency || '-',
+      'Frais': item.fee_amount || 0,
+      'Commission': item.commission_amount || 0,
       'Statut': item.status || '-',
+      'Balance avant': item.balance_before,
+      'Balance après': item.balance_after,
+      'Traité par': item.processor.name,
       'Date': formatDateForExcel(item.created_at),
       'Description': item.description || '-',
+      'Description': item.rejection_reason || '-',
+      'Metadonnées': item.metadata,
     }));
-  };
-
-  // Fonction pour formater le type de transaction
-  const formatType = (type) => {
-    const typeTranslations = {
-      'deposit': 'Dépôt',
-      'withdrawal': 'Retrait',
-      'transfer': 'Transfert',
-      'payment': 'Paiement',
-      'refund': 'Remboursement',
-      'commission': 'Commission',
-      'bonus': 'Bonus',
-      'penalty': 'Pénalité',
-      'adjustment': 'Ajustement',
-      'conversion': 'Conversion',
-      'fee': 'Frais',
-      'cashback': 'Cashback',
-      'reward': 'Récompense',
-      'interest': 'Intérêt',
-      'dividend': 'Dividende',
-      'subscription': 'Abonnement',
-      'renewal': 'Renouvellement',
-      'cancellation': 'Annulation',
-      'refund_request': 'Demande de remboursement',
-      'chargeback': 'Contestation',
-      'dispute': 'Litige',
-      'hold': 'Blocage',
-      'release': 'Déblocage',
-      'freeze': 'Gel',
-      'unfreeze': 'Dégel',
-      'limit_adjustment': 'Ajustement de limite',
-      'upgrade': 'Mise à niveau',
-      'downgrade': 'Rétrogradation',
-    };
-    
-    return typeTranslations[type] || type;
   };
 
   // Fonction pour formater la date pour Excel
@@ -114,13 +85,19 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
       { wch: 25 }, // Utilisateur
       { wch: 30 }, // Email
       { wch: 20 }, // Référence
-      { wch: 20 }, // Type
+      { wch: 30 }, // Type
       { wch: 12 }, // Mouvement
       { wch: 12 }, // Montant
-      { wch: 10 }, // Devise
+      { wch: 12 }, // Frais
+      { wch: 12 }, // Commission
       { wch: 12 }, // Statut
+      { wch: 12 }, // Balance avant
+      { wch: 12 }, // Balance après
+      { wch: 20 }, // Traité par
       { wch: 18 }, // Date
       { wch: 30 }, // Description
+      { wch: 30 }, // Raison (rejet, echec, ...)
+      { wch: 30 }, // Metadatas
     ];
     ws['!cols'] = colWidths;
 
@@ -154,7 +131,6 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
       
       const params = {
         period: period,
-        currency: currency,
         ...formattedFilters,
         export: 'all', // Exporter toutes les données filtrées
       };
@@ -162,7 +138,7 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
       const response = await axios.get('/api/admin/tableau-de-suivi/wallet-transactions', { params });
       const data = response.data.data || [];
       
-      const filename = `transactions_filtrees_${currency}_${new Date().toISOString().split('T')[0]}`;
+      const filename = `transactions_filtrees_${new Date().toISOString().split('T')[0]}`;
       generateExcel(data, filename);
     } catch (error) {
       console.error('Erreur lors de l\'export des données filtrées:', error);
@@ -195,14 +171,13 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
         page: currentPage + 1,
         per_page: rowsPerPage,
         period: period,
-        currency: currency,
         ...formattedFilters,
       };
       
       const response = await axios.get('/api/admin/tableau-de-suivi/wallet-transactions', { params });
       const data = response.data.data || [];
       
-      const filename = `transactions_page_${currentPage + 1}_${currency}_${new Date().toISOString().split('T')[0]}`;
+      const filename = `transactions_page_${currentPage + 1}_${new Date().toISOString().split('T')[0]}`;
       generateExcel(data, filename);
     } catch (error) {
       console.error('Erreur lors de l\'export de la page courante:', error);
@@ -218,14 +193,13 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
     try {
       const params = {
         period: period,
-        currency: currency,
         export: 'all', // Exporter toutes les données sans filtres
       };
       
       const response = await axios.get('/api/admin/tableau-de-suivi/wallet-transactions', { params });
       const data = response.data.data || [];
       
-      const filename = `transactions_toutes_donnees_${currency}_${new Date().toISOString().split('T')[0]}`;
+      const filename = `transactions_toutes_donnees_${new Date().toISOString().split('T')[0]}`;
       generateExcel(data, filename);
     } catch (error) {
       console.error('Erreur lors de l\'export de toutes les données:', error);

@@ -16,20 +16,6 @@ use Illuminate\Http\JsonResponse;
 class JobOfferValidationController extends Controller
 {
     /**
-     * Compter le nombre d'offres d'emploi en attente
-     *
-     * @return JsonResponse
-     */
-    public function pendingCount(): JsonResponse
-    {
-        try {
-            $count = OffreEmploi::where('statut', 'en_attente')->count();
-            return response()->json(['count' => $count]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors du comptage des offres d\'emploi en attente', 'error' => $e->getMessage()], 500);
-        }
-    }
-    /**
      * Afficher la liste des offres d'emploi pour validation avec pagination
      *
      * @param  \Illuminate\Http\Request  $request
@@ -86,37 +72,6 @@ class JobOfferValidationController extends Controller
     }
     
     /**
-     * Récupérer les offres d'emploi en attente de validation
-     *
-     * @return \Illuminate\Http\Response
-     */
-    // public function getPendingJobOffers()
-    // {
-    //     // Vérifier si l'utilisateur est un administrateur
-    //     if (!Auth::user()->is_admin) {
-    //         return response()->json(['message' => 'Non autorisé'], 403);
-    //     }
-        
-    //     try {
-    //         $pendingJobs = OffreEmploi::with('user')
-    //             ->where('statut', 'en_attente')
-    //             ->orderBy('created_at', 'desc')
-    //             ->get()
-    //             ->map(function ($job) {
-    //                 // Ajouter l'URL du fichier d'offre si elle existe
-    //                 if ($job->offer_file) {
-    //                     $job->offer_file_url = asset('storage/' . $job->offer_file);
-    //                 }
-    //                 return $job;
-    //             });
-            
-    //         return response()->json($pendingJobs);
-    //     } catch (\Exception $e) {
-    //         return response()->json(['message' => 'Erreur lors de la récupération des offres d\'emploi en attente', 'error' => $e->getMessage()], 500);
-    //     }
-    // }
-    
-    /**
      * Approuver une offre d'emploi
      *
      * @param  int  $id
@@ -132,7 +87,7 @@ class JobOfferValidationController extends Controller
         }
         
         // Mettre à jour le statut
-        $offreEmploi->statut = 'approuvé';
+        $offreEmploi->statut = 'approved';
         $offreEmploi->created_at = now();
         $offreEmploi->save();
         
@@ -142,7 +97,7 @@ class JobOfferValidationController extends Controller
             'type' => $offreEmploi->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
             'id' => $offreEmploi->id,
             'titre' => $offreEmploi->titre,
-            'statut' => 'approuve',
+            'statut' => 'approved',
             'message' => 'Votre offre d\'emploi a été approuvée et est maintenant visible par tous les utilisateurs pendant '. $offreEmploi->duree_affichage . ' jours.'
         ]));
         
@@ -173,7 +128,7 @@ class JobOfferValidationController extends Controller
         }
         
         // Mettre à jour le statut
-        $offreEmploi->statut = 'rejeté';
+        $offreEmploi->statut = 'rejected';
         $offreEmploi->raison_rejet = $request->reason;
         $offreEmploi->save();
         
@@ -183,7 +138,7 @@ class JobOfferValidationController extends Controller
             'type' => $offreEmploi->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
             'id' => $offreEmploi->id,
             'titre' => $offreEmploi->titre,
-            'statut' => 'rejeté',
+            'statut' => 'rejected',
             'message' => 'Votre offre d\'emploi a été rejetée.',
             'raison' => $request->reason
         ]));
@@ -204,7 +159,7 @@ class JobOfferValidationController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'statut' => 'required|string|in:en_attente,approuve,rejete',
+            'statut' => 'required|string|in:pending,approved,rejected',
         ]);
         
         $offreEmploi = OffreEmploi::findOrFail($id);
@@ -244,7 +199,7 @@ class JobOfferValidationController extends Controller
     public function updateEtat(Request $request, $id)
     {
         $request->validate([
-            'etat' => 'required|string|in:disponible,terminé',
+            'etat' => 'required|string|in:available,unavailable',
         ]);
         
         $offreEmploi = OffreEmploi::findOrFail($id);

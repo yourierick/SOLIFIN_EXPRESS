@@ -26,7 +26,7 @@ import {
 import axios from 'axios';
 import { useTheme } from "../../../../contexts/ThemeContext";
 
-const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, toggleCurrency }) => {
+const SuiviAbonnement = ({ period, setPeriod }) => {
   const { isDarkMode } = useTheme();
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
@@ -39,8 +39,11 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
       total: 0,
     },
     wallets: {
-      total_balance_usd: 0,
-      total_balance_cdf: 0,
+      total_balance: 0,
+      available_balance: 0,
+      frozen_balance: 0,
+      total_in: 0,
+      total_out: 0,
     },
     jetons: {
       total_unused: 0,
@@ -48,10 +51,11 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
     },
     withdrawals: {
       pending: 0,
-      approved: 0,
+      processing: 0,
       rejected: 0,
       cancelled: 0,
       failed: 0,
+      paid: 0,
       total: 0,
     },
     subscriptions: {
@@ -64,12 +68,12 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
 
   useEffect(() => {
     fetchStatistics();
-  }, [period, selectedCurrency, isCDFEnabled]);
+  }, [period]);
 
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/admin/tableau-de-suivi/suivi-abonnement?period=${period}&currency=${selectedCurrency}`);
+      const response = await axios.get(`/api/admin/tableau-de-suivi/suivi-abonnement?period=${period}`);
       setStatistics(response.data);
     } catch (error) {
       console.error('Erreur lors de la récupération des statistiques:', error);
@@ -78,11 +82,10 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
     }
   };
 
-  const formatAmount = (amount, currency = null) => {
-    const displayCurrency = currency || selectedCurrency;
+  const formatAmount = (amount) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: displayCurrency === 'CDF' ? 'CDF' : 'USD',
+      currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -99,85 +102,6 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
   return (
     <Box>
       {/* Cartes de statistiques globales - Design Finances.jsx */}
-      
-      {/* Première ligne : Solde Total seul occupe toute la largeur */}
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Grid item xs={12}>
-          <Card 
-            sx={{ 
-              background: isDarkMode ? '#1f2937' : '#ffffff',
-              border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-              borderRadius: 3,
-              overflow: 'hidden',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              position: 'relative',
-              transition: 'all 0.3s ease',
-              height: 120,
-              display: 'flex',
-              flexDirection: 'column',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-              }
-            }}
-          >
-            <Box sx={{ 
-              backgroundColor: isDarkMode ? 'transparent' : '#eff6ff',
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              flex: 1
-            }}>
-              <Avatar 
-                sx={{ 
-                  bgcolor: '#3b82f6',
-                  width: 36,
-                  height: 36
-                }}
-              >
-                <WalletIcon sx={{ fontSize: 18, color: 'white' }} />
-              </Avatar>
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 500 }}>
-                    Solde Total
-                  </Typography>
-                  <Chip 
-                    icon={<TrendingUpIcon sx={{ fontSize: 12 }} />}
-                    label="Live" 
-                    size="small" 
-                    color="success" 
-                    variant="outlined"
-                    sx={{ height: 16, fontSize: '0.6rem' }}
-                  />
-                </Box>
-                <Typography variant="h4" sx={{ color: isDarkMode ? '#3b82f6' : '#1e3a8a', fontWeight: 700, lineHeight: 1.2 }}>
-                  {formatAmount(
-                    selectedCurrency === 'CDF' && isCDFEnabled 
-                      ? statistics.wallets.total_balance_cdf 
-                      : statistics.wallets.total_balance_usd, 
-                    selectedCurrency
-                  )}
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
-                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Gagné: {formatAmount(
-                    selectedCurrency === 'CDF' && isCDFEnabled 
-                      ? statistics.wallets.total_earned_cdf 
-                      : statistics.wallets.total_earned_usd, 
-                    selectedCurrency
-                  )}</Box>
-                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Retiré: {formatAmount(
-                    selectedCurrency === 'CDF' && isCDFEnabled 
-                      ? statistics.wallets.total_withdrawn_cdf 
-                      : statistics.wallets.total_withdrawn_usd, 
-                    selectedCurrency
-                  )}</Box>
-                </Typography>
-              </Box>
-            </Box>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* Deuxième ligne : 4 autres cartes */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
@@ -192,7 +116,7 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               position: 'relative',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease',
-              height: 120,
+              height: 160,
               display: 'flex',
               flexDirection: 'column',
               '&:hover': {
@@ -201,7 +125,6 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
             }}
           >
             <Box sx={{ 
-              backgroundColor: isDarkMode ? 'transparent' : '#f0fdf4',
               p: 2,
               display: 'flex',
               alignItems: 'center',
@@ -225,9 +148,9 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
                   {statistics.users.total.toLocaleString()}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
-                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Actifs: {statistics.users.active.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Inactifs: {statistics.users.inactive.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#6366f1', fontWeight: 600, display: 'block' }}>Essais: {statistics.users.trial.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 400, display: 'block' }}>Actifs: {statistics.users.active.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 400, display: 'block' }}>Inactifs: {statistics.users.inactive.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#6366f1', fontWeight: 400, display: 'block' }}>Essais: {statistics.users.trial.toLocaleString()}</Box>
                 </Typography>
               </Box>
             </Box>
@@ -245,7 +168,7 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               position: 'relative',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease',
-              height: 120,
+              height: 160,
               display: 'flex',
               flexDirection: 'column',
               '&:hover': {
@@ -254,7 +177,6 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
             }}
           >
             <Box sx={{ 
-              backgroundColor: isDarkMode ? 'transparent' : '#fefce8',
               p: 2,
               display: 'flex',
               alignItems: 'center',
@@ -278,8 +200,8 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
                   {(statistics.jetons.total_unused + statistics.jetons.total_used).toLocaleString()}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
-                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Disponibles: {statistics.jetons.total_unused.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Utilisés: {statistics.jetons.total_used.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 400, display: 'block' }}>Disponibles: {statistics.jetons.total_unused.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 400, display: 'block' }}>Utilisés: {statistics.jetons.total_used.toLocaleString()}</Box>
                 </Typography>
               </Box>
             </Box>
@@ -297,7 +219,7 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               position: 'relative',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease',
-              height: 120,
+              height: 160,
               display: 'flex',
               flexDirection: 'column',
               '&:hover': {
@@ -305,8 +227,7 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               }
             }}
           >
-            <Box sx={{ 
-              backgroundColor: isDarkMode ? 'transparent' : '#fef2f2',
+            <Box sx={{
               p: 2,
               display: 'flex',
               alignItems: 'center',
@@ -324,15 +245,10 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               </Avatar>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" sx={{ color: isDarkMode ? '#ef4444' : '#991b1b', fontWeight: 500 }}>
-                  Retraits
+                  Retraits en attente
                 </Typography>
                 <Typography variant="h4" sx={{ color: isDarkMode ? '#ef4444' : '#991b1b', fontWeight: 700, lineHeight: 1.2 }}>
-                  {statistics.withdrawals.total.toLocaleString()}
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
-                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Approuvés: {statistics.withdrawals.approved.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>En attente: {statistics.withdrawals.pending.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#ef4444', fontWeight: 600, display: 'block' }}>Rejetés: {statistics.withdrawals.rejected.toLocaleString()}</Box>
+                  {statistics.withdrawals.pending.toLocaleString()}
                 </Typography>
               </Box>
             </Box>
@@ -350,7 +266,7 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
               position: 'relative',
               transition: 'all 0.3s ease',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              height: 120,
+              height: 160,
               display: 'flex',
               flexDirection: 'column',
               '&:hover': {
@@ -359,7 +275,6 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
             }}
           >
             <Box sx={{ 
-              backgroundColor: isDarkMode ? 'transparent' : '#f5f3ff',
               p: 2,
               display: 'flex',
               alignItems: 'center',
@@ -383,9 +298,9 @@ const SuiviAbonnement = ({ period, setPeriod, selectedCurrency, isCDFEnabled, to
                   {statistics.subscriptions.total.toLocaleString()}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.75rem', lineHeight: 1.2 }}>
-                  <Box component="span" sx={{ color: '#10b981', fontWeight: 600, display: 'block' }}>Actifs: {statistics.subscriptions.active.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 600, display: 'block' }}>Inactifs: {statistics.subscriptions.inactive.toLocaleString()}</Box>
-                  <Box component="span" sx={{ color: '#ef4444', fontWeight: 600, display: 'block' }}>Expirés: {statistics.subscriptions.expired.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#10b981', fontWeight: 400, display: 'block' }}>Actifs: {statistics.subscriptions.active.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#f59e0b', fontWeight: 400, display: 'block' }}>Inactifs: {statistics.subscriptions.inactive.toLocaleString()}</Box>
+                  <Box component="span" sx={{ color: '#ef4444', fontWeight: 400, display: 'block' }}>Expirés: {statistics.subscriptions.expired.toLocaleString()}</Box>
                 </Typography>
               </Box>
             </Box>

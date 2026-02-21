@@ -8,76 +8,185 @@ use Illuminate\Support\Facades\DB;
 class WalletSystem extends Model
 {
     protected $fillable = [
-        'balance_usd',
-        'balance_cdf',
-        'total_in_usd',
-        'total_in_cdf',
-        'total_out_usd',
-        'total_out_cdf',
+        'solde_marchand',
+        'engagement_users',
+        'plateforme_benefices',
     ];
 
     protected $casts = [
-        'balance_usd' => 'decimal:2',
-        'balance_cdf' => 'decimal:2',
-        'total_in_usd' => 'decimal:2',
-        'total_in_cdf' => 'decimal:2',
-        'total_out_usd' => 'decimal:2',
-        'total_out_cdf' => 'decimal:2',
+        'solde_marchand' => 'decimal:2',
+        'engagement_users' => 'decimal:2',
+        'plateforme_benefices' => 'decimal:2',
     ];
 
     /**
      * Ajouter des fonds au wallet système
+     * @param float $amount Montant à ajouter
+     * @param string $type Type de transaction
+     * @param string $status Statut de la transaction
+     * @param array|null $metadata Métadonnées supplémentaires
+     * @return WalletSystemTransaction
      */
-    public function addFunds(float $amount, string $currency, string $type, string $status, array $metadata)
+    public function addFunds(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null): WalletSystemTransaction
     {
-        return DB::transaction(function () use ($amount, $currency, $type, $status, $metadata) {
-            if ($currency === 'USD') {
-                $this->balance_usd += $amount;
-                $this->total_in_usd += $amount;
-            } else {
-                $this->balance_cdf += $amount;
-                $this->total_in_cdf += $amount;
-            }
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+            $soldeMarchandBefore = $this->solde_marchand;
+            $engagementUsersBefore = $this->engagement_users;
+            $plateformeBeneficesBefore = $this->plateforme_benefices;
+            
+            $this->solde_marchand += $amount;
+            $this->plateforme_benefices += $amount;
             $this->save();
 
             return WalletSystemTransaction::create([
-                'wallet_system_id' => $this->id,
-                'amount' => $amount,
-                'currency' => $currency,
-                'mouvment' => 'in',
+                'flow' => 'in',
+                'nature' => 'external', // Par défaut pour les ajouts de fonds
                 'type' => $type,
+                'amount' => $amount,
                 'status' => $status,
-                'metadata' => $metadata
+                'solde_marchand_before' => $soldeMarchandBefore,
+                'solde_marchand_after' => $this->solde_marchand,
+                'engagement_users_before' => $engagementUsersBefore,
+                'engagement_users_after' => $this->engagement_users,
+                'plateforme_benefices_before' => $plateformeBeneficesBefore,
+                'plateforme_benefices_after' => $this->plateforme_benefices,
+                'description' => $description,
+                'metadata' => $metadata,
+                'processed_by' => $processed_by,
+                'processed_at' => now(),
+                'rejection_reason' => null,
             ]);
         });
     }
 
     /**
      * Retire des fonds du wallet système
+     * @param float $amount Montant à retirer
+     * @param string $type Type de transaction
+     * @param string $status Statut de la transaction
+     * @param int $processed_by ID de l'utilisateur qui a effectué la transaction
+     * @param array|null $metadata Métadonnées supplémentaires
+     * @return WalletSystemTransaction
      */
-    public function deductFunds(float $amount, string $currency, string $type, string $status, array $metadata)
+    public function deductFunds(float $amount, string $type, string $status, int $processed_by, string $description, ?array $metadata = null): WalletSystemTransaction
     {
-        return DB::transaction(function () use ($amount, $currency, $type, $status, $metadata) {
-            if ($this->balance < $amount) {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+            if ($this->solde_marchand < $amount) {
                 throw new \Exception('Fonds insuffisants dans le portefeuille système');
             }
-
-            if ($currency === 'usd') {
-                $this->balance_usd -= $amount;
-                $this->total_out_usd -= $amount;
-            } else {
-                $this->balance_cdf -= $amount;
-                $this->total_out_cdf -= $amount;
+            
+            $soldeMarchandBefore = $this->solde_marchand;
+            $engagementUsersBefore = $this->engagement_users;
+            $plateformeBeneficesBefore = $this->plateforme_benefices;
+            
+            if ($type === "solifin_funds_withdrawal") {
+                $this->solde_marchand -= $amount;
+                $this->plateforme_benefices -= $amount; 
+            }else {
+                $this->solde_marchand -= $amount;
+                $this->engagement_users -= $amount; 
             }
+
             $this->save();
 
             return WalletSystemTransaction::create([
-                'wallet_system_id' => $this->id,
-                'amount' => $amount,
-                'mouvment' => 'out',
+                'flow' => 'out',
+                'nature' => 'external', // Par défaut pour les retraits
                 'type' => $type,
+                'amount' => $amount,
                 'status' => $status,
-                'metadata' => $metadata
+                'solde_marchand_before' => $soldeMarchandBefore,
+                'solde_marchand_after' => $this->solde_marchand,
+                'engagement_users_before' => $engagementUsersBefore,
+                'engagement_users_after' => $this->engagement_users,
+                'plateforme_benefices_before' => $plateformeBeneficesBefore,
+                'plateforme_benefices_after' => $this->plateforme_benefices,
+                'description' => $description,
+                'metadata' => $metadata,
+                'processed_by' => $processed_by,
+                'processed_at' => now(),
+                'rejection_reason' => null,
+            ]);
+        });
+    }
+
+
+    /**
+     * Ajouter des fonds internes aux bénefices de la plateforme depuis les engagements users
+     * @param float $amount Montant à ajouter
+     * @param string $type Type de transaction
+     * @param string $status Statut de la transaction
+     * @param array|null $metadata Métadonnées supplémentaires
+     * @return WalletSystemTransaction
+     */
+    public function addProfits(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null): WalletSystemTransaction
+    {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+            $soldeMarchandBefore = $this->solde_marchand;
+            $engagementUsersBefore = $this->engagement_users;
+            $plateformeBeneficesBefore = $this->plateforme_benefices;
+            
+            $this->engagement_users -= $amount;
+            $this->plateforme_benefices += $amount;
+            $this->save();
+
+            return WalletSystemTransaction::create([
+                'flow' => 'in',
+                'nature' => 'internal',
+                'type' => $type,
+                'amount' => $amount,
+                'status' => $status,
+                'solde_marchand_before' => $soldeMarchandBefore,
+                'solde_marchand_after' => $this->solde_marchand,
+                'engagement_users_before' => $engagementUsersBefore,
+                'engagement_users_after' => $this->engagement_users,
+                'plateforme_benefices_before' => $plateformeBeneficesBefore,
+                'plateforme_benefices_after' => $this->plateforme_benefices,
+                'description' => $description,
+                'metadata' => $metadata,
+                'processed_by' => $processed_by,
+                'processed_at' => now(),
+                'rejection_reason' => null,
+            ]);
+        });
+    }
+
+
+    /**
+     * Ajoute des engagements envers les utilisateurs
+     * @param float $amount Montant des engagements
+     * @param string $type Type de transaction
+     * @param array|null $metadata Métadonnées supplémentaires
+     * @return WalletSystemTransaction
+     */
+    public function addEngagements(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null): WalletSystemTransaction
+    {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+            $soldeMarchandBefore = $this->solde_marchand;
+            $engagementUsersBefore = $this->engagement_users;
+            $plateformeBeneficesBefore = $this->plateforme_benefices;
+            
+            $this->plateforme_benefices -= $amount;
+            $this->engagement_users += $amount;
+            $this->save();
+
+            return WalletSystemTransaction::create([
+                'flow' => 'out', // Transaction interne
+                'nature' => 'internal',
+                'type' => $type,
+                'amount' => $amount,
+                'status' => $status,
+                'solde_marchand_before' => $soldeMarchandBefore,
+                'solde_marchand_after' => $this->solde_marchand,
+                'engagement_users_before' => $engagementUsersBefore,
+                'engagement_users_after' => $this->engagement_users,
+                'plateforme_benefices_before' => $plateformeBeneficesBefore,
+                'plateforme_benefices_after' => $this->plateforme_benefices,
+                'description' => $description,
+                'metadata' => $metadata,
+                'processed_by' => $processed_by,
+                'processed_at' => now(),
+                'rejection_reason' => null,
             ]);
         });
     }
@@ -88,5 +197,30 @@ class WalletSystem extends Model
     public function transactions()
     {
         return $this->hasMany(WalletSystemTransaction::class);
+    }
+
+
+    /**
+     * Vérifie l'équation comptable fondamentale
+     * @return bool
+     */
+    public function validateAccountingEquation(): bool
+    {
+        return abs($this->solde_marchand - ($this->engagement_users + $this->plateforme_benefices)) < 0.01;
+    }
+
+    /**
+     * Obtient le résumé des soldes système
+     * @return array
+     */
+    public function getBalanceSummary(): array
+    {
+        return [
+            'solde_marchand' => $this->solde_marchand,
+            'engagement_users' => $this->engagement_users,
+            'plateforme_benefices' => $this->plateforme_benefices,
+            'equation_valid' => $this->validateAccountingEquation(),
+            'total_engagements_plus_benefices' => $this->engagement_users + $this->plateforme_benefices,
+        ];
     }
 }

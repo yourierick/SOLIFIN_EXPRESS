@@ -68,7 +68,7 @@ class UpdatePublicationStatus extends Command
         $stats = $this->processPublications(
             Publicite::class,
             'publicités',
-            ['statut' => 'approuvé']
+            ['statut' => 'approved']
         );
         
         $this->info("{$stats['expired']} publicités ont expirées.");
@@ -84,7 +84,7 @@ class UpdatePublicationStatus extends Command
         $stats = $this->processPublications(
             OffreEmploi::class,
             'offres d\'emploi',
-            ['statut' => 'approuvé']
+            ['statut' => 'approved']
         );
         
         $this->info("{$stats['expired_duree']} offres d'emploi ont expiré (durée d'affichage).");
@@ -100,7 +100,7 @@ class UpdatePublicationStatus extends Command
         $stats = $this->processPublications(
             OpportuniteAffaire::class,
             'opportunités d\'affaires',
-            ['statut' => 'approuvé']
+            ['statut' => 'approved']
         );
         
         $this->info("{$stats['expired_duree']} opportunités d'affaires ont expiré (durée d'affichage).");
@@ -177,7 +177,7 @@ class UpdatePublicationStatus extends Command
                     if (!empty($expiredIds)) {
                         $modelClass::whereIn('id', $expiredIds)
                             ->update([
-                                'statut' => 'expiré',
+                                'statut' => 'expired',
                                 'duree_affichage' => 0,
                                 'updated_at' => $now
                             ]);

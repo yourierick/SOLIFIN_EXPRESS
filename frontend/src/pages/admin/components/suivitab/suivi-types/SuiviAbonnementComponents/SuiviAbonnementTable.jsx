@@ -31,7 +31,7 @@ import axios from 'axios';
 import UserPacksFilters from './UserPacksFilters';
 import ExportToExcel from './ExportToExcel';
 
-const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) => {
+const SuiviAbonnementTable = ({ period, filters, onFiltersChange}) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -131,11 +131,11 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
   };
 
   // Fonction pour formater la monnaie
-  const formatCurrency = (amount, currency = 'USD') => {
+  const formatCurrency = (amount) => {
     if (!amount) return '-';
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: currency,
+      currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -160,7 +160,7 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
             fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' }
           }}
         >
-          {isMobile ? 'Abonnements' : 'Gestion des Abonnements Utilisateurs'}
+          {isMobile ? 'Abonnements' : 'Suivi des Abonnements Utilisateurs'}
         </Typography>
         
         <ExportToExcel 
@@ -169,7 +169,6 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
           currentPage={page}
           rowsPerPage={rowsPerPage}
           total={total}
-          currency={currency}
         />
       </Stack>
       
@@ -427,7 +426,7 @@ const SuiviAbonnementTable = ({ period, filters, onFiltersChange, currency }) =>
                       color: isDarkMode ? '#e5e7eb' : '#374151',
                       fontWeight: 600,
                     }}>
-                      {formatCurrency(userPack.pack?.price, 'USD')}
+                      {formatCurrency(userPack.pack?.price)}
                     </TableCell>
                     <TableCell sx={{ 
                       fontSize: { xs: '0.8rem', sm: '0.875rem' },

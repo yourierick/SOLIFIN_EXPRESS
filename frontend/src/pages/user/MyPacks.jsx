@@ -91,21 +91,6 @@ import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Fonction pour extraire uniquement la devise sélectionnée
-  const getCommissionForSelectedCurrency = (commissionString) => {
-    if (!commissionString) return "0";
-    
-    if (selectedCurrency === "USD") {
-      // Extraire la valeur USD: "USD: $25.50 | CDF: 50,000 FC" -> "$25.50"
-      const usdMatch = commissionString.match(/USD:\s*(\$[\d,.-]+)/);
-      return usdMatch ? usdMatch[1] : "$0.00";
-    } else {
-      // Extraire la valeur CDF: "USD: $25.50 | CDF: 50,000 FC" -> "50,000 FC"
-      const cdfMatch = commissionString.match(/CDF:\s*([\d\s.,]+FC)/);
-      return cdfMatch ? cdfMatch[1] : "0 FC";
-    }
-  };
-
   const colors = {
     background: isDarkMode
       ? "rgba(17, 24, 39, 0.95)"
@@ -216,7 +201,7 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => 
               transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
             }}
           >
-            {selectedCurrency}: {getCommissionForSelectedCurrency(nodeDatum.attributes.commission)}
+            {nodeDatum.attributes.commission}
           </div>
           <div
             style={{
@@ -724,33 +709,6 @@ export default function MyPacks() {
     });
   };
 
-  // Calculer les statistiques de la génération actuelle
-  const referralStats = useMemo(() => {
-    const referrals = currentPackReferrals[currentTab] || [];
-    const totalCommission = referrals.reduce((sum, ref) => {
-      if (selectedCurrency === "USD") {
-        return sum + parseFloat(ref.total_commission_usd || 0);
-      } else {
-        return sum + parseFloat(ref.total_commission_cdf || 0);
-      }
-    }, 0);
-
-    const formattedCommission =
-      selectedCurrency === "USD"
-        ? `$${totalCommission.toFixed(2)}`
-        : new Intl.NumberFormat("fr-CD", {
-            style: "currency",
-            currency: "CDF",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(totalCommission);
-
-    return {
-      total: referrals.length,
-      totalCommission: formattedCommission,
-    };
-  }, [currentPackReferrals, currentTab, selectedCurrency]);
-
   // Fonction pour trouver un nœud parent dans l'arbre par son userId
   const findParentNode = (node, userId) => {
     if (node.attributes && node.attributes.userId === userId) {
@@ -783,12 +741,7 @@ export default function MyPacks() {
       rootNode.children = referrals[0].map((ref) => ({
         name: ref.name,
         attributes: {
-          commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)} | CDF: ${new Intl.NumberFormat("fr-CD", {
-            style: "currency",
-            currency: "CDF",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(parseFloat(ref.total_commission_cdf || 0))}`,
+          commission: `$${parseFloat(ref.total_commission || 0).toFixed(2)}`,
           status: ref.pack_status,
           generation: 1,
           userId: ref.id,

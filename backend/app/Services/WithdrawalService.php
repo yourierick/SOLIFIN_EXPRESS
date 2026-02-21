@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\WalletSystem;
 use App\Models\WithdrawalRequest;
 use App\Models\UserPack;
 use App\Models\Pack;
@@ -12,17 +11,16 @@ use App\Models\TransactionFee;
 use App\Notifications\WithdrawalRequestProcessed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\CurrencyController;
 use App\Models\ExchangeRates;
 use App\Services\WalletService;
 
 class WithdrawalService
 {
     const STATUS_PENDING = 'pending';
-    const STATUS_APPROVED = 'approved';
+    const STATUS_PROCESSING = 'processing';
     const STATUS_REJECTED = 'rejected';
     const STATUS_CANCELLED = 'cancelled';
-    const STATUS_COMPLETED = 'completed';
+    const STATUS_PAID = 'paid';
     const STATUS_FAILED = 'failed';    
 
     /**
@@ -38,7 +36,7 @@ class WithdrawalService
         try {
             DB::beginTransaction();
             
-            if ($withdrawal->payment_status !== self::STATUS_FAILED || $withdrawal->payment_status !== self::STATUS_PENDING) {
+            if ($withdrawal->status !== self::STATUS_FAILED || $withdrawal->status !== self::STATUS_PENDING) {
                 return [
                     'success' => false,
                     'message' => 'Cette demande ne peut pas être approuvée ou réessayée',
@@ -112,28 +110,13 @@ class WithdrawalService
 
         DB::beginTransaction();
         try {
-            $transaction = $withdrawal->user->wallet->transactions()
-            ->where('type', 'withdrawal')
-            ->where('metadata->withdrawal_request_id', $withdrawal->id)
-            ->first();
-
-            // Rembourser le montant au wallet de l'utilisateur
-            $montantArembourser = $withdrawal->amount + $withdrawal->payment_details['frais_de_retrait'] + $withdrawal->payment_details['frais_de_commission'];
+            // Degéler le montant gélé du wallet de l'utilisateur
+            $montantArembourser = $withdrawal->payment_details['montant_total_a_debiter'];
             $wallet = $withdrawal->user->wallet;
-            $wallet->addFunds($montantArembourser, $withdrawal->payment_details['devise'], "remboursement", self::STATUS_COMPLETED, [
-                "user" => $withdrawal->user->name,
-                "Montant" => $montantArembourser,
-                "Description" => "remboursement du montant gélé " . $montantArembourser . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC') . " pour le retrait ID: " . $withdrawal->id . " pour cause de rejet, transaction référencée : " . $transaction->reference,
-            ]);
-
-            // Mettre à jour la transaction originale
-            $this->updateUserTransaction($withdrawal, self::STATUS_FAILED, 'Rejeté par l\'administrateur');
-            if ($withdrawal->currency === 'USD') {
-                $withdrawal->user->wallet->total_withdrawn_usd -= $montantArembourser;
-            } else {
-                $withdrawal->user->wallet->total_withdrawn_cdf -= $montantArembourser;
-            }
-            $withdrawal->user->wallet->save();
+            $wallet->unfreezeFunds(
+                $montantArembourser, 
+                "Dégèle des fonds pour retrait rejeté",
+            );
 
             // Rejeter la demande
             $withdrawal->status = self::STATUS_REJECTED;
@@ -177,7 +160,7 @@ class WithdrawalService
      */
     public function cancelWithdrawal(WithdrawalRequest $withdrawal, User $user): array
     {
-        if ($withdrawal->status !== self::STATUS_PENDING) {
+        if ($withdrawal->status !== self::STATUS_PENDING && $withdrawal->status !== self::STATUS_FAILED) {
             return [
                 'success' => false,
                 'message' => 'Cette demande ne peut pas être annulée car elle n\'est pas en attente',
@@ -195,30 +178,16 @@ class WithdrawalService
 
         DB::beginTransaction();
         try {
-            $transaction = $withdrawal->user->wallet->transactions()
-            ->where('type', 'withdrawal')
-            ->where('metadata->withdrawal_request_id', $withdrawal->id)
-            ->first();
-            // Rembourser le montant au wallet de l'utilisateur
-            $montantArembourser = $withdrawal->amount + $withdrawal->payment_details['frais_de_retrait'] + $withdrawal->payment_details['frais_de_commission'];
-            $wallet = $user->wallet;
-            $wallet->addFunds($montantArembourser, $withdrawal->currency, "remboursement", self::STATUS_COMPLETED, [
-                "user" => $withdrawal->user->name,
-                "Montant" => $montantArembourser,
-                "Description" => "remboursement du montant gélé " . $montantArembourser . ($withdrawal->currency === 'USD' ? '$' : 'FC') . " de votre compte suite à l'annulation de votre demande de retrait de " . $withdrawal->payment_details['montant_a_retirer'] . ($withdrawal->currency === 'USD' ? '$' : 'FC') . " transaction référencée : " . $transaction->reference,
-            ]);
+            // Degéler le montant gélé du wallet de l'utilisateur
+            $montantArembourser = $withdrawal->payment_details['montant_total_a_debiter'];
+            $wallet = $withdrawal->user->wallet;
+            $wallet->unfreezeFunds(
+                $montantArembourser, 
+                "Dégèle des fonds pour retrait rejeté",
+            );
 
-            // Mettre à jour la transaction originale
-            $this->updateUserTransaction($withdrawal, self::STATUS_FAILED, 'Annulée par l\'utilisateur');
-            if ($withdrawal->currency === 'USD') {
-                $withdrawal->user->wallet->total_withdrawn_usd -= $montantArembourser;
-            } else {
-                $withdrawal->user->wallet->total_withdrawn_cdf -= $montantArembourser;
-            }
-            $withdrawal->user->wallet->save();
             // Annuler la demande
             $withdrawal->status = self::STATUS_CANCELLED;
-            $withdrawal->payment_status = self::STATUS_FAILED;
             $withdrawal->refund_at = now();
             $withdrawal->save();
 
@@ -245,59 +214,6 @@ class WithdrawalService
     }
 
     /**
-     * Supprime une demande de retrait (admin uniquement)
-     *
-     * @param WithdrawalRequest $withdrawal
-     * @return array
-     */
-    public function deleteWithdrawal(WithdrawalRequest $withdrawal): array
-    {
-        if ($withdrawal->status !== self::STATUS_APPROVED && $withdrawal->payment_status !== 'paid') {
-            return [
-                'success' => false,
-                'message' => 'Cette demande ne peut pas être supprimée car elle n\'est pas approuvée',
-                'status_code' => 400
-            ];
-        }
-
-        DB::beginTransaction();
-        try {
-            // Supprimer la transaction associée si elle existe
-            $transaction = $withdrawal->user->wallet->transactions()
-                ->where('type', 'withdrawal')
-                ->where('metadata->withdrawal_request_id', $withdrawal->id)
-                ->first();
-
-            if ($transaction) {
-                $transaction->delete();
-            }
-
-            // Supprimer la demande
-            $withdrawal->delete();
-
-            DB::commit();
-
-            return [
-                'success' => true,
-                'message' => 'Demande supprimée avec succès',
-                'status_code' => 200
-            ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur lors de la suppression de la demande', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return [
-                'success' => false,
-                'message' => 'Erreur lors de la suppression de la demande: ' . $e->getMessage(),
-                'status_code' => 500
-            ];
-        }
-    }
-
-    /**
      * Paie la commission au parrain
      *
      * @param User $sponsor
@@ -307,36 +223,19 @@ class WithdrawalService
      */
     private function paySponsorCommission(User $sponsor, float $commissionFees, WithdrawalRequest $withdrawal): void
     {
-        $sponsor->wallet->addFunds($commissionFees, $withdrawal->payment_details['devise'], "commission de retrait", self::STATUS_COMPLETED, [
-            "Source" => $withdrawal->user->name, 
-            "Type" => "commission de retrait",
-            "Montant" => $commissionFees . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC'),
-            "Description" => "vous avez gagné une commission de ". $commissionFees . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC') . " pour le retrait d'un montant de ". $withdrawal->payment_details['montant_a_retirer_en_USD'] . ($withdrawal->payment_details['devise'] === 'USD' ? '$' : 'FC') . " par votre filleul " . $withdrawal->user->name,
-        ]);
-    }
-
-    /**
-     * Met à jour la transaction utilisateur
-     *
-     * @param WithdrawalRequest $withdrawal
-     * @param string $status
-     * @return void
-     */
-    private function updateUserTransaction(WithdrawalRequest $withdrawal, string $status, string $status_description = null): void
-    {
-        $transaction = $withdrawal->user->wallet->transactions()
-            ->where('type', 'withdrawal')
-            ->where('metadata->withdrawal_request_id', $withdrawal->id)
-            ->first();
-
-        if ($transaction) {
-            $transaction->status = $status;
-            if ($status_description) {
-                $metadata = $transaction->metadata;
-                $metadata['Statut de paiement'] = $status_description;
-                $transaction->metadata = $metadata;
-            }
-            $transaction->save();
-        }
+        $sponsor->addFunds(
+            $commissionFees,
+            0,
+            0,
+            'withdrawal_commission',
+            'completed',
+            "Vous avez reçu une commission de retrait de " . $commissionFees . '$ pour le retrait effectué par votre filleul ' . $withdrawal->user->name,  
+            [
+                "Source" => $withdrawal->user->name, 
+                "Opération" => "Commission de retrait",
+                "Montant" => $commissionFees . ' $',
+                "Description" => "vous avez gagné une commission de ". $commissionFees . ' $' . " pour le retrait effectué par votre filleul " . $withdrawal->user->name,
+            ]
+        );
     }
 }

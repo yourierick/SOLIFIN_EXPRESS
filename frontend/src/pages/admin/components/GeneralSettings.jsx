@@ -80,6 +80,16 @@ const FIXED_SETTINGS = [
     isPourcentage: true
   },
   {
+    key: "serdipay_fees",
+    label: "Frais généraux serdipay",
+    description:
+      "Pourcentage général des frais de l'api de paiement (valeur entre 0 et 100)",
+    placeholder: "1.5%",
+    category: "finance",
+    isNumber: true,
+    isPourcentage: true
+  },
+  {
     key: "jeton_expiration_months",
     label: "Durée d'expiration des jetons Esengo",
     description:

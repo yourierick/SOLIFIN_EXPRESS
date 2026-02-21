@@ -57,16 +57,22 @@ class AdminDashboardController extends Controller
      */
     public function getNetworkOverview(Request $request)
     {
-        $period = $request->input('period', 'month'); // day, week, month, year
+        $period = $request->input('period', 'all'); // day, week, month, year, all
         
         // Gestion des membres
         $totalUsers = User::where('is_admin', false)->count();
         $activeUsers = User::where('is_admin', false)->where('status', 'active')->count();
         $inactiveUsers = User::where('is_admin', false)->where('status', 'inactive')->count();
-        $startDate = $this->getStartDateByPeriod($period);
-        $newUsers = User::where('is_admin', false)
-            ->where('created_at', '>=', $startDate)
-            ->count();
+        
+        // Gérer le cas où period = "all"
+        if ($period === 'all') {
+            $newUsers = $totalUsers; // Tous les utilisateurs sont "nouveaux" quand on regarde tout
+        } else {
+            $startDate = $this->getStartDateByPeriod($period);
+            $newUsers = User::where('is_admin', false)
+                ->where('created_at', '>=', $startDate)
+                ->count();
+        }
             
         // Récupérer les inscriptions par jour de la semaine en cours
         $startOfWeek = now()->startOfWeek(); // Lundi
@@ -263,7 +269,7 @@ class AdminDashboardController extends Controller
             $query->where('type', $type);
         }
         
-        if ($status) {
+        if ($status && $status !== 'all') {
             $query->where('status', $status);
         }
         
@@ -274,7 +280,7 @@ class AdminDashboardController extends Controller
         // Historique des paiements (demandes de retrait)
         $withdrawalQuery = WithdrawalRequest::query();
         
-        if ($status) {
+        if ($status && $status !== 'all') {
             $withdrawalQuery->where('status', $status);
         }
         
@@ -310,8 +316,14 @@ class AdminDashboardController extends Controller
      */
     public function getPackStats(Request $request)
     {
-        $period = $request->input('period', 'month'); // day, week, month, year
-        $startDate = $this->getStartDateByPeriod($period);
+        $period = $request->input('period', 'all'); // day, week, month, year, all
+        
+        // Gérer le cas où period = "all"
+        if ($period === 'all') {
+            $startDate = null; // Pas de filtre de date
+        } else {
+            $startDate = $this->getStartDateByPeriod($period);
+        }
         
         // Récupérer tous les packs
         $packs = Pack::all();
@@ -319,24 +331,28 @@ class AdminDashboardController extends Controller
         
         foreach ($packs as $pack) {
             // Nombre total d'inscrit par pack pour la période
-            $newUsersCount = UserPack::where('pack_id', $pack->id)
-                ->where('created_at', '>=', $startDate)->where('is_admin_pack', false)
-                ->count();
+            $newUsersQuery = UserPack::where('pack_id', $pack->id)->where('is_admin_pack', false);
+            if ($startDate) {
+                $newUsersQuery->where('created_at', '>=', $startDate);
+            }
+            $newUsersCount = $newUsersQuery->count();
             
             // Nombre total d'utilisateur par pack (tous)
             $totalUsersCount = UserPack::where('pack_id', $pack->id)->where('is_admin_pack', false)->count();
             
             // Points Bonus sur délais attribués par pack
-            $bonusPoints = DB::table('user_bonus_points_history')
-                ->where('pack_id', $pack->id)
-                ->where('created_at', '>=', $startDate)
-                ->sum('points');
+            $bonusPointsQuery = DB::table('user_bonus_points_history')->where('pack_id', $pack->id);
+            if ($startDate) {
+                $bonusPointsQuery->where('created_at', '>=', $startDate);
+            }
+            $bonusPoints = $bonusPointsQuery->sum('points');
             
             // Commissions totales gagnées par pack
-            $commissions = Commission::where('pack_id', $pack->id)
-                ->where('created_at', '>=', $startDate)
-                ->where('status', 'completed')
-                ->sum('amount');
+            $commissionsQuery = Commission::where('pack_id', $pack->id)->where('status', 'completed');
+            if ($startDate) {
+                $commissionsQuery->where('created_at', '>=', $startDate);
+            }
+            $commissions = $commissionsQuery->sum('amount');
             
             $packStats[] = [
                 'pack_id' => $pack->id,
@@ -365,10 +381,16 @@ class AdminDashboardController extends Controller
      */
     public function getDashboardData(Request $request)
     {
-        $period = $request->input('period', 'month'); // day, week, month, year
-        $currency = $request->input('currency', 'USD'); // USD ou CDF pour tout
-        $startDate = $this->getStartDateByPeriod($period);
-        $previousStartDate = $this->getStartDateByPeriod($period, 2); // Période précédente pour comparaison
+        $period = $request->input('period', 'all'); // day, week, month, year, all
+        
+        // Gérer le cas où period = "all"
+        if ($period === 'all') {
+            $startDate = null;
+            $previousStartDate = null;
+        } else {
+            $startDate = $this->getStartDateByPeriod($period);
+            $previousStartDate = $this->getStartDateByPeriod($period, 2); // Période précédente pour comparaison
+        }
         
         // Données des cartes
         $cards = $this->getCards()->original['data'];
@@ -379,9 +401,15 @@ class AdminDashboardController extends Controller
         // Gestion des membres
         $totalMembers = User::where('is_admin', false)->count();
         $activeMembers = User::where('is_admin', false)->where('status', 'active')->count();
-        $newMembers = User::where('is_admin', false)
-            ->where('created_at', '>=', $startDate)
-            ->count();
+        
+        // Gérer le cas où period = "all" pour les nouveaux membres
+        if ($period === 'all') {
+            $newMembers = $totalMembers; // Tous les membres sont "nouveaux"
+        } else {
+            $newMembers = User::where('is_admin', false)
+                ->where('created_at', '>=', $startDate)
+                ->count();
+        }
         
         // Récupérer les sources d'acquisition
         $acquisitionSources = User::where('is_admin', false)
@@ -419,48 +447,14 @@ class AdminDashboardController extends Controller
         
         // Système de parrainage
         $totalReferrals = UserPack::whereNotNull('sponsor_id')->count();
-        $newReferrals = UserPack::whereNotNull('sponsor_id')
-            ->where('created_at', '>=', $startDate)
-            ->count();
         
-        // Calculer le taux de conversion (combien de parrainages aboutissent à un achat)
-        $conversionRate = 0;
-        try {
-            if (Schema::hasTable('referral_invitations')) {
-                $totalInvitations = DB::table('referral_invitations')->count();
-                if ($totalInvitations > 0) {
-                    $conversionRate = round(($totalReferrals / $totalInvitations) * 100);
-                }
-            }
-        } catch (\Exception $e) {
-            // Si la table n'existe pas ou une autre erreur se produit
-            \Log::error('Erreur lors de la récupération des invitations de parrainage: ' . $e->getMessage());
-        }
-        
-        // Récupérer les bonus sur délais attribués
-        $bonusPointsAwarded = 0;
-        try {
-            if (Schema::hasTable('user_bonus_points_history')) {
-                $bonusPointsAwarded = DB::table('user_bonus_points_history')
-                    ->where('created_at', '>=', $startDate)
-                    ->sum('points');
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la récupération des points bonus: ' . $e->getMessage());
-        }
-        
-        // Valeur des bonus en devise
-        $bonusValue = 0;
-        try {
-            if (Schema::hasTable('user_bonus_points_history') && Schema::hasTable('bonus_point_values')) {
-                $bonusValue = DB::table('user_bonus_points_history')
-                    ->join('bonus_point_values', 'user_bonus_points_history.created_at', '>=', 'bonus_point_values.created_at')
-                    ->where('user_bonus_points_history.created_at', '>=', $startDate)
-                    ->selectRaw('SUM(user_bonus_points_history.points * bonus_point_values.value) as total_value')
-                    ->value('total_value') ?? 0;
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la récupération de la valeur des bonus: ' . $e->getMessage());
+        // Gérer le cas où period = "all" pour les nouveaux parrainages
+        if ($period === 'all') {
+            $newReferrals = $totalReferrals; // Tous les parrainages sont "nouveaux"
+        } else {
+            $newReferrals = UserPack::whereNotNull('sponsor_id')
+                ->where('created_at', '>=', $startDate)
+                ->count();
         }
         
         // Top packs par parrainage
@@ -477,9 +471,6 @@ class AdminDashboardController extends Controller
             'total_referrals' => $totalReferrals,
             'new_referrals' => $newReferrals,
             'period' => $period,
-            'conversion_rate' => $conversionRate,
-            'bonus_points_awarded' => $bonusPointsAwarded,
-            'bonus_value' => $bonusValue,
             'top_packs' => $topPacksByReferral
         ];
         
@@ -489,7 +480,12 @@ class AdminDashboardController extends Controller
         
         foreach ($packs as $pack) {
             // Calculer les ventes selon la période sélectionnée
-            if ($period === 'week') {
+            if ($period === 'all') {
+                // Pour "all", on prend toutes les ventes
+                $currentSales = UserPack::where('pack_id', $pack->id)->where('is_admin_pack', false)
+                    ->count();
+                $previousSales = 0; // Pas de période précédente pour "all"
+            } elseif ($period === 'week') {
                 // Ventes de la semaine en cours
                 $currentWeekStart = now()->startOfWeek();
                 $currentWeekEnd = now();
@@ -517,19 +513,23 @@ class AdminDashboardController extends Controller
             
             // Calculer le changement en pourcentage
             $salesChange = 0;
-            if ($previousSales > 0) {
+            if ($period === 'all') {
+                $salesChange = 0; // Pas de changement pour "all"
+            } elseif ($previousSales > 0) {
                 $salesChange = round((($currentSales - $previousSales) / $previousSales) * 100, 1);
             } elseif ($currentSales > 0) {
                 $salesChange = 100; // Si la période précédente était 0 et cette période > 0
             }
             
             // Revenus générés par ce pack (basés sur les ventes de la période en cours et la devise sélectionnée)
-            $packPrice = $currency === 'CDF' && $pack->cdf_price ? $pack->cdf_price : $pack->price;
+            $packPrice = $pack->price;
             $revenue = $currentSales * $packPrice;
             
             // Déterminer la tendance (comparaison période en cours vs période précédente)
             $trend = 'stable';
-            if ($currentSales > $previousSales) {
+            if ($period === 'all') {
+                $trend = 'stable'; // Pas de tendance pour "all"
+            } elseif ($currentSales > $previousSales) {
                 $trend = 'up';
             } elseif ($currentSales < $previousSales) {
                 $trend = 'down';
@@ -556,28 +556,21 @@ class AdminDashboardController extends Controller
                 'sales' => $currentSales,
                 'sales_change' => $salesChange,
                 'revenue' => $revenue,
-                'currency' => $currency,
                 'trend' => $trend,
                 'total_users_count' => $totalUsersCount,
                 'weekly_sales' => $weeklyData
             ];
         }
         
-        // Récupérer les dernières transactions avec filtre de devise
+        // Récupérer les dernières transactions
         $latestTransactionsQuery = WalletSystemTransaction::orderBy('created_at', 'desc');
-        
-        // Appliquer le filtre de devise
-        $latestTransactionsQuery->where('currency', $currency);
         
         $latestTransactions = $latestTransactionsQuery->limit(10)->get();
         
-        // Récupérer les dernières demandes de retrait avec filtre de devise
+        // Récupérer les dernières demandes de retrait
         $latestWithdrawalsQuery = WithdrawalRequest::with('user')->orderBy('created_at', 'desc');
         
-        // Appliquer le filtre de devise
-        $latestWithdrawalsQuery->where('currency', $currency);
-        
-        $latestWithdrawals = $latestWithdrawalsQuery->limit(5)->get();
+        $latestWithdrawals = $latestWithdrawalsQuery->limit(10)->get();
             
         
         return response()->json([
@@ -646,6 +639,10 @@ class AdminDashboardController extends Controller
      */
     private function getStartDateByPeriod($period, $multiplier = 1)
     {
+        if ($period === 'all') {
+            return null; // Retourner null pour "all" - pas de filtre de date
+        }
+        
         $now = Carbon::now();
         
         switch ($period) {

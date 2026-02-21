@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('formation_id')->constrained()->onDelete('cascade');
             $table->decimal('amount_paid', 10, 2);
-            $table->string('currency', 3)->default('USD');
             $table->string('payment_method')->nullable();
             $table->string('payment_status')->default('pending');
             $table->string('transaction_id')->nullable();

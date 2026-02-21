@@ -1,273 +1,444 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
-  TableContainer,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   TablePagination,
+  Paper,
   Alert,
-  CircularProgress,
-  Box,
-} from "@mui/material";
+} from '@mui/material';
+import {
+  BanknotesIcon,
+  ArrowDownTrayIcon,
+  CurrencyDollarIcon,
+} from '@heroicons/react/24/outline';
+import { FaExchangeAlt } from 'react-icons/fa';
+import { getOperationType } from "../../../components/OperationTypeFormatter";
+import { getTransactionColor } from "../../../components/TransactionColorFormatter";
+import { TransferWithinAStationSharp } from '@mui/icons-material';
 
 const TransactionsTable = ({
-  transactions = [],
-  loading = false,
-  error = null,
-  totalTransactions = 0,
-  currentPage = 0,
-  rowsPerPage = 25,
+  transactions,
+  totalTransactions,
+  page,
+  rowsPerPage,
   onPageChange,
   onRowsPerPageChange,
+  isDarkMode,
+  loading,
   onTransactionClick,
-  selectedCurrency = "USD",
-  isDarkMode = false,
-  formatDate,
+  activeTab,
   getTransactionStatusColor,
+  formatDate,
 }) => {
-  const [internalLoading, setInternalLoading] = useState(false);
-
-  // Injecter les styles CSS pour les animations
-  React.useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeInUp {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
-  if (loading || internalLoading) {
+  if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          py: 8,
-        }}
-      >
-        <CircularProgress size={40} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-      </Alert>
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+      </div>
     );
   }
 
   return (
     <div className="mt-4">
       {transactions.length > 0 ? (
-        <TableContainer
+        <Paper
           sx={{
+            width: "100%",
+            overflow: "hidden",
+            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
             boxShadow: isDarkMode
-              ? "none"
-              : "0 2px 10px rgba(0, 0, 0, 0.05)",
-            borderRadius: { xs: 1.5, sm: 2 },
-            overflow: "auto",
-            maxWidth: "100%",
-            "&::-webkit-scrollbar": {
-              height: { xs: 4, sm: 6 },
-              width: { xs: 4, sm: 6 },
-            },
-            "&::-webkit-scrollbar-track": {
-              backgroundColor: isDarkMode
-                ? "rgba(55, 65, 81, 0.4)"
-                : "rgba(0, 0, 0, 0.06)",
-              borderRadius: { xs: 2, sm: 3 },
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: isDarkMode
-                ? "rgba(156, 163, 175, 0.6)"
-                : "rgba(156, 163, 175, 0.4)",
-              borderRadius: { xs: 2, sm: 3 },
-              "&:hover": {
-                backgroundColor: isDarkMode
-                  ? "rgba(156, 163, 175, 0.8)"
-                  : "rgba(156, 163, 175, 0.6)",
+              ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+              : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <TableContainer>
+            <Table>
+              <TableHead
+                sx={{
+                  backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
+                }}
+              >
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Référence
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Direction
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      minWidth: '230px',
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Type
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      minWidth: '100x',
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Montant
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      minWidth: '100px',
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Frais
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      minWidth: '100px',
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Commission
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Statut
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      minWidth: '130px',
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Balance avant
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      minWidth: '130px',
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Balance après
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Traité par
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: isDarkMode ? "#9ca3af" : "#6b7280",
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    Date
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {transactions.map((transaction) => (
+                  <TableRow
+                    key={transaction.id}
+                    onClick={() => onTransactionClick(transaction)}
+                    sx={{
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
+                      },
+                      borderBottom: `1px solid ${
+                        isDarkMode ? "#4b5563" : "#e5e7eb"
+                      }`,
+                    }}
+                  >
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.reference}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color:
+                          transaction.flow === "out" || transaction.flow === "freeze"
+                            ? isDarkMode ? "#f87171" : "#dc2626"
+                            : isDarkMode ? "#34d399" : "#16a34a",
+                        py: 2,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {transaction.flow === "out" ? "Sortie" : transaction.flow === "in" ? "Entrée" : transaction.flow === "freeze" ? 'Blocage' : 'Déblocage'}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#ffffff" : "#111827",
+                        py: 2,
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div
+                          className={`p-2 rounded-full ${
+                            getTransactionColor(transaction.type)
+                          }`}
+                        >
+                          {transaction.type === "funds_withdrawal" ? (
+                            <ArrowDownTrayIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+                          ) : transaction.type === "funds_receipt" ? (
+                            <BanknotesIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          ) : transaction.type === "funds_transfer" ? (
+                            <FaExchangeAlt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <CurrencyDollarIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                          )}
+                        </div>
+                        <div className="ml-1">
+                          <div
+                            className={`text-sm font-medium ${
+                              isDarkMode ? "text-white" : "text-gray-900"
+                            }`}
+                          >
+                            {getOperationType(transaction.type)}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color:
+                          transaction.flow === "out" || transaction.flow === "freeze"
+                            ? isDarkMode ? "#f87171" : "#dc2626"
+                            : isDarkMode ? "#34d399" : "#16a34a",
+                        py: 2,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {transaction.amount + ' $'}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color:
+                          transaction.flow === "out" || transaction.flow === "freeze"
+                            ? isDarkMode ? "#f87171" : "#dc2626"
+                            : isDarkMode ? "#34d399" : "#16a34a",
+                        py: 2,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {transaction.fee_amount + ' $'}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color:
+                          transaction.flow === "out" || transaction.flow === "freeze"
+                            ? isDarkMode ? "#f87171" : "#dc2626"
+                            : isDarkMode ? "#34d399" : "#16a34a",
+                        py: 2,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {transaction.commission_amount + ' $'}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        py: 2,
+                      }}
+                    >
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTransactionStatusColor(
+                          transaction.status
+                        )}`}
+                      >
+                        {transaction.status === "completed"
+                          ? "complété"
+                          : transaction.status === "pending"
+                          ? "en attente"
+                          : transaction.status === "failed"
+                          ? "échoué"
+                          : transaction.status === "reversed"
+                          ? "annulé"
+                          : transaction.status === "processing"
+                          ? "en cours de traitement"
+                          : transaction.status}
+                      </span>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.balance_before} $
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.balance_after} $
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {transaction.processor}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.875rem",
+                        color: isDarkMode ? "#d1d5db" : "#6b7280",
+                        py: 2,
+                      }}
+                    >
+                      {formatDate(transaction.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {/* Pagination Material-UI */}
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={totalTransactions}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={onPageChange}
+            onRowsPerPageChange={onRowsPerPageChange}
+            labelRowsPerPage="Lignes par page:"
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
+            }
+            sx={{
+              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+              borderTop: `1px solid ${
+                isDarkMode ? "#4b5563" : "#e5e7eb"
+              }`,
+              "& .MuiTablePagination-toolbar": {
+                color: isDarkMode ? "#d1d5db" : "#374151",
               },
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  color: isDarkMode ? "#d1d5db" : "#374151",
+                },
+              "& .MuiIconButton-root": {
+                color: isDarkMode ? "#d1d5db" : "#374151",
+              },
+            }}
+          />
+        </Paper>
+      ) : (
+        <Alert
+          severity="info"
+          sx={{
+            mb: 2,
+            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+            color: isDarkMode ? "#d1d5db" : "#374151",
+            "& .MuiAlert-icon": {
+              color: isDarkMode ? "#60a5fa" : "#3b82f6",
             },
           }}
         >
-          <Table 
-            size="small" 
-            sx={{ 
-              minWidth: { xs: "800px", sm: "900px" },
-              tableLayout: "fixed"
-            }}
-          >
-            <TableHead>
-              <TableRow
-                sx={{
-                  bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
-                  "& th": {
-                    fontWeight: "bold",
-                    color: isDarkMode ? "#fff" : "#334155",
-                    fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                    padding: { xs: "8px 10px", sm: "12px 16px" },
-                    borderBottom: isDarkMode
-                      ? "1px solid #374151"
-                      : "2px solid #e2e8f0",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    whiteSpace: "nowrap",
-                  },
-                }}
-              >
-                <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Type</TableCell>
-                <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Référence</TableCell>
-                <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Montant</TableCell>
-                <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Statut</TableCell>
-                <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Date</TableCell>
-                <TableCell sx={{ width: { xs: "150px", sm: "180px" } }}>Méthode de paiement</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {transactions.map((transaction, index) => (
-                <TableRow
-                  key={transaction.id}
-                  sx={{
-                    "&:hover": {
-                      bgcolor: isDarkMode ? "#374151" : "#f8fafc",
-                      transform: "scale(1.005)",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                    borderBottom: `1px solid ${
-                      isDarkMode ? "#374151" : "#e2e8f0"
-                    }`,
-                    "& td": {
-                      padding: { xs: "6px 10px", sm: "10px 16px" },
-                      color: isDarkMode ? "#fff" : "#475569",
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease-in-out",
-                    },
-                    animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
-                  }}
-                  onClick={() => onTransactionClick && onTransactionClick(transaction)}
-                >
-                  <TableCell>
-                    {transaction.type === "withdrawal"
-                      ? "Retrait"
-                      : transaction.type === "purchase"
-                      ? "Achat"
-                      : transaction.type === "virtual_purchase"
-                      ? "Virtuels"
-                      : transaction.type === "reception"
-                      ? "Réception des fonds"
-                      : transaction.type === "transfer"
-                      ? "Transfert des fonds"
-                      : transaction.type === "remboursement"
-                      ? "Remboursement"
-                      : transaction.type === "digital_product_sale"
-                      ? "Vente de produit numérique"
-                      : transaction.type === "commission de parrainage"
-                      ? "Commission de parrainage"
-                      : transaction.type === "commission de transfert"
-                      ? "Commission de transfert"
-                      : transaction.type === "commission de retrait"
-                      ? "Commission de retrait"
-                      : transaction.type}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.reference}
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-medium" 
-                    style={{
-                      color: transaction.mouvment === "in" ? "black" : "red"
-                    }}>
-                      {transaction.mouvment === "in" ? "+" : "-"}{selectedCurrency === "USD"
-                        ? `${parseFloat(transaction.amount).toFixed(2)} $`
-                        : `${parseFloat(transaction.amount).toFixed(2)} FC`}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTransactionStatusColor(
-                        transaction.status
-                      )}`}
-                    >
-                      {transaction.status === "pending"
-                        ? "en attente"
-                        : transaction.status === "completed"
-                        ? "completé"
-                        : transaction.status === "failed"
-                        ? "failed"
-                        : transaction.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(transaction.created_at)}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.metadata?.["Méthode de paiement"] || "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Alert severity="info" sx={{ mb: 2 }}>
           {transactions.length === 0
-            ? `Aucune transaction ${selectedCurrency} n'a été trouvée`
+            ? "Aucune transaction n'a été trouvée"
             : "Aucune transaction ne correspond aux filtres sélectionnés"}
         </Alert>
       )}
-
-      {/* Pagination Material-UI */}
-      <TablePagination
-        component="div"
-        count={totalTransactions}
-        page={currentPage}
-        onPageChange={onPageChange}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={onRowsPerPageChange}
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        labelRowsPerPage="Lignes par page:"
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-        }
-        sx={{
-          color: isDarkMode ? "#fff" : "#475569",
-          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-          "& .MuiTablePagination-toolbar": {
-            minHeight: { xs: "40px", sm: "52px" },
-            padding: { xs: "8px", sm: "16px" },
-          },
-          "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-          },
-          "& .MuiTablePagination-select": {
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-          },
-          "& .MuiIconButton-root": {
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-          },
-        }}
-      />
     </div>
   );
 };

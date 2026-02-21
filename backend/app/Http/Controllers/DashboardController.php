@@ -30,16 +30,18 @@ class DashboardController extends BaseController
         if ($user->is_admin) {
             return response()->json(['redirect' => 'admin.dashboard']);
         }
+
+        $totalIn = WalletSystem::where('wallet_id', $user->wallet->id)->where('flow', 'in')->where('status', 'completed')->sum('amount');
+        $totalOut = WalletSystem::where('wallet_id', $user->wallet->id)->where('flow', 'out')->where('status', 'completed')->sum('amount');
         
         // Récupérer les statistiques
         $stats = [
             'direct_referrals' => $user->referrals()->count(),
-            'wallet_balance_usd' => $user->wallet->balance_usd,
-            'wallet_balance_cdf' => $user->wallet->balance_cdf,
-            'total_earned_usd' => $user->wallet->total_earned_usd,
-            'total_earned_cdf' => $user->wallet->total_earned_cdf,
-            'total_withdrawn_usd' => $user->wallet->total_withdrawn_usd,
-            'total_withdrawn_cdf' => $user->wallet->total_withdrawn_cdf,
+            'wallet_balance' => $user->wallet->balance,
+            'wallet_available_balance' => $user->wallet->available_balance,
+            'wallet_frozen_balance' => $user->wallet->frozen_balance,
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
         ];
 
         // Récupérer les packs de l'utilisateur
@@ -128,21 +130,17 @@ class DashboardController extends BaseController
                 'usd' => [
                     'completed' => Commission::where('user_id', $user->id)
                         ->where('status', 'completed')
-                        ->where('currency', 'USD')
                         ->sum('amount'),
                     'failed' => Commission::where('user_id', $user->id)
                         ->where('status', 'failed')
-                        ->where('currency', 'USD')
                         ->sum('amount'),
                 ],
                 'cdf' => [
                     'completed' => Commission::where('user_id', $user->id)
                         ->where('status', 'completed')
-                        ->where('currency', 'CDF')
                         ->sum('amount'),
                     'failed' => Commission::where('user_id', $user->id)
                         ->where('status', 'failed')
-                        ->where('currency', 'CDF')
                         ->sum('amount'),
                 ]
             ];
@@ -226,12 +224,10 @@ class DashboardController extends BaseController
                 $monthlyCommissions[$month->format('Y-m')] = [
                     'usd' => Commission::where('user_id', $user->id)
                         ->where('status', 'completed')
-                        ->where('currency', 'USD')
                         ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                         ->sum('amount'),
                     'cdf' => Commission::where('user_id', $user->id)
                         ->where('status', 'completed')
-                        ->where('currency', 'CDF')
                         ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                         ->sum('amount'),
                     'total' => Commission::where('user_id', $user->id)
@@ -354,11 +350,10 @@ class DashboardController extends BaseController
                 $commissionsByCurrency = Commission::where('user_id', $user->id)
                     ->where('pack_id', $pack->id)
                     ->where('status', 'completed')
-                    ->get()
-                    ->groupBy('currency');
+                    ->get();
                 
-                $totalCommissionsUSD = $commissionsByCurrency->get('USD', collect())->sum('amount');
-                $totalCommissionsCDF = $commissionsByCurrency->get('CDF', collect())->sum('amount');
+                $totalCommissionsUSD = $commissionsByCurrency->sum('amount');
+                $totalCommissionsCDF = $commissionsByCurrency->sum('amount');
                 
                 $result = [
                     'id' => $pack->id,
@@ -407,11 +402,10 @@ class DashboardController extends BaseController
                 $commissionsByCurrency = Commission::where('user_id', $user->id)
                     ->where('pack_id', $pack->id)
                     ->where('status', 'completed')
-                    ->get()
-                    ->groupBy('currency');
+                    ->get();
                 
-                $amountUSD = $commissionsByCurrency->get('USD', collect())->sum('amount');
-                $amountCDF = $commissionsByCurrency->get('CDF', collect())->sum('amount');
+                $amountUSD = $commissionsByCurrency->sum('amount');
+                $amountCDF = $commissionsByCurrency->sum('amount');
 
                 return [
                     'pack_name' => $pack->name,
@@ -430,7 +424,6 @@ class DashboardController extends BaseController
                     return [
                         'id' => $withdrawal->id,
                         'amount' => $withdrawal->amount,
-                        'currency' => $withdrawal->currency,
                         'date' => $withdrawal->created_at ? $withdrawal->created_at->format('d/m/Y') : 'N/A',
                         'status' => $withdrawal->status,
                         'payment_method' => $withdrawal->payment_method,
@@ -458,8 +451,7 @@ class DashboardController extends BaseController
                 'data' => [
                     'general_stats' => [
                         'wallet' => [
-                            'balance_usd' => $user->wallet->balance_usd,
-                            'balance_cdf' => $user->wallet->balance_cdf,
+                            'balance' => $user->wallet->balance,
                             'points' => $user->wallet->points
                         ],
                         'total_referrals' => $totalReferralsCount,

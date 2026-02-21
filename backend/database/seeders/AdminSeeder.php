@@ -45,12 +45,11 @@ class AdminSeeder extends Seeder
         // Créer le wallet pour l'administrateur
         Wallet::create([
             'user_id' => $admin->id,
-            'balance_usd' => 0,
-            'balance_cdf' => 0,
-            'total_earned_usd' => 0,
-            'total_earned_cdf' => 0,
-            'total_withdrawn_usd' => 0,
-            'total_withdrawn_cdf' => 0,
+            'balance' => 0,
+            'available_balance' => 0,
+            'frozen_balance' => 0,
+            'points' => 0,
+            'is_active' => true,
         ]);
 
 
@@ -120,12 +119,11 @@ class AdminSeeder extends Seeder
         // Créer le wallet pour le support
         Wallet::create([
             'user_id' => $supportAccount->id,
-            'balance_usd' => 0,
-            'balance_cdf' => 0,
-            'total_earned_usd' => 0,
-            'total_earned_cdf' => 0,
-            'total_withdrawn_usd' => 0,
-            'total_withdrawn_cdf' => 0,
+            'balance' => 0,
+            'available_balance' => 0,
+            'frozen_balance' => 0,
+            'points' => 0,
+            'is_active' => true,
         ]);
     }
 }

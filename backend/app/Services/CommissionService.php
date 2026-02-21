@@ -11,7 +11,7 @@ use App\Notifications\CommissionReceived;
 
 class CommissionService
 {
-    public function distributeCommissions(UserPack $purchase, $currency, $amount, $duration_months)
+    public function distributeCommissions(UserPack $purchase, $amount, $duration_months)
     {
         $currentUser = $purchase->user;
         $currentSponsor = User::find($purchase->sponsor_id);
@@ -40,7 +40,6 @@ class CommissionService
                         'pack_id' => $purchase->pack_id,
                         'duree' => $duration_months,
                         'amount' => $commissionAmount,
-                        'currency' => $currency,
                         'level' => $level,
                         'status' => 'pending'
                     ]);
@@ -49,7 +48,7 @@ class CommissionService
                     $commission_traite = $this->processCommission($commission->id, $duration_months);
                     if ($commission_traite) {
                         // Notifier le parrain
-                        $currentSponsor->notify(new CommissionReceived($amount, $currency, $purchase, $level));
+                        $currentSponsor->notify(new CommissionReceived($commissionAmount, $purchase, $level));
                     }
                 }else {
                     $commission = Commission::create([
@@ -58,7 +57,6 @@ class CommissionService
                         'pack_id' => $purchase->pack_id,
                         'duree' => $duration_months,
                         'amount' => $amount,
-                        'currency' => $currency,
                         'level' => $level,
                         'status' => 'failed',
                         'error_message' => 'pack non actif lors de la distribution des commissions'
@@ -87,13 +85,31 @@ class CommissionService
             // Vérifier si l'utilisateur a un portefeuille
             $commission = Commission::find($commissionId);
             $wallet = $commission->sponsor_user->wallet;
+            $walletsystem = WalletSystem::first();
             if (!$wallet) {
                 throw new \Exception('L\'utilisateur n\'a pas de portefeuille');
             }
 
             // Mettre à jour le solde du portefeuille
-            $wallet->addFunds($commission->amount, $commission->currency, "commission de parrainage", "completed", [ "source account_id"=>$commission->source_user->account_id, "source"=>$commission->source_user->name, 
-            "pack_name"=>$commission->pack->name, "durée de souscription"=>$duration_months . " mois"]); 
+            $metadata_user = [
+                'Source' => $commission->source_user->name . ' / ' . $commission->source_user->account_id,
+                'Nom du pack' => $commission->pack?->name,
+                'Durée de souscription' => $duration_months . " mois",
+                'Description' => 'Vous avez touché une commission de ' . $commission->amount . '$ sur votre pack ' . $commission->pack?->name, 
+            ];
+
+            // Mettre à jour le solde du portefeuille
+            $metadata_system = [
+                'Source' => $commission->source_user->name . ' / ' . $commission->source_user->account_id,
+                'Bénéficiaire' => $commission->sponsor_user->name . ' / ' . $commission->sponsor_user->account_id,
+                'Durée de souscription' => $duration_months . " mois",
+                'Description' => 'Vous avez payé une commission de ' . $commission->amount . '$ sur le pack ' . $commission->pack?->name, 
+            ];
+
+            $description_user = 'Vous avez touché une commission de ' . $commission->amount . '$ sur votre pack ' . $commission->pack?->name;
+            $description_system = 'Vous avez payé une commission de ' . $commission->amount . '$ sur le pack ' . $commission->pack?->name;
+            $walletsystem->addEngagements($commission->amount, "sponsorship_commission", "completed", $description_system, $commission->source_user->id, $metadata_system);
+            $wallet->addFunds($commission->amount, 0, 0, "sponsorship_commission", "completed", $description_user, $commission->source_user->id, $metadata_user); 
 
             // Marquer la commission comme traitée
             $commission->update([
@@ -101,42 +117,12 @@ class CommissionService
                 'processed_at' => now()
             ]);
 
-            $walletsystem = WalletSystem::first();
-            if (!$walletsystem) {
-                $walletsystem = WalletSystem::create([
-                    'balance_usd' => 0,
-                    'balance_cdf' => 0,
-                    'total_in_usd' => 0,
-                    'total_in_cdf' => 0,
-                    'total_out_usd' => 0,
-                    'total_out_cdf' => 0,
-                ]);
-            }
-
-            $walletsystem->transactions()->create([
-                'wallet_system_id' => $walletsystem->id,
-                'amount' => $commission->amount,
-                'currency' => $commission->currency,
-                'mouvment' => 'out',
-                'type' => 'commission de parrainage',
-                'status' => 'completed',
-                'metadata' => [
-                    "user" => $commission->source_user->name, 
-                    "Pack_ID" => $commission->pack->id,
-                    "Nom du pack" => $commission->pack->name,
-                    "bénéficiaire" => $commission->sponsor_user->name,
-                    "Opération" => "Commission de parrainage",
-                    "Montant" => $commission->amount .' '. $commission->currency === "USD" ? '$':'FC', 
-                    "Durée" => $duration_months
-                ]
-            ]);
-
-            \Log::info('commission distribuée de ' . $commission->amount);
-
             return true;
         } catch (\Exception $e) {
             // En cas d'erreur, marquer la commission comme échouée
             \Log::error($e->getMessage());
+            \Log::error($e->getLine());
+            \Log::error($e->getTraceAsString());
             $commission->update([
                 'status' => 'failed',
                 'error_message' => $e->getMessage(),

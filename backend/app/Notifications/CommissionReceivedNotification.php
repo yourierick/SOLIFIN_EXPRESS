@@ -13,7 +13,6 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected $amount;
-    protected $currency;
     protected $filleulName;
     protected $filleulAccountId;
 
@@ -21,15 +20,13 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
      * Create a new notification instance.
      *
      * @param float $amount Montant de la commission
-     * @param string $currency Devise (USD, CDF)
      * @param string $filleulName Nom du filleul
      * @param string $filleulAccountId ID du compte du filleul
      * @return void
      */
-    public function __construct($amount, $currency, $filleulName, $filleulAccountId)
+    public function __construct($amount, $filleulName, $filleulAccountId)
     {
         $this->amount = $amount;
-        $this->currency = $currency;
         $this->filleulName = $filleulName;
         $this->filleulAccountId = $filleulAccountId;
     }
@@ -52,14 +49,12 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
      * @return array
      */
     public function toArray($notifiable)
-    {
-        $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
-        
+    {   
         return [
             'type' => 'success',
             'icon' => 'cash',
             'title' => 'Commission reçue',
-            'message' => "Vous avez reçu une commission de {$this->amount} {$currencySymbol} de la part de votre filleul {$this->filleulName}.",
+            'message' => "Vous avez reçu une nouvelle commission de {$this->amount} $ de la part de votre filleul {$this->filleulName}.",
         ];
     }
 
@@ -71,13 +66,12 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
      */
     public function toBroadcast($notifiable)
     {
-        $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         
         return new BroadcastMessage([
             'type' => 'success',
             'icon' => 'cash',
             'title' => 'Commission reçue',
-            'message' => "Vous avez reçu une commission de {$this->amount} {$currencySymbol} de la part de votre filleul {$this->filleulName}.",
+            'message' => "Vous avez reçu une commission de {$this->amount} $ de la part de votre filleul {$this->filleulName}.",
             'amount' => $this->amount,
             'currency' => $this->currency,
             'transaction_type' => 'commission',
@@ -93,13 +87,12 @@ class CommissionReceivedNotification extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        $currencySymbol = $this->currency === 'USD' ? '$' : ' FC';
         
         return (new MailMessage)
             ->subject('Commission de transfert reçue')
             ->greeting('Bonjour ' . $notifiable->name . ',')
             ->line('Félicitations ! Vous avez reçu une nouvelle commission.')
-            ->line("Montant de la commission : {$this->amount} {$currencySymbol}")
+            ->line("Montant de la commission : {$this->amount} $")
             ->line("Filleul concerné : {$this->filleulName}")
             ->line("ID du compte du filleul : {$this->filleulAccountId}")
             ->line("Date et heure : " . now()->format('d/m/Y H:i'))

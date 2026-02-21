@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "../utils/axios";
 
 // Configuration du service de polling
 const POLLING_INTERVALS = {

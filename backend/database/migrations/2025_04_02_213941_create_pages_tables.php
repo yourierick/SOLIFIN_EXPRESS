@@ -59,9 +59,9 @@ return new class extends Migration
             $table->decimal('prix_unitaire_livraison', 15, 2)->nullable();
             $table->string('lien')->nullable();
             $table->date('expiry_date')->nullable();
-            $table->enum('statut', ['en_attente', 'approuvé', 'rejeté', 'expiré'])->default('en_attente');
+            $table->enum('statut', ['pending', 'approved', 'rejected', 'expired'])->default('pending');
             $table->string('raison_rejet')->nullable();
-            $table->enum('etat', ['disponible', 'terminé'])->default('disponible');
+            $table->enum('etat', ['available', 'unavailable'])->default('available');
             $table->integer('duree_affichage')->comment('Durée en jours'); 
             $table->timestamps();
         });
@@ -85,9 +85,9 @@ return new class extends Migration
             $table->string('offer_file');
             $table->string('lien')->nullable();
             $table->date('expiry_date')->nullable();
-            $table->enum('statut', ['en_attente', 'approuvé', 'rejeté', 'expiré'])->default('en_attente');
+            $table->enum('statut', ['pending', 'approved', 'rejected', 'expired'])->default('pending');
             $table->string('raison_rejet')->nullable();
-            $table->enum('etat', ['disponible', 'terminé'])->default('disponible');
+            $table->enum('etat', ['available', 'unavailable'])->default('available');
             $table->integer('duree_affichage')->comment('Durée en jours'); 
             $table->timestamps();
         });
@@ -110,9 +110,9 @@ return new class extends Migration
             $table->string('lien')->nullable();
             $table->date('date_limite');
             $table->date('expiry_date')->nullable();
-            $table->enum('statut', ['en_attente', 'approuvé', 'rejeté', 'expiré'])->default('en_attente');
+            $table->enum('statut', ['pending', 'approved', 'rejected', 'expired'])->default('pending');
             $table->string('raison_rejet')->nullable();
-            $table->enum('etat', ['disponible', 'terminé'])->default('disponible');
+            $table->enum('etat', ['available', 'unavailable'])->default('available');;
             $table->integer('duree_affichage')->comment('Durée en jours'); 
             $table->timestamps();
         });
@@ -124,7 +124,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->string('video')->nullable();
             $table->string('description', 1000)->nullable();
-            $table->enum('statut', ['en_attente', 'approuvé', 'rejeté', 'expiré'])->default('en_attente');
+            $table->enum('statut', ['pending', 'approved', 'rejected', 'expired'])->default('approved');
             $table->string('raison_rejet')->nullable();
             $table->timestamps();
         });

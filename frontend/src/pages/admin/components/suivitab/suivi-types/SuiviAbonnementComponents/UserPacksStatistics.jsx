@@ -104,16 +104,6 @@ const UserPacksStatistics = ({ period, filters, showCardsOnly = false, showChart
     return new Intl.NumberFormat('fr-FR').format(num);
   };
 
-  // Formater la monnaie
-  const formatCurrency = (amount, currency = 'USD') => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>

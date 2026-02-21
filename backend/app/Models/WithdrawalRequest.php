@@ -14,9 +14,7 @@ class WithdrawalRequest extends Model
         'session_id',
         'transaction_id',
         'amount',
-        'currency',
         'status',
-        'payment_status',
         'payment_method',
         'payment_details',
         'admin_note',
@@ -52,6 +50,6 @@ class WithdrawalRequest extends Model
 
     public function isProcessed()
     {
-        return in_array($this->status, ['approved', 'rejected', 'paid']);
+        return in_array($this->status, ['rejected', 'paid']);
     }
 }

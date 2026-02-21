@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
-import { useCurrency } from "../contexts/CurrencyContext";
 import axios from "../utils/axios";
 import { toast } from "react-toastify";
 import {
@@ -18,13 +17,6 @@ import airtelIcon from "../assets/icons-mobil-money/airtel.png";
 import mpesaIcon from "../assets/icons-mobil-money/mpesa.png";
 import orangeIcon from "../assets/icons-mobil-money/orange.png";
 import africellIcon from "../assets/icons-mobil-money/afrimoney.png";
-
-// Utiliser les devises depuis config.js
-const currencies = Object.values(CURRENCIES).map((currency) => ({
-  code: currency.code,
-  name: currency.name,
-  symbol: currency.symbol,
-}));
 
 // Utiliser les types de paiement depuis config.js
 const paymentTypes = PAYMENT_TYPES;
@@ -68,12 +60,6 @@ const creditCardOptions = PAYMENT_METHODS[PAYMENT_TYPES.CREDIT_CARD];
 
 export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
   const { isDarkMode } = useTheme();
-  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
-
-  // Fonction pour obtenir le symbole de devise
-  const getCurrencySymbol = (currency) => {
-    return currency === "USD" ? " $" : " FC";
-  };
 
   const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
@@ -81,7 +67,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
     amount: "",
     phoneNumber: "",
     phoneCode: "+243", // Indicatif téléphonique par défaut (RDC)
-    currency: selectedCurrency, // Utiliser la devise globale
     cardNumber: "",
     cardHolder: "",
     expiryDate: "",
@@ -115,15 +100,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
     fetchFeePercentage();
   }, []);
 
-  // Synchroniser la devise avec le contexte global
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      currency: selectedCurrency
-    }));
-  }, [selectedCurrency]);
-
-  // Recalculer les frais quand la devise change
   useEffect(() => {
     if (formData.amount && !isNaN(parseFloat(formData.amount))) {
       const amount = parseFloat(formData.amount);
@@ -132,7 +108,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
     } else {
       setPurchaseFee(0);
     }
-  }, [selectedCurrency, formData.amount, feePercentage]);
+  }, [formData.amount, feePercentage]);
 
   // Valider le formulaire
   useEffect(() => {
@@ -308,7 +284,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
       // Préparer les données pour l'API selon le format attendu par le backend
       const requestData = {
         payment_method: selectedPaymentOption.id,
-        currency: selectedCurrency,  // selectedCurrency est déjà "USD" ou "CDF"
       };
 
       requestData.amount = amount.toFixed(2);
@@ -335,9 +310,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
           cvv: formData.cvv,
         };
       }
-
-      // Log pour vérifier les données envoyées au backend
-      console.log("Données envoyées au backend:", requestData);
 
       // Appel à l'API
       const response = await axios.post("/api/serdipay/payment", requestData);
@@ -577,7 +549,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {getCurrencySymbol(selectedCurrency)}
+                        $
                       </span>
                       <input
                         type="number"
@@ -607,13 +579,13 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                       <div className="flex justify-between mb-2">
                         <span>Montant:</span>
                         <span>
-                          {parseFloat(formData.amount).toFixed(2)}{" "}{getCurrencySymbol(selectedCurrency)}
+                          {parseFloat(formData.amount).toFixed(2)}{" "} $
                         </span>
                       </div>
                       <div className="flex justify-between mb-2">
                         <span>Frais ({feePercentage}%):</span>
                         <span>
-                          {purchaseFee.toFixed(2)}{" "}{getCurrencySymbol(selectedCurrency)}
+                          {purchaseFee.toFixed(2)}{" "} $
                         </span>
                       </div>
                       <div className="flex justify-between font-semibold">
@@ -621,7 +593,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                         <span>
                           {(parseFloat(formData.amount) + purchaseFee).toFixed(
                             2
-                          )}{" "}{getCurrencySymbol(selectedCurrency)}
+                          )}{" "} $
                         </span>
                       </div>
                     </div>
@@ -995,21 +967,21 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                       <span>Montant:</span>
                       <span>
                         {parseFloat(formData.amount).toFixed(2)}
-                        {" "}{getCurrencySymbol(selectedCurrency)}
+                        {" "} $
                       </span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span>Frais ({feePercentage}%):</span>
                       <span>
                         {purchaseFee.toFixed(2)}
-                        {" "}{getCurrencySymbol(selectedCurrency)}
+                        {" "} $
                       </span>
                     </div>
                     <div className="flex justify-between font-semibold">
                       <span>Total à payer:</span>
                       <span>
                         {(parseFloat(formData.amount) + purchaseFee).toFixed(2)}
-                        {" "}{getCurrencySymbol(selectedCurrency)}
+                        {" "}$
                       </span>
                     </div>
                   </div>
@@ -1081,7 +1053,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                     En cliquant sur "Confirmer", vous autorisez le prélèvement
                     de{" "}
                     <strong>
-                      {getCurrencySymbol(selectedCurrency)}
+                      $
                       {(parseFloat(formData.amount) + purchaseFee).toFixed(2)}
                     </strong>{" "}
                     {selectedPaymentType === paymentTypes.MOBILE_MONEY
@@ -1101,7 +1073,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                         <CheckCircleIcon className="h-16 w-16 text-green-500" />
                       </div>
                       <h3 className="text-xl font-semibold mb-2">
-                        Transaction réussie!
+                        Achat initié!
                       </h3>
                       <p
                         className={`mb-4 ${
@@ -1116,25 +1088,14 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                         }`}
                       >
                         <div className="flex justify-between mb-2">
-                          <span>Montant crédité:</span>
+                          <span>Montant à crédité:</span>
                           <span>
-                            {selectedCurrency.code === "USD"
-                              ? `$ ${transactionResult.amount}`
-                              : `FC ${transactionResult.amount}`}
+                             ${transactionResult.amount}
                           </span>
                         </div>
                         <div className="flex justify-between mb-2">
                           <span>ID de transaction:</span>
                           <span>{transactionResult.transactionId}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold">
-                          <span>Nouveau solde:</span>
-                          <span>
-                            $
-                            {parseFloat(transactionResult.newBalance).toFixed(
-                              2
-                            )}
-                          </span>
                         </div>
                       </div>
                     </>
@@ -1156,7 +1117,7 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                       </p>
                       <p className="text-sm text-gray-500">
                         {selectedPaymentType === paymentTypes.MOBILE_MONEY
-                          ? "Vérifiez que votre numéro de téléphone est correct et que vous disposez de fonds suffisants."
+                          ? "Vérifiez que votre numéro de téléphone est correct et que vous disposez de fonds suffisants, puis réessayez."
                           : "Vérifiez les informations de votre carte et réessayez."}
                       </p>
                     </>

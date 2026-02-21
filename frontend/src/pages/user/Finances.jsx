@@ -12,6 +12,8 @@ import { fr } from "date-fns/locale";
 import { toast } from "react-toastify";
 import { useCurrency } from "../../contexts/CurrencyContext";
 import WithdrawalRequests from "./components/WithdrawalRequests";
+import { getTransactionColor } from "../../components/TransactionColorFormatter";
+import { getOperationType } from "../../components/OperationTypeFormatter";
 import JetonsEsengo from "./components/JetonsEsengo";
 import Wallets from "./Wallet";
 import {
@@ -105,12 +107,11 @@ const Finances = () => {
   const [summary, setSummary] = useState(null);
   const [transactionStats, setTransactionStats] = useState([]);
   const [walletBalance, setWalletBalance] = useState({
-    balance_usd: 0,
-    balance_cdf: 0,
-    totalEarned_usd: 0,
-    totalEarned_cdf: 0,
-    totalWithdrawn_usd: 0,
-    totalWithdrawn_cdf: 0,
+    balance: 0,
+    available_balance: 0,
+    frozen_balance: 0,
+    total_in: 0,
+    total_out: 0,
   });
 
   // États pour la pagination
@@ -167,11 +168,11 @@ const Finances = () => {
   // État pour stocker les packs distincts
   const [packOptions, setPackOptions] = useState([]);
   // Fonction pour formater les montants
-  const formatAmount = (amount, currency = "USD") => {
+  const formatAmount = (amount) => {
     if (amount === undefined || amount === null) return "0,00";
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
-      currency: currency,
+      currency: "USD",
     }).format(amount);
   };
 
@@ -250,13 +251,7 @@ const Finances = () => {
       setLoading((prev) => ({ ...prev, summary: true }));
       setError((prev) => ({ ...prev, summary: null }));
 
-      // Inclure la devise dans les paramètres de l'API
       const params = new URLSearchParams();
-      if (isCDFEnabled) {
-        params.append('currency', selectedCurrency);
-      } else {
-        params.append('currency', 'USD');
-      }
 
       const response = await axios.get(`/api/user/finances/summary?${params.toString()}`);
 
@@ -271,12 +266,11 @@ const Finances = () => {
       setSummary(summaryData);
       setWalletBalance((prev) => ({
         ...prev,
-        balance_usd: parseFloat(summaryData.balance_usd || 0),
-        balance_cdf: parseFloat(summaryData.balance_cdf || 0),
-        totalEarned_usd: parseFloat(summaryData.total_earned_usd || 0),
-        totalEarned_cdf: parseFloat(summaryData.total_earned_cdf || 0),
-        totalWithdrawn_usd: parseFloat(summaryData.total_withdrawn_usd || 0),
-        totalWithdrawn_cdf: parseFloat(summaryData.total_withdrawn_cdf || 0),
+        balance: parseFloat(summaryData.balance || 0),
+        available_balance: parseFloat(summaryData.available_balance || 0),
+        frozen_balance: parseFloat(summaryData.frozen_balance || 0),
+        total_in: parseFloat(summaryData.total_in || 0),
+        total_out: parseFloat(summaryData.total_out || 0),
       }));
     } catch (err) {
       console.error("Erreur lors de la récupération du résumé:", err);
@@ -300,13 +294,6 @@ const Finances = () => {
       const params = {
         ...statsFilters,
       };
-
-      // Inclure la devise dans les paramètres
-      if (isCDFEnabled) {
-        params.currency = selectedCurrency;
-      } else {
-        params.currency = 'USD';
-      }
 
       const response = await axios.get("/api/user/finances/stats-by-type", {
         params,
@@ -400,40 +387,24 @@ const Finances = () => {
     if (!transactionStats || transactionStats.length === 0) return [];
 
     return transactionStats
-      .filter((stat) => {
-        // Filtrer selon la devise sélectionnée
-        return stat.currency === selectedCurrency;
-      })
       .map((stat) => {
-        const typeName =
-          stat.type === "purchase"
-            ? "Achat"
-            : stat.type === "transfer"
-            ? "Transfert"
-            : stat.type === "withdrawal"
-            ? "Retrait"
-            : stat.type === "reception"
-            ? "Réception"
-            : stat.type === "commission de parrainage"
-            ? "Parrainage"
-            : stat.type === "commission de retrait"
-            ? "Com. Retrait"
-            : stat.type === "commission de transfert"
-            ? "Com. Transfert"
-            : stat.type === "virtual_purchase"
-            ? "Virtuels"
-            : stat.type === "digital_product_sale"
-            ? "Vente"
-            : stat.type;
+        let typeName = getOperationType(stat.type);
+        let shortTypeName = typeName;
+        
+        // Limiter le nom à 10 caractères maximum pour l'affichage
+        if (typeName.length > 10) {
+          shortTypeName = typeName.substring(0, 10) + '...';
+        }
 
         return {
-          name: `${typeName}`,
+          name: `${shortTypeName}`,
+          fullName: typeName, // Garder le nom complet pour le tooltip
           montant: parseFloat(stat.total_amount || 0),
           count: parseInt(stat.count || 0),
-          currency: stat.currency || "",
+          currency: "USD",
         };
       });
-  }, [transactionStats, selectedCurrency]);
+  }, [transactionStats]);
 
   // Composant pour afficher les détails d'une transaction dans une fenêtre modale
   const TransactionDetailsModal = () => {
@@ -630,11 +601,8 @@ const Finances = () => {
                         fontWeight: 500,
                       }}
                     >
-                      {selectedTransaction.type === "deposit"
-                        ? `+${formatAmount(selectedTransaction.amount)}`
-                        : selectedTransaction.type === "withdrawal"
-                        ? `-${formatAmount(selectedTransaction.amount)}`
-                        : formatAmount(selectedTransaction.amount)}
+                      {selectedTransaction.flow === "in" || selectedTransaction.flow === "unfreeze"
+                        ? `+${formatAmount(selectedTransaction.amount)}`: formatAmount(selectedTransaction.amount)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", mb: 1 }}>
@@ -721,58 +689,33 @@ const Finances = () => {
       }
 
       const groupedByType = transactionStats.reduce((acc, stat) => {
-        // Filtrer selon la devise sélectionnée
-        if (stat.currency !== selectedCurrency) {
-          return acc;
-        }
+        // Afficher toutes les devises sans filtre
 
         // Simplifier les noms pour l'affichage
-        let displayName;
-        switch (stat.type) {
-          case "commission de parrainage":
-            displayName = "Parrainage";
-            break;
-          case "commission de retrait":
-          case "commission de transfert":
-            displayName = "Commission";
-            break;
-          case "withdrawal":
-            displayName = "Retrait";
-            break;
-          case "transfer":
-            displayName = "Transfert";
-            break;
-          case "purchase":
-            displayName = "Achat";
-            break;
-          case "reception":
-            displayName = "Réception";
-            break;
-          case "virtual_purchase":
-            displayName = "Virtuels";
-            break;
-          case "digital_product_sale":
-            displayName = "Vente";
-            break;
-          default:
-            displayName = stat.type;
+        let displayName = getOperationType(stat.type);
+        let shortDisplayName = displayName;
+        
+        // Limiter le nom à 10 caractères maximum pour l'affichage
+        if (displayName.length > 10) {
+          shortDisplayName = displayName.substring(0, 10) + '...';
         }
 
         // Ajouter la devise au nom pour la distinction
-        const nameWithCurrency = `${displayName}`;
+        const nameWithCurrency = `${shortDisplayName}`;
 
         // Déterminer si c'est une dépense (rouge) ou un revenu (vert)
-        const isExpense = ["withdrawal", "transfer", "purchase"].includes(
+        const isExpense = ["funds_withdrawal", "funds_transfer", "digital_product_purchase", "boost_purchase", "pack_purchase"].includes(
           stat.type
         );
 
         if (!acc[nameWithCurrency]) {
           acc[nameWithCurrency] = {
             name: nameWithCurrency,
+            fullName: displayName,  // Ajouter le nom complet pour le tooltip
             montant: 0,
             count: 0,
             isExpense: isExpense,
-            currency: stat.currency || "",
+            currency: stat.currency || "USD",
           };
         }
 
@@ -782,7 +725,7 @@ const Finances = () => {
       }, {});
 
       return Object.values(groupedByType);
-    }, [transactionStats, selectedCurrency]);
+    }, [transactionStats]);
 
     return (
       <Paper
@@ -868,6 +811,10 @@ const Finances = () => {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis
                   dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={70}
+                  interval={0}
                   tick={{ fill: isDarkMode ? "#e5e7eb" : "#374151" }}
                   axisLine={{ stroke: isDarkMode ? "#4b5563" : "#9ca3af" }}
                 />
@@ -901,7 +848,7 @@ const Finances = () => {
                               color: isDarkMode ? "#e5e7eb" : "#374151",
                             }}
                           >
-                            <strong>Type:</strong> {label}
+                            <strong>Type:</strong> {data.fullName || label}
                           </p>
                           <p
                             style={{
@@ -909,7 +856,7 @@ const Finances = () => {
                               color: isDarkMode ? "#e5e7eb" : "#374151",
                             }}
                           >
-                            <strong>Devise:</strong> {data.currency || "N/A"}
+                            <strong>Devise:</strong> USD
                           </p>
                           <p
                             style={{
@@ -919,7 +866,7 @@ const Finances = () => {
                             }}
                           >
                             <strong>Montant:</strong>{" "}
-                            {formatAmount(data.montant, data.currency || "USD")}
+                            {formatAmount(data.montant)}
                           </p>
                         </div>
                       );
@@ -1006,7 +953,7 @@ const Finances = () => {
         </Box>
         <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
           <Typography variant="caption" color="text.secondary" align="center">
-            Les montants sont affichés en {selectedCurrency} selon la sélection globale
+            Les montants sont affichés en {selectedCurrency}
           </Typography>
         </Box>
       </Paper>
@@ -1239,130 +1186,212 @@ const Finances = () => {
           <Grid item xs={12} md={6}>
             <Card
               sx={{
-                bgcolor: isDarkMode
-                  ? "rgba(59, 130, 246, 0.1)"
-                  : "rgba(59, 130, 246, 0.05)",
-                boxShadow: "none",
-                border: `1px solid ${
-                  isDarkMode
-                    ? "rgba(59, 130, 246, 0.2)"
-                    : "rgba(59, 130, 246, 0.1)"
-                }`,
-                borderRadius: 3,
+                background: isDarkMode
+                  ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)"
+                  : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+                boxShadow: isDarkMode
+                  ? "0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)"
+                  : "0 10px 30px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
+                borderRadius: 4,
                 height: "100%",
                 position: "relative",
                 overflow: "hidden",
-                transition: "all 0.3s ease",
+                transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&:hover": {
-                  transform: "translateY(-3px)",
+                  transform: "translateY(-8px) scale(1.02)",
                   boxShadow: isDarkMode
-                    ? "0 8px 20px rgba(0, 0, 0, 0.3)"
-                    : "0 8px 20px rgba(0, 0, 0, 0.1)",
+                    ? "0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.2)"
+                    : "0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.1)",
                 },
               }}
             >
+              {/* Éléments décoratifs */}
               <Box
                 sx={{
                   position: "absolute",
-                  top: -15,
-                  right: -15,
-                  width: 80,
-                  height: 80,
+                  top: -20,
+                  right: -20,
+                  width: 120,
+                  height: 120,
                   borderRadius: "50%",
-                  bgcolor: "primary.main",
-                  opacity: 0.1,
+                  background: "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)",
+                  animation: "pulse 4s ease-in-out infinite",
                 }}
               />
-              <CardContent sx={{ position: "relative", p: 3 }}>
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: -30,
+                  left: -30,
+                  width: 100,
+                  height: 100,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)",
+                  animation: "pulse 4s ease-in-out infinite 2s",
+                }}
+              />
+              
+              <CardContent sx={{ position: "relative", p: 4, zIndex: 1 }}>
+                {/* Header avec icône et titre */}
                 <Box
                   sx={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
+                    alignItems: "center",
+                    mb: 3,
                   }}
                 >
-                  <Typography
-                    variant="subtitle1"
-                    color="primary"
-                    sx={{ fontWeight: 600, fontSize: "0.9rem" }}
-                  >
-                    Solde du portefeuille
-                  </Typography>
+                  <Box>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "1.1rem",
+                        background: isDarkMode
+                          ? "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)"
+                          : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                        mb: 0.5,
+                      }}
+                    >
+                      Solde du portefeuille
+                    </Typography>
+                  </Box>
+                  
                   <Box
                     sx={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      bgcolor: "primary.main",
+                      background: isDarkMode
+                        ? "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)"
+                        : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
                       color: "white",
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
+                      width: 48,
+                      height: 48,
+                      borderRadius: "12px",
+                      boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        transform: "scale(1.1) rotate(5deg)",
+                        boxShadow: "0 6px 20px rgba(59, 130, 246, 0.4)",
+                      },
                     }}
                   >
-                    <AccountBalanceIcon sx={{ fontSize: "1.2rem" }} />
+                    <AccountBalanceIcon sx={{ fontSize: "1.4rem" }} />
                   </Box>
                 </Box>
 
-                {/* Solde selon devise sélectionnée */}
-                <Box sx={{ mb: 2 }}>
+                {/* Solde principal */}
+                <Box sx={{ mb: 3 }}>
+                  
                   <Typography
-                    variant="caption"
-                    sx={{
-                      color: selectedCurrency === "USD" 
-                        ? (isDarkMode ? "#60a5fa" : "#2563eb")
-                        : (isDarkMode ? "#34d399" : "#059669"),
-                      fontWeight: 600,
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    {selectedCurrency === "USD" ? "Dollars Américains (USD)" : "Francs Congolais (CDF)"}
-                  </Typography>
-                  <Typography
-                    variant="h5"
+                    variant="h3"
                     component="div"
                     sx={{
-                      fontSize: "1.4rem",
-                      fontWeight: 700,
-                      color: selectedCurrency === "USD" 
-                        ? (isDarkMode ? "#60a5fa" : "#2563eb")
-                        : (isDarkMode ? "#34d399" : "#059669"),
-                      mb: 1,
+                      fontSize: "2.2rem",
+                      fontWeight: 800,
+                      background: isDarkMode
+                        ? "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)"
+                        : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                      mb: 2,
+                      lineHeight: 1.2,
                     }}
                   >
-                    {selectedCurrency === "USD" 
-                      ? formatAmount(walletBalance.balance_usd)
-                      : new Intl.NumberFormat("fr-FR", {
-                          style: "currency",
-                          currency: "CDF",
-                        }).format(walletBalance.balance_cdf)}
+                    Balance : {formatAmount(walletBalance.balance)}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 2, fontSize: "0.85rem" }}>
-                    <Typography
-                      variant="body2"
-                      color="success.main"
-                      fontWeight={500}
-                    >
-                      +{selectedCurrency === "USD" 
-                        ? formatAmount(walletBalance.totalEarned_usd)
-                        : new Intl.NumberFormat("fr-FR", {
-                            style: "currency",
-                            currency: "CDF",
-                          }).format(walletBalance.totalEarned_cdf)}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="error.main"
-                      fontWeight={500}
-                    >
-                      -{selectedCurrency === "USD" 
-                        ? formatAmount(walletBalance.totalWithdrawn_usd)
-                        : new Intl.NumberFormat("fr-FR", {
-                            style: "currency",
-                            currency: "CDF",
-                          }).format(walletBalance.totalWithdrawn_cdf)}
-                    </Typography>
+                  
+                  {/* Statistiques secondaires */}
+                  <Box sx={{ display: "flex", gap: 4 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor: "#585b5aff",
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: isDarkMode ? "#a5b3afff" : "#585b5aff",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Disponibles : {formatAmount(walletBalance.available_balance)}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor: "#ef6344ff",
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: isDarkMode ? "#ef6344ff" : "#ef6344ff",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Bloqués : {formatAmount(walletBalance.frozen_balance)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 3 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor: "#10b981",
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: isDarkMode ? "#10b981" : "#059669",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Total Entrées : {formatAmount(walletBalance.total_in)}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor: "#ef4444",
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: isDarkMode ? "#ef4444" : "#dc2626",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Total sorties : {formatAmount(walletBalance.total_out)}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
               </CardContent>
@@ -1886,15 +1915,8 @@ const Finances = () => {
                   }}
                 >
                   {isMobile
-                    ? `Statistiques (${selectedCurrency})`
-                    : `Statistiques par type de transaction (${selectedCurrency})`}
-                </Typography>
-              </Box>
-              
-              {/* Indication de la devise utilisée */}
-              <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
-                <Typography variant="caption" color="text.secondary" align="center">
-                  Les statistiques sont affichées en {selectedCurrency} selon la sélection globale
+                    ? `Statistiques`
+                    : `Statistiques par type de transaction`}
                 </Typography>
               </Box>
 
@@ -1984,13 +2006,15 @@ const Finances = () => {
                                 boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                               }}
                               formatter={(value, name, props) => [
-                                formatAmount(
-                                  value,
-                                  props.payload?.currency || "USD"
-                                ),
+                                formatAmount(value),
                                 "Montant",
                               ]}
-                              labelFormatter={(label) => `Type: ${label}`}
+                              labelFormatter={(label, payload) => {
+                                if (payload && payload[0]) {
+                                  return `Type: ${payload[0].payload.fullName || label}`;
+                                }
+                                return `Type: ${label}`;
+                              }}
                             />
                             <Legend
                               wrapperStyle={{ paddingTop: 10 }}
@@ -2091,7 +2115,12 @@ const Finances = () => {
                                 `${value} transaction(s)`,
                                 "Nombre",
                               ]}
-                              labelFormatter={(label) => `Type: ${label}`}
+                              labelFormatter={(label, payload) => {
+                                if (payload && payload[0]) {
+                                  return `Type: ${payload[0].payload.fullName || label}`;
+                                }
+                                return `Type: ${label}`;
+                              }}
                             />
                             <Legend
                               wrapperStyle={{ paddingTop: 10 }}
@@ -2203,17 +2232,6 @@ const Finances = () => {
                         Type de transaction
                       </TableCell>
                       <TableCell
-                        align="center"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                          px: { xs: 2, sm: 3 },
-                          py: { xs: 2, sm: 2.5 },
-                        }}
-                      >
-                        Devise
-                      </TableCell>
-                      <TableCell
                         align="right"
                         sx={{
                           fontWeight: 700,
@@ -2275,10 +2293,6 @@ const Finances = () => {
                       </TableRow>
                     ) : (
                       transactionStats
-                        .filter((stat) => {
-                          // Filtrer selon la devise sélectionnée
-                          return stat.currency === selectedCurrency;
-                        })
                         .map((stat, index) => (
                           <TableRow key={index} hover>
                             <TableCell
@@ -2291,65 +2305,26 @@ const Finances = () => {
                               <Chip
                                 size="small"
                                 label={
-                                  stat.type === "reception"
-                                    ? "Réception"
-                                    : stat.type === "withdrawal"
-                                    ? "Retrait des fonds"
-                                    : stat.type === "transfer"
-                                    ? "Transfert des fonds"
-                                    : stat.type === "purchase"
-                                    ? "Achat"
-                                    : stat.type === "commission de parrainage"
-                                    ? "Commission de parrainage"
-                                    : stat.type === "commission de retrait"
-                                    ? "Commission de retrait"
-                                    : stat.type === "commission de transfert"
-                                    ? "Commission de transfert"
-                                    : stat.type === "virtual_purchase"
-                                    ? "Virtuels"
-                                    : stat.type === "digital_product_sale"
-                                    ? "Vente"
-                                    : stat.type
+                                  getOperationType(stat.type)
                                 }
                                 color={
-                                  stat.type === "reception" ||
-                                  stat.type === "commission de parrainage" ||
-                                  stat.type === "commission de retrait" ||
-                                  stat.type === "commission de transfert" ||
+                                  stat.type === "funds_receipt" ||
+                                  stat.type === "sponsorship_receipt" ||
+                                  stat.type === "withdrawal_commission" ||
+                                  stat.type === "transfer_commission" ||
                                   stat.type === "virtual_purchase" ||
                                   stat.type === "digital_product_sale"
                                     ? "success"
-                                    : stat.type === "withdrawal" ||
-                                      stat.type === "transfer" ||
-                                      stat.type === "purchase"
+                                    : stat.type === "funds_withdrawal" ||
+                                      stat.type === "funds_transfer" ||
+                                      stat.type === "digital_product_purchase" ||
+                                      stat.type === "boost_purchase" ||
+                                      stat.type === "pack_purchase"
                                     ? "error"
                                     : "primary"
                                 }
                                 sx={{
                                   fontWeight: 500,
-                                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                  height: { xs: 24, sm: 28 },
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                px: { xs: 2, sm: 3 },
-                                py: { xs: 2, sm: 3 },
-                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                              }}
-                            >
-                              <Chip
-                                size="small"
-                                label={stat.currency || ""}
-                                color={
-                                  stat.currency === "USD"
-                                    ? "primary"
-                                    : "secondary"
-                                }
-                                sx={{
-                                  fontWeight: 600,
                                   fontSize: { xs: "0.65rem", sm: "0.75rem" },
                                   height: { xs: 24, sm: 28 },
                                 }}
@@ -2372,24 +2347,24 @@ const Finances = () => {
                                 py: { xs: 2, sm: 3 },
                                 fontSize: { xs: "0.75rem", sm: "0.875rem" },
                                 color:
-                                  stat.type === "reception" ||
-                                  stat.type === "commission de parrainage" ||
-                                  stat.type === "commission de retrait" ||
-                                  stat.type === "commission de transfert" ||
-                                  stat.type === "virtual_purchase"
+                                  stat.type === "funds_receipt" ||
+                                  stat.type === "sponsorship_receipt" ||
+                                  stat.type === "withdrawal_commission" ||
+                                  stat.type === "transfer_commission" ||
+                                  stat.type === "virtual_purchase" ||
+                                  stat.type === "digital_product_sale"
                                     ? "success.main"
-                                    : stat.type === "withdrawal" ||
-                                      stat.type === "transfer" ||
-                                      stat.type === "purchase"
+                                    : stat.type === "funds_withdrawal" ||
+                                      stat.type === "funds_transfer" ||
+                                      stat.type === "digital_product_purchase" ||
+                                      stat.type === "boost_purchase" ||
+                                      stat.type === "pack_purchase"
                                     ? "error.main"
                                     : "text.primary",
                                 fontWeight: 500,
                               }}
                             >
-                              {formatAmount(
-                                stat.total_amount,
-                                stat.currency || "USD"
-                              )}
+                              {formatAmount(stat.total_amount)}
                             </TableCell>
                             <TableCell
                               sx={{
@@ -2527,7 +2502,7 @@ const Finances = () => {
                         sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
                       >
                         Montant estimé:{" "}
-                        {formatAmount(summary.next_payout.amount, "USD")}
+                        {formatAmount(summary.next_payout.amount)}
                       </Typography>
                     </Box>
                   )}
