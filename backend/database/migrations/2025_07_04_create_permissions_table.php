@@ -155,6 +155,13 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'nom' => 'Gérer l\'audit des finances',
+                'slug' => 'manage-audits',
+                'description' => 'Gérer l\'audit des finances',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 

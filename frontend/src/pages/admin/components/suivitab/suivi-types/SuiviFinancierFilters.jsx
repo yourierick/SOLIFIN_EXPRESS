@@ -345,6 +345,76 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                 </Box>
               </Grid>
 
+              {/* Nature */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    fontWeight={600} 
+                    sx={{ 
+                      mb: 1, 
+                      display: 'block',
+                      color: 'text.secondary',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                    }}
+                  >
+                    <Box sx={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center',
+                      mr: 1
+                    }}>
+                      <Box sx={{ 
+                        width: 2, 
+                        height: 2, 
+                        bgcolor: 'success.main',
+                        borderRadius: '50%',
+                        mr: 1,
+                        animation: 'pulse 2s infinite'
+                      }} />
+                      Nature
+                    </Box>
+                  </Typography>
+                  <FormControl fullWidth size='small'>
+                    <Select
+                      value={filters.nature || ''}
+                      onChange={(e) => handleFilterChange('nature', e.target.value)}
+                      displayEmpty
+                      sx={{ 
+                        borderRadius: { xs: 1.5, md: 2 },
+                        bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                          borderColor: theme.palette.primary.main,
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                        },
+                        '&.Mui-focused': {
+                          bgcolor: isDarkMode ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
+                          borderColor: theme.palette.primary.main,
+                          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
+                        },
+                      }}
+                    >
+                      <MenuItem value="internal">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <InIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                          Interne
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="external">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <OutIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                          Externe
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Grid>
+
               {/* Mouvement */}
               <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ mb: 2 }}>
@@ -376,7 +446,7 @@ const SuiviFinancierFilters = ({ filters, onFiltersChange, period, onExport }) =
                   </Typography>
                   <FormControl fullWidth size='small'>
                     <Select
-                      value={filters.mouvment || ''}
+                      value={filters.flow || ''}
                       onChange={(e) => handleFilterChange('mouvment', e.target.value)}
                       displayEmpty
                       sx={{ 

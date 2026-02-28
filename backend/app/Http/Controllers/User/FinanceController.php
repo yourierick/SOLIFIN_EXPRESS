@@ -33,6 +33,9 @@ class FinanceController extends Controller
             
             $query = WalletTransaction::where('wallet_id', $wallet->id)
                 ->orderBy('id', 'desc');
+
+            $totalIn = WalletTransaction::where('wallet_id', $wallet->id)->where('nature', 'internal')->where('flow', 'in')->where('status', 'completed')->sum('amount');
+            $totalOut = WalletTransaction::where('wallet_id', $wallet->id)->where('nature', 'internal')->where('flow', 'out')->where('status', 'completed')->sum('amount');
             
             // Filtrer par type si spécifié
             if ($request->has('type') && !empty($request->type)) {
@@ -65,12 +68,11 @@ class FinanceController extends Controller
                 'success' => true,
                 'data' => $transactions,
                 'wallet' => [
-                    'balance_usd' => $wallet->balance_usd,
-                    'balance_cdf' => $wallet->balance_cdf,
-                    'total_earned_usd' => $wallet->total_earned_usd,
-                    'total_earned_cdf' => $wallet->total_earned_cdf,
-                    'total_withdrawn_usd' => $wallet->total_withdrawn_usd,
-                    'total_withdrawn_cdf' => $wallet->total_withdrawn_cdf
+                    'balance' => $wallet->balance,
+                    'available_balance' => $wallet->available_balance,
+                    'frozen_balance' => $wallet->frozen_balance,
+                    'total_in' => $totalIn,
+                    'total_out' => $totalOut,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -179,6 +181,9 @@ class FinanceController extends Controller
         try {
             $user = Auth::user();
             $wallet = Wallet::where('user_id', $user->id)->first();
+
+            $totalIn = WalletTransaction::where('wallet_id', $wallet->id)->where('flow', 'internal')->where('flow', 'in')->where('status', 'completed')->sum('amount');
+            $totalOut = WalletTransaction::where('wallet_id', $wallet->id)->where('flow', 'internal')->where('status', 'completed')->sum('amount');
             
             if (!$wallet) {
                 return response()->json([
@@ -190,12 +195,11 @@ class FinanceController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'balance_usd' => $wallet->balance_usd,
-                    'balance_cdf' => $wallet->balance_cdf,
-                    'total_earned_usd' => $wallet->total_earned_usd,
-                    'total_withdrawn_usd' => $wallet->total_withdrawn,
-                    'total_earned_cdf' => $wallet->total_earned,
-                    'total_withdrawn_cdf' => $wallet->total_withdrawn
+                    'balance' => $wallet->balance,
+                    'available_balance' => $wallet->available_balance,
+                    'frozen_balance' => $wallet->frozen_balance,
+                    'total_in' => $totalIn,
+                    'total_out' => $totalOut,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -215,8 +219,8 @@ class FinanceController extends Controller
             $user = Auth::user();
             $wallet = Wallet::where('user_id', $user->id)->first();
             
-            $totalIn = WalletTransaction::where('wallet_id', $wallet->id)->where('flow', 'in')->where('status', 'completed')->sum('amount');
-            $totalOut = WalletTransaction::where('wallet_id', $wallet->id)->where('flow', 'out')->where('status', 'completed')->sum('amount');
+            $totalIn = WalletTransaction::where('wallet_id', $wallet->id)->where('nature', 'internal')->where('flow', 'in')->where('status', 'completed')->sum('amount');
+            $totalOut = WalletTransaction::where('wallet_id', $wallet->id)->where('nature', 'internal')->where('flow', 'out')->where('status', 'completed')->sum('amount');
             if (!$wallet) {
                 return response()->json([
                     'success' => false,
@@ -241,21 +245,25 @@ class FinanceController extends Controller
             // Récupérer le total des entrées et sorties pour la période, séparées par devise
             $totalInUSD = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('nature', 'internal')
                 ->where('flow', 'in')
                 ->sum('amount');
                 
             $totalInCDF = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('nature', 'internal')
                 ->where('flow', 'in')
                 ->sum('amount');
             
             $totalOutUSD = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('nature', 'internal')
                 ->where('flow', 'out')
                 ->sum('amount');
                 
             $totalOutCDF = WalletTransaction::where('wallet_id', $wallet->id)
                 ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('nature', 'internal')
                 ->where('flow', 'out')
                 ->sum('amount');
                 

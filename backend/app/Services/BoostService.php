@@ -34,11 +34,10 @@ class BoostService
      * @param mixed $publication La publication à booster
      * @param int $days Nombre de jours de boost
      * @param float $amount Montant du paiement
-     * @param string $currency Devise du paiement
      * @param string $publicationType Type de publication ('publicite', 'offre_emploi', 'opportunite_affaire')
      * @return array Résultat de l'opération
      */
-    public function boostPublication($publication, $days, $amount, $currency, $publicationType)
+    public function boostPublication($publication, $days, $amount, $publicationType)
     {
         $user = Auth::user();
         
@@ -107,10 +106,9 @@ class BoostService
                 'message' => $this->getSuccessMessage($publicationType, $days),
                 'publication' => $publication,
                 'payment_details' => [
-                    'amount' => $amount,
-                    'fees' => 0,
-                    'total' => $amount,
-                    'currency' => 'USD'
+                    'amount' => $amount . " $",
+                    'fees' => 0 . " $",
+                    'total' => $amount . " $",
                 ],
                 'status_code' => 200
             ];
@@ -197,7 +195,6 @@ class BoostService
      * @param string $publicationType
      * @param int $days
      * @param float $amount
-     * @param string $currency
      * @param string $paymentMethod
      * @param string $paymentType
      * @return array
@@ -222,7 +219,6 @@ class BoostService
      * 
      * @param mixed $wallet
      * @param float $amount
-     * @param string $currency
      * @param array $metadata
      * @return void
      */
@@ -238,7 +234,6 @@ class BoostService
      * 
      * @param mixed $user
      * @param float $amount
-     * @param string $currency
      * @param array $metadata
      * @return void
      */

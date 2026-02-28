@@ -15,6 +15,7 @@ export const getTransactionColor = (transactionType, isDarkMode = false) => {
     "funds_withdrawal": isDarkMode ? "#4b5563" : "#e5e7eb",
     "withdrawal_commission": isDarkMode ? "#1e40af" : "#dbeafe",
     "freeze_funds": isDarkMode ? "#1e40af" : "#dbeafe",
+    "solifin_funds_withdrawal": isDarkMode ? "#de893aff" : "#fff5d1",
     
     // Commissions
     "sponsorship_commission": isDarkMode ? "#9f1239" : "#fee2e2",
@@ -42,7 +43,7 @@ export const getTransactionColor = (transactionType, isDarkMode = false) => {
     
     // Transactions spéciales
     "esengo_funds_transfer": isDarkMode ? "#7c3aed" : "#ddd6fe",
-    "refund": isDarkMode ? "#dc2626" : "#fca5a5",
+    "withdrawal_reverse": isDarkMode ? "#1f880cff" : "#d1ffdaff",
     
     // Valeur par défaut
     "default": isDarkMode ? "#1f2937" : "#f3f4f6"

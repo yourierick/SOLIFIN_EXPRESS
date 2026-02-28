@@ -89,6 +89,7 @@ const FormationManagement = lazy(() =>
 const TicketVerification = lazy(() =>
   import("./pages/admin/components/TicketVerification")
 );
+const FinancialAnomalies = lazy(() => import("./pages/admin/components/FinancialAnomalies"));
 
 // Pages utilisateur - Chargées de manière différée
 const UserDashboard = lazy(() => import("./pages/user/Dashboard"));
@@ -306,6 +307,14 @@ function App() {
                     element={
                       <Suspense fallback={<LoadingSpinner />}>
                         <AdminFinances />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="financial-anomalies"
+                    element={
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <FinancialAnomalies />
                       </Suspense>
                     }
                   />

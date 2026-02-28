@@ -93,7 +93,7 @@ const FIXED_SETTINGS = [
     key: "jeton_expiration_months",
     label: "Durée d'expiration des jetons Esengo",
     description:
-      "Durée d'expiration des jetons Esengo en mois pour les nouveaux utilisateurs",
+      "Durée d'expiration des jetons Esengo en mois",
     placeholder: "10",
     category: "period",
     isNumber: true,
@@ -103,7 +103,7 @@ const FIXED_SETTINGS = [
     key: "ticket_expiration_months",
     label: "Durée d'expiration des tickets gagnants",
     description:
-      "Durée d'expiration des tickets gagnants en mois pour les nouveaux utilisateurs",
+      "Durée d'expiration des tickets gagnants en mois",
     placeholder: "10",
     category: "period",
     isNumber: true,
@@ -112,7 +112,7 @@ const FIXED_SETTINGS = [
   {
     key: "essai_duration_days",
     label: "Durée de l'essai",
-    description: "Durée de l'essai en jours pour les nouveaux utilisateurs",
+    description: "Durée de la période d'essai en jours pour les nouveaux utilisateurs",
     placeholder: "10",
     category: "period",
     isNumber: true,

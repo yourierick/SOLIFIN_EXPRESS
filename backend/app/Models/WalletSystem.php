@@ -27,9 +27,9 @@ class WalletSystem extends Model
      * @param array|null $metadata Métadonnées supplémentaires
      * @return WalletSystemTransaction
      */
-    public function addFunds(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null): WalletSystemTransaction
+    public function addFunds(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null, string $reason = null, string $source_reference = null): WalletSystemTransaction
     {
-        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description, $reason, $source_reference) {
             $soldeMarchandBefore = $this->solde_marchand;
             $engagementUsersBefore = $this->engagement_users;
             $plateformeBeneficesBefore = $this->plateforme_benefices;
@@ -39,6 +39,7 @@ class WalletSystem extends Model
             $this->save();
 
             return WalletSystemTransaction::create([
+                'source_transaction_reference' => $source_reference,
                 'flow' => 'in',
                 'nature' => 'external', // Par défaut pour les ajouts de fonds
                 'type' => $type,
@@ -54,7 +55,7 @@ class WalletSystem extends Model
                 'metadata' => $metadata,
                 'processed_by' => $processed_by,
                 'processed_at' => now(),
-                'rejection_reason' => null,
+                'rejection_reason' => $reason,
             ]);
         });
     }
@@ -68,9 +69,9 @@ class WalletSystem extends Model
      * @param array|null $metadata Métadonnées supplémentaires
      * @return WalletSystemTransaction
      */
-    public function deductFunds(float $amount, string $type, string $status, int $processed_by, string $description, ?array $metadata = null): WalletSystemTransaction
+    public function deductFunds(float $amount, string $type, string $status, int $processed_by, string $description, ?array $metadata = null, string $reason = null, string $source_reference = null): WalletSystemTransaction
     {
-        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description, $reason, $source_reference) {
             if ($this->solde_marchand < $amount) {
                 throw new \Exception('Fonds insuffisants dans le portefeuille système');
             }
@@ -90,6 +91,7 @@ class WalletSystem extends Model
             $this->save();
 
             return WalletSystemTransaction::create([
+                'source_transaction_reference' => $source_reference,
                 'flow' => 'out',
                 'nature' => 'external', // Par défaut pour les retraits
                 'type' => $type,
@@ -105,7 +107,54 @@ class WalletSystem extends Model
                 'metadata' => $metadata,
                 'processed_by' => $processed_by,
                 'processed_at' => now(),
-                'rejection_reason' => null,
+                'rejection_reason' => $reason,
+            ]);
+        });
+    }
+
+    /**
+     * Annule un retrait effectué dans le portefeuille solifin
+     * @param float $amount Montant à rembourser
+     * @param string $type Type de transaction
+     * @param string $status Statut de la transaction
+     * @param int $processed_by ID de l'utilisateur qui a effectué la transaction
+     * @param array|null $metadata Métadonnées supplémentaires
+     * @return WalletSystemTransaction
+     */
+    public function cancelWithdrawal(string $source_reference, float $amount, string $type, string $status, int $processed_by, string $description, ?array $metadata = null, string $reason = null): WalletSystemTransaction
+    {
+        return DB::transaction(function () use ($source_reference, $amount, $type, $status, $metadata, $processed_by, $description, $reason) {
+            $soldeMarchandBefore = $this->solde_marchand;
+            $engagementUsersBefore = $this->engagement_users;
+            $plateformeBeneficesBefore = $this->plateforme_benefices;
+            
+            if ($type === "withdrawal_reverse") {
+                $this->solde_marchand += $amount;
+                $this->plateforme_benefices += $amount; 
+            }else {
+                return false;
+            }
+
+            $this->save();
+
+            return WalletSystemTransaction::create([
+                'source_transaction_reference' => $source_reference,
+                'flow' => 'in',
+                'nature' => 'external', // Par défaut pour les retraits
+                'type' => $type,
+                'amount' => $amount,
+                'status' => $status,
+                'solde_marchand_before' => $soldeMarchandBefore,
+                'solde_marchand_after' => $this->solde_marchand,
+                'engagement_users_before' => $engagementUsersBefore,
+                'engagement_users_after' => $this->engagement_users,
+                'plateforme_benefices_before' => $plateformeBeneficesBefore,
+                'plateforme_benefices_after' => $this->plateforme_benefices,
+                'description' => $description,
+                'metadata' => $metadata,
+                'processed_by' => $processed_by,
+                'processed_at' => now(),
+                'rejection_reason' => $reason,
             ]);
         });
     }
@@ -119,9 +168,9 @@ class WalletSystem extends Model
      * @param array|null $metadata Métadonnées supplémentaires
      * @return WalletSystemTransaction
      */
-    public function addProfits(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null): WalletSystemTransaction
+    public function addProfits(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null, string $reason = null, string $source_reference = null): WalletSystemTransaction
     {
-        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description, $reason, $source_reference) {
             $soldeMarchandBefore = $this->solde_marchand;
             $engagementUsersBefore = $this->engagement_users;
             $plateformeBeneficesBefore = $this->plateforme_benefices;
@@ -131,6 +180,7 @@ class WalletSystem extends Model
             $this->save();
 
             return WalletSystemTransaction::create([
+                'source_transaction_reference' => $source_reference,
                 'flow' => 'in',
                 'nature' => 'internal',
                 'type' => $type,
@@ -146,7 +196,7 @@ class WalletSystem extends Model
                 'metadata' => $metadata,
                 'processed_by' => $processed_by,
                 'processed_at' => now(),
-                'rejection_reason' => null,
+                'rejection_reason' => $reason,
             ]);
         });
     }
@@ -159,9 +209,9 @@ class WalletSystem extends Model
      * @param array|null $metadata Métadonnées supplémentaires
      * @return WalletSystemTransaction
      */
-    public function addEngagements(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null): WalletSystemTransaction
+    public function addEngagements(float $amount, string $type, string $status, string $description, int $processed_by, ?array $metadata = null, string $reason = null, string $source_reference = null): WalletSystemTransaction
     {
-        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description) {
+        return DB::transaction(function () use ($amount, $type, $status, $metadata, $processed_by, $description, $reason, $source_reference) {
             $soldeMarchandBefore = $this->solde_marchand;
             $engagementUsersBefore = $this->engagement_users;
             $plateformeBeneficesBefore = $this->plateforme_benefices;
@@ -171,6 +221,7 @@ class WalletSystem extends Model
             $this->save();
 
             return WalletSystemTransaction::create([
+                'source_transaction_reference' => $source_reference,
                 'flow' => 'out', // Transaction interne
                 'nature' => 'internal',
                 'type' => $type,
@@ -186,17 +237,9 @@ class WalletSystem extends Model
                 'metadata' => $metadata,
                 'processed_by' => $processed_by,
                 'processed_at' => now(),
-                'rejection_reason' => null,
+                'rejection_reason' => $reason,
             ]);
         });
-    }
-
-    /**
-     * Relation avec les transactions
-     */
-    public function transactions()
-    {
-        return $this->hasMany(WalletSystemTransaction::class);
     }
 
 

@@ -35,6 +35,7 @@ import {
   XCircleIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  ArrowRightIcon,
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 import Notification from "../../components/Notification";

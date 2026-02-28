@@ -67,6 +67,7 @@ import {
   GiftIcon,
   TicketIcon,
   ShieldCheckIcon,
+  ExclamationTriangleIcon,
   SpeakerWaveIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
@@ -98,6 +99,12 @@ const navigationItems = [
     href: "/admin/finances",
     icon: ChartBarIcon,
     permission: "view-finances",
+  },
+  {
+    name: "Audit",
+    href: "/admin/financial-anomalies",
+    icon: ExclamationTriangleIcon,
+    permission: "manage-audits",
   },
   {
     name: "Packs",
@@ -310,7 +317,8 @@ export default function AdminDashboardLayout() {
     pendingCount, 
     pendingFormationsCount, 
     pendingTestimonialsCount, 
-    pendingPublicationsCount 
+    pendingPublicationsCount,
+    pendingAnomaliesCount 
   } = useDashboardCounters(user?.is_admin);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showTooltip, setShowTooltip] = useState(null);
@@ -441,6 +449,9 @@ export default function AdminDashboardLayout() {
     // Ajouter un badge pour les témoignages en attente
     const showTestimonialsBadge =
       item.href === "/admin/testimonials" && pendingTestimonialsCount > 0;
+    // Ajouter un badge pour les anomalies financières en attente
+    const showAnomaliesBadge =
+      item.href === "/admin/financial-anomalies" && pendingAnomaliesCount > 0;
     // Utiliser le badge défini dans l'objet item (pour les formations en attente)
     const showCustomBadge = item.badge !== null && item.badge !== undefined;
 
@@ -537,6 +548,11 @@ export default function AdminDashboardLayout() {
               {pendingTestimonialsCount}
             </span>
           )}
+          {showAnomaliesBadge && (
+            <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full animate-pulse">
+              {pendingAnomaliesCount}
+            </span>
+          )}
           {showCustomBadge && (
             <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
               {item.badge}
@@ -554,6 +570,11 @@ export default function AdminDashboardLayout() {
             {showTestimonialsBadge && isSidebarCollapsed && !isMobile && (
               <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
                 {pendingTestimonialsCount}
+              </span>
+            )}
+            {showAnomaliesBadge && isSidebarCollapsed && !isMobile && (
+              <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full animate-pulse">
+                {pendingAnomaliesCount}
               </span>
             )}
             {showCustomBadge && isSidebarCollapsed && !isMobile && (

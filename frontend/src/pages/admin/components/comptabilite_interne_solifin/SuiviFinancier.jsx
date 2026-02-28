@@ -557,8 +557,10 @@ const SuiviFinancier = React.memo(() => {
         return 'En attente';
       case 'failed':
         return 'Échouée';
-      case 'cancelled':
+      case 'reversed':
         return 'Annulée';
+      case 'processing':
+        return 'En cours de traitement';
       default:
         return status;
     }
@@ -1714,11 +1716,11 @@ const SuiviFinancier = React.memo(() => {
                       />
                     </ListItem>
                     
-                    {/* Raison de rejet */}
+                    {/* Raison */}
                     {selectedTransaction?.rejection_reason && (
                       <ListItem sx={{ p: 0, mb: 1 }}>
                         <ListItemText
-                          primary="Raison de Rejet"
+                          primary="Raison"
                           secondary={selectedTransaction.rejection_reason}
                           primaryTypographyProps={{ 
                             fontSize: '0.85rem', 

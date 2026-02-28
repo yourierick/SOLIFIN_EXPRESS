@@ -592,6 +592,15 @@ class UserFormationController extends Controller
                     'message' => 'Wallet de l\'acheteur non trouvé'
                 ], 402);
             }
+
+            //Si le portefeuille de l'utilisateur est désactivé, retourner la réponse correspondante
+            if (!$user->wallet->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre portefeuille a été désactivé, veuillez contacter le service support pour sa réactivation',
+                ]);
+            }
+
             $walletSeller = $formation->creator->wallet;
             if (!$walletSeller) {
                 return response()->json([

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import axios from "axios";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   TablePagination,
   Paper,
@@ -29,6 +31,7 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   XMarkIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
 const TransactionSerdipay = () => {
@@ -55,6 +58,17 @@ const TransactionSerdipay = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showCallbackModal, setShowCallbackModal] = useState(false);
+  const [callbackLoading, setCallbackLoading] = useState(false);
+  const [callbackForm, setCallbackForm] = useState({
+    message: "",
+    payment: {
+      status: "success",
+      sessionId: "",
+      sessionStatus: 3,
+      transactionId: ""
+    }
+  });
   const [stats, setStats] = useState({
     totalTransactions: 0,
     totalAmount: 0,
@@ -66,6 +80,58 @@ const TransactionSerdipay = () => {
   });
 
   const exportMenuRef = useRef(null);
+
+  // Fonction pour traiter le callback manuel
+  const handleManualCallback = async () => {
+    try {
+      setCallbackLoading(true);
+      
+      const response = await axios.post('/api/payment/callback', callbackForm);
+      
+      if (response.data.success) {
+        toast.success('Callback traité avec succès!');
+        setShowCallbackModal(false);
+        // Réinitialiser le formulaire
+        setCallbackForm({
+          message: "",
+          payment: {
+            status: "success",
+            sessionId: "",
+            sessionStatus: 3,
+            transactionId: ""
+          }
+        });
+        // Rafraîchir les données
+        fetchTransactions();
+      } else {
+        // Afficher les erreurs spécifiques du backend
+        if (response.data.message === 'Transaction déjà traitée') {
+          toast.error('Cette transaction a déjà été traitée. Impossible de la traiter à nouveau.');
+        } else if (response.data.message === 'Transaction non trouvée pour la session') {
+          toast.error('Aucune transaction trouvée pour cette session. Vérifiez l\'ID de session.');
+        } else {
+          // Erreur générale
+          toast.error(response.data.message || 'Erreur lors du traitement du callback');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur callback manuel:', error);
+      
+      // Gérer les erreurs réseau ou serveur
+      if (error.response?.data?.errors) {
+        // Erreurs de validation du backend
+        const errorMessages = Object.values(error.response.data.errors).flat();
+        errorMessages.forEach(err => {
+          toast.error(err);
+        });
+      } else {
+        // Erreur réseau ou autre
+        toast.error(error.response?.data?.message || error.message || 'Erreur lors du traitement du callback');
+      }
+    } finally {
+      setCallbackLoading(false);
+    }
+  };
 
   // Fonction pour calculer la position du dropdown
   const getDropdownPosition = () => {
@@ -409,9 +475,21 @@ const TransactionSerdipay = () => {
                 Consulter les transactions serdipay
               </p>
             </div>
-          </div>
-          
+          </div>          
           <div className="flex items-center gap-3">
+            {/* Bouton Callback Manuel */}
+            <button
+              onClick={() => setShowCallbackModal(true)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                isDarkMode
+                  ? "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg"
+                  : "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg"
+              }`}
+            >
+              <ArrowPathIcon className="h-4 w-4" />
+              Callback manuel
+            </button>
+            
             <div className="relative" ref={exportMenuRef}>
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
@@ -1024,6 +1102,230 @@ const TransactionSerdipay = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Callback Manuel */}
+      {showCallbackModal && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`w-full max-w-md rounded-2xl shadow-2xl ${
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          } border`}>
+            {/* Header */}
+            <div className={`px-6 py-4 border-b ${
+              isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50"
+            } rounded-t-2xl`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl flex items-center justify-center">
+                    <ArrowPathIcon className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Callback Manuel
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Traiter un callback SerdiPay manuellement
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCallbackModal(false)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? "hover:bg-gray-700 text-gray-400" 
+                      : "hover:bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Formulaire */}
+            <div className="px-6 py-4">
+              <div className="space-y-4">
+                {/* Message */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Message
+                  </label>
+                  <input
+                    type="text"
+                    value={callbackForm.message}
+                    onChange={(e) => setCallbackForm({
+                      ...callbackForm,
+                      message: e.target.value
+                    })}
+                    placeholder="La référence de la transaction"
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Status
+                  </label>
+                  <select
+                    value={callbackForm.payment.status}
+                    onChange={(e) => setCallbackForm({
+                      ...callbackForm,
+                      payment: {
+                        ...callbackForm.payment,
+                        status: e.target.value
+                      }
+                    })}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white" 
+                        : "bg-white border-gray-300 text-gray-900"
+                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  >
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+
+                {/* Session ID */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Session ID
+                  </label>
+                  <input
+                    type="text"
+                    value={callbackForm.payment.sessionId}
+                    onChange={(e) => setCallbackForm({
+                      ...callbackForm,
+                      payment: {
+                        ...callbackForm.payment,
+                        sessionId: e.target.value
+                      }
+                    })}
+                    placeholder="Ex: 1720786347"
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  />
+                </div>
+
+                {/* Session Status */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Session Status
+                  </label>
+                  <input
+                    type="number"
+                    value={callbackForm.payment.sessionStatus}
+                    onChange={(e) => setCallbackForm({
+                      ...callbackForm,
+                      payment: {
+                        ...callbackForm.payment,
+                        sessionStatus: parseInt(e.target.value)
+                      }
+                    })}
+                    placeholder="Ex: 3"
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  />
+                </div>
+
+                {/* Transaction ID */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Transaction ID
+                  </label>
+                  <input
+                    type="text"
+                    value={callbackForm.payment.transactionId}
+                    onChange={(e) => setCallbackForm({
+                      ...callbackForm,
+                      payment: {
+                        ...callbackForm.payment,
+                        transactionId: e.target.value
+                      }
+                    })}
+                    placeholder="Ex: SERDMG7MW6ZV"
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`px-6 py-4 border-t flex-shrink-0 ${
+              isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50"
+            } rounded-b-2xl`}>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowCallbackModal(false)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isDarkMode
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                  }`}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleManualCallback}
+                  disabled={callbackLoading || !callbackForm.message || !callbackForm.payment.sessionId}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    callbackLoading || !callbackForm.message || !callbackForm.payment.sessionId
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg"
+                  }`}
+                >
+                  {callbackLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Traitement...
+                    </div>
+                  ) : (
+                    "Traiter le callback"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={isDarkMode ? "dark" : "light"}
+      />
     </div>
   );
 };

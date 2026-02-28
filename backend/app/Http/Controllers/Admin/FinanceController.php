@@ -9,6 +9,8 @@ use App\Models\WalletSystemTransaction;
 use App\Models\UserBonusPointHistory;
 use App\Models\Pack;
 use App\Models\User;
+use App\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +24,7 @@ class FinanceController extends Controller
         $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $nature = $request->get('nature');
-        $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
+        $status = $request->get('status', 'all');
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 15);
 
@@ -116,7 +118,7 @@ class FinanceController extends Controller
         $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $nature = $request->get('nature');
-        $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
+        $status = $request->get('status', 'completed');
         $flow = $request->get('flow');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
@@ -612,6 +614,234 @@ class FinanceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de l\'exportation des transactions financières: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Annuler une transaction
+     */
+    public function cancelTransaction(Request $request, $id)
+    {
+        try {
+            // Récupérer la transaction
+            $transaction = WalletSystemTransaction::find($id);
+            
+            if (!$transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction non trouvée'
+                ], 404);
+            }
+            
+            // Vérifier si la transaction peut être annulée
+            if ($transaction->type !== 'solifin_funds_withdrawal') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette transaction ne peut pas être annulée'
+                ], 400);
+            }
+
+            //Vérifier si la transaction a déjà été annulée
+            $findReverseTransaction = WalletSystemTransaction::where('source_transaction_reference', $transaction->reference)->first();
+            if ($findReverseTransaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette transaction a déjà été annulée'
+                ]);
+            }
+            
+            // Vérifier si la transaction a moins d'une semaine
+            $transactionDate = new \DateTime($transaction->created_at);
+            $oneWeekAgo = new \DateTime();
+            $oneWeekAgo->sub(new \DateInterval('P7D'));
+            
+            if ($transactionDate < $oneWeekAgo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Les transactions de plus d\'une semaine ne peuvent pas être annulées'
+                ], 400);
+            }
+
+            // Vérifier le mot de passe administrateur
+            // récupérer l'id du rôle super-admin
+            $role_id = Role::where('slug', 'super-admin')->first()->id;
+            $superadmin = User::where('role_id', $role_id)->first();
+            
+            // Vérifier le mot de passe du superadmin
+            if (!Hash::check($request->password, $superadmin->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mot de passe incorrect, veuillez contacter l\'administrateur principal pour plus d\'infos!'
+                ], 401);
+            }
+            
+            $walletSystem = WalletSystem::first();
+            if (!$walletSystem) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille principal non trouvé',
+                ], 400);
+            }
+
+            // Commencer le traitement
+            DB::beginTransaction();
+
+            $walletSystem->cancelWithdrawal(
+                $transaction->reference,
+                $transaction->amount, 
+                'withdrawal_reverse',
+                'completed',
+                auth()->id(),
+                'Annulation de retrait',
+                [
+                    'Opération' => 'Annulation de retrait',
+                    'Traité par' => auth()->user()->name,
+                    'Traité le' => now(),
+                    'Transaction source' => $transaction->reference,
+                    'Montant total' => $transaction->amount . ' $',
+                ]
+            );
+
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction annulée avec succès'
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Erreur lors de l\'annulation de la transaction: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'annulation de la transaction: ' . $e->getMessage()
+            ], 500);
+        }
+    }  
+    
+    /**
+     * Ajuster le solde entre différents comptes
+     */
+    public function adjustBalance(Request $request)
+    {
+        try {
+            // Valider les données
+            $validated = $request->validate([
+                'source_account' => 'required|in:api_provider,solifin_benefits,engagement_users',
+                'destination_account' => 'required|in:solde_marchand,solifin_benefits,engagement_users',
+                'amount' => 'required|numeric|min:0.01',
+                'reason' => 'required|string|min:3',
+                'password' => 'required|string'
+            ]);
+
+            // Vérifier le mot de passe administrateur
+            // récupérer l'id du rôle super-admin
+            $user = auth()->user();
+            $role_id = Role::where('slug', 'super-admin')->first()->id;
+            $superadmin = User::where('role_id', $role_id)->first();
+            
+            // Vérifier le mot de passe du superadmin
+            if (!Hash::check($validated['password'], $superadmin->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mot de passe incorrect, veuillez contacter l\'administrateur principal pour plus d\'infos!'
+                ], 401);
+            }
+
+            // Vérifier les contraintes source/destination
+            $constraints = [
+                'api_provider' => ['solde_marchand'],
+                'solifin_benefits' => ['engagement_users'],
+                'engagement_users' => ['solifin_benefits']
+            ];
+
+            if (!in_array($validated['destination_account'], $constraints[$validated['source_account']])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Combinaison source/destination non autorisée'
+                ], 400);
+            }
+
+            $walletSystem = WalletSystem::first();
+            $amount = $validated['amount'];
+            
+            // Préparer les métadonnées
+            $metadata = [
+                'source_account' => $validated['source_account'],
+                'destination_account' => $validated['destination_account'],
+                'amount' => $amount,
+                'reason' => $validated['reason'],
+                'adjusted_by' => $user->name . ' / ' . $user->account_id,
+                'adjusted_at' => now()->toDateTimeString()
+            ];
+
+            // Effectuer l'ajustement selon la source
+            switch ($validated['source_account']) {
+                case 'api_provider':
+                    // API Provider -> Solde marchand
+                    $transaction = $walletSystem->addFunds(
+                        $amount,
+                        'balance_adjustment',
+                        'completed',
+                        'Ajustement de solde depuis API Provider: ' . $validated['reason'],
+                        $user->id,
+                        $metadata,
+                        $validated['reason']
+                    );
+                    break;
+
+                case 'solifin_benefits':
+                    // Bénéfices SOLIFIN -> Engagements utilisateurs
+                    $transaction = $walletSystem->addEngagements(
+                        $amount,
+                        'balance_adjustment',
+                        'completed',
+                        'Ajustement de solde depuis les bénéfices SOLIFIN: ' . $validated['reason'],
+                        $user->id,
+                        $metadata,
+                        $validated['reason']
+                    );
+                    break;
+
+                case 'engagement_users':
+                    // Engagements utilisateurs -> Bénéfices SOLIFIN
+                    $transaction = $walletSystem->addProfits(
+                        $amount,
+                        'balance_adjustment',
+                        'completed',
+                        'Ajustement de solde depuis les engagements utilisateurs: ' . $validated['reason'],
+                        $user->id,
+                        $metadata,
+                        $validated['reason']
+                    );
+                    break;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ajustement de solde effectué avec succès',
+                'data' => [
+                    'transaction_id' => $transaction->id,
+                    'reference' => $transaction->reference,
+                    'source_account' => $validated['source_account'],
+                    'destination_account' => $validated['destination_account'],
+                    'amount' => $amount,
+                    'adjusted_at' => $transaction->processed_at
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'ajustement de solde: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'ajustement de solde: ' . $e->getMessage()
             ], 500);
         }
     }

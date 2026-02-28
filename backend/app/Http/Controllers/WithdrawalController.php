@@ -321,6 +321,15 @@ class WithdrawalController extends Controller
 
             // Vérifier l'authentification (mot de passe)
             $user = $request->user();
+            
+            //Si le portefeuille de l'utilisateur est désactivé, retourner la réponse correspondante
+            if (!$user->wallet->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre portefeuille a été désactivé, veuillez contacter le service support pour sa réactivation',
+                ]);
+            }
+
             if (!Hash::check($request->password, $user->password)) {
                 return response()->json([
                     'success' => false,

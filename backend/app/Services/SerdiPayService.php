@@ -405,8 +405,15 @@ class SerdiPayService
             
             if (!$transaction) {
                 return [
-                    'status' => 'error',
+                    'status' => 'not_found',
                     'message' => 'Transaction non trouvée pour la session ' . $sessionId
+                ];
+            }
+
+            if (!$transaction->status === 'pending') {
+                return [
+                    'status' => 'treated',
+                    'message' => 'Transaction déjà traitée pour la session ' . $sessionId
                 ];
             }
             
@@ -430,7 +437,7 @@ class SerdiPayService
             
         } catch (\Exception $e) {
             Log::error('SerdiPay callback processing exception', [
-                'message' => $e->getMessage(),
+                'message' => $e->getTraceAsString(),
                 'callback_data' => $callbackData ?? null
             ]);
             

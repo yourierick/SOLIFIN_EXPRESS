@@ -55,6 +55,7 @@ import {
   ArrowDownward as OutIcon,
   Close as CloseIcon,
   FileDownload as ExportIcon,
+  Cancel as CancelIcon,
   Speed as SpeedIcon,
   Timeline as TimelineIcon,
   Analytics as AnalyticsIcon,
@@ -65,6 +66,7 @@ import { useTheme } from '../../../../contexts/ThemeContext';
 import SuiviFinancierFilters from './SuiviFinancierFilters';
 import { getOperationType } from "../../../../components/OperationTypeFormatter";
 import { getTransactionColor } from "../../../../components/TransactionColorFormatter";
+import ConfirmationModal from "../../../../components/ConfirmationModal";
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
@@ -108,6 +110,15 @@ const SuiviFinancier = React.memo(() => {
   // État pour le rafraîchissement
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // État pour l'annulation de transaction
+  const [cancellingTransaction, setCancellingTransaction] = useState(null);
+  
+  // État pour le modal de confirmation d'annulation
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [transactionToCancel, setTransactionToCancel] = useState(null);
+  const [cancelPassword, setCancelPassword] = useState('');
+  const [cancelError, setCancelError] = useState('');
+  
   const open = Boolean(anchorEl);
 
   // Types de transactions extraits de la migration wallet_system_transactions
@@ -133,6 +144,13 @@ const SuiviFinancier = React.memo(() => {
       description: 'Suivi des retraits payés',
       icon: WithdrawalIcon,
       color: 'error',
+    },
+    {
+      key: 'solifin_funds_withdrawal',
+      label: 'Suivi des retraits SOLIFIN',
+      description: 'Suivi des retraits payés à SOLIFIN',
+      icon: WithdrawalIcon,
+      color: 'success',
     }
   ];
 
@@ -194,6 +212,75 @@ const SuiviFinancier = React.memo(() => {
       console.error('Erreur lors du rafraîchissement:', error);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Fonction pour vérifier si une transaction peut être annulée
+  const canCancelTransaction = (transaction) => {
+    // Vérifier si le type est "solifin_funds_withdrawal"
+    if (transaction.type !== 'solifin_funds_withdrawal') {
+      return false;
+    }
+
+    if (transaction.status === 'reversed') {
+      return false;
+    }
+    
+    // Vérifier si la transaction a moins ou égale à une semaine
+    const transactionDate = new Date(transaction.created_at);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    return transactionDate >= oneWeekAgo;
+  };
+
+  // Fonction pour ouvrir le modal de confirmation d'annulation
+  const openCancelModal = (transaction) => {
+    setTransactionToCancel(transaction);
+    setCancelPassword('');
+    setCancelError('');
+    setCancelModalOpen(true);
+  };
+
+  // Fonction pour annuler une transaction
+  const handleCancelTransaction = async () => {
+    if (!transactionToCancel) return;
+    
+    // Vérifier que le mot de passe est saisi
+    if (!cancelPassword.trim()) {
+      setCancelError('Veuillez saisir votre mot de passe');
+      return;
+    }
+    
+    setCancellingTransaction(transactionToCancel.id);
+    setCancelError('');
+    
+    try {
+      const response = await axios.post(`/api/admin/transactions/${transactionToCancel.id}/cancel`, {
+        password: cancelPassword
+      });
+      
+      if (response.data.success) {
+        // Fermer le modal
+        setCancelModalOpen(false);
+        setTransactionToCancel(null);
+        setCancelPassword('');
+        
+        // Rafraîchir les données après l'annulation
+        await fetchStatistics();
+        await fetchAllTransactions();
+      } else {
+        setCancelError(response.data.message || 'Erreur lors de l\'annulation');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'annulation de la transaction:', error);
+      if (error.response?.status === 401) {
+        setCancelError(error.response.data.message || 'Mot de passe incorrect');
+      } else {
+        setCancelError('Erreur lors de l\'annulation de la transaction');
+      }
+    } finally {
+      setCancellingTransaction(null);
     }
   };
 
@@ -364,10 +451,10 @@ const SuiviFinancier = React.memo(() => {
       const rows = data.map(item => [
         item.reference,
         item.nature,
-        item.flow,
+        getFlowLabel(item.flow),
         getOperationType(item.type),
         item.amount,
-        item.status,
+        getStatusLabel(item.status),
         item.description,
         item.solde_marchand_before,
         item.solde_marchand_after,
@@ -478,7 +565,7 @@ const SuiviFinancier = React.memo(() => {
         return 'warning';
       case 'failed':
         return 'error';
-      case 'cancelled':
+      case 'reversed':
         return 'default';
       default:
         return 'default';
@@ -494,7 +581,9 @@ const SuiviFinancier = React.memo(() => {
         return 'En attente';
       case 'failed':
         return 'Échouée';
-      case 'cancelled':
+      case 'processing':
+        return 'En cours de traitement';
+      case 'reversed':
         return 'Annulée';
       default:
         return status;
@@ -1002,9 +1091,35 @@ const SuiviFinancier = React.memo(() => {
                         }}
                       >
                         <TableCell>
-                          <Typography variant="body2">
-                            {transaction.reference || `#${transaction.id}`}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2">
+                              {transaction.reference || `#${transaction.id}`}
+                            </Typography>
+                            {canCancelTransaction(transaction) && (
+                              <Tooltip title="Annuler cette transaction">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openCancelModal(transaction)}
+                                  disabled={cancellingTransaction === transaction.id}
+                                  sx={{
+                                    color: 'error.main',
+                                    '&:hover': {
+                                      backgroundColor: 'error.main',
+                                      color: 'white'
+                                    }
+                                  }}
+                                >
+                                  {cancellingTransaction === transaction.id ? (
+                                    <div className="animate-spin">
+                                      <CancelIcon fontSize="small" />
+                                    </div>
+                                  ) : (
+                                    <CancelIcon fontSize="small" />
+                                  )}
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
@@ -1651,11 +1766,11 @@ const SuiviFinancier = React.memo(() => {
                       />
                     </ListItem>
                     
-                    {/* Raison de rejet */}
+                    {/* Raison rejet */}
                     {selectedTransaction?.rejection_reason && (
                       <ListItem sx={{ p: 0, mb: 1 }}>
                         <ListItemText
-                          primary="Raison de Rejet"
+                          primary="Raison"
                           secondary={selectedTransaction.rejection_reason}
                           primaryTypographyProps={{ 
                             fontSize: '0.85rem', 
@@ -2290,6 +2405,89 @@ const SuiviFinancier = React.memo(() => {
           </Box>
         </MenuItem>
       </Menu>
+      {/* Modal de confirmation d'annulation avec mot de passe */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Voile noir avec effet blur */}
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          
+          <div className="flex items-center justify-center min-h-screen px-4">
+            {/* Fond sombre supplémentaire */}
+            <div 
+              className="fixed inset-0 bg-black/20"
+              onClick={() => {
+                setCancelModalOpen(false);
+                setTransactionToCancel(null);
+                setCancelPassword('');
+                setCancelError('');
+              }}
+            />
+            
+            {/* Modal */}
+            <div className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 z-10 transform transition-all duration-300 scale-100 opacity-100`}>
+              {/* Icône d'avertissement */}
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900 rounded-full mb-4 shadow-lg">
+                <CancelIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              
+              {/* Titre */}
+              <h3 className="text-lg font-semibold text-center text-gray-900 dark:text-white mb-2">
+                Annuler la transaction
+              </h3>
+              
+              {/* Message */}
+              <p className="text-center text-gray-600 dark:text-gray-300 mb-4">
+                Êtes-vous sûr de vouloir annuler la transaction {transactionToCancel?.reference || ''} ?
+              </p>
+              
+              {/* Champ mot de passe */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Mot de passe
+                </label>
+                <input
+                  type="password"
+                  value={cancelPassword}
+                  onChange={(e) => setCancelPassword(e.target.value)}
+                  placeholder="Entrez votre mot de passe"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200 ${
+                    cancelError ? 'border-red-500 ring-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  disabled={cancellingTransaction !== null}
+                />
+                {cancelError && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400 animate-pulse">
+                    {cancelError}
+                  </p>
+                )}
+              </div>
+              
+              {/* Boutons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setCancelModalOpen(false);
+                    setTransactionToCancel(null);
+                    setCancelPassword('');
+                    setCancelError('');
+                  }}
+                  disabled={cancellingTransaction !== null}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleCancelTransaction}
+                  disabled={cancellingTransaction !== null}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {cancellingTransaction ? 'Annulation...' : 'Confirmer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Box>
   );
 });

@@ -33,13 +33,14 @@ return new class extends Migration
         Schema::create('wallet_system_transactions', function (Blueprint $table) {
             $table->id();
             $table->string('reference')->unique();
+            $table->string('source_transaction_reference')->nullable()->comment('Référence de la transaction source');
             $table->string('session_id')->nullable()->comment('ID de session SerdiPay');
             $table->string('transaction_id')->nullable()->comment('ID de transaction SerdiPay');
             $table->enum('flow', ['in', 'out']);
             $table->enum('nature', ['external', 'internal']);
             $table->enum('type', [
                 'boost_sale', 'pack_sale', 'virtual_sale', 'virtual_send', 'withdrawal_commission', 'transfer_commission', 'sale_commission', 'funds_withdrawal', 
-                'esengo_funds_transfer', 'balance_adjustment', 'sponsorship_commission', 'solifin_funds_withdrawal',
+                'esengo_funds_transfer', 'adjustment', 'reverse', 'sponsorship_commission', 'solifin_funds_withdrawal', 'withdrawal_reverse'
             ]);
             $table->decimal('amount', 15, 2);
             $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'reversed'])->default('pending');

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\LivreurController;
 use App\Http\Controllers\PageController;
 use Illuminate\Support\Facades\Password;
+use App\Http\Controllers\Admin\FinancialAnomalyController;
 use App\Models\User;
 
 /*
@@ -77,6 +78,8 @@ Route::get('/settings/dual_currency', function() {
 });
 
 // Routes publiques pour SerdiPay (paiements sans authentification)
+// require_once __DIR__.'/financial_anomalies.php';
+
 Route::prefix('serdipay')->group(function () {
     // Endpoints pour les paiements authentifiés
     Route::middleware(['auth:sanctum'])->group(function () {
@@ -285,11 +288,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/stats-by-type', [\App\Http\Controllers\User\FinanceController::class, 'getTransactionStatsByType']);
         Route::get('/wallet-balance', [\App\Http\Controllers\User\FinanceController::class, 'getWalletBalance']);
         Route::get('/summary', [\App\Http\Controllers\User\FinanceController::class, 'getSummary']);
-        
-        // // Routes pour les points bonus
-        // Route::get('/bonus-points-history', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsHistory']);
-        // Route::get('/bonus-points-stats', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsStats']);
-        // Route::get('/bonus-points-types', [\App\Http\Controllers\User\FinanceController::class, 'getBonusPointsTypes']);
         
         // Routes pour les jetons Esengo et tickets gagnants
         Route::get('/jetons-esengo', [\App\Http\Controllers\JetonEsengoController::class, 'getJetonsEsengo']);
@@ -533,6 +531,10 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::patch('users/{user}', [UserController::class, 'update']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);
         Route::patch('users/toggle-status/{userId}', [UserController::class, 'toggleStatus']);
+        Route::patch('users/{userId}/deactivate-wallet', [UserController::class, 'deactivateWallet']);
+        Route::patch('users/{userId}/activate-wallet', [UserController::class, 'activateWallet']);
+        Route::patch('users/{userId}/freeze-funds', [UserController::class, 'freezeUserFunds']);
+        Route::patch('users/{userId}/unfreeze-funds', [UserController::class, 'unfreezeUserFunds']);
         Route::get('users/{user}/referrals', [UserController::class, 'referrals']);
         Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::get('/users/{id}/wallet', [UserController::class, 'getWalletData']);
@@ -696,6 +698,21 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         // Routes pour le suivi financier des transactions solifin
         Route::get('/solifin-financial-transactions/statistics', [\App\Http\Controllers\Admin\FinanceController::class, 'financialTransactionsStatistics']); 
         Route::get('/solifin-financial-transactions/export', [\App\Http\Controllers\Admin\FinanceController::class, 'exportFinancialTransactions']);
+        Route::post('/transactions/{id}/cancel', [\App\Http\Controllers\Admin\FinanceController::class, 'cancelTransaction']);
+        Route::post('/wallets/adjust-balance', [\App\Http\Controllers\Admin\FinanceController::class, 'adjustBalance']);
+    });
+
+    Route::middleware('permission:manage-audits')->group(function () {
+        // Routes pour la gestion des audits financiers robustes
+        Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditController::class, 'index']);
+        Route::get('/audit-logs/export', [\App\Http\Controllers\Admin\AuditController::class, 'export']);
+        Route::get('/audit-stats', [\App\Http\Controllers\Admin\AuditController::class, 'getStats']);
+        Route::get('/audit-logs/{id}', [\App\Http\Controllers\Admin\AuditController::class, 'show']);
+        Route::post('/audit-logs/{id}/resolve', [\App\Http\Controllers\Admin\AuditController::class, 'resolve']);
+        Route::post('/audit-logs/{id}/investigate', [\App\Http\Controllers\Admin\AuditController::class, 'investigate']);
+        Route::post('/audit/schedule-periodic', [\App\Http\Controllers\Admin\AuditController::class, 'schedulePeriodic']);
+        Route::post('/audit/execute-global', [\App\Http\Controllers\Admin\AuditController::class, 'executeGlobal']);
+        Route::post('/audit-logs/{id}/correct', [\App\Http\Controllers\Admin\AuditController::class, 'correctAnomaly']);
     });
     
     Route::middleware('permission:manage-faqs')->group(function () {

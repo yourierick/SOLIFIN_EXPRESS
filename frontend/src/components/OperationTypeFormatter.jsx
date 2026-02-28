@@ -56,6 +56,8 @@ export const getOperationType = (operation) => {
       return "Achat de produit digital";
     case "digital_product_sale":
       return "Vente de produit digital";
+    case "withdrawal_reverse":
+      return "Annulation de retrait";
     
     default:
       return operation;

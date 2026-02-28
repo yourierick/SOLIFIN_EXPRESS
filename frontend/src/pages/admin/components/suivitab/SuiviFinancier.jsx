@@ -155,8 +155,8 @@ const SuiviFinancier = React.memo(() => {
       };
       
       // Ajouter les filtres aux paramètres
-      params.nature = 'external';
       if (filters.flow) params.flow = filters.flow;
+      if (filters.nature) params.nature = filters.nature;
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -196,7 +196,7 @@ const SuiviFinancier = React.memo(() => {
       
       // Ajouter les filtres aux paramètres
       if (filters.flow) params.flow = filters.flow;
-      params.nature = "external";
+      if (filters.nature) params.nature = filters.nature;
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -206,6 +206,8 @@ const SuiviFinancier = React.memo(() => {
       const response = await axios.get(`/api/admin/tableau-de-suivi/financial-transactions`, {
         params: params
       });
+
+      console.log(response);
       
       setTotalTransactions(response.data.pagination?.total || 0);
       setAllTransactions(response.data.data || []); // ✅ Charger les premières données
@@ -233,7 +235,7 @@ const SuiviFinancier = React.memo(() => {
       
       // Ajouter les filtres aux paramètres
       if (filters.flow) params.flow = filters.flow;
-      params.nature = "external";
+      if (filters.nature) params.nature = filters.nature;
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -257,14 +259,12 @@ const SuiviFinancier = React.memo(() => {
   const formatAmount = (amount) => {
     if (amount === null || amount === undefined) return '0';
     
-    const absAmount = Math.abs(amount);
-    
     let formattedAmount;
     // Format pour l'USD et autres devises
     formattedAmount = new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(absAmount);
+    }).format(amount);
     
     return `${formattedAmount}`;
   };
@@ -301,7 +301,7 @@ const SuiviFinancier = React.memo(() => {
       
       // Ajouter les filtres aux paramètres
       if (filters.flow) params.flow = filters.flow;
-      params.nature = "external";
+      if (filters.nature) params.nature = filters.nature;
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
       if (filters.pack_id) params.pack_id = filters.pack_id;
@@ -787,6 +787,26 @@ const SuiviFinancier = React.memo(() => {
                       minWidth: 120
                     }}
                   >
+                    Wallet ID
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 120
+                    }}
+                  >
+                    Account ID
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      fontWeight: 600, 
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      bgcolor: isDarkMode ? '#374151' : '#f9fafb',
+                      minWidth: 120
+                    }}
+                  >
                     Référence
                   </TableCell>
                   <TableCell 
@@ -920,6 +940,16 @@ const SuiviFinancier = React.memo(() => {
                           transition: 'background-color 0.2s ease'
                         }}
                       >
+                        <TableCell>
+                          <Typography variant="body2">
+                            #{transaction.wallet_id}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {transaction?.wallet?.user?.account_id}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           <Typography variant="body2">
                             {transaction.reference}

@@ -398,6 +398,15 @@ class SerdiPayController extends Controller
             
             // Vérifier que l'utilisateur est authentifié
             $user = Auth::user();
+
+            //Si le portefeuille de l'utilisateur est désactivé, retourner la réponse correspondante
+            if (!$user->wallet->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre portefeuille a été désactivé, veuillez contacter le service support pour sa réactivation',
+                ]);
+            }
+            
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -882,6 +891,22 @@ class SerdiPayController extends Controller
             DB::beginTransaction();
             // Traiter le callback avec le service SerdiPay
             $result = $this->serdiPayService->handleCallback($request->all());
+
+            // Si le paiement est déjà traité, retourner une réponse négative
+            if ($result['status'] === 'treated') {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 400);
+            }
+
+            // Si la transaction serdipay n'a pas été trouvée, retourner une réponse négative
+            if ($result['status'] === 'not_found') {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 400);
+            }
             
             $type = $result['type'];
 
@@ -891,7 +916,7 @@ class SerdiPayController extends Controller
             }
 
             // Si le paiement est réussi, finaliser l'achat
-            if ($result['status'] === 'success') {    
+            if ($status === 'success') {    
                 if ($type === 'payment') {
                     $tempPurchase = PurchaseTemp::where('session_id', $sessionId)->first();
 
@@ -1082,7 +1107,7 @@ class SerdiPayController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erreur lors du traitement du callback: ' . $e->getMessage());
+            Log::error('Erreur lors du traitement du callback: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors du traitement du callback'

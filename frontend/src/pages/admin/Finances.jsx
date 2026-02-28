@@ -9,6 +9,7 @@ import { getTransactionColor } from "../../components/TransactionColorFormatter"
 import useDashboardCounters from "../../hooks/useDashboardCounters";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme as useAppTheme } from "../../contexts/ThemeContext";
+import { useNavigate } from "react-router-dom";
 import SuiviInterneSolifin from "./components/comptabilite_interne_solifin/SuiviFinancier";
 import SuiviVenteSolifin from "./components/comptabilite_des_ventes_solifin/SuiviFinancier";
 
@@ -64,6 +65,8 @@ import {
   Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
+  ErrorOutline as ErrorOutlineIcon,
+  Warning as WarningIcon,
   HourglassEmpty as HourglassEmptyIcon,
   FileDownload as FileDownloadIcon,
   Wallet as WalletIcon,
@@ -102,6 +105,7 @@ const Finances = () => {
   const theme = useTheme();
   const { isDarkMode } = useAppTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const navigate = useNavigate();
 
   const [systemBalance, setSystemBalance] = useState(null);
   const [statsByType, setStatsByType] = useState([]);
@@ -142,6 +146,18 @@ const Finances = () => {
   const [amountError, setAmountError] = useState("");
   const [serdipayFees, setSerdipayFees] = useState(0);
   const [loadingFees, setLoadingFees] = useState(false);
+
+  // États pour le modal d'ajustement de solde
+  const [showBalanceAdjustmentModal, setShowBalanceAdjustmentModal] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    source_account: '',
+    destination_account: '',
+    amount: '',
+    reason: '',
+    password: ''
+  });
+  const [adjustmentLoading, setAdjustmentLoading] = useState(false);
+  const [adjustmentError, setAdjustmentError] = useState('');
 
   // Définir les couleurs de base en fonction du mode sombre/clair
   const themeColors = {
@@ -382,6 +398,59 @@ const Finances = () => {
     setShowWithdrawalModal(true);
   };
 
+  // Fonction pour gérer l'ajustement de solde
+  const handleBalanceAdjustment = async () => {
+    // Validation des champs
+    if (!adjustmentForm.source_account || !adjustmentForm.destination_account || !adjustmentForm.amount || !adjustmentForm.reason.trim() || !adjustmentForm.password.trim()) {
+      setAdjustmentError("Tous les champs sont obligatoires");
+      return;
+    }
+
+    const amount = parseFloat(adjustmentForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      setAdjustmentError("Le montant doit être supérieur à 0");
+      return;
+    }
+
+    setAdjustmentLoading(true);
+    setAdjustmentError('');
+
+    try {
+      const response = await axios.post("/api/admin/wallets/adjust-balance", {
+        source_account: adjustmentForm.source_account,
+        destination_account: adjustmentForm.destination_account,
+        amount: amount,
+        reason: adjustmentForm.reason.trim(),
+        password: adjustmentForm.password.trim()
+      });
+
+      if (response.data.success) {
+        // Réinitialiser le formulaire
+        setAdjustmentForm({
+          source_account: '',
+          destination_account: '',
+          amount: '',
+          reason: '',
+          password: ''
+        });
+        setShowBalanceAdjustmentModal(false);
+        setAdjustmentError('');
+
+        // Rafraîchir le solde
+        await fetchSystemBalance();
+
+        // Afficher un message de succès
+        toast.success("Ajustement de solde effectué avec succès!");
+      } else {
+        setAdjustmentError(response.data.message || "Une erreur est survenue");
+      }
+    } catch (error) {
+      setAdjustmentError(error.response?.data?.message || "Une erreur est survenue lors de l'ajustement");
+    } finally {
+      setAdjustmentLoading(false);
+    }
+  };
+
   // Calculer les frais et le montant total
   const calculateFees = () => {
     const amount = parseFloat(withdrawalAmount) || 0;
@@ -533,10 +602,25 @@ const Finances = () => {
               <AccountBalanceIcon className="w-6 h-6 text-white" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {
-              formatAmount(systemBalance?.solde_marchand || 0)
-            }
+          <div className="flex items-center justify-between">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              {
+                formatAmount(systemBalance?.solde_marchand || 0)
+              }
+            </div>
+            <div className="relative group">
+              <button
+                onClick={() => setShowBalanceAdjustmentModal(true)}
+                className={`p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 transition-all duration-200 transform hover:scale-110 active:scale-95 animate-pulse`}
+              >
+                <SwapHorizIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </button>
+              {/* Tooltip */}
+              <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                Ajustement de solde
+                <div className="absolute top-full right-2 w-2 h-2 bg-gray-900 dark:bg-gray-700 transform rotate-45"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1509,6 +1593,198 @@ const Finances = () => {
                     disabled={isWithdrawButtonDisabled()}
                   >
                     {withdrawalLoading ? "Traitement..." : "Confirmer le retrait"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal d'ajustement de solde */}
+      {showBalanceAdjustmentModal && (
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className={`${themeColors.card} rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden`}>
+              {/* En-tête */}
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Ajustement de solde
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowBalanceAdjustmentModal(false);
+                      setAdjustmentForm({
+                        source_account: '',
+                        destination_account: '',
+                        amount: '',
+                        reason: '',
+                        password: ''
+                      });
+                      setAdjustmentError('');
+                    }}
+                    className={`p-2 rounded-lg ${themeColors.text.secondary} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
+              </div>
+
+              {/* Corps du formulaire */}
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {/* Source account */}
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium ${themeColors.text.secondary} mb-2`}>
+                    Compte source
+                  </label>
+                  <select
+                    value={adjustmentForm.source_account}
+                    onChange={(e) => {
+                      setAdjustmentForm({
+                        ...adjustmentForm,
+                        source_account: e.target.value,
+                        destination_account: '' // Réinitialiser la destination
+                      });
+                      setAdjustmentError('');
+                    }}
+                    className={`w-full px-3 py-2 rounded-lg border ${themeColors.border} ${themeColors.text.primary} bg-transparent focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  >
+                    <option value="">Sélectionner une source</option>
+                    <option value="api_provider">API Provider</option>
+                    <option value="solifin_benefits">Bénéfices SOLIFIN</option>
+                    <option value="engagement_users">Engagements utilisateurs</option>
+                  </select>
+                </div>
+
+                {/* Destination account */}
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium ${themeColors.text.secondary} mb-2`}>
+                    Compte destination
+                  </label>
+                  <select
+                    value={adjustmentForm.destination_account}
+                    onChange={(e) => {
+                      setAdjustmentForm({
+                        ...adjustmentForm,
+                        destination_account: e.target.value
+                      });
+                      setAdjustmentError('');
+                    }}
+                    disabled={!adjustmentForm.source_account}
+                    className={`w-full px-3 py-2 rounded-lg border ${themeColors.border} ${themeColors.text.primary} bg-transparent focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50`}
+                  >
+                    <option value="">Sélectionner une destination</option>
+                    {adjustmentForm.source_account === 'api_provider' && (
+                      <option value="solde_marchand">Solde marchand</option>
+                    )}
+                    {adjustmentForm.source_account === 'solifin_benefits' && (
+                      <option value="engagement_users">Engagements utilisateurs</option>
+                    )}
+                    {adjustmentForm.source_account === 'engagement_users' && (
+                      <option value="solifin_benefits">Bénéfices SOLIFIN</option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Montant */}
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium ${themeColors.text.secondary} mb-2`}>
+                    Montant
+                  </label>
+                  <input
+                    type="number"
+                    value={adjustmentForm.amount}
+                    onChange={(e) => {
+                      setAdjustmentForm({
+                        ...adjustmentForm,
+                        amount: e.target.value
+                      });
+                      setAdjustmentError('');
+                    }}
+                    placeholder="Entrez le montant"
+                    min="0.01"
+                    step="0.01"
+                    className={`w-full px-3 py-2 rounded-lg border ${themeColors.border} ${themeColors.text.primary} bg-transparent focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  />
+                </div>
+
+                {/* Raison */}
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium ${themeColors.text.secondary} mb-2`}>
+                    Raison de l'ajustement
+                  </label>
+                  <textarea
+                    value={adjustmentForm.reason}
+                    onChange={(e) => {
+                      setAdjustmentForm({
+                        ...adjustmentForm,
+                        reason: e.target.value
+                      });
+                      setAdjustmentError('');
+                    }}
+                    placeholder="Décrivez la raison de cet ajustement"
+                    rows={3}
+                    className={`w-full px-3 py-2 rounded-lg border ${themeColors.border} ${themeColors.text.primary} bg-transparent focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
+                  />
+                </div>
+
+                {/* Mot de passe */}
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium ${themeColors.text.secondary} mb-2`}>
+                    Mot de passe administrateur
+                  </label>
+                  <input
+                    type="password"
+                    value={adjustmentForm.password}
+                    onChange={(e) => {
+                      setAdjustmentForm({
+                        ...adjustmentForm,
+                        password: e.target.value
+                      });
+                      setAdjustmentError('');
+                    }}
+                    placeholder="Entrez votre mot de passe"
+                    className={`w-full px-3 py-2 rounded-lg border ${themeColors.border} ${themeColors.text.primary} bg-transparent focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  />
+                </div>
+
+                {/* Message d'erreur */}
+                {adjustmentError && (
+                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700">
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {adjustmentError}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Pied de page */}
+              <div className="sticky bottom-0 z-10 bg-inherit p-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowBalanceAdjustmentModal(false);
+                      setAdjustmentForm({
+                        source_account: '',
+                        destination_account: '',
+                        amount: '',
+                        reason: '',
+                        password: ''
+                      });
+                      setAdjustmentError('');
+                    }}
+                    className={`flex-1 px-4 py-2 rounded-lg border ${themeColors.border} ${themeColors.text.primary} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+                    disabled={adjustmentLoading}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleBalanceAdjustment}
+                    className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={adjustmentLoading || !adjustmentForm.source_account || !adjustmentForm.destination_account || !adjustmentForm.amount || parseFloat(adjustmentForm.amount) <= 0 || !adjustmentForm.reason.trim() || !adjustmentForm.password.trim()}
+                  >
+                    {adjustmentLoading ? "Traitement..." : "Confirmer"}
                   </button>
                 </div>
               </div>

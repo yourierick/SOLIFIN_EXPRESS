@@ -74,6 +74,8 @@ export default function Wallet() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [natureFilter, setNatureFilter] = useState("internal");
+  const [flowFilter, setFlowFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState({
     startDate: "",
@@ -194,7 +196,7 @@ export default function Wallet() {
   useEffect(() => {
     setPage(0);
     fetchWalletData(false); // Pas de loading global pour les filtres
-  }, [debouncedSearchTerm, statusFilter, typeFilter, dateFilter]);
+  }, [debouncedSearchTerm, statusFilter, flowFilter, natureFilter, typeFilter, dateFilter]);
 
   // Effet pour recharger les données lorsque la pagination change
   useEffect(() => {
@@ -234,6 +236,8 @@ export default function Wallet() {
         page: page + 1, // Material-UI uses 0-based indexing
         per_page: rowsPerPage,
         status: statusFilter || 'all',
+        nature: natureFilter || 'internal',
+        flow: flowFilter || 'all',
         type: typeFilter || 'all',
         search: debouncedSearchTerm || '',
         start_date: dateFilter.startDate || '',
@@ -277,6 +281,16 @@ export default function Wallet() {
 
   const handleStatusFilter = (e) => {
     setStatusFilter(e.target.value);
+    setPage(0); // Réinitialiser la pagination lors du changement de filtre
+  };
+
+  const handleNatureFilter = (e) => {
+    setNatureFilter(e.target.value);
+    setPage(0); // Réinitialiser la pagination lors du changement de filtre
+  };
+
+  const handleFlowFilter = (e) => {
+    setFlowFilter(e.target.value);
     setPage(0); // Réinitialiser la pagination lors du changement de filtre
   };
 
@@ -330,6 +344,8 @@ export default function Wallet() {
     try {
       const params = {
         status: statusFilter || 'all',
+        nature: natureFilter || 'all',
+        flow: flowFilter || 'all',
         type: typeFilter || 'all',
         search: debouncedSearchTerm || '',
         start_date: dateFilter.startDate || '',
@@ -807,7 +823,6 @@ export default function Wallet() {
             </h2>
           </div>
 
-          
           <div className="mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
@@ -882,6 +897,51 @@ export default function Wallet() {
                 transition={{ duration: 0.3 }}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-b py-4 mt-2 mb-2 border-gray-200 dark:border-gray-700"
               >
+                <div className="w-full">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Nature
+                  </label>
+                  <select
+                    value={natureFilter}
+                    onChange={handleNatureFilter}
+                    className={`w-full px-3 py-2 rounded-md ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500"
+                        : "border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                    } transition-all duration-200`}
+                  >
+                    <option value="internal">Interne</option>
+                    <option value="external">Externe</option>
+                  </select>
+                </div>
+
+                <div className="w-full">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Mouvement
+                  </label>
+                  <select
+                    value={flowFilter}
+                    onChange={handleFlowFilter}
+                    className={`w-full px-3 py-2 rounded-md ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500"
+                        : "border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                    } transition-all duration-200`}
+                  >
+                    <option value="all">Tout</option>
+                    <option value="in">Entrée</option>
+                    <option value="out">Sortie</option>
+                  </select>
+                </div>
+
                 <div className="w-full">
                   <label
                     className={`block text-sm font-medium mb-1 ${

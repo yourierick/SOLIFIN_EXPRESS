@@ -4,42 +4,51 @@ import axios from "axios";
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   UserIcon,
-  UsersIcon,
-  CurrencyDollarIcon,
-  WalletIcon,
-  IdentificationIcon,
   MapPinIcon,
-  EnvelopeIcon,
-  CalendarDaysIcon,
-  PhoneIcon,
-  GlobeAltIcon,
+  BriefcaseIcon,
   BuildingOfficeIcon,
-  HomeIcon,
+  CreditCardIcon,
+  AcademicCapIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  CalendarIcon,
+  CalendarDaysIcon,
   CheckCircleIcon,
-  XCircleIcon,
-  MagnifyingGlassIcon,
-  ArrowDownTrayIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ChartBarIcon,
-  ArrowsPointingInIcon,
-  ArrowsPointingOutIcon,
-  XMarkIcon,
-  ShoppingCartIcon,
+  XCircleIcon,
   ClockIcon,
+  ExclamationTriangleIcon,
+  BanknotesIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
+  CurrencyDollarIcon,
+  DocumentArrowDownIcon,
+  TagIcon,
+  MagnifyingGlassIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  FunnelIcon,
+  XMarkIcon,
+  IdentificationIcon,
+  GlobeAltIcon,
+  HomeIcon,
+  WalletIcon,
+  ShoppingCartIcon,
   ListBulletIcon,
   CogIcon,
   PlusIcon,
-  DocumentArrowDownIcon,
   StarIcon,
-  FunnelIcon,
-  TagIcon,
   AdjustmentsHorizontalIcon,
   ArrowRightIcon,
   InformationCircleIcon,
+  ArrowDownTrayIcon,
+  UsersIcon,
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
+  ChartBarIcon,
+  FireIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useCurrency } from "../../contexts/CurrencyContext";
@@ -87,6 +96,7 @@ import { ToastContainer } from "react-toastify";
 import FiltreParTypeOperationUser from "../../components/FiltreParTypeOperationUser";
 import { getOperationType } from "../../components/OperationTypeFormatter";
 import { getTransactionColor } from "../../components/TransactionColorFormatter";
+import ConfirmationModal from "../../components/ConfirmationModal";
 
 export default function UserDetails({ userId }) {
   const { isDarkMode } = useTheme();
@@ -116,6 +126,46 @@ export default function UserDetails({ userId }) {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("info");
   const [showBackButton, setShowBackButton] = useState(!userId); // Afficher le bouton retour seulement si userId n'est pas fourni (mode standalone)
+
+  // États pour le modal de confirmation du statut du wallet
+  const [walletStatusModal, setWalletStatusModal] = useState(false);
+  const [walletStatusAction, setWalletStatusAction] = useState(''); // 'activate' ou 'deactivate'
+
+  // Fonctions pour les actions sur le wallet
+  const handleWalletStatusToggle = () => {
+    setWalletStatusAction(userWallet?.is_active ? 'deactivate' : 'activate');
+    setWalletStatusModal(true);
+  };
+
+  const handleWalletStatusConfirm = async () => {
+    try {
+      setLoading(true);
+      
+      const endpoint = walletStatusAction === 'activate' 
+        ? `/api/admin/users/${effectiveId}/activate-wallet`
+        : `/api/admin/users/${effectiveId}/deactivate-wallet`;
+
+      const response = await axios.patch(endpoint);
+      if (response.data.success) {
+        toast.success(response.data.message);
+        
+        // Rafraîchir les données du wallet
+        await fetchUserDetails();
+        
+        // Fermer le modal
+        setWalletStatusModal(false);
+        setWalletStatusAction('');
+      } else {
+        toast.error(response.data.message || 'Une erreur est survenue');
+      }
+    } catch (error) {
+      console.error('Erreur lors du changement de statut du wallet:', error);
+      toast.error(error.response?.data?.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // États pour le modal des filleuls
   const [referralsDialog, setReferralsDialog] = useState(false);
@@ -168,6 +218,8 @@ export default function UserDetails({ userId }) {
   const [transactionFilters, setTransactionFilters] = useState({
     type: "",
     status: "",
+    flow: "",
+    nature: "internal",
     date_from: "",
     date_to: "",
     amount_min: "",
@@ -2484,6 +2536,98 @@ export default function UserDetails({ userId }) {
 
             {activeTab === "transactions" && (
               <div>
+                {/* Cartes statistiques des transactions */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className={`p-4 rounded-lg border ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700' 
+                      : 'bg-white border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Total Entrées
+                        </p>
+                        <p className={`text-2xl font-bold ${
+                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                        }`}>
+                          {formatAmount(userWallet?.total_in || 0)}
+                        </p>
+                      </div>
+                      <div className={`p-3 rounded-full ${
+                        isDarkMode ? 'bg-green-900/20' : 'bg-green-100'
+                      }`}>
+                        <ArrowDownIcon className={`h-6 w-6 ${
+                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                        }`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`p-4 rounded-lg border ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700' 
+                      : 'bg-white border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Total Sorties
+                        </p>
+                        <p className={`text-2xl font-bold ${
+                          isDarkMode ? 'text-red-400' : 'text-red-600'
+                        }`}>
+                          {formatAmount(userWallet?.total_out || 0)}
+                        </p>
+                      </div>
+                      <div className={`p-3 rounded-full ${
+                        isDarkMode ? 'bg-red-900/20' : 'bg-red-100'
+                      }`}>
+                        <ArrowUpIcon className={`h-6 w-6 ${
+                          isDarkMode ? 'text-red-400' : 'text-red-600'
+                        }`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`p-4 rounded-lg border ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700' 
+                      : 'bg-white border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Solde Net
+                        </p>
+                        <p className={`text-2xl font-bold ${
+                          (userWallet?.total_in || 0) - (userWallet?.total_out || 0) >= 0
+                            ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            : isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                        }`}>
+                          {formatAmount((userWallet?.total_in || 0) - (userWallet?.total_out || 0))}
+                        </p>
+                      </div>
+                      <div className={`p-3 rounded-full ${
+                        (userWallet?.total_in || 0) - (userWallet?.total_out || 0) >= 0
+                          ? isDarkMode ? 'bg-blue-900/20' : 'bg-blue-100'
+                          : isDarkMode ? 'bg-orange-900/20' : 'bg-orange-100'
+                      }`}>
+                        <CurrencyDollarIcon className={`h-6 w-6 ${
+                          (userWallet?.total_in || 0) - (userWallet?.total_out || 0) >= 0
+                            ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            : isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                        }`} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Historique des transactions
@@ -2583,7 +2727,7 @@ export default function UserDetails({ userId }) {
 
                       <div className="p-6 space-y-6">
                         {/* Première ligne : Type, Statut, Recherche */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
                               <TagIcon className="h-4 w-4 mr-2 text-blue-500" />
@@ -2675,6 +2819,121 @@ export default function UserDetails({ userId }) {
                                   <div className="flex items-center">
                                     <ArrowPathIcon className="h-4 w-4 mr-2 text-blue-500" />
                                     En cours
+                                  </div>
+                                </MenuItem>
+                              </Select>
+                            </FormControl>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                              Nature
+                            </label>
+                            <FormControl size="small" fullWidth>
+                              <Select
+                                value={transactionFilters.nature}
+                                label="Nature"
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    nature: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                  },
+                                }}
+                                MenuProps={{
+                                  PaperProps: {
+                                    sx: {
+                                      bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                                      color: isDarkMode ? "white" : "#333",
+                                      borderRadius: 2,
+                                      "& .MuiMenuItem-root": {
+                                        color: isDarkMode ? "white" : "#333",
+                                        "&:hover": {
+                                          bgcolor: isDarkMode
+                                            ? "rgba(255, 255, 255, 0.08)"
+                                            : "rgba(0, 0, 0, 0.04)",
+                                        },
+                                      },
+                                    },
+                                  },
+                                }}
+                              >
+                                <MenuItem value="internal">
+                                  <div className="flex items-center">
+                                    <ClockIcon className="h-4 w-4 mr-2 text-yellow-500" />
+                                    interne
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="external">
+                                  <div className="flex items-center">
+                                    <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                                    externe
+                                  </div>
+                                </MenuItem>
+                              </Select>
+                            </FormControl>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                              <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                              Mouvement
+                            </label>
+                            <FormControl size="small" fullWidth>
+                              <Select
+                                value={transactionFilters.flow}
+                                label="Mouvement"
+                                onChange={(e) => {
+                                  setTransactionFilters((prev) => ({
+                                    ...prev,
+                                    flow: e.target.value,
+                                  }));
+                                  setPage(0);
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                  },
+                                }}
+                                MenuProps={{
+                                  PaperProps: {
+                                    sx: {
+                                      bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                                      color: isDarkMode ? "white" : "#333",
+                                      borderRadius: 2,
+                                      "& .MuiMenuItem-root": {
+                                        color: isDarkMode ? "white" : "#333",
+                                        "&:hover": {
+                                          bgcolor: isDarkMode
+                                            ? "rgba(255, 255, 255, 0.08)"
+                                            : "rgba(0, 0, 0, 0.04)",
+                                        },
+                                      },
+                                    },
+                                  },
+                                }}
+                              >
+                                <MenuItem value="all">
+                                  <div className="flex items-center">
+                                    Tout
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="in">
+                                  <div className="flex items-center">
+                                    <ClockIcon className="h-4 w-4 mr-2 text-yellow-500" />
+                                    entrée
+                                  </div>
+                                </MenuItem>
+                                <MenuItem value="out">
+                                  <div className="flex items-center">
+                                    <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                                    sortie
                                   </div>
                                 </MenuItem>
                               </Select>
@@ -2852,6 +3111,8 @@ export default function UserDetails({ userId }) {
                                 setTransactionFilters({
                                   type: "",
                                   status: "",
+                                  flow: "",
+                                  nature: "internal",
                                   date_from: "",
                                   date_to: "",
                                   amount_min: "",
@@ -3788,7 +4049,7 @@ export default function UserDetails({ userId }) {
                                 : "text-purple-600 dark:text-purple-400"
                             }`}>
                               <CurrencyDollarIcon className="h-4 w-4 mr-1.5" />
-                              Balance {selectedCurrency}
+                              Balance
                             </span>
                             <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                               selectedCurrency === "USD"
@@ -3812,7 +4073,7 @@ export default function UserDetails({ userId }) {
                             {formatAmount(userWallet?.balance || 0)}
                           </p>
                           <div className="flex gap-5">
-                            <p className='text-sm mb-1'
+                            <p className='text-xs mb-1'
                               style={{
                                 color: isDarkMode ? '#74ff59ff':'#2db608ff'
                               }}
@@ -3820,15 +4081,15 @@ export default function UserDetails({ userId }) {
                                Entrées :
                               {' '}{formatAmount(userWallet?.total_in || 0)}
                             </p>
-                            <p className='text-sm mb-1'
+                            <p className='text-xs mb-1'
                               style={{
                                 color: isDarkMode ? '#ff6459ff':'#b60808ff'
                               }}
                             >
-                               Entrées :
+                               Sorties :
                               {' '}{formatAmount(userWallet?.total_out || 0)}
                             </p>
-                            <p className='text-sm mb-1'
+                            <p className='text-xs mb-1'
                               style={{
                                 color: isDarkMode ? '#5967ffff':'#083cb6ff'
                               }}
@@ -3875,6 +4136,68 @@ export default function UserDetails({ userId }) {
                           <p className="text-xs text-red-600 dark:text-red-400">
                             bloqués
                           </p>
+                        </div>
+                      </div>
+                      
+                      {/* Actions administrateur sur le wallet */}
+                      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center">
+                            <CogIcon className="h-5 w-5 mr-2 text-gray-600 dark:text-gray-400" />
+                            Actions administrateur
+                          </h4>
+                          <span className={`px-3 py-1.5 text-xs font-semibold rounded-full flex items-center ${
+                            userWallet?.is_active 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-700'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-700'
+                          }`}>
+                            <div className={`w-2 h-2 rounded-full mr-2 ${
+                              userWallet?.is_active ? 'bg-green-500' : 'bg-red-500'
+                            }`} />
+                            {userWallet?.is_active ? 'Actif' : 'Inactif'}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {/* Activation/Désactivation du wallet */}
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-3">
+                              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Statut du portefeuille
+                              </h5>
+                              {userWallet?.is_active ? (
+                                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <XCircleIcon className="h-5 w-5 text-red-500" />
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                  {userWallet?.is_active ? 'Le portefeuille est actuellement actif' : 'Le portefeuille est actuellement inactif'}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500">
+                                  {userWallet?.is_active ? 'Cliquez pour désactiver' : 'Cliquez pour activer'}
+                                </p>
+                              </div>
+                              <button
+                                onClick={handleWalletStatusToggle}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-lg ${
+                                  userWallet?.is_active
+                                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+                                    : 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
+                                }`}
+                                disabled={loading}
+                                title={userWallet?.is_active ? 'Désactiver le portefeuille' : 'Activer le portefeuille'}
+                              >
+                                {userWallet?.is_active ? (
+                                  <XCircleIcon className="h-6 w-6" />
+                                ) : (
+                                  <CheckCircleIcon className="h-6 w-6" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -5420,6 +5743,20 @@ export default function UserDetails({ userId }) {
         pauseOnHover
         theme={isDarkMode ? "dark" : "light"}
       />
+
+      {/* Modal de confirmation pour le statut du wallet */}
+      <ConfirmationModal
+        isOpen={walletStatusModal}
+        onClose={() => setWalletStatusModal(false)}
+        onConfirm={handleWalletStatusConfirm}
+        title={walletStatusAction === 'activate' ? 'Activer le portefeuille' : 'Désactiver le portefeuille'}
+        message={`Êtes-vous sûr de vouloir ${walletStatusAction === 'activate' ? 'activer' : 'désactiver'} le portefeuille de cet utilisateur ?`}
+        confirmButtonText={walletStatusAction === 'activate' ? 'Activer' : 'Désactiver'}
+        cancelButtonText="Annuler"
+        type={walletStatusAction === 'activate' ? 'info' : 'danger'}
+        isDarkMode={isDarkMode}
+        isLoading={loading}
+      />
     </div>
   );
-}
+};

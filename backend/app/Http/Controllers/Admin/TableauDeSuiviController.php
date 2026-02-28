@@ -1227,6 +1227,7 @@ class TableauDeSuiviController extends Controller
         $type = $request->get('type', 'all');
         $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
         $flow = $request->get('flow');
+        $nature = $request->get('nature', 'internal');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
         $dateStart = $request->get('date_start');
@@ -1234,11 +1235,11 @@ class TableauDeSuiviController extends Controller
         
         // Définir les dates de début et fin selon la période
         if ($period === 'all') {
-            $query = WalletTransaction::query();
+            $query = WalletTransaction::with('wallet.user');
         } else {
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
-            $query = WalletTransaction::whereBetween('created_at', [$startDate, $endDate]);
+            $query = WalletTransaction::with('wallet.user')->whereBetween('created_at', [$startDate, $endDate]);
         }
         
         // Filtrer par type si spécifié
@@ -1249,6 +1250,11 @@ class TableauDeSuiviController extends Controller
         // Filtre par statut (par défaut 'completed')
         if ($status !== 'all') {
             $query->where('status', $status);
+        }
+
+        // Filtre par nature (par défaut 'internal')
+        if ($nature) {
+            $query->where('nature', $nature);
         }
         
         // Filtre par mouvement (entrée/sortie)
@@ -1310,7 +1316,7 @@ class TableauDeSuiviController extends Controller
         $status = $request->get('status', 'completed'); // Par défaut 'completed' au lieu de 'all'
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 15);
-
+        $nature = $request->get('nature', 'internal');
         $flow = $request->get('flow');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
@@ -1319,12 +1325,12 @@ class TableauDeSuiviController extends Controller
         
         // Définir les dates de début et fin selon la période
         if ($period === 'all') {
-            $query = WalletTransaction::with('processor');
+            $query = WalletTransaction::with('wallet.user', 'processor');
         } else {
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
             
-            $query = WalletTransaction::with('processor')->whereBetween('created_at', [$startDate, $endDate]);
+            $query = WalletTransaction::with('wallet', 'processor')->whereBetween('created_at', [$startDate, $endDate]);
         }
         if ($type !== 'all') {
             $query->where('type', $type);
@@ -1333,6 +1339,11 @@ class TableauDeSuiviController extends Controller
         // Filtre par statut (par défaut 'completed')
         if ($status !== 'all') {
             $query->where('status', $status);
+        }
+
+        // Filtre par nature (par défaut 'internal')
+        if ($nature) {
+            $query->where('nature', $nature);
         }
 
         // Recherche par référence
@@ -1398,6 +1409,7 @@ class TableauDeSuiviController extends Controller
         $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $status = $request->get('status', 'completed');
+        $nature = $request->get('nature', 'internal');
         $exportType = $request->get('export_type', 'filtered');
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 15);
@@ -1416,23 +1428,25 @@ class TableauDeSuiviController extends Controller
             $endDate = Carbon::now();
         }
 
-    // Construire la query de base avec filtrage par devise
-    $query = WalletTransaction::with('processor');
-    if ($startDate) {
-        $query->whereBetween('created_at', [$startDate, $endDate]);
-    }
-        
-    // Appliquer les filtres
-    if ($type !== 'all') {
-        $query->where('type', $type);
-    }
-        
-    // Filtre par statut (par défaut 'completed')
-    if ($status !== 'all') {
-        $query->where('status', $status);
-    }
+        // Construire la query de base avec filtrage par devise
+        $query = WalletTransaction::with('processor');
+        if ($startDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+            
+        // Appliquer les filtres
+        if ($type !== 'all') {
+            $query->where('type', $type);
+        }
+            
+        // Filtre par statut (par défaut 'completed')
         if ($status !== 'all') {
             $query->where('status', $status);
+        }
+
+        // Filtre par nature (par défaut 'internal')
+        if ($nature) {
+            $query->where('nature', $nature);
         }
 
         // Recherche par référence

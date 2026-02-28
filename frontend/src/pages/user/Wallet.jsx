@@ -301,6 +301,7 @@ export default function Wallets() {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [flowFilter, setFlowFilter] = useState("all");
+  const [natureFilter, setNatureFilter] = useState("internal");
   const [user, setUser] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState({ startDate: "", endDate: "" });
@@ -424,7 +425,7 @@ export default function Wallets() {
   useEffect(() => {
     setCurrentPage(0);
     fetchTransactions(false); // Pas de loading global pour les filtres
-  }, [debouncedSearchQuery, statusFilter, flowFilter, typeFilter, dateFilter, selectedCurrency]);
+  }, [debouncedSearchQuery, statusFilter, flowFilter, natureFilter, typeFilter, dateFilter, selectedCurrency]);
 
   // Effet pour recharger les données lorsque la pagination change
   useEffect(() => {
@@ -468,6 +469,7 @@ export default function Wallets() {
       // Ajouter les filtres de recherche
       if (debouncedSearchQuery) params.search = debouncedSearchQuery;
       if (statusFilter !== "all") params.status = statusFilter;
+      if (natureFilter) params.nature = natureFilter;
       if (flowFilter !== "all") params.flow = flowFilter;
       if (typeFilter !== "all") params.type = typeFilter;
       if (dateFilter.startDate) params.date_from = dateFilter.startDate;
@@ -513,6 +515,11 @@ export default function Wallets() {
 
   const handleFlowFilter = (e) => {
     setFlowFilter(e.target.value);
+    setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
+  };
+
+  const handleNatureFilter = (e) => {
+    setNatureFilter(e.target.value);
     setCurrentPage(0); // Réinitialiser la pagination lors du changement de filtre
   };
 
@@ -592,7 +599,8 @@ export default function Wallets() {
       // Ajouter les filtres actifs
       if (debouncedSearchQuery) params.search = debouncedSearchQuery;
       if (statusFilter !== 'all') params.status = statusFilter;
-      if (flowFilter !== 'all') params.flow = flowFilter;
+      if (flowFilter !== 'all') params.nature = flowFilter;
+      if (natureFilter) params.flow = natureFilter;
       if (typeFilter !== 'all') params.type = typeFilter;
       if (dateFilter.startDate) params.date_from = dateFilter.startDate;
       if (dateFilter.endDate) params.date_to = dateFilter.endDate;
@@ -836,6 +844,9 @@ export default function Wallets() {
                   getOperationType(typeFilter)
                 }`
               : "Tous les types"
+          }, ${`Nature: ${
+                  natureFilter
+                }`
           }, ${
             flowFilter !== "all"
               ? `Type: ${
@@ -2299,6 +2310,28 @@ export default function Wallets() {
                     <option value="completed">complété</option>
                     <option value="reversed">Annulé</option>
                     <option value="processing">En cours</option>
+                  </select>
+                </div>
+
+                <div className="w-full">
+                  <label
+                    className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Nature
+                  </label>
+                  <select
+                    value={natureFilter}
+                    onChange={handleNatureFilter}
+                    className={`w-full px-3 py-2 rounded-md ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500"
+                        : "border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                    } transition-all duration-200`}
+                  >
+                    <option value="internal">Interne</option>
+                    <option value="external">Externe</option>
                   </select>
                 </div>
 

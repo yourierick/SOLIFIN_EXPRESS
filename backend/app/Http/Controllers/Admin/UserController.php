@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Pack;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -109,6 +110,9 @@ class UserController extends BaseController
                 ->first();
                 
             $user->last_ip_address = $session ? $session->ip_address : null;
+
+            // Récupérer le wallet de l'utilisateur à détailler
+            $userWallet = Wallet::where('user_id', $id)->first();
             
             // Extraire des informations plus lisibles du user-agent
             if ($session && $session->user_agent) {
@@ -159,19 +163,6 @@ class UserController extends BaseController
                 $user->device_type = null;
             }
 
-            // Récupérer le wallet de l'utilisateur à détailler
-            $userWallet = Wallet::where('user_id', $id)->first();
-            $totalIn = WalletTransaction::where('wallet_id', $userWallet->id)->where('flow', 'in')->where('status', 'completed')->sum('amount');
-            $totalOut = WalletTransaction::where('wallet_id', $userWallet->id)->where('flow', 'out')->where('status', 'completed')->sum('amount');
-            $wallet = $userWallet ? [
-                'balance' => $userWallet->balance,
-                'available_balance' => $userWallet->available_balance,
-                'points' => $userWallet->points,
-                'frozen_balance' => $userWallet->frozen_balance,
-                'total_in' => $totalIn,
-                'total_out' => $totalOut,
-            ] : null;
-
             $transactions = [];
             if ($userWallet) {
                 // Récupérer les transactions du wallet avec pagination et filtres
@@ -180,6 +171,18 @@ class UserController extends BaseController
                 // Appliquer les filtres si présents dans la requête
                 if ($request->has('type')) {
                     $query->where('type', $request->type);
+                }
+
+                // Filtre par nature (à défaut internal)
+                $nature = $request->get('nature', 'internal');
+                if ($nature) {
+                    $query->where('nature', $nature);
+                }
+
+                // Filtre par nature (à défaut internal)
+                $flow = $request->get('flow');
+                if ($flow && $flow !== 'all') {
+                    $query->where('flow', $flow);
                 }
                 
                 if ($request->has('status')) {
@@ -212,47 +215,63 @@ class UserController extends BaseController
                     });
                 }
                 // Pagination
-            $perPage = $request->input('per_page', 25);
-            $page = $request->input('page', 1);
             
-            // Obtenir le nombre total de transactions après filtrage
-            $totalTransactions = $query->count();
-            
-            // Obtenir les transactions paginées
-            $transactionsData = $query->orderBy('created_at', 'desc')
-                ->skip(($page - 1) * $perPage)
-                ->take($perPage)
-                ->get()
-                ->map(function ($transaction) {
-                    return [
-                        'id' => $transaction->id,
-                        'amount' => $transaction->amount,
-                        'fee_amount' => $transaction->fee_amount,
-                        'commission_amount' => $transaction->commission_amount,
-                        'reference' => $transaction->reference,
-                        'type' => $transaction->type,
-                        'flow' => $transaction->flow,
-                        'balance_before' => $transaction->balance_before,
-                        'balance_after' => $transaction->balance_after,
-                        'processor' => $transaction->processor->name,
-                        'rejection_reason' => $transaction->rejection_reason,
-                        'description' => $transaction->description,
-                        'type_raw' => $transaction->type, // Pour le filtrage
-                        'status' => $transaction->status,
-                        'metadata' => $transaction->metadata,
-                        'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
-                        'created_at_raw' => $transaction->created_at->toIso8601String() // Pour le tri
-                    ];
-                });
+                $perPage = $request->input('per_page', 25);
+                $page = $request->input('page', 1);
                 
-                // Préparer la réponse paginée
-                $transactions = [
-                    'data' => $transactionsData,
-                    'total' => $totalTransactions,
-                    'per_page' => $perPage,
-                    'current_page' => $page,
-                    'last_page' => ceil($totalTransactions / $perPage)
-                ];
+                // Obtenir le nombre total de transactions après filtrage
+                $totalTransactions = $query->count(); 
+
+                $query_for_total_in = clone $query;
+                $query_for_total_out = clone $query;
+                $total_in = $query_for_total_in->where('flow', 'in')->sum('amount');
+                $total_out = $query_for_total_out->where('flow', 'out')->sum('amount');
+
+                $wallet = $userWallet ? [
+                    'balance' => $userWallet->balance,
+                    'available_balance' => $userWallet->available_balance,
+                    'points' => $userWallet->points,
+                    'frozen_balance' => $userWallet->frozen_balance,
+                    'total_in' => $total_in,
+                    'total_out' => $total_out,
+                    'is_active' => $userWallet->is_active
+                ] : null;
+                
+                // Obtenir les transactions paginées
+                $transactionsData = $query->orderBy('created_at', 'desc')
+                    ->skip(($page - 1) * $perPage)
+                    ->take($perPage)
+                    ->get()
+                    ->map(function ($transaction) {
+                        return [
+                            'id' => $transaction->id,
+                            'amount' => $transaction->amount,
+                            'fee_amount' => $transaction->fee_amount,
+                            'commission_amount' => $transaction->commission_amount,
+                            'reference' => $transaction->reference,
+                            'type' => $transaction->type,
+                            'flow' => $transaction->flow,
+                            'balance_before' => $transaction->balance_before,
+                            'balance_after' => $transaction->balance_after,
+                            'processor' => $transaction->processor?->name,
+                            'rejection_reason' => $transaction->rejection_reason,
+                            'description' => $transaction->description,
+                            'type_raw' => $transaction->type, // Pour le filtrage
+                            'status' => $transaction->status,
+                            'metadata' => $transaction->metadata,
+                            'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
+                            'created_at_raw' => $transaction->created_at->toIso8601String() // Pour le tri
+                        ];
+                    });
+                    
+                    // Préparer la réponse paginée
+                    $transactions = [
+                        'data' => $transactionsData,
+                        'total' => $totalTransactions,
+                        'per_page' => $perPage,
+                        'current_page' => $page,
+                        'last_page' => ceil($totalTransactions / $perPage)
+                    ];
             }
             
             
@@ -276,9 +295,9 @@ class UserController extends BaseController
                     $data = $userPack->toArray();
                     if ($userPack->sponsor) {
                         $data['sponsor_info'] = [
-                            'name' => $userPack->sponsor->name,
-                            'email' => $userPack->sponsor->email,
-                            'phone' => $userPack->sponsor->phone,
+                            'name' => $userPack->sponsor?->name,
+                            'email' => $userPack->sponsor?->email,
+                            'phone' => $userPack->sponsor?->phone,
                         ];
                     }
                     
@@ -337,8 +356,6 @@ class UserController extends BaseController
                 'current_page' => $packPage,
                 'last_page' => ceil($totalPacks / $packPerPage)
             ];
-            
-            \Log::info("Packs paginés: " . count($userPacksData) . " sur " . $totalPacks . " (page " . $packPage . ", per_page " . $packPerPage . ")");
 
             if ($user->picture) {
                 $user->profile_picture = asset('storage/' . $user->picture);
@@ -1504,6 +1521,88 @@ class UserController extends BaseController
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la récupération des statistiques'
+            ], 500);
+        }
+    }
+
+    /**
+     * Désactiver le portefeuille d'un utilisateur
+     */
+    public function deactivateWallet(Request $request, $userId): JsonResponse
+    {
+        try {
+            $wallet = Wallet::where('user_id', $userId)->first();
+            if (!$wallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille non trouvé'
+                ], 404);
+            }
+
+            if (!$wallet->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le portefeuille est déjà désactivé'
+                ], 400);
+            }
+
+            $wallet->is_active = false;
+            $wallet->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portefeuille désactivé avec succès',
+                'data' => [
+                    'wallet_id' => $wallet->id,
+                    'user_id' => $userId,
+                    'is_active' => false,
+                    'deactivated_at' => now()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans UserController@deactivateWallet: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la désactivation du portefeuille'
+            ], 500);
+        }
+    }
+
+    /**
+     * Activer le portefeuille d'un utilisateur
+     */
+    public function activateWallet(Request $request, $userId): JsonResponse
+    {
+        try {
+
+            $wallet = Wallet::where('user_id', $userId)->first();
+            if (!$wallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille non trouvé'
+                ], 404);
+            }
+
+            $wallet->is_active = true;
+            $wallet->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Portefeuille activé avec succès',
+                'data' => [
+                    'wallet_id' => $wallet->id,
+                    'user_id' => $userId,
+                    'is_active' => true,
+                    'activated_at' => now()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans UserController@activateWallet: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de l\'activation du portefeuille'
             ], 500);
         }
     }

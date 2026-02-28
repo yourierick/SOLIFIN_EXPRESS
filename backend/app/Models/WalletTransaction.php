@@ -38,6 +38,8 @@ class WalletTransaction extends Model
         'balance_before' => 'decimal:2',
         'balance_after' => 'decimal:2',
         'processed_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'metadata' => 'array',
     ];
 
@@ -58,6 +60,14 @@ class WalletTransaction extends Model
             // Si c'est une nouvelle transaction sans référence, en générer une
             if ($transaction->wasRecentlyCreated === false && empty($transaction->reference)) {
                 $transaction->reference = self::generateUniqueReference();
+            }
+        });
+
+        // Intercepter après sauvegarde pour déclencher l'audit temps réel
+        static::saved(function ($transaction) {
+            // Déclencher l'audit temps réel seulement si la transaction est complétée
+            if ($transaction->status === 'completed') {
+                \App\Services\FinancialAnomalyService::getInstance()->auditTransaction($transaction);
             }
         });
     }

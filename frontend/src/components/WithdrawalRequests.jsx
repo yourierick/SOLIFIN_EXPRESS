@@ -33,6 +33,10 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import {
   Check,
@@ -145,6 +149,7 @@ const WithdrawalRequests = () => {
   const [allRequestsMeta, setAllRequestsMeta] = useState(null);
   const [stats, setStats] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filters, setFilters] = useState({
     status: "",
     payment_method: "",
@@ -399,6 +404,7 @@ const WithdrawalRequests = () => {
       const response = await axios.get(url);
 
       if (response.data.success) {
+        console.log(response.data);
         // Vérifier si les données sont paginées
         if (response.data.withdrawal_requests) {
           const requests = response.data.withdrawal_requests.data || [];
@@ -992,11 +998,19 @@ const WithdrawalRequests = () => {
         <div>
           {/* Section des filtres pour les demandes en attente */}
           <div className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4">
-            <div className="flex justify-between items-center mb-3 sm:mb-4">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                Filtres
-              </h4>
-              <div className="flex items-center gap-3">
+            {/* Header avec titre et bouton export */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
+                  Filtres
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Affinez votre recherche parmi les demandes en attente
+                </p>
+              </div>
+              
+              {/* Bouton export flottant */}
+              <div className="flex items-center gap-2">
                 <WithdrawalExportButtons
                   onExportCurrentPage={exportCurrentPage}
                   onExportFiltered={exportFiltered}
@@ -1008,20 +1022,32 @@ const WithdrawalRequests = () => {
                   filteredCount={totalPendingRequests}
                   totalCount={totalPendingRequests}
                 />
+                
+                {/* Bouton filtres avec design moderne */}
                 <button
                   onClick={() => setShowPendingFilters(!showPendingFilters)}
-                  className="flex items-center text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 focus:outline-none"
+                  className={`
+                    flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                    transition-all duration-200 transform hover:scale-105 active:scale-95
+                    ${showPendingFilters 
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }
+                  `}
                 >
-                  <FunnelIcon className="h-5 w-5 mr-1" />
-                  {showPendingFilters
-                    ? "Masquer les filtres"
-                    : "Afficher les filtres"}
+                  <FunnelIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {showPendingFilters ? "Masquer" : "Afficher"} les filtres
+                  </span>
+                  <span className="sm:hidden">
+                    {showPendingFilters ? "Filtres -" : "Filtres +"}
+                  </span>
                 </button>
               </div>
             </div>
 
             {showPendingFilters && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Initié par
@@ -1438,261 +1464,6 @@ const WithdrawalRequests = () => {
       ) : (
         // Onglet d'analyse complète
         <div>
-          {/* Section des filtres - Design Moderne */}
-          <Box
-            sx={{
-              background: isDarkMode ? "#1f2937" : "#ffffff",
-              borderRadius: 2,
-              p: { xs: 2, sm: 3 },
-              mb: 3,
-              border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
-              boxShadow: isDarkMode 
-                ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
-                : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-            }}
-          >
-            {/* Header de la section filtres */}
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <FilterList sx={{ 
-                  fontSize: 20, 
-                  color: "#3b82f6", 
-                  mr: 1 
-                }} />
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  color: isDarkMode ? "#ffffff" : "#1e293b",
-                  fontSize: { xs: "1rem", sm: "1.125rem" }
-                }}>
-                  Filtres de recherche
-                </Typography>
-              </Box>
-              <WithdrawalExportButtons
-                data={filteredRequestsArray}
-                filename="retrait_demandes"
-                title="Demandes de retrait"
-              />
-            </Box>
-
-            {/* Bouton toggle pour filtres avancés */}
-            <Box sx={{ mb: 2 }}>
-              <Button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                startIcon={<FunnelIcon />}
-                size="small"
-                sx={{
-                  backgroundColor: isDarkMode ? "#374151" : "#f1f5f9",
-                  color: isDarkMode ? "#ffffff" : "#475569",
-                  fontWeight: 500,
-                  textTransform: "none",
-                  px: 2,
-                  py: 1,
-                  "&:hover": {
-                    backgroundColor: isDarkMode ? "#4b5563" : "#e2e8f0",
-                  },
-                }}
-              >
-                {showAdvancedFilters ? "Masquer" : "Afficher"} les filtres avancés
-              </Button>
-            </Box>
-            
-            {/* Filtres avancés */}
-            {showAdvancedFilters && (
-              <Box
-                sx={{
-                  p: 2,
-                  mb: 2,
-                  backgroundColor: isDarkMode ? "#111827" : "#f8fafc",
-                  borderRadius: 1.5,
-                  border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
-                }}
-              >
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" sx={{ 
-                      color: isDarkMode ? "#9ca3af" : "#64748b",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5
-                    }}>
-                      Statut
-                    </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      value={filters.status}
-                      onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                      sx={{
-                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                        "& .MuiOutlinedInput-root": {
-                          color: isDarkMode ? "#ffffff" : "#1e293b",
-                          fontSize: "0.875rem",
-                        },
-                      }}
-                    >
-                      <MenuItem value="">Tous</MenuItem>
-                      <MenuItem value="pending">En attente</MenuItem>
-                      <MenuItem value="approved">Approuvé</MenuItem>
-                      <MenuItem value="rejected">Rejeté</MenuItem>
-                      <MenuItem value="cancelled">Annulé</MenuItem>
-                    </TextField>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" sx={{ 
-                      color: isDarkMode ? "#9ca3af" : "#64748b",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5
-                    }}>
-                      Méthode de paiement
-                    </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      value={filters.payment_method}
-                      onChange={(e) => setFilters({ ...filters, payment_method: e.target.value })}
-                      sx={{
-                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                        "& .MuiOutlinedInput-root": {
-                          color: isDarkMode ? "#ffffff" : "#1e293b",
-                          fontSize: "0.875rem",
-                        },
-                      }}
-                    >
-                      <MenuItem value="">Toutes</MenuItem>
-                      <MenuItem value="visa">Visa</MenuItem>
-                      <MenuItem value="mastercard">Mastercard</MenuItem>
-                      <MenuItem value="orange-money">Orange Money</MenuItem>
-                      <MenuItem value="airtel-money">Airtel Money</MenuItem>
-                      <MenuItem value="afrimoney">Afrimoney</MenuItem>
-                      <MenuItem value="m-pesa">M-Pesa</MenuItem>
-                      <MenuItem value="american-express">American Express</MenuItem>
-                    </TextField>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" sx={{ 
-                      color: isDarkMode ? "#9ca3af" : "#64748b",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5
-                    }}>
-                      Date de début
-                    </Typography>
-                    <TextField
-                      type="date"
-                      fullWidth
-                      size="small"
-                      value={filters.start_date}
-                      onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-                      sx={{
-                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                        "& .MuiOutlinedInput-root": {
-                          color: isDarkMode ? "#ffffff" : "#1e293b",
-                          fontSize: "0.875rem",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="caption" sx={{ 
-                      color: isDarkMode ? "#9ca3af" : "#64748b",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      display: "block",
-                      mb: 0.5
-                    }}>
-                      Date de fin
-                    </Typography>
-                    <TextField
-                      type="date"
-                      fullWidth
-                      size="small"
-                      value={filters.end_date}
-                      onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-                      sx={{
-                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                        "& .MuiOutlinedInput-root": {
-                          color: isDarkMode ? "#ffffff" : "#1e293b",
-                          fontSize: "0.875rem",
-                        },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            )}
-            
-            {/* Barre de recherche et boutons d'action */}
-            <Box sx={{ 
-              display: "flex", 
-              flexDirection: { xs: "column", sm: "row" },
-              gap: 2,
-              alignItems: { xs: "stretch", sm: "center" }
-            }}>
-              <Box sx={{ flex: 1 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  placeholder="Rechercher par ID, utilisateur..."
-                  InputProps={{
-                    startAdornment: <Search sx={{ color: "#9ca3af", mr: 1 }} />,
-                  }}
-                  sx={{
-                    backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                    "& .MuiOutlinedInput-root": {
-                      color: isDarkMode ? "#ffffff" : "#1e293b",
-                      fontSize: "0.875rem",
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <Button
-                  onClick={applyFilters}
-                  variant="contained"
-                  size="small"
-                  sx={{
-                    backgroundColor: "#3b82f6",
-                    "&:hover": { backgroundColor: "#2563eb" },
-                    fontWeight: 500,
-                    textTransform: "none",
-                    px: 2,
-                  }}
-                >
-                  Appliquer
-                </Button>
-                <Button
-                  onClick={resetFilters}
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    borderColor: isDarkMode ? "#4b5563" : "#d1d5db",
-                    color: isDarkMode ? "#ffffff" : "#374151",
-                    "&:hover": {
-                      borderColor: isDarkMode ? "#6b7280" : "#9ca3af",
-                      backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
-                    },
-                    fontWeight: 500,
-                    textTransform: "none",
-                    px: 2,
-                  }}
-                >
-                  Réinitialiser
-                </Button>
-              </Box>
-            </Box>
-          </Box>
           {/* Section des statistiques - Design Moderne */}
           {allRequestsLoading ? (
             <Box
@@ -1795,7 +1566,7 @@ const WithdrawalRequests = () => {
                           color: isDarkMode ? "#ffffff" : "#1e293b",
                           fontSize: { xs: "1.1rem", sm: "1.25rem" }
                         }}>
-                          ${stats.total_amount?.toFixed(2)}
+                          ${typeof stats?.total_amount === 'number' ? stats.total_amount.toFixed(2) : parseFloat(stats?.total_amount || 0).toFixed(2)}
                         </Typography>
                       </Box>
                     </Grid>
@@ -1849,7 +1620,7 @@ const WithdrawalRequests = () => {
                           color: isDarkMode ? "#ffffff" : "#1e293b",
                           fontSize: { xs: "1.1rem", sm: "1.25rem" }
                         }}>
-                          {stats.pending_requests} (${stats.pending_amount?.toFixed(2)})
+                          {stats?.pending_requests} (${typeof stats?.pending_amount === 'number' ? stats.pending_amount.toFixed(2) : parseFloat(stats?.pending_amount || 0).toFixed(2)})
                         </Typography>
                       </Box>
                     </Grid>
@@ -1903,7 +1674,7 @@ const WithdrawalRequests = () => {
                           color: isDarkMode ? "#ffffff" : "#1e293b",
                           fontSize: { xs: "1.1rem", sm: "1.25rem" }
                         }}>
-                          {stats.approved_requests} (${stats.approved_amount?.toFixed(2)})
+                          {stats?.approved_requests} (${typeof stats?.approved_amount === 'number' ? stats.approved_amount.toFixed(2) : parseFloat(stats?.approved_amount || 0).toFixed(2)})
                         </Typography>
                       </Box>
                     </Grid>
@@ -1957,7 +1728,7 @@ const WithdrawalRequests = () => {
                           color: isDarkMode ? "#ffffff" : "#1e293b",
                           fontSize: { xs: "1.1rem", sm: "1.25rem" }
                         }}>
-                          {stats.rejected_requests} (${stats.rejected_amount?.toFixed(2)})
+                          {stats?.rejected_requests} (${typeof stats?.rejected_amount === 'number' ? stats.rejected_amount.toFixed(2) : parseFloat(stats?.rejected_amount || 0).toFixed(2)})
                         </Typography>
                       </Box>
                     </Grid>
@@ -2007,7 +1778,7 @@ const WithdrawalRequests = () => {
                         Demandes par mois
                       </Typography>
                       <Box sx={{ height: 240 }}>
-                        {stats.monthly_stats && (
+                        {stats?.monthly_stats && (
                           <Bar
                             data={{
                               labels: stats.monthly_stats.map(
@@ -2090,7 +1861,7 @@ const WithdrawalRequests = () => {
                         Méthodes de paiement
                       </Typography>
                       <Box sx={{ height: 240 }}>
-                        {stats.payment_method_stats && (
+                        {stats?.payment_method_stats && (
                           <Pie
                             data={{
                               labels: stats.payment_method_stats.map(
@@ -2138,6 +1909,271 @@ const WithdrawalRequests = () => {
                 </Grid>
               </Box>
 
+              {/* Section des filtres - Design Moderne */}
+              <Box
+                sx={{
+                  background: isDarkMode ? "#1f2937" : "#ffffff",
+                  borderRadius: 2,
+                  p: { xs: 2, sm: 3 },
+                  mb: 3,
+                  border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                  boxShadow: isDarkMode 
+                    ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
+                    : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                {/* Header de la section filtres */}
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <FilterList sx={{ 
+                      fontSize: 20, 
+                      color: "#3b82f6", 
+                      mr: 1 
+                    }} />
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 600, 
+                      color: isDarkMode ? "#ffffff" : "#1e293b",
+                      fontSize: { xs: "1rem", sm: "1.125rem" }
+                    }}>
+                      Filtres de recherche
+                    </Typography>
+                  </Box>
+                  <WithdrawalExportButtons
+                    data={filteredRequestsArray}
+                    filename="retrait_demandes_analyse_complete"
+                    title="Demandes de retrait - Analyse complète"
+                    onExportCurrentPage={exportCurrentPage}
+                    onExportFiltered={exportFiltered}
+                    onExportAll={exportAll}
+                    loading={exportLoading}
+                    disabled={loading}
+                    currentPageCount={allRequestsMeta ? requestsArray.length : 
+                      filteredRequestsArray.slice((currentPage - 1) * requestsPerPage, currentPage * requestsPerPage).length}
+                    filteredCount={totalAllRequests}
+                    totalCount={totalAllRequests}
+                  />
+                  
+                  {/* Bouton filtres avancés avec icône seule */}
+                  <div className="relative group ml-2">
+                    <button
+                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                      className={`
+                        p-2 rounded-lg transition-all duration-200 transform hover:scale-110 active:scale-95
+                        ${showAdvancedFilters 
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700' 
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }
+                      `}
+                    >
+                      <FunnelIcon className="h-5 w-5" />
+                    </button>
+                    
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                      {showAdvancedFilters ? "Masquer les filtres avancés" : "Afficher les filtres avancés"}
+                      <div className="absolute top-full right-2 w-2 h-2 bg-gray-900 dark:bg-gray-700 transform rotate-45"></div>
+                    </div>
+                  </div>
+                </Box>
+
+                {/* Filtres avancés */}
+                {showAdvancedFilters && (
+                  <Box
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      backgroundColor: isDarkMode ? "#111827" : "#f8fafc",
+                      borderRadius: 1.5,
+                      border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
+                    }}
+                  >
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          display: "block",
+                          mb: 0.5
+                        }}>
+                          Statut
+                        </Typography>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          value={filters.status}
+                          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                          sx={{
+                            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                            "& .MuiOutlinedInput-root": {
+                              color: isDarkMode ? "#ffffff" : "#1e293b",
+                              fontSize: "0.875rem",
+                            },
+                          }}
+                        >
+                          <MenuItem value="">Tous</MenuItem>
+                          <MenuItem value="pending">En attente</MenuItem>
+                          <MenuItem value="approved">Approuvé</MenuItem>
+                          <MenuItem value="rejected">Rejeté</MenuItem>
+                          <MenuItem value="cancelled">Annulé</MenuItem>
+                        </TextField>
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          display: "block",
+                          mb: 0.5
+                        }}>
+                          Méthode de paiement
+                        </Typography>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          value={filters.payment_method}
+                          onChange={(e) => setFilters({ ...filters, payment_method: e.target.value })}
+                          sx={{
+                            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                            "& .MuiOutlinedInput-root": {
+                              color: isDarkMode ? "#ffffff" : "#1e293b",
+                              fontSize: "0.875rem",
+                            },
+                          }}
+                        >
+                          <MenuItem value="">Toutes</MenuItem>
+                          <MenuItem value="visa">Visa</MenuItem>
+                          <MenuItem value="mastercard">Mastercard</MenuItem>
+                          <MenuItem value="orange-money">Orange Money</MenuItem>
+                          <MenuItem value="airtel-money">Airtel Money</MenuItem>
+                          <MenuItem value="afrimoney">Afrimoney</MenuItem>
+                          <MenuItem value="m-pesa">M-Pesa</MenuItem>
+                          <MenuItem value="american-express">American Express</MenuItem>
+                        </TextField>
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          display: "block",
+                          mb: 0.5
+                        }}>
+                          Date de début
+                        </Typography>
+                        <TextField
+                          type="date"
+                          fullWidth
+                          size="small"
+                          value={filters.start_date}
+                          onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+                          sx={{
+                            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                            "& .MuiOutlinedInput-root": {
+                              color: isDarkMode ? "#ffffff" : "#1e293b",
+                              fontSize: "0.875rem",
+                            },
+                          }}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" sx={{ 
+                          color: isDarkMode ? "#9ca3af" : "#64748b",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          display: "block",
+                          mb: 0.5
+                        }}>
+                          Date de fin
+                        </Typography>
+                        <TextField
+                          type="date"
+                          fullWidth
+                          size="small"
+                          value={filters.end_date}
+                          onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                          sx={{
+                            backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                            "& .MuiOutlinedInput-root": {
+                              color: isDarkMode ? "#ffffff" : "#1e293b",
+                              fontSize: "0.875rem",
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Box>
+                )}
+                
+                {/* Barre de recherche et boutons d'action */}
+                <Box sx={{ 
+                  display: "flex", 
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 2,
+                  alignItems: { xs: "stretch", sm: "center" }
+                }}>
+                  <Box sx={{ flex: 1 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      placeholder="Rechercher par ID, utilisateur..."
+                      InputProps={{
+                        startAdornment: <Search sx={{ color: "#9ca3af", mr: 1 }} />,
+                      }}
+                      sx={{
+                        backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
+                        "& .MuiOutlinedInput-root": {
+                          color: isDarkMode ? "#ffffff" : "#1e293b",
+                          fontSize: "0.875rem",
+                        },
+                      }}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button
+                      onClick={applyFilters}
+                      variant="contained"
+                      size="small"
+                      sx={{
+                        backgroundColor: "#3b82f6",
+                        "&:hover": { backgroundColor: "#2563eb" },
+                        fontWeight: 500,
+                        textTransform: "none",
+                        px: 2,
+                      }}
+                    >
+                      Appliquer
+                    </Button>
+                    <Button
+                      onClick={resetFilters}
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        borderColor: isDarkMode ? "#4b5563" : "#d1d5db",
+                        color: isDarkMode ? "#ffffff" : "#374151",
+                        "&:hover": {
+                          borderColor: isDarkMode ? "#6b7280" : "#9ca3af",
+                          backgroundColor: isDarkMode ? "#374151" : "#f9fafb",
+                        },
+                        fontWeight: 500,
+                        textTransform: "none",
+                        px: 2,
+                      }}
+                    >
+                      Réinitialiser
+                    </Button>
+                  </Box>
+                </Box>
+              </Box>
+
               {/* Tableau des demandes filtrées - Design Moderne */}
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -2159,232 +2195,6 @@ const WithdrawalRequests = () => {
                   </Typography>
                 </Box>
 
-                <Paper
-                  sx={{
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    boxShadow: isDarkMode 
-                      ? "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
-                      : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                    backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                    border: `1px solid ${isDarkMode ? "#374151" : "#e2e8f0"}`,
-                  }}
-                >
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ 
-                          backgroundColor: isDarkMode ? "#111827" : "#f8fafc" 
-                        }}>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            ID
-                          </TableCell>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            Utilisateur
-                          </TableCell>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            Montant
-                          </TableCell>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            Méthode
-                          </TableCell>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            Statut
-                          </TableCell>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            Date
-                          </TableCell>
-                          <TableCell sx={{ 
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: isDarkMode ? "#9ca3af" : "#64748b",
-                            borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                          }}>
-                            Actions
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredRequestsArray.map((request) => (
-                          <TableRow
-                            key={request.id}
-                            sx={{
-                              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-                              "&:hover": {
-                                backgroundColor: isDarkMode ? "rgba(55, 65, 81, 0.5)" : "#f9fafb",
-                              },
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}
-                          >
-                            <TableCell sx={{ 
-                              fontSize: "0.875rem",
-                              fontWeight: 500,
-                              color: isDarkMode ? "#ffffff" : "#111827",
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              #{request.id}
-                            </TableCell>
-                            <TableCell sx={{ 
-                              fontSize: "0.875rem",
-                              color: isDarkMode ? "#d1d5db" : "#6b7280",
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              {request.user ? request.user.name : "Utilisateur inconnu"}
-                            </TableCell>
-                            <TableCell sx={{ 
-                              fontSize: "0.875rem",
-                              fontWeight: 600,
-                              color: "#3b82f6",
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              ${request.amount?.toFixed(2)}
-                            </TableCell>
-                            <TableCell sx={{ 
-                              fontSize: "0.875rem",
-                              color: isDarkMode ? "#d1d5db" : "#6b7280",
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              {request.payment_method}
-                            </TableCell>
-                            <TableCell sx={{ 
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              <Chip
-                                label={
-                                  request.status === "pending" ? "En attente" :
-                                  request.status === "approved" ? "Approuvé" :
-                                  request.status === "rejected" ? "Rejeté" :
-                                  request.status === "cancelled" ? "Annulé" :
-                                  request.status === "failed" ? "Échoué" :
-                                  request.status
-                                }
-                                color={
-                                  request.status === "paid" ? "success" :
-                                  request.status === "rejected" || request.status === "failed" ? "error" :
-                                  request.status === "cancelled" ? "warning" :
-                                  "default"
-                                }
-                                size="small"
-                                sx={{ fontSize: "0.7rem", height: 24 }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ 
-                              fontSize: "0.875rem",
-                              color: isDarkMode ? "#d1d5db" : "#6b7280",
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              {new Date(request.created_at).toLocaleDateString("fr-FR")}
-                            </TableCell>
-                            <TableCell sx={{ 
-                              borderBottom: `1px solid ${isDarkMode ? "#374151" : "#e5e7eb"}`,
-                            }}>
-                              <Box sx={{ display: "flex", gap: 1 }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleViewRequest(request)}
-                                  sx={{
-                                    color: "#3b82f6",
-                                    "&:hover": {
-                                      backgroundColor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(59, 130, 246, 0.05)",
-                                    },
-                                  }}
-                                >
-                                  <Visibility sx={{ fontSize: 16 }} />
-                                </IconButton>
-                                
-                                {request.user_id === 1 && request.status === 'pending' && (
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleCancelClick(request)}
-                                    disabled={isCancelling}
-                                    sx={{
-                                      color: "#f59e0b",
-                                      "&:hover": {
-                                        backgroundColor: isDarkMode ? "rgba(245, 158, 11, 0.1)" : "rgba(245, 158, 11, 0.05)",
-                                      },
-                                    }}
-                                  >
-                                    {isCancelling ? (
-                                      <Box sx={{ 
-                                        width: 16, 
-                                        height: 16, 
-                                        border: "2px solid #f59e0b",
-                                        borderTop: "2px solid transparent",
-                                        borderRadius: "50%",
-                                        animation: "spin 1s linear infinite"
-                                      }} />
-                                    ) : (
-                                      <Close sx={{ fontSize: 16 }} />
-                                    )}
-                                  </IconButton>
-                                )}
-                                
-                                {request.status === 'failed' && (
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleRetryPayment(request)}
-                                    sx={{
-                                      color: "#10b981",
-                                      "&:hover": {
-                                        backgroundColor: isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.05)",
-                                      },
-                                    }}
-                                  >
-                                    <ArrowPathIcon sx={{ fontSize: 16 }} />
-                                  </IconButton>
-                                )}
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Paper>
                 <Paper>
                   <TableContainer>
                     <Table>
@@ -2697,9 +2507,9 @@ const WithdrawalRequests = () => {
         BackdropComponent={Backdrop}
         BackdropProps={{
           sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
           },
         }}
         PaperProps={{

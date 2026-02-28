@@ -8,6 +8,31 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// === COMMANDES D'AUDIT FINANCIER ROBUSTE ===
+
+// Planification des audits périodiques (toutes les 6 heures)
+Schedule::command('audit:schedule --type=periodic')
+    ->everySixHours()
+    ->between('02:00', '06:00') // Hures creuses pour éviter les pics de charge
+    ->appendOutputTo(storage_path('logs/audit-periodic.log'))
+    ->description('Planifie les audits périodiques intelligents toutes les 6 heures');
+
+// Audit global quotidien complet
+Schedule::command('audit:global --async')
+    ->daily()
+    ->at('02:30') // Heure creuse
+    ->appendOutputTo(storage_path('logs/audit-global.log'))
+    ->description('Exécute l\'audit global complet du système financier');
+
+// Audit global hebdomadaire approfondi
+Schedule::command('audit:global --async --force')
+    ->weekly()
+    ->sundays()
+    ->at('03:00') // Heure creuse du weekend
+    ->appendOutputTo(storage_path('logs/audit-global-weekly.log'))
+    ->description('Exécute l\'audit global hebdomadaire approfondi');
+
+
 // Définition des tâches planifiées pour Laravel 11
 Schedule::command('packs:check-expiration')
     ->daily()

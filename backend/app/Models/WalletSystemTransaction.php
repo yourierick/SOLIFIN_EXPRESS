@@ -12,6 +12,7 @@ class WalletSystemTransaction extends Model
 
     protected $fillable = [
         'reference',
+        'source_transaction_reference',
         'session_id', // Pour Serdipay (nullable)
         'transaction_id', // Pour Serdipay (nullable)
         'flow',
@@ -41,6 +42,9 @@ class WalletSystemTransaction extends Model
         'plateforme_benefices_before' => 'decimal:2',
         'plateforme_benefices_after' => 'decimal:2',
         'metadata' => 'array',
+        'processed_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -87,5 +91,21 @@ class WalletSystemTransaction extends Model
     public function processor()
     {
         return $this->belongsTo(User::class, 'processed_by');
+    }
+
+    /**
+     * Obtenir la transaction source (transaction parente)
+     */
+    public function sourceTransaction()
+    {
+        return $this->belongsTo(WalletSystemTransaction::class, 'source_transaction_reference', 'reference');
+    }
+
+    /**
+     * Obtenir les transactions enfants (transactions inverses)
+     */
+    public function childTransactions()
+    {
+        return $this->hasMany(WalletSystemTransaction::class, 'source_transaction_reference', 'reference');
     }
 }

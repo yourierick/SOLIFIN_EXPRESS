@@ -740,8 +740,17 @@ class OffreEmploiController extends Controller
                 'paymentMethod' => 'required|string|in:solifin-wallet',
                 'paymentType' => 'required|string|in:wallet',
                 'amount' => 'required|numeric|min:0',
-                'currency' => 'required|string|in:USD,CDF',
             ]);
+
+            $user = auth()->user();
+            
+            //Si le portefeuille de l'utilisateur est désactivé, retourner la réponse correspondante
+            if (!$user->wallet->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre portefeuille a été désactivé, veuillez contacter le service support pour sa réactivation',
+                ]);
+            }
 
             // Récupérer l'offre d'emploi
             $offreEmploi = OffreEmploi::findOrFail($id);

@@ -363,6 +363,14 @@ class DigitalProductController extends Controller
 
             $user = Auth::user();
 
+            //Si le portefeuille de l'utilisateur est désactivé, retourner la réponse correspondante
+            if (!$user->wallet->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre portefeuille a été désactivé, veuillez contacter le service support pour sa réactivation',
+                ]);
+            }
+
             // Vérifier si l'utilisateur a déjà acheté ce produit
             $existingPurchase = DigitalProductPurchase::where('digital_product_id', $product->id)
                 ->where('user_id', $user->id)

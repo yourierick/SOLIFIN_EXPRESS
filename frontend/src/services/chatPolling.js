@@ -279,8 +279,24 @@ class ChatPollingService {
   // Mettre à jour le statut de l'utilisateur actuel
   async updateUserStatus() {
     try {
+      // Vérifier si l'utilisateur est connecté avant de mettre à jour le statut
+      // Utiliser le même endpoint que AuthContext pour la cohérence
+      const authResponse = await axios.get("/api/user?check_only=true", {
+        headers: {
+          "X-No-Activity-Update": "true", // Pour ne pas considérer ceci comme une activité utilisateur
+        },
+      });
+      
+      if (!authResponse.data) {
+        return; // Ne pas mettre à jour le statut si l'utilisateur n'est pas connecté
+      }
+      
       await axios.post("/api/user/update-status");
     } catch (error) {
+      // Si l'erreur est 401/403, l'utilisateur n'est pas connecté
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        return; // Silencieux pour les erreurs d'authentification
+      }
       console.error(
         "Erreur lors de la mise à jour du statut utilisateur:",
         error
