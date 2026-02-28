@@ -118,10 +118,28 @@ const FIXED_SETTINGS = [
     isNumber: true,
     isPourcentage: false
   },
+  // {
+  //   key: "dual_currency",
+  //   label: "Utiliser une deuxième dévise",
+  //   description: "Activer ou desactiver la deuxième dévise",
+  //   placeholder: "oui ou non",
+  //   category: "period",
+  //   isSelect: true,
+  //   isPourcentage: false
+  // },
   {
-    key: "dual_currency",
-    label: "Utiliser une deuxième dévise",
-    description: "Activer ou desactiver la deuxième dévise",
+    key: "withdrawal_activation",
+    label: "Activation des retraits",
+    description: "Activer ou desactiver les retraits dans le système",
+    placeholder: "oui ou non",
+    category: "period",
+    isSelect: true,
+    isPourcentage: false
+  },
+  {
+    key: "funds_transfer_activation",
+    label: "Activation des transferts des fonds",
+    description: "Activer ou desactiver les transferts des fonds dans le système",
     placeholder: "oui ou non",
     category: "period",
     isSelect: true,

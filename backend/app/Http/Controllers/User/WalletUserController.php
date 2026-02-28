@@ -172,6 +172,7 @@ class WalletUserController extends Controller
                 'total_in' => number_format($totalIn, 2),
                 'total_out' => number_format($totalOut, 2),
                 'points' => $userWallet->points,
+                'is_active' => $userWallet->is_active,
             ] : null;
 
             $user = Auth::user();
@@ -240,6 +241,15 @@ class WalletUserController extends Controller
                     'frais_de_commission' => 'required|numeric',
                     'password' => 'required',
                     'description' => 'nullable|string'
+                ]);
+            }
+
+            // Vérifier si les transferts de fonds sont activés dans les paramètres
+            $fundsTransferActivation = \App\Models\Setting::where('key', 'funds_transfer_activation')->first();
+            if (!$fundsTransferActivation || $fundsTransferActivation->value !== 'oui') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez pas effectuer de transfert de fonds pour le moment'
                 ]);
             }
 

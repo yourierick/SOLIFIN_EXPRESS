@@ -5293,7 +5293,7 @@ export default function UserDetails({ userId }) {
         selectedTransaction &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[9999]"
+            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-md flex items-center justify-center z-[9999]"
             style={{
               position: "fixed",
               top: 0,

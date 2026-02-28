@@ -22,6 +22,7 @@ import {
   EyeIcon,
   WalletIcon,
   CurrencyDollarIcon,
+  ExclamationTriangleIcon,
   ArrowDownTrayIcon,
   DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
@@ -1768,7 +1769,10 @@ export default function Wallets() {
                     <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-xl">
                       <WalletIcon className="h-7 w-7 text-white" />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                    {userWallet.is_active ? 
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" /> 
+                      : <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full animate-pulse" />
+                    }
                   </div>
                   <div>
                     <h3
@@ -1790,6 +1794,23 @@ export default function Wallets() {
                   </div>
                 </div>
               </div>
+
+              {/* Alerte si le wallet est désactivé */}
+              {!userWallet.is_active && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                        Portefeuille désactivé
+                      </h4>
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        Votre portefeuille est actuellement désactivé. Vous ne pouvez pas effectuer de transactions pour le moment. Veuillez contacter le support pour plus d'informations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Grille de sous-cartes */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -2025,8 +2046,11 @@ export default function Wallets() {
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
                   onClick={() => handleWithdrawalClick(userWallet.id, userWallet.available_balance)}
+                  disabled={!userWallet.is_active}
                   className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
-                    isDarkMode
+                    !userWallet.is_active
+                      ? "border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
+                      : isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-blue-500"
                       : "border-gray-300 text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-500"
                   }`}
@@ -2039,8 +2063,11 @@ export default function Wallets() {
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
                   onClick={handleVirtualPurchaseClick}
+                  disabled={!userWallet.is_active}
                   className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
-                    isDarkMode
+                    !userWallet.is_active
+                      ? "border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
+                      : isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-green-500"
                       : "border-gray-300 text-gray-700 hover:bg-green-50 hover:text-green-600 hover:border-green-500"
                   }`}
@@ -2053,8 +2080,11 @@ export default function Wallets() {
               <div className={`tooltip ${isDarkMode ? "dark-mode" : ""}`}>
                 <button
                   onClick={handleTransferButtonClick}
+                  disabled={!userWallet.is_active}
                   className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-full transition-all duration-300 shadow-md hover:shadow-lg ${
-                    isDarkMode
+                    !userWallet.is_active
+                      ? "border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
+                      : isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-purple-500"
                       : "border-gray-300 text-gray-700 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-500"
                   }`}

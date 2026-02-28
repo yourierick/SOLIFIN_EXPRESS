@@ -319,6 +319,15 @@ class WithdrawalController extends Controller
                 $this->cleanPhoneNumber($request->phone_number);
             }
 
+            // Vérifier si les retraits sont activés dans les paramètres
+            $withdrawalActivation = \App\Models\Setting::where('key', 'withdrawal_activation')->first();
+            if (!$withdrawalActivation || $withdrawalActivation->value !== 'oui') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez pas effectuer de retrait pour le moment'
+                ]);
+            }
+
             // Vérifier l'authentification (mot de passe)
             $user = $request->user();
             

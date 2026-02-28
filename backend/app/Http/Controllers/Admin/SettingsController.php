@@ -25,6 +25,8 @@ class SettingsController extends Controller
         'transfer_commission',
         'purchase_fee_percentage',
         'purchase_commission_system',
+        'funds_transfer_activation',
+        'withdrawal_activation',
         
         // Configuration des devises
         'dual_currency',

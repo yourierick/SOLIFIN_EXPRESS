@@ -186,6 +186,20 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'key' => 'withdrawal_activation',
+                'value' => 'oui',
+                'description' => 'Activer ou désactiver le retrait des fonds',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'funds_transfer_activation',
+                'value' => 'oui',
+                'description' => 'Activer ou desactiver le transfert des fonds',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 
