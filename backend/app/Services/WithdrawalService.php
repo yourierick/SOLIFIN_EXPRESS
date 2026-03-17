@@ -36,7 +36,7 @@ class WithdrawalService
         try {
             DB::beginTransaction();
             
-            if ($withdrawal->status !== self::STATUS_FAILED || $withdrawal->status !== self::STATUS_PENDING) {
+            if ($withdrawal->status !== self::STATUS_FAILED && $withdrawal->status !== self::STATUS_PENDING) {
                 return [
                     'success' => false,
                     'message' => 'Cette demande ne peut pas être approuvée ou réessayée',

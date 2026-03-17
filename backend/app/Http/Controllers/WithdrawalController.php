@@ -330,9 +330,19 @@ class WithdrawalController extends Controller
 
             // Vérifier l'authentification (mot de passe)
             $user = $request->user();
+
+            // Récupérer le portefeuille
+            $wallet = $user->wallet;
+
+            if (!$wallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Portefeuille non trouvé'
+                ], 404);
+            }
             
             //Si le portefeuille de l'utilisateur est désactivé, retourner la réponse correspondante
-            if (!$user->wallet->is_active) {
+            if (!$wallet->is_active) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Votre portefeuille a été désactivé, veuillez contacter le service support pour sa réactivation',
@@ -349,16 +359,6 @@ class WithdrawalController extends Controller
             \Log::info('Authentification par mot de passe réussie', [
                 'user_id' => $user->id
             ]);
-
-            // Récupérer le portefeuille
-            $wallet = Wallet::find($walletId);
-
-            if (!$wallet) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Portefeuille non trouvé'
-                ], 404);
-            }
             
             // Recalculer tous les frais côté serveur pour éviter les abus
             $amount = (float)$request->amount; // Montant à retirer
@@ -703,10 +703,6 @@ class WithdrawalController extends Controller
      */
     public function approve(Request $request, $id)
     {
-        \Log::info($request->all());
-        return response()->json([
-            'success' => false
-        ]);
         try {
             // Validation des entrées utilisateur
             $validator = Validator::make($request->all(), [
@@ -738,6 +734,8 @@ class WithdrawalController extends Controller
                     'message' => 'Demande de retrait non trouvée'
                 ], 404);
             }
+
+            \Log::info('ça passe');
 
             // Utiliser le service pour approuver la demande
             $withdrawalService = app(\App\Services\WithdrawalService::class);

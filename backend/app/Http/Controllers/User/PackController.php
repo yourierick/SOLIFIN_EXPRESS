@@ -135,20 +135,11 @@ class PackController extends Controller
             if ($request->payment_method === 'solifin-wallet') {
                 $userWallet = $user->wallet;
                 
-                if ($request->currency === 'USD') {
-                    if (!$userWallet || $userWallet->balance_usd < $request->amount) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Solde insuffisant dans votre wallet'
-                        ], 400);
-                    }
-                }else {
-                    if (!$userWallet || $userWallet->balance_cdf < $request->amount) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Solde insuffisant dans votre wallet'
-                        ], 400);
-                    }
+                if (!$userWallet || $userWallet->available_balance < $request->amount) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Solde insuffisant dans votre wallet'
+                    ], 400);
                 }
             }
             

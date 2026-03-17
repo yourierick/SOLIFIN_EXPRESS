@@ -165,6 +165,7 @@ export default function Navbar() {
                     className={`inline-flex items-center px-2 pt-1 text-sm lg:text-base xl:text-lg font-medium hover:text-primary-600 transition-colors duration-200 ${
                       isDarkMode ? "text-gray-200" : "text-gray-900"
                     }`}
+                    style={{ fontSize: "1rem" }}
                   >
                     {item.name}
                   </ScrollLink>
@@ -180,6 +181,7 @@ export default function Navbar() {
                         ? "text-gray-200 hover:text-primary-500"
                         : "text-gray-900 hover:text-primary-600"
                     }`}
+                    style={{ fontSize: "1rem" }}
                   >
                     <item.icon className="h-6 w-6 mr-2" />
                     {item.name}

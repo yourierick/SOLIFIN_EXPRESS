@@ -24,7 +24,7 @@ class SerdiPayService
     
     public function __construct()
     {
-        $this->baseUrl = config('app.serdipay_base_url', 'https://api.kenzo.serdipay.cloud/api/public-api/v1');
+        $this->baseUrl = config('app.serdipay_base_url', 'https://api.serdipay.cloud/api/public-api/v1');
         $this->apiId = config('app.serdipay_api_id');
         $this->apiPassword = config('app.serdipay_api_password');
         $this->merchantCode = config('app.serdipay_merchant_code');
@@ -57,13 +57,6 @@ class SerdiPayService
     public function getAuthToken()
     {
         try {
-            // Logger la tentative d'authentification
-            Log::info('SerdiPay authentication attempt', [
-                'url' => $this->baseUrl . '/merchant/get-token',
-                'email' => Config::get('app.serdipay_email'),
-                'timestamp' => now()->toDateTimeString(),
-            ]);
-            
             $response = $this->client->request('POST', $this->baseUrl . '/merchant/get-token', [
                 'json' => [
                     'email' => Config::get('app.serdipay_email'),
@@ -74,28 +67,14 @@ class SerdiPayService
             $statusCode = $response->getStatusCode();
             $data = json_decode($response->getBody()->getContents(), true);
             
-            // Logger la réponse complète
-            Log::info('SerdiPay authentication response', [
-                'status_code' => $statusCode,
-                'response_headers' => $response->getHeaders(),
-                'response_body' => $data,
-            ]);
-            
             if ($statusCode === 200) {
                 if (isset($data['access_token'])) {
                     return $data['access_token'];
                 }
             }
             
-            Log::error('SerdiPay authentication failed', [
-                'status' => $statusCode,
-                'response' => $data,
-                'server_info' => [
-                    'ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown',
-                    'host' => $_SERVER['HTTP_HOST'] ?? 'unknown',
-                ],
-            ]);
-            
+            \Log::info($data);
+
             return null;
         } catch (RequestException $e) {
             // Gestion spécifique des erreurs de requête Guzzle

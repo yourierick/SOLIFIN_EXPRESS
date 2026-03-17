@@ -574,7 +574,7 @@ export default function PurchasePackForm({
   isRenewal = false, // Nouvelle prop pour différencier achat et renouvellement
 }) {
   const { isDarkMode } = useTheme();
-  const { isCDFEnabled, canUseCDF, selectedCurrency } = useCurrency();
+  const { selectedCurrency } = useCurrency();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -627,13 +627,7 @@ export default function PurchasePackForm({
       const step = getSubscriptionStep(pack.abonnement);
       let prixDeBase;
 
-      if (selectedCurrency === "USD") {
-        prixDeBase = pack.price * step;
-      } else if (selectedCurrency === "CDF") {
-        prixDeBase = pack.cdf_price * step;
-      } else {
-        prixDeBase = pack.price * step;
-      }
+      prixDeBase = pack.price * step;
 
       setPrixDuPack(prixDeBase);
     }
@@ -937,7 +931,7 @@ export default function PurchasePackForm({
 
     if (percentage > 0 && amount > 0) {
       const fee = amount * (percentage / 100);
-      const roundedFee = parseFloat(fee.toFixed(2));
+      const roundedFee = parseFloat((fee || 0).toFixed(2));
       setTransactionFees(roundedFee);
       setFeePercentage(percentage);
     } else {
@@ -969,7 +963,7 @@ export default function PurchasePackForm({
           // Calculer les frais en fonction du pourcentage récupéré initialement
           const calculatedFee = (amount * initialFees.percentage) / 100;
           // Limiter à deux chiffres après la virgule
-          const roundedFee = parseFloat(calculatedFee.toFixed(2));
+          const roundedFee = parseFloat((calculatedFee || 0).toFixed(2));
           setTransactionFees(roundedFee);
           setFeePercentage(initialFees.percentage);
           setFeesError(false);
@@ -983,7 +977,7 @@ export default function PurchasePackForm({
         if (initialFees.loaded && amount > 0) {
           const calculatedFee = (amount * initialFees.percentage) / 100;
           // Limiter à deux chiffres après la virgule
-          const roundedFee = parseFloat(calculatedFee.toFixed(2));
+          const roundedFee = parseFloat((calculatedFee || 0).toFixed(2));
           setTransactionFees(roundedFee);
           setFeePercentage(initialFees.percentage);
         } else {
@@ -1130,8 +1124,8 @@ export default function PurchasePackForm({
               referralCode: referralCode, // Envoyer toujours le referralCode (qui sera assigné automatiquement si coché)
               noSponsorCode: noSponsorCode, // Indiquer si l'utilisateur n'avait pas de code parrain initialement
             }),
-        amount: totalAmount.toFixed(2), // Utiliser totalAmount qui est déjà dans la bonne devise
-        fees: transactionFees.toFixed(2) || 0,
+        amount: parseFloat(totalAmount || 0).toFixed(2), // Utiliser totalAmount qui est déjà dans la bonne devise
+        fees: parseFloat(transactionFees || 0).toFixed(2),
         packId: pack?.id,
       };
 
@@ -1344,7 +1338,7 @@ export default function PurchasePackForm({
                   <CircularProgress size={12} />
                 ) : (
                   <>
-                    {walletBalance.toFixed(2)}{" $"}
+                    {parseFloat(walletBalance || 0).toFixed(2)}{" $"}
                   </>
                 )}
               </strong>
@@ -2019,9 +2013,7 @@ export default function PurchasePackForm({
                             variant="caption"
                             className="text-gray-500 dark:text-gray-400 text-xs"
                           >
-                            {selectedCurrency === "USD"
-                              ? "Tarification en dollars américains"
-                              : "Tarification en francs congolais"}
+                            Tarification en dollars
                           </Typography>
                         </div>
                       </div>
@@ -2053,9 +2045,9 @@ export default function PurchasePackForm({
                               variant="subtitle1"
                               className="font-semibold text-gray-800 dark:text-gray-100 text-sm"
                             >
-                              {totalAmount.toFixed(2)}{" "}
+                              {parseFloat(totalAmount || 0).toFixed(2)}{" "}
                               <span className="text-xs font-normal">
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </Typography>
                           </div>
@@ -2091,10 +2083,7 @@ export default function PurchasePackForm({
                                   variant="caption"
                                   className="text-xs text-amber-600 dark:text-amber-400"
                                 >
-                                  {selectedCurrency === "USD"
-                                    ? pack.price
-                                    : pack.cdf_price}{" "}
-                                  {selectedCurrency === "USD" ? "$" : "FC"}
+                                  {pack.price}$
                                 </Typography>
                               </div>
                             </div>
@@ -2102,11 +2091,9 @@ export default function PurchasePackForm({
                               variant="subtitle1"
                               className="font-semibold text-amber-800 dark:text-amber-200 text-sm"
                             >
-                              {selectedCurrency === "USD"
-                                ? pack.price
-                                : pack.cdf_price}{" "}
+                              {pack.price}
                               <span className="text-xs font-normal">
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </Typography>
                           </div>
@@ -2142,11 +2129,9 @@ export default function PurchasePackForm({
                                   variant="caption"
                                   className="text-xs text-amber-600 dark:text-amber-400"
                                 >
-                                  {selectedCurrency === "USD"
-                                    ? pack.price
-                                    : pack.cdf_price}{" "}
+                                  {pack.price}
                                   <span className="text-xs font-normal">
-                                    {selectedCurrency === "USD" ? "$" : "FC"}
+                                    $
                                   </span>
                                 </Typography>
                               </div>
@@ -2155,11 +2140,9 @@ export default function PurchasePackForm({
                               variant="subtitle1"
                               className="font-semibold text-amber-800 dark:text-amber-200 text-sm"
                             >
-                              {selectedCurrency === "USD"
-                                ? pack.price
-                                : pack.cdf_price}{" "}
+                              {pack.price}
                               <span className="text-xs font-normal">
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </Typography>
                           </div>
@@ -2196,7 +2179,7 @@ export default function PurchasePackForm({
                                     variant="caption"
                                     className="text-xs text-amber-600 dark:text-amber-400"
                                   >
-                                    {feePercentage.toFixed(1)}% du montant
+                                    {(feePercentage || 0).toFixed(1)}% du montant
                                   </Typography>
                                 )}
                               </div>
@@ -2205,11 +2188,9 @@ export default function PurchasePackForm({
                               variant="subtitle1"
                               className="font-semibold text-amber-800 dark:text-amber-200 text-sm"
                             >
-                              {transactionFees !== null
-                                ? transactionFees.toFixed(2)
-                                : "0.00"}{" "}
+                              {parseFloat(transactionFees || 0).toFixed(2)}{" "}
                               <span className="text-xs font-normal">
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </span>
                             </Typography>
                           </div>
@@ -2267,7 +2248,7 @@ export default function PurchasePackForm({
                                 variant="h6"
                                 className="font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-lg"
                               >
-                                {(totalAmount + (transactionFees || 0)).toFixed(
+                                {((totalAmount || 0) + (transactionFees || 0)).toFixed(
                                   2
                                 )}
                               </Typography>
@@ -2275,7 +2256,7 @@ export default function PurchasePackForm({
                                 variant="caption"
                                 className="font-medium text-gray-600 dark:text-gray-400 text-xs"
                               >
-                                {selectedCurrency === "USD" ? "$" : "FC"}
+                                $
                               </Typography>
                             </div>
                           </div>
@@ -2306,8 +2287,8 @@ export default function PurchasePackForm({
                           className="mt-2 mb-0 rounded-lg text-xs"
                         >
                           Solde insuffisant. Besoin de{" "}
-                          {(totalAmount + (transactionFees || 0)).toFixed(2)}{" $"} mais votre solde est de{" "}
-                          {walletBalance.toFixed(2)} $.
+                          {parseFloat((totalAmount || 0) + (transactionFees || 0)).toFixed(2)}{" $"} mais votre solde est de{" "}
+                          {parseFloat(walletBalance || 0).toFixed(2)} $.
                         </Alert>
                       )}
                   </div>

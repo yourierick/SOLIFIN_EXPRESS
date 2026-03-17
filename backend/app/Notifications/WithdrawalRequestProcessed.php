@@ -41,7 +41,7 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject("Votre demande de retrait a été {$status}")
             ->greeting("Bonjour {$notifiable->name},")
-            ->line("Votre demande de retrait d'un montant de {$this->withdrawalRequest->amount} {$this->withdrawalRequest->payment_details['devise']} a été {$status}.")
+            ->line("Votre demande de retrait d'un montant de {$this->withdrawalRequest->amount} $ a été {$status}.")
             ->when($this->withdrawalRequest->status === 'approved', function ($message) {
                 return $message->line("Le paiement est traité automatiquement, vous recevrez une notification une fois le paiement effectué.");
             })

@@ -39,7 +39,7 @@ class WithdrawalRequestFailed extends Notification implements ShouldQueue
             ->greeting("Bonjour {$notifiable->name},")
             ->line("Une demande de retrait que vous avez validée a échoué lors du traitement.")
             ->line("Détails de la demande :")
-            ->line("- Montant : {$this->withdrawalRequest->payment_details['montant_a_retirer']} {$this->withdrawalRequest->payment_details['devise']}")
+            ->line("- Montant : {$this->withdrawalRequest->payment_details['montant_a_retirer']} $")
             ->line("- Utilisateur : {$this->withdrawalRequest->user->name}")
             ->line("- Méthode de paiement : {$this->withdrawalRequest->payment_method}")
             ->line("Informations du callback :")
@@ -56,7 +56,7 @@ class WithdrawalRequestFailed extends Notification implements ShouldQueue
             'type' => 'error',
             'icon' => 'exclamation-circle',
             'titre' => 'Échec de retrait',
-            'message' => 'La demande de retrait de ' . $this->withdrawalRequest->payment_details['montant_a_retirer'] . ' ' . $this->withdrawalRequest->payment_details['devise'] . ' a échoué. Statut: ' . $this->status . ' - ' . $this->message,
+            'message' => 'La demande de retrait de ' . $this->withdrawalRequest->payment_details['montant_a_retirer'] . ' $ a échoué. Statut: ' . $this->status . ' - ' . $this->message,
         ];
     }
 }

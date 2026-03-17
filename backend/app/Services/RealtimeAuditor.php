@@ -79,7 +79,7 @@ class RealtimeAuditor
                 'metadata' => [
                     'wallet_id' => $wallet->id,
                     'user_id' => $wallet->user->name . ' / ' . $wallet->user->account_id,
-                    'transaction_id' => $this->lastTransactionId,
+                    'transaction_id' => $this->lastTransactionId ?? null,
                     'ledger_balance' => $ledgerBalance,
                     'wallet_balance' => $balance
                 ]
@@ -300,5 +300,29 @@ class RealtimeAuditor
     private function generateFingerprintFromData(array $data): string
     {
         return hash('sha256', json_encode($data));
+    }
+
+    /**
+     * Instance singleton pour les appels statiques
+     * Rôle: Permettre l'utilisation statique du service
+     */
+    private static ?RealtimeAuditor $instance = null;
+
+    public static function getInstance(): RealtimeAuditor
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        
+        return self::$instance;
+    }
+
+    /**
+     * Méthode statique pour l'audit de transaction
+     * Rôle: Interface statique pour le modèle WalletTransaction
+     */
+    public static function auditWalletTransactionStatic(WalletTransaction $transaction): void
+    {
+        self::getInstance()->auditWalletTransaction($transaction);
     }
 }

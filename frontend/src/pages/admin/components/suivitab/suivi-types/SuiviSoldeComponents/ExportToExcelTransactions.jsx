@@ -57,7 +57,7 @@ const ExportToExcelTransactions = ({ period, filters, currentPage, rowsPerPage, 
       'Traité par': item.processor.name,
       'Date': formatDateForExcel(item.created_at),
       'Description': item.description || '-',
-      'Description': item.rejection_reason || '-',
+      'Raison': item.rejection_reason || '-',
       'Metadonnées': item.metadata,
     }));
   };

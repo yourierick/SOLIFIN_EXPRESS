@@ -729,7 +729,7 @@ export default function MyPacks() {
     const rootNode = {
       name: "Vous",
       attributes: {
-        commission: "USD: $0.00 | CDF: 0 FC",
+        commission: "USD: $0.00",
         status: "active",
         generation: 0,
       },
@@ -759,12 +759,7 @@ export default function MyPacks() {
               parentNode.children.push({
                 name: ref.name,
                 attributes: {
-                  commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)} | CDF: ${new Intl.NumberFormat("fr-CD", {
-                    style: "currency",
-                    currency: "CDF",
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(parseFloat(ref.total_commission_cdf || 0))}`,
+                  commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)}`,
                   status: ref.pack_status,
                   generation: gen,
                   userId: ref.id,

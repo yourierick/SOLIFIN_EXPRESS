@@ -725,7 +725,7 @@ class SerdiPayController extends Controller
 
                 //Créer la transaction dans le wallet utilisateur
                 $walletService = app(\App\Services\WalletService::class);
-                $walletService->recordUserTransaction([
+                $walletService->recordUserTransaction($user->wallet, [
                     'session_id' => $result['session_id'] ?? null,
                     'transaction_id' => $result['transaction_id'] ?? null,
                     'flow' => 'out',
@@ -1081,7 +1081,6 @@ class SerdiPayController extends Controller
 
                         $user->wallet->transactions()->where('session_id', $tempPurchase->session_id)->where('transaction_id', $tempPurchase->transaction_id)->update([
                             'status' => 'failed',
-                            'metadata' => $metadata_user,
                             'rejection_reason' => $result['message']
                         ]);
                     }

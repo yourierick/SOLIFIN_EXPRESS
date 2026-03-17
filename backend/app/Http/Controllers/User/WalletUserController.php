@@ -202,7 +202,7 @@ class WalletUserController extends Controller
                 'success' => true,
                 'balance' => number_format($userWallet->balance, 2),
                 'available_balance' => number_format($userWallet->available_balance, 2),
-                'frozen_balance' => number_format($userWallet->available_balance, 2),
+                'frozen_balance' => number_format($userWallet->frozen_balance, 2),
             ]);
         } catch (\Exception $e) {
             return response()->json([

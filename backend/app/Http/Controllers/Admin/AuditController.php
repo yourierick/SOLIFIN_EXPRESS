@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\FinancialAuditLog;
 use App\Models\Wallet;
 use App\Models\WalletSystem;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use App\Models\WalletSystemTransaction;
 use App\Models\WalletTransaction;
 use App\Models\AuditQueue;
@@ -1159,5 +1162,51 @@ class AuditController extends Controller
         
         $wallet->save();
         return ['message' => 'Balance utilisateur mise à jour avec succès'];
+    }
+
+    /**
+     * Ajuster le montant du solde marchand selon l'api de paiement
+     */
+    public function adjustMerchantBalance(Request $request)
+    {
+        try {
+            $request->validate([
+                'amount'=>'required|numeric',
+                'password'=>'required'
+            ], [
+                'amount.required' => 'Le montant est requis',
+                'amount.numeric' => 'Le montant doit être un nombre',
+                'password.required' => 'Le mot de passe est requis'
+            ]);
+
+            $amount = $request->amount;
+            // Vérifier le mot de passe administrateur
+            // récupérer l'id du rôle super-admin
+            $role_id = Role::where('slug', 'super-admin')->first()->id;
+            $superadmin = User::where('role_id', $role_id)->first();
+            
+            // Vérifier le mot de passe du superadmin
+            if (!Hash::check($request->password, $superadmin->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mot de passe incorrect, veuillez contacter l\'administrateur principal pour plus d\'infos!'
+                ], 401);
+            }
+
+            $wallet_system = WalletSystem::first();
+            $wallet_system->solde_marchand = $amount;
+            $wallet_system->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Solde marchand ajusté avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de l\'ajustement du solde marchand'
+            ], 500);
+        }
     }
 }

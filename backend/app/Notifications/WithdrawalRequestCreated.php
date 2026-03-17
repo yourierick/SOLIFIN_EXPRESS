@@ -29,7 +29,7 @@ class WithdrawalRequestCreated extends Notification implements ShouldQueue
             'type' => 'warning',
             'icon' => 'exclamation-triangle',
             'titre' => 'Demande de retrait',
-            'message' => 'Nouvelle demande de retrait de ' . number_format($this->withdrawalRequest->amount, 2) . $this->withdrawalRequest->payment_details['devise'],
+            'message' => 'Nouvelle demande de retrait de ' . number_format($this->withdrawalRequest->amount, 2) . " $",
             'link' => '/admin/finances',
         ];
     }

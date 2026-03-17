@@ -699,7 +699,6 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::get('/solifin-financial-transactions/statistics', [\App\Http\Controllers\Admin\FinanceController::class, 'financialTransactionsStatistics']); 
         Route::get('/solifin-financial-transactions/export', [\App\Http\Controllers\Admin\FinanceController::class, 'exportFinancialTransactions']);
         Route::post('/transactions/{id}/cancel', [\App\Http\Controllers\Admin\FinanceController::class, 'cancelTransaction']);
-        Route::post('/wallets/adjust-balance', [\App\Http\Controllers\Admin\FinanceController::class, 'adjustBalance']);
     });
 
     Route::middleware('permission:manage-audits')->group(function () {
@@ -713,6 +712,7 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::post('/audit/schedule-periodic', [\App\Http\Controllers\Admin\AuditController::class, 'schedulePeriodic']);
         Route::post('/audit/execute-global', [\App\Http\Controllers\Admin\AuditController::class, 'executeGlobal']);
         Route::post('/audit-logs/{id}/correct', [\App\Http\Controllers\Admin\AuditController::class, 'correctAnomaly']);
+        Route::post('/audit/adjust-merchant-balance', [\App\Http\Controllers\Admin\AuditController::class, 'adjustMerchantBalance']);
     });
     
     Route::middleware('permission:manage-faqs')->group(function () {

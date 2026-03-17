@@ -67,7 +67,7 @@ class WalletTransaction extends Model
         static::saved(function ($transaction) {
             // Déclencher l'audit temps réel seulement si la transaction est complétée
             if ($transaction->status === 'completed') {
-                \App\Services\FinancialAnomalyService::getInstance()->auditTransaction($transaction);
+                \App\Services\RealtimeAuditor::auditWalletTransactionStatic($transaction);
             }
         });
     }

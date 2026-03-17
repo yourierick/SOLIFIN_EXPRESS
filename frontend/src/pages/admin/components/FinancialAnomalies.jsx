@@ -413,6 +413,8 @@ const FinancialAnomalies = () => {
       'abnormal_inactivity': 'Inactivité Anormale',
       'data_corruption': 'Corruption Données',
       'orphan_transactions': 'Transactions Orphelines',
+      'low_liquidity_ratio' : 'Faible ratio de liquidité',
+      'wallet_transaction_consistency_mismatch': 'Incohérence des transactions du portefeuille',
       'system_transaction_consistency_mismatch': 'Incohérence des transactions système',
     };
     return labels[invariant] || invariant;
@@ -454,27 +456,27 @@ const FinancialAnomalies = () => {
       <div className="bg-gray-50 dark:bg-gray-800 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 Audit Financier
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
                 Surveillance et gestion des audits financiers intelligents
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Bouton Filtres */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-white"
                     : "bg-gray-200 hover:bg-gray-300 text-gray-700"
                 }`}
               >
-                <FunnelIcon className="w-5 h-5" />
-                Filtres avancés
+                <FunnelIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">Filtres</span>
               </button>
 
               {/* Bouton Exportation */}
@@ -482,18 +484,18 @@ const FinancialAnomalies = () => {
                 <button
                   onClick={() => setShowExportMenu(!showExportMenu)}
                   disabled={exportLoading}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                     isDarkMode
                       ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg disabled:opacity-50"
                       : "bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg disabled:opacity-50"
                   }`}
                 >
                   {exportLoading ? (
-                    <CircularProgress size={20} className="text-white" />
+                    <CircularProgress size={16} className="text-white" />
                   ) : (
-                    <DocumentArrowDownIcon className="w-5 h-5" />
+                    <DocumentArrowDownIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
-                  Exporter
+                  <span className="text-sm sm:text-base">Exporter</span>
                 </button>
 
                 {/* Menu d'exportation */}
@@ -504,19 +506,19 @@ const FinancialAnomalies = () => {
                   >
                     <button
                       onClick={() => exportData('current')}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
                     >
                       Page actuelle (CSV)
                     </button>
                     <button
                       onClick={() => exportData('filtered')}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
                     >
                       Données filtrées (CSV)
                     </button>
                     <button
                       onClick={() => exportData('all')}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
                     >
                       Toutes les données (CSV)
                     </button>
@@ -528,22 +530,22 @@ const FinancialAnomalies = () => {
         </div>
 
         {/* Cartes de statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card style={{
               backgroundColor: isDarkMode ? '#273242ff' : '#fff',
               boxShadow: isDarkMode ? 'none' : '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
                     Total Logs
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {auditStats.total_audit_logs || 0}
                   </p>
                 </div>
-                <ChartBarIcon className="w-8 h-8 text-blue-500" />
+                <ChartBarIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
@@ -552,17 +554,17 @@ const FinancialAnomalies = () => {
               backgroundColor: isDarkMode ? '#273242ff' : '#fff',
               boxShadow: isDarkMode ? 'none' : '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}>
-              <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
                     Anomalies en Attente
                   </p>
-                  <p className="text-2xl font-bold text-red-400">
+                  <p className="text-xl sm:text-2xl font-bold text-red-400">
                     {auditStats.pending_anomalies || 0}
                   </p>
                 </div>
-                <ExclamationTriangleIcon className="w-8 h-8 text-red-500" />
+                <ExclamationTriangleIcon className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
@@ -571,17 +573,17 @@ const FinancialAnomalies = () => {
               backgroundColor: isDarkMode ? '#273242ff' : '#fff',
               boxShadow: isDarkMode ? 'none' : '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}>
-              <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
                     Anomalies Critiques
                   </p>
-                  <p className="text-2xl font-bold text-red-400">
+                  <p className="text-xl sm:text-2xl font-bold text-red-400">
                     {auditStats.critical_anomalies || 0}
                   </p>
                 </div>
-                <BellIcon className="w-8 h-8 text-red-500" />
+                <BellIcon className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
@@ -590,34 +592,34 @@ const FinancialAnomalies = () => {
               backgroundColor: isDarkMode ? '#273242ff' : '#fff',
               boxShadow: isDarkMode ? 'none' : '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}>
-              <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
                     Jobs en Queue
                   </p>
-                  <p className="text-2xl font-bold text-blue-400">
+                  <p className="text-xl sm:text-2xl font-bold text-blue-400">
                     {auditStats.queue_jobs || 0}
                   </p>
                 </div>
-                <CogIcon className="w-8 h-8 text-blue-500" />
+                <CogIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Actions d'audit */}
-        <div className={`mb-6 p-6 rounded-xl border ${
+        <div className={`mb-6 p-4 sm:p-6 rounded-xl border ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}>
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900 dark:text-white">
             Actions d'Audit
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <button
               onClick={() => executeAuditAction('schedule_periodic')}
               disabled={actionLoading.schedule_periodic}
-              className={`inline-flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+              className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-xl font-medium transition-all duration-200 text-sm sm:text-base ${
                 actionLoading.schedule_periodic
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : isDarkMode
@@ -626,11 +628,12 @@ const FinancialAnomalies = () => {
               }`}
             >
               {actionLoading.schedule_periodic ? (
-                <CircularProgress size={20} className="text-white" />
+                <CircularProgress size={16} className="text-white" />
               ) : (
-                <PlayIcon className="w-5 h-5" />
+                <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
-              Audits Périodiques
+              <span className="hidden sm:inline">Audits Périodiques</span>
+              <span className="sm:hidden">Audits</span>
             </button>
 
             <button
@@ -668,7 +671,7 @@ const FinancialAnomalies = () => {
                 margin="normal"
                 size="small"
                 InputProps={{
-                  startAdornment: <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 mr-2" />
+                  startAdornment: <MagnifyingGlassIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2" />
                 }}
               />
 
@@ -741,7 +744,7 @@ const FinancialAnomalies = () => {
               />
             </div>
 
-            <div className="flex justify-end mt-4 gap-3">
+            <div className="flex flex-col sm:flex-row justify-end mt-4 gap-3">
               <button
                 onClick={() => setFilters({
                   audit_type: "",
@@ -752,7 +755,7 @@ const FinancialAnomalies = () => {
                   date_from: "",
                   date_to: "",
                 })}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-white"
                     : "bg-gray-200 hover:bg-gray-300 text-gray-700"
@@ -762,7 +765,7 @@ const FinancialAnomalies = () => {
               </button>
               <button
                 onClick={() => setShowFilters(false)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                   isDarkMode
                     ? "bg-blue-600 hover:bg-blue-700 text-white"
                     : "bg-blue-500 hover:bg-blue-600 text-white"
@@ -775,7 +778,7 @@ const FinancialAnomalies = () => {
         )}
 
         {/* Tableau des logs d'audit */}
-        <div className={`rounded-xl shadow-lg border ${
+        <div className={`rounded-xl shadow-lg border overflow-hidden ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}>
           {loading ? (
@@ -783,158 +786,158 @@ const FinancialAnomalies = () => {
               <CircularProgress size={40} />
             </div>
           ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow className={isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}>
-                    <TableCell className="font-semibold">ID</TableCell>
-                    <TableCell className="font-semibold">Type</TableCell>
-                    <TableCell className="font-semibold">Entité</TableCell>
-                    <TableCell className="font-semibold">Invariant</TableCell>
-                    <TableCell className="font-semibold">Sévérité</TableCell>
-                    <TableCell className="font-semibold">Écart</TableCell>
-                    <TableCell className="font-semibold">Statut</TableCell>
-                    <TableCell className="font-semibold">Date</TableCell>
-                    <TableCell className="font-semibold">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {auditLogs.map((log) => (
-                    <TableRow key={log.id} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
-                      <TableCell>#{log.id}</TableCell>
-                      <TableCell>
-                        <span className="text-sm font-medium">
-                          {getAuditTypeLabel(log.audit_type)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {log.entity_type}
-                          {log.entity_id && ` #${log.entity_id}`}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {getInvariantLabel(log.invariant_violated)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={getSeverityLabel(log.severity)}
-                          className={getSeverityColor(log.severity)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <span className={`font-semibold ${
-                          log.difference > 0 ? 'text-red-600' : 'text-green-600'
-                        }`}>
-                          {formatAmount(log.difference)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(log.status)}
-                          <span className="text-sm">
-                            {getStatusLabel(log.status)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {formatDate(log.created_at)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Tooltip title="Voir les détails">
-                            <button
-                              onClick={() => showLogDetails(log)}
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                isDarkMode
-                                  ? 'hover:bg-gray-600 text-gray-400'
-                                  : 'hover:bg-gray-200 text-gray-600'
-                              }`}
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                          </Tooltip>
-                          
-                          {log.status === 'pending' && (
-                            <Tooltip title="Marquer comme en investigation">
-                              <button
-                                onClick={() => executeAuditAction('investigate_log', log.id)}
-                                disabled={actionLoading.investigate_log}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  actionLoading.investigate_log
-                                    ? 'cursor-not-allowed opacity-50'
-                                    : 'hover:bg-yellow-100 text-yellow-600'
-                                }`}
-                              >
-                                <ClockIcon className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                          )}
-                          
-                          {log.status !== 'resolved' && (
-                            <Tooltip title="Résoudre">
-                              <button
-                                onClick={() => executeAuditAction('resolve_log', log.id)}
-                                disabled={actionLoading.resolve_log}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  actionLoading.resolve_log
-                                    ? 'cursor-not-allowed opacity-50'
-                                    : 'hover:bg-green-100 text-green-600'
-                                }`}
-                              >
-                                <CheckCircleIcon className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
+            <div className="overflow-x-auto">
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow className={isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">ID</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Type</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Entité</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Invariant</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Sévérité</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Écart</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Statut</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Date</TableCell>
+                      <TableCell className="font-semibold text-xs sm:text-sm whitespace-nowrap">Actions</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 30, 50, 100]}
-                component="div"
-                count={totalCount}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(event, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(event) => {
-                  setRowsPerPage(parseInt(event.target.value, 10));
-                  setPage(0);
-                }}
-                labelRowsPerPage="Lignes par page"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} sur ${count}`
-                }
-              />
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {auditLogs.map((log) => (
+                      <TableRow key={log.id} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
+                        <TableCell className="text-xs sm:text-sm">#{log.id}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <span className="text-xs sm:text-sm font-medium">
+                            {getAuditTypeLabel(log.audit_type)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <span className="text-xs sm:text-sm">
+                            {log.entity_type}
+                            {log.entity_id && ` #${log.entity_id}`}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                            {getInvariantLabel(log.invariant_violated)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <Chip
+                            size="small"
+                            label={getSeverityLabel(log.severity)}
+                            className={getSeverityColor(log.severity)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <span className={`font-semibold text-xs sm:text-sm ${
+                            log.difference > 0 ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {formatAmount(log.difference)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(log.status)}
+                            <span className="text-xs sm:text-sm">
+                              {getStatusLabel(log.status)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                            {formatDate(log.created_at)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Tooltip title="Voir les détails">
+                              <button
+                                onClick={() => showLogDetails(log)}
+                                className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
+                                  isDarkMode
+                                    ? 'hover:bg-gray-600 text-gray-400'
+                                    : 'hover:bg-gray-200 text-gray-600'
+                                }`}
+                              >
+                                <EyeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                              </button>
+                            </Tooltip>
+                            
+                            {log.status === 'pending' && (
+                              <Tooltip title="Marquer comme en investigation">
+                                <button
+                                  onClick={() => executeAuditAction('investigate_log', log.id)}
+                                  disabled={actionLoading.investigate_log}
+                                  className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
+                                    actionLoading.investigate_log
+                                      ? 'cursor-not-allowed opacity-50'
+                                      : 'hover:bg-yellow-100 text-yellow-600'
+                                  }`}
+                                >
+                                  <ClockIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </button>
+                              </Tooltip>
+                            )}
+                            
+                            {log.status !== 'resolved' && (
+                              <Tooltip title="Résoudre">
+                                <button
+                                  onClick={() => executeAuditAction('resolve_log', log.id)}
+                                  disabled={actionLoading.resolve_log}
+                                  className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
+                                    actionLoading.resolve_log
+                                      ? 'cursor-not-allowed opacity-50'
+                                      : 'hover:bg-green-100 text-green-600'
+                                  }`}
+                                >
+                                  <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </button>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </div>
           )}
+          <TablePagination
+              rowsPerPageOptions={[10, 25, 30, 50, 100]}
+              component="div"
+              count={totalCount}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(event, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              labelRowsPerPage="Lignes par page"
+              labelDisplayedRows={({ from, to, count }) =>
+                  `${from}-${to} sur ${count}`
+              }
+          />
         </div>
 
         {/* Modal de détails du log */}
         {showDetailsModal && selectedLog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className={`w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ${
+            <div className={`w-full max-w-2xl sm:max-w-4xl rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             } border`}>
               {/* Header */}
-              <div className={`px-6 py-4 border-b sticky top-0 ${
+              <div className={`px-4 sm:px-6 py-4 border-b sticky top-0 ${
                 isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
               } rounded-t-2xl`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                       Log d'Audit #{selectedLog.id}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       {getAuditTypeLabel(selectedLog.audit_type)} - {getSeverityLabel(selectedLog.severity)}
                     </p>
                   </div>
@@ -946,92 +949,61 @@ const FinancialAnomalies = () => {
                         : 'hover:bg-gray-200 text-gray-500'
                     }`}
                   >
-                    <XMarkIcon className="w-5 h-5" />
+                    <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
               </div>
 
               {/* Contenu */}
-              <div className="px-6 py-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="px-4 sm:px-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Informations Générales</h4>
+                    <h4 className="text-sm sm:text-base font-semibold mb-3 text-gray-900 dark:text-white">Informations Générales</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Type:</span>
-                        <span className="text-sm font-medium">{getAuditTypeLabel(selectedLog.audit_type)}</span>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Type:</span>
+                        <span className="text-xs sm:text-sm font-medium">{getAuditTypeLabel(selectedLog.audit_type)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Entité:</span>
-                        <span className="text-sm font-medium">
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Entité:</span>
+                        <span className="text-xs sm:text-sm font-medium">
                           {selectedLog.entity_type} {selectedLog.entity_id && `#${selectedLog.entity_id}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Invariant:</span>
-                        <span className="text-sm font-medium">{getInvariantLabel(selectedLog.invariant_violated)}</span>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Invariant:</span>
+                        <span className="text-xs sm:text-sm font-medium">{getInvariantLabel(selectedLog.invariant_violated)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Statut:</span>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Statut:</span>
                         <div className="flex items-center gap-2">
                           {getStatusIcon(selectedLog.status)}
-                          <span className="text-sm font-medium">{getStatusLabel(selectedLog.status)}</span>
+                          <span className="text-xs sm:text-sm font-medium">{getStatusLabel(selectedLog.status)}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Valeurs</h4>
+                    <h4 className="text-sm sm:text-base font-semibold mb-3 text-gray-900 dark:text-white">Valeurs</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Attendue:</span>
-                        <span className="text-sm font-medium">{formatAmount(selectedLog.expected_value)}</span>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Attendue:</span>
+                        <span className="text-xs sm:text-sm font-medium">{formatAmount(selectedLog.expected_value)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Actuelle:</span>
-                        <span className="text-sm font-medium">{formatAmount(selectedLog.actual_value)}</span>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Actuelle:</span>
+                        <span className="text-xs sm:text-sm font-medium">{formatAmount(selectedLog.actual_value)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Écart:</span>
-                        <span className={`text-sm font-bold ${
-                          selectedLog.difference > 0 ? 'text-red-600' : 'text-green-600'
-                        }`}>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Écart:</span>
+                        <span className={`text-xs sm:text-sm font-bold ${selectedLog.difference > 0 ? 'text-red-600' : 'text-green-600'}`}>
                           {formatAmount(selectedLog.difference)}
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Métadonnées</h4>
-                    <div className={`p-4 rounded-lg font-mono text-xs ${
-                      isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-                    }`}>
-                      <pre>{JSON.stringify(selectedLog.metadata, null, 2)}</pre>
-                    </div>
-                  </div>
-                )}
-
-                {selectedLog.resolved_at && (
-                  <div className="mt-6">
-                    <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Résolution</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Résolu le:</span>
-                        <span className="text-sm font-medium">{formatDate(selectedLog.resolved_at)}</span>
-                      </div>
-                      {selectedLog.resolved_by && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Résolu par:</span>
-                          <span className="text-sm font-medium">Admin #{selectedLog.resolved_by}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Footer */}
@@ -1039,16 +1011,6 @@ const FinancialAnomalies = () => {
                 isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
               } rounded-b-2xl`}>
                 <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      isDarkMode
-                        ? "bg-gray-700 hover:bg-gray-600 text-white"
-                        : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    }`}
-                  >
-                    Fermer
-                  </button>
                   {selectedLog.status === 'pending' && (
                     <button
                       onClick={() => executeAuditAction('investigate_log', selectedLog.id)}
@@ -1111,19 +1073,19 @@ const FinancialAnomalies = () => {
       {/* Modal de Correction */}
       {showCorrectionModal && selectedLog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className={`w-full max-w-4xl rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ${
+          <div className={`w-full max-w-4xl sm:max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl ${
             isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
           } border`}>
             {/* Header */}
-            <div className={`px-6 py-4 border-b sticky top-0 ${
+            <div className={`px-4 sm:px-6 py-4 border-b sticky top-0 ${
               isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
             } rounded-t-2xl`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Options de Correction - {getInvariantLabel(selectedLog.invariant_violated)}
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                    Corriger l'Anomalie #{selectedLog.id}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     Log d'Audit #{selectedLog.id} - {formatAmount(selectedLog.difference)}
                   </p>
                 </div>
@@ -1135,19 +1097,19 @@ const FinancialAnomalies = () => {
                       : 'hover:bg-gray-200 text-gray-500'
                   }`}
                 >
-                  <XMarkIcon className="w-5 h-5" />
+                  <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
 
             {/* Contenu */}
-            <div className="px-6 py-4">
+            <div className="px-4 sm:px-6 py-4">
               {/* Options de correction */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
                 {getCorrectionOptions(selectedLog).map((option) => (
                   <div
                     key={option.id}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                       selectedCorrection?.id === option.id
                         ? isDarkMode 
                           ? 'border-blue-500 bg-blue-900/20' 
@@ -1158,13 +1120,13 @@ const FinancialAnomalies = () => {
                     }`}
                     onClick={() => handleCorrectionSelect(option)}
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl">{option.icon}</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                    <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
+                      <span className="text-xl sm:text-2xl">{option.icon}</span>
+                      <div className="flex-1">
+                        <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1">
                           {option.title}
                         </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                           {option.description}
                         </p>
                       </div>
@@ -1175,16 +1137,16 @@ const FinancialAnomalies = () => {
 
               {/* Formulaire de correction */}
               {selectedCorrection && (
-                <div className={`p-6 rounded-lg ${
+                <div className={`p-4 sm:p-6 rounded-lg ${
                   isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
                 }`}>
-                  <h4 className="font-semibold mb-4 text-gray-900 dark:text-white">
+                  <h4 className="text-sm sm:text-base font-semibold mb-4 text-gray-900 dark:text-white">
                     {selectedCorrection.title}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedCorrection.fields.map((field) => (
-                      <div key={field.name}>
-                        <label className={`block text-sm font-medium mb-2 ${
+                      <div key={field.name} className="col-span-1 sm:col-span-2">
+                        <label className={`block text-xs sm:text-sm font-medium mb-2 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           {field.label}
@@ -1196,7 +1158,7 @@ const FinancialAnomalies = () => {
                             type="text"
                             value={correctionForm[field.name] || ''}
                             onChange={(e) => handleCorrectionFormChange(field.name, e.target.value)}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border text-sm sm:text-base ${
                               isDarkMode 
                                 ? 'bg-gray-600 border-gray-500 text-white' 
                                 : 'bg-white border-gray-300 text-gray-900'
@@ -1211,7 +1173,7 @@ const FinancialAnomalies = () => {
                             step="0.01"
                             value={correctionForm[field.name] || ''}
                             onChange={(e) => handleCorrectionFormChange(field.name, e.target.value)}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border text-sm sm:text-base ${
                               isDarkMode 
                                 ? 'bg-gray-600 border-gray-500 text-white' 
                                 : 'bg-white border-gray-300 text-gray-900'
@@ -1225,7 +1187,7 @@ const FinancialAnomalies = () => {
                             value={correctionForm[field.name] || ''}
                             onChange={(e) => handleCorrectionFormChange(field.name, e.target.value)}
                             rows={3}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border text-sm sm:text-base ${
                               isDarkMode 
                                 ? 'bg-gray-600 border-gray-500 text-white' 
                                 : 'bg-white border-gray-300 text-gray-900'
@@ -1238,7 +1200,7 @@ const FinancialAnomalies = () => {
                           <select
                             value={correctionForm[field.name] || ''}
                             onChange={(e) => handleCorrectionFormChange(field.name, e.target.value)}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border text-sm sm:text-base ${
                               isDarkMode 
                                 ? 'bg-gray-600 border-gray-500 text-white' 
                                 : 'bg-white border-gray-300 text-gray-900'
@@ -1259,7 +1221,7 @@ const FinancialAnomalies = () => {
                             multiple
                             value={correctionForm[field.name] || []}
                             onChange={(e) => handleCorrectionFormChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
-                            className={`w-full px-3 py-2 rounded-lg border ${
+                            className={`w-full px-3 py-2 rounded-lg border text-sm sm:text-base ${
                               isDarkMode 
                                 ? 'bg-gray-600 border-gray-500 text-white' 
                                 : 'bg-white border-gray-300 text-gray-900'
@@ -1280,13 +1242,13 @@ const FinancialAnomalies = () => {
                               type="checkbox"
                               checked={correctionForm[field.name] || false}
                               onChange={(e) => handleCorrectionFormChange(field.name, e.target.checked)}
-                              className={`w-4 h-4 rounded border ${
+                              className={`w-4 h-4 sm:w-5 sm:h-5 rounded border ${
                                 isDarkMode 
                                   ? 'bg-gray-600 border-gray-500 text-blue-500' 
                                   : 'bg-white border-gray-300 text-blue-500'
                               } focus:ring-2 focus:ring-blue-500`}
                             />
-                            <label className={`ml-2 text-sm ${
+                            <label className={`ml-2 text-xs sm:text-sm ${
                               isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             }`}>
                               {field.label}
@@ -1301,13 +1263,13 @@ const FinancialAnomalies = () => {
             </div>
 
             {/* Footer */}
-            <div className={`px-6 py-4 border-t flex-shrink-0 sticky bottom-0 ${
+            <div className={`px-4 sm:px-6 py-4 border-t flex-shrink-0 sticky bottom-0 ${
               isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
             } rounded-b-2xl`}>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   onClick={() => closeCorrectionModal(selectedLog)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                     isDarkMode
                       ? "bg-gray-700 hover:bg-gray-600 text-white"
                       : "bg-gray-200 hover:bg-gray-300 text-gray-700"
@@ -1319,7 +1281,7 @@ const FinancialAnomalies = () => {
                   <button
                     onClick={executeCorrection}
                     disabled={actionLoading[selectedCorrection.id]}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
                       actionLoading[selectedCorrection.id]
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-blue-500 hover:bg-blue-600 text-white"
@@ -1328,10 +1290,13 @@ const FinancialAnomalies = () => {
                     {actionLoading[selectedCorrection.id] ? (
                       <div className="flex items-center gap-2">
                         <CircularProgress size={16} className="text-white" />
-                        Application...
+                        <span className="text-xs sm:text-sm">Application...</span>
                       </div>
                     ) : (
-                      `Appliquer ${selectedCorrection.title}`
+                      <>
+                        <span className="hidden sm:inline">Appliquer {selectedCorrection.title}</span>
+                        <span className="sm:hidden">Appliquer</span>
+                      </>
                     )}
                   </button>
                 )}
