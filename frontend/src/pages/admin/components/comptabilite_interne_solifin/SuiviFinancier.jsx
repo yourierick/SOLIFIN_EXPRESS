@@ -229,6 +229,7 @@ const SuiviFinancier = React.memo(() => {
       if (filters.pack_id) params.pack_id = filters.pack_id;
       if (filters.date_start) params.date_start = filters.date_start;
       if (filters.date_end) params.date_end = filters.date_end;
+      params.compte = 'interne';
       
       const response = await axios.get(`/api/admin/solifin-financial-transactions/statistics`, {
         params: params
@@ -282,6 +283,7 @@ const SuiviFinancier = React.memo(() => {
       if (filters.pack_id) params.pack_id = filters.pack_id;
       if (filters.date_start) params.date_start = filters.date_start;
       if (filters.date_end) params.date_end = filters.date_end;
+      params.compte = 'interne';
       
       const response = await axios.get(`/api/admin/finances`, {
         params: params
@@ -387,6 +389,7 @@ const SuiviFinancier = React.memo(() => {
       if (filters.pack_id) params.pack_id = filters.pack_id;
       if (filters.date_start) params.date_start = filters.date_start;
       if (filters.date_end) params.date_end = filters.date_end;
+      params.compte = 'interne';
       
       // Pour l'export de la page actuelle, ajouter les infos de pagination
       if (exportType === 'current_page') {

@@ -1674,7 +1674,7 @@ const WithdrawalRequests = () => {
                           color: isDarkMode ? "#ffffff" : "#1e293b",
                           fontSize: { xs: "1.1rem", sm: "1.25rem" }
                         }}>
-                          {stats?.approved_requests} (${typeof stats?.approved_amount === 'number' ? stats.approved_amount.toFixed(2) : parseFloat(stats?.approved_amount || 0).toFixed(2)})
+                          {stats?.paid_requests} (${typeof stats?.approved_amount === 'number' ? stats.approved_amount.toFixed(2) : parseFloat(stats?.approved_amount || 0).toFixed(2)})
                         </Typography>
                       </Box>
                     </Grid>

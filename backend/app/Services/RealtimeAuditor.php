@@ -59,8 +59,10 @@ class RealtimeAuditor
         
         // Calcul du ledger depuis les transactions
         $ledgerBalance = WalletTransaction::where('wallet_id', $wallet->id)
+            ->where('nature', 'internal')
             ->where('status', 'completed')
-            ->selectRaw('SUM(CASE WHEN flow = "in" THEN amount ELSE -amount END) as total')
+            ->whereIn('flow', ['in', 'out'])
+            ->selectRaw('SUM(CASE WHEN flow = "in" THEN amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0) ELSE -(amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0)) END) as total')
             ->value('total') ?? 0;
         
         $difference = abs($balance - $ledgerBalance);

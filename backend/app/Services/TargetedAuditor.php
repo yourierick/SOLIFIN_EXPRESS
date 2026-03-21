@@ -81,6 +81,8 @@ class TargetedAuditor
 
         // 2. Calcul du ledger depuis les transactions
         $transactions = WalletTransaction::where('wallet_id', $wallet->id)
+            ->where('nature', 'internal')
+            ->whereIn('flow', ['in', 'out'])
             ->where('status', 'completed')
             ->orderBy('created_at')
             ->get();
@@ -89,7 +91,8 @@ class TargetedAuditor
         $transactionDetails = [];
 
         foreach ($transactions as $tx) {
-            $amount = $tx->flow === 'in' ? $tx->amount : -$tx->amount;
+            $totalAmount = $tx->amount + ($tx->fee_amount ?? 0) + ($tx->commission_amount ?? 0);
+            $amount = $tx->flow === 'in' ? $totalAmount : -$totalAmount;
             $ledgerBalance += $amount;
             
             $transactionDetails[] = [
@@ -97,6 +100,9 @@ class TargetedAuditor
                 'created_at' => $tx->created_at,
                 'flow' => $tx->flow,
                 'amount' => $tx->amount,
+                'fee_amount' => $tx->fee_amount ?? 0,
+                'commission_amount' => $tx->commission_amount ?? 0,
+                'total_amount' => $totalAmount,
                 'running_balance' => $ledgerBalance
             ];
         }

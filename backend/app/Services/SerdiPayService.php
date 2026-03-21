@@ -665,6 +665,7 @@ class SerdiPayService
                     'message' => 'Retrait initié avec succès',
                     'code' => 'withdrawal_initiated',
                     'session_id' => $responseData['payment']['sessionId'] ?? null,
+                    'transaction_id' => $responseData['payment']['transactionId'] ?? null,
                     'data' => $responseData
                 ];
             } else if ($statusCode === 102) {
@@ -673,6 +674,7 @@ class SerdiPayService
                     'message' => 'Retrait en cours de traitement',
                     'code' => 'withdrawal_processing',
                     'session_id' => $responseData['payment']['sessionId'] ?? null,
+                    'transaction_id' => $responseData['payment']['transactionId'] ?? null,
                     'data' => $responseData
                 ];
             } else {

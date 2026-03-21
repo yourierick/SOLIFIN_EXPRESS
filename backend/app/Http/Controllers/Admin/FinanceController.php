@@ -24,6 +24,7 @@ class FinanceController extends Controller
         $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $nature = $request->get('nature');
+        $comptabilite = $request->get('compte', 'externe');
         $status = $request->get('status', 'all');
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 15);
@@ -42,6 +43,15 @@ class FinanceController extends Controller
             $endDate = Carbon::now();
             
             $query = WalletSystemTransaction::with('processor')->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        
+        // Filtrer selon le type de comptabilité
+        if ($comptabilite !== 'externe') {
+            // Exclure les transactions de nature externe avec flow 'out'
+            $query->where(function($q) {
+                $q->where('nature', '!=', 'external')
+                  ->orWhere('flow', '!=', 'out');
+            });
         }
         if ($type !== 'all') {
             $query->where('type', $type);
@@ -120,6 +130,7 @@ class FinanceController extends Controller
         $nature = $request->get('nature');
         $status = $request->get('status', 'completed');
         $flow = $request->get('flow');
+        $comptabilite = $request->get('compte', 'externe');
         $search = $request->get('search');
         $packId = $request->get('pack_id');
         $dateStart = $request->get('date_start');
@@ -132,6 +143,15 @@ class FinanceController extends Controller
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
             $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        // Filtrer selon le type de comptabilité
+        if ($comptabilite !== 'externe') {
+            // Exclure les transactions de nature externe avec flow 'out'
+            $query->where(function($q) {
+                $q->where('nature', '!=', 'external')
+                  ->orWhere('flow', '!=', 'out');
+            });
         }
         
         // Filtrer par type si spécifié
@@ -206,6 +226,7 @@ class FinanceController extends Controller
         $period = $request->get('period', 'all');
         $type = $request->get('type', 'all');
         $nature = $request->get('nature');
+        $comptabilite = $request->get('compte', 'externe');
         $status = $request->get('status', 'completed');
         $exportType = $request->get('export_type', 'filtered');
         $page = $request->get('page', 1);
@@ -225,6 +246,15 @@ class FinanceController extends Controller
             $startDate = $this->getStartDate($period);
             $endDate = Carbon::now();
             $query = WalletSystemTransaction::whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        // Filtrer selon le type de comptabilité
+        if ($comptabilite !== 'externe') {
+            // Exclure les transactions de nature externe avec flow 'out'
+            $query->where(function($q) {
+                $q->where('nature', '!=', 'external')
+                  ->orWhere('flow', '!=', 'out');
+            });
         }
         
         // Appliquer les filtres

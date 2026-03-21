@@ -11,9 +11,9 @@ return new class extends Migration
         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->decimal('balance', 15, 2)->default(0);
-            $table->decimal('available_balance', 15, 2)->default(0);
-            $table->decimal('frozen_balance', 15, 2)->default(0);
+            $table->decimal('balance', 15, 8)->default(0);
+            $table->decimal('available_balance', 15, 8)->default(0);
+            $table->decimal('frozen_balance', 15, 8)->default(0);
             $table->decimal('points', 15, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -35,12 +35,12 @@ return new class extends Migration
                 'digital_product_purchase', 'digital_product_sale', 
                 'sponsorship_commission', 'withdrawal_commission', 'transfer_commission', 'adjustment', 'reverse'
             ]);
-            $table->decimal('amount', 15, 2);
-            $table->decimal('fee_amount', 15, 2)->default(0);
-            $table->decimal('commission_amount', 15, 2)->default(0);
+            $table->decimal('amount', 15, 8);
+            $table->decimal('fee_amount', 15, 8)->default(0);
+            $table->decimal('commission_amount', 15, 8)->default(0);
             $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'reversed'])->default('pending');
-            $table->decimal('balance_before', 15, 2)->nullable(); // Solde avant transaction
-            $table->decimal('balance_after', 15, 2)->nullable();  // Solde après transaction
+            $table->decimal('balance_before', 15, 8)->nullable(); // Solde avant transaction
+            $table->decimal('balance_after', 15, 8)->nullable();  // Solde après transaction
             $table->text('description')->nullable();
             $table->json('metadata')->nullable();
             $table->foreignId('processed_by')->nullable(); // Qui a traité

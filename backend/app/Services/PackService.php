@@ -126,7 +126,6 @@ class PackService
      * @param User $user
      * @param Pack $pack
      * @param array $paymentData
-     * @param string $operationType
      * @return void
      */
     private function processWalletPayment(User $user, Pack $pack, array $paymentData)
@@ -176,10 +175,9 @@ class PackService
      * @param User $user
      * @param Pack $pack
      * @param array $paymentData
-     * @param string $operationType
      * @return void
      */
-    private function recordExternalPayment(User $user, Pack $pack, array $paymentData, string $operationType)
+    private function recordExternalPayment(User $user, Pack $pack, array $paymentData)
     {
         $wallet = $user->wallet;
         $walletsystem = WalletSystem::first();
@@ -213,7 +211,7 @@ class PackService
         //Montant total payé (montant + frais)
         $totalAmount = $paymentData['amount'] + $paymentData['fees'];
 
-        $walletSystem->addFunds(
+        $walletsystem->addFunds(
             $totalAmount, 
             "pack_sale",
             "completed",

@@ -58,7 +58,7 @@ class WithdrawalService
                 DB::rollBack();
                 return [
                     'success' => false,
-                    'message' => 'Erreur lors de l\'initialisation du paiement: ' . $paymentResult['message'],
+                    'message' => 'Erreur lors de l\'initialisation du paiement: ' . $paymentResult['error'],
                     'status_code' => 500
                 ];
             }

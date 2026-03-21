@@ -26,15 +26,15 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
 
     public function toMail($notifiable)
     {
-        $status = $this->withdrawalRequest->status === 'approved' 
+        $status = $this->withdrawalRequest->status === 'processing' 
             ? 'approuvée' 
             : 'rejetée';
 
-        $type = $this->withdrawalRequest->status === 'approved' 
+        $type = $this->withdrawalRequest->status === 'processing' 
             ? 'info' 
             : 'danger';
 
-        $icon = $this->withdrawalRequest->status === 'approved' 
+        $icon = $this->withdrawalRequest->status === 'processing' 
             ? 'exclamation-circle' 
             : 'exclamation-triangle';
 
@@ -42,7 +42,7 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
             ->subject("Votre demande de retrait a été {$status}")
             ->greeting("Bonjour {$notifiable->name},")
             ->line("Votre demande de retrait d'un montant de {$this->withdrawalRequest->amount} $ a été {$status}.")
-            ->when($this->withdrawalRequest->status === 'approved', function ($message) {
+            ->when($this->withdrawalRequest->status === 'processing', function ($message) {
                 return $message->line("Le paiement est traité automatiquement, vous recevrez une notification une fois le paiement effectué.");
             })
             ->line("Merci de votre confiance !");
@@ -51,10 +51,10 @@ class WithdrawalRequestProcessed extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            'type' => $type,
-            'icon' => $icon,
+            'type' => 'info',
+            'icon' => 'exclamation-circle',
             'titre' => 'Approbation de retrait',
-            'message' => $this->withdrawalRequest->status === 'approved' 
+            'message' => $this->withdrawalRequest->status === 'processing' 
             ? 'Votre demande de retrait d\'un montant de ' . $this->withdrawalRequest->amount . '$ a été approuvée.' 
             : 'Votre demande de retrait d\'un montant de ' . $this->withdrawalRequest->amount . '$ a été rejetée.',
             'link' => '/dashboard/finances'

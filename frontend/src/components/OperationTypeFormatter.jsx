@@ -11,7 +11,7 @@ export const getOperationType = (operation) => {
   }
   
   switch (operation.toLowerCase()) {
-    // Types de wallet_system_transactions
+    // Types de transactions
     case "pack_sale":
       return "Vente de pack";
     case "solifin_funds_withdrawal":
@@ -58,7 +58,6 @@ export const getOperationType = (operation) => {
       return "Vente de produit digital";
     case "withdrawal_reverse":
       return "Annulation de retrait";
-    
     default:
       return operation;
   }

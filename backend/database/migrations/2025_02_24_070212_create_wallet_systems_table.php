@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('wallet_systems', function (Blueprint $table) {
             $table->id();
-            $table->decimal('solde_marchand', 15, 2)->default(0);
-            $table->decimal('engagement_users', 15, 2)->default(0);
-            $table->decimal('plateforme_benefices', 15, 2)->default(0);
+            $table->decimal('solde_marchand', 15, 8)->default(0);
+            $table->decimal('engagement_users', 15, 8)->default(0);
+            $table->decimal('plateforme_benefices', 15, 8)->default(0);
             $table->timestamps();
         });
 
@@ -42,16 +42,16 @@ return new class extends Migration
                 'boost_sale', 'pack_sale', 'virtual_sale', 'virtual_send', 'withdrawal_commission', 'transfer_commission', 'sale_commission', 'funds_withdrawal', 
                 'esengo_funds_transfer', 'adjustment', 'reverse', 'sponsorship_commission', 'solifin_funds_withdrawal', 'withdrawal_reverse'
             ]);
-            $table->decimal('amount', 15, 2);
+            $table->decimal('amount', 15, 8);
             $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'reversed'])->default('pending');
             $table->text('description')->nullable();
             $table->json('metadata')->nullable();
-            $table->decimal('solde_marchand_before', 15, 2)->nullable(); // Solde marchand avant
-            $table->decimal('solde_marchand_after', 15, 2)->nullable();  // Solde marchand après
-            $table->decimal('engagement_users_before', 15, 2)->nullable(); // Engagement avant
-            $table->decimal('engagement_users_after', 15, 2)->nullable();  // Engagement après
-            $table->decimal('plateforme_benefices_before', 15, 2)->nullable(); // Bénéfices avant
-            $table->decimal('plateforme_benefices_after', 15, 2)->nullable();  // Bénéfices après
+            $table->decimal('solde_marchand_before', 15, 8)->nullable(); // Solde marchand avant
+            $table->decimal('solde_marchand_after', 15, 8)->nullable();  // Solde marchand après
+            $table->decimal('engagement_users_before', 15, 8)->nullable(); // Engagement avant
+            $table->decimal('engagement_users_after', 15, 8)->nullable();  // Engagement après
+            $table->decimal('plateforme_benefices_before', 15, 8)->nullable(); // Bénéfices avant
+            $table->decimal('plateforme_benefices_after', 15, 8)->nullable();  // Bénéfices après
             $table->foreignId('processed_by')->nullable(); // Qui a traité
             $table->timestamp('processed_at')->nullable();   // Quand traité
             $table->text('rejection_reason')->nullable();   // Raison échec/rejet

@@ -14,10 +14,12 @@ use App\Models\ExchangeRates;
 use App\Models\Setting;
 use App\Models\WalletTransaction;
 use App\Models\WalletSystem;
+use App\Models\WithdrawalRequest;
 use App\Models\SerdiPayTransaction;
 use App\Models\UserPack;
 use App\Notifications\PaymentInitiatedNotification;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -137,7 +139,8 @@ class SerdiPayController extends Controller
             if (!$result['success']) {
                 return [
                     'success' => false,
-                    'message' => $result['message'] ?? 'Erreur lors de l\'initialisation du paiement'
+                    'message' => $result['message'] ?? 'Erreur lors de l\'initialisation du paiement',
+                    'error' => $result['error'] ?? 'Erreur lors de l\'initialisation du paiement'    
                 ];
             }
 
@@ -771,7 +774,7 @@ class SerdiPayController extends Controller
     
     
     /**
-     * Finalise l'achat d'un pack après confirmation du paiement SerdiPay
+     * Finalise l'achat d'un pack ou des virtuels après confirmation du paiement SerdiPay
      *
      * @param object $tempPurchase Données temporaires de l'achat
      * @return bool Succès ou échec de la finalisation
@@ -790,7 +793,7 @@ class SerdiPayController extends Controller
                 [
                     'session_id' => $tempPurchase->session_id,
                     'transaction_id' => $tempPurchase->transaction_id
-                ], $metadata);
+                ], $purchaseData);
         
             $purchaseData = new Request($purchaseData);
 
@@ -829,6 +832,118 @@ class SerdiPayController extends Controller
             return false;
         }
     }
+
+    /**
+     * Traite manuellement la finalisation d'un achat après confirmation du paiement SerdiPay
+     * 
+     * @param string $retryToken Token de reprise généré lors de l'échec
+     * @return bool Succès ou échec de la finalisation
+     */
+    public function manualFinalizePurchase(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'session_id' => 'required|string',
+                'payment_type' => 'required|in:purchase_virtual,renew_pack,purchase_pack'
+            ]);
+            
+            $tempPurchase = PurchaseTemp::where('session_id', $validated['session_id'])->first();
+
+            if (!$tempPurchase) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Achat non trouvé'
+                ], 404);
+            }
+            
+            DB::beginTransaction();
+            
+            try {
+                $success = false;
+                
+                // Si l'achat n'est pas encore complété
+                if (empty($tempPurchase->completed_at)) {
+                    // Récupérer les données d'achat
+                    $purchaseData = $tempPurchase->purchase_data;
+                    if (!$purchaseData) {
+                        \Log::error('Données d\'achat invalides pour la session: ' . $validated['session_id']);
+                        throw new \Exception('Données d\'achat invalides');
+                    }
+
+                    $purchaseData = array_merge(
+                        [
+                            'session_id' => $tempPurchase->session_id,
+                            'transaction_id' => $tempPurchase->transaction_id
+                        ], $purchaseData);
+                
+                    $purchaseData = new Request($purchaseData);
+
+                    // Utiliser le bon type de transaction
+                    if ($validated['payment_type'] === 'purchase_pack') {
+                        // Utiliser le contrôleur PackController pour traiter l'achat
+                        $packController = app()->make(\App\Http\Controllers\User\PackController::class);
+                        $response = $packController->purchase_a_new_pack($purchaseData);
+                    } elseif ($validated['payment_type'] === 'renew_pack') {
+                        // Utiliser le contrôleur PackController pour traiter le renouvellement
+                        $packController = app()->make(\App\Http\Controllers\User\PackController::class);
+                        $response = $packController->renewPack($purchaseData);
+                    } elseif ($validated['payment_type'] === 'purchase_virtual') {
+                        // Utiliser le contrôleur WalletUserController pour traiter l'achat de virtuel
+                        $walletUserController = app()->make(\App\Http\Controllers\User\WalletUserController::class);
+                        $response = $walletUserController->purchaseVirtual($purchaseData);
+                    } else {
+                        throw new \Exception('Type de paiement non supporté: ' . $validated['payment_type']);
+                    }
+
+                    $success = $this->processFinalizationResult($response);
+                    
+                    // Mettre à jour l'enregistrement temporaire en fonction du résultat
+                    if ($success) {
+                        DB::table('purchase_temp')
+                            ->where('id', $tempPurchase->id)
+                            ->update([
+                                'completed_at' => now(),
+                                'status' => 'completed'
+                            ]);
+                    }
+                    
+                    // Envoyer notification de transaction (réussie ou échouée)
+                    $this->sendTransactionNotification($tempPurchase, $success);
+                } else {
+                    // L'achat est déjà complété
+                    $success = true;
+                }
+                
+                DB::commit();
+                
+                if ($success) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Achat finalisé avec succès'
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Échec de la finalisation de l\'achat'
+                    ], 500);
+                }
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur lors de la finalisation manuelle de l\'achat: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors du traitement de votre demande'
+            ], 500);
+        }
+    }
     
     /**
      * Traite le résultat de la finalisation et détermine si l'opération a réussi
@@ -837,7 +952,7 @@ class SerdiPayController extends Controller
      * @param object $tempRecord Enregistrement temporaire
      * @return bool Succès ou échec de l'opération
      */
-    private function processFinalizationResult($response, $tempRecord)
+    private function processFinalizationResult($response)
     {
         // Si la réponse est un objet Response de Laravel
         if ($response instanceof \Illuminate\Http\JsonResponse) {
@@ -926,15 +1041,15 @@ class SerdiPayController extends Controller
                         if ($tempPurchase->transaction_type === "purchase_pack") {
                             // Finaliser l'achat de pack et capturer le résultat
                             $response = $this->finalizePurchase($tempPurchase, 'purchase_pack');
-                            $success = $this->processFinalizationResult($response, $tempPurchase);
+                            $success = $this->processFinalizationResult($response);
                         } elseif ($tempPurchase->transaction_type === "renew_pack") {
                             // Finaliser le renouvellement de pack et capturer le résultat
                             $response = $this->finalizePurchase($tempPurchase, 'renew_pack');
-                            $success = $this->processFinalizationResult($response, $tempPurchase);
+                            $success = $this->processFinalizationResult($response);
                         }elseif ($tempPurchase->transaction_type === "purchase_virtual") {
                             // Finaliser l'achat des virtuels
                             $response = $this->finalizePurchase($tempPurchase, 'purchase_virtual');
-                            $success = $this->processFinalizationResult($response, $tempPurchase);
+                            $success = $this->processFinalizationResult($response);
                         }
                         
                         // Mettre à jour l'enregistrement temporaire en fonction du résultat
@@ -1052,7 +1167,7 @@ class SerdiPayController extends Controller
                         //Mettre à jour la demande de retrait
                         $withdrawal->update([
                             'paid_at' => now(),
-                            'payment_status' => 'paid'
+                            'status' => 'paid'
                         ]);
 
                         //Envoyer la notification de retrait effectué

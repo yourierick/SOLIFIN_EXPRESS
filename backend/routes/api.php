@@ -800,6 +800,9 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
             Route::put('/{id}', [\App\Http\Controllers\Admin\GradeController::class, 'update']);
             Route::delete('/{id}', [\App\Http\Controllers\Admin\GradeController::class, 'destroy']);
         });
+
+        // Route pour la finalisation manuelle d'achat
+        Route::post('/finalize-purchase', [\App\Http\Controllers\SerdiPayController::class, 'manualFinalizePurchase']);
     });
 
     //Routes pour le tableau de suivi

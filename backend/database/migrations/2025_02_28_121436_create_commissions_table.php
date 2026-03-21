@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('source_user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('pack_id')->nullable()->constrained('packs')->onDelete('set null');
             $table->integer('duree');
-            $table->decimal('amount', 10, 2);
+            $table->decimal('amount', 15, 8);
             $table->integer('level');
             $table->string('status');
             $table->string('error_message')->nullable();

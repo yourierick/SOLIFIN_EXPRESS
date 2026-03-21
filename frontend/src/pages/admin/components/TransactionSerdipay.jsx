@@ -62,13 +62,19 @@ const TransactionSerdipay = () => {
   const [callbackLoading, setCallbackLoading] = useState(false);
   const [callbackForm, setCallbackForm] = useState({
     message: "",
-    payment: {
-      status: "success",
-      sessionId: "",
-      sessionStatus: 3,
-      transactionId: ""
-    }
+    transaction_id: "",
+    session_id: "",
+    status: "success"
   });
+
+  // États pour le modal de finalisation d'achat
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizeLoading, setFinalizeLoading] = useState(false);
+  const [finalizeForm, setFinalizeForm] = useState({
+    session_id: "",
+    payment_type: "purchase_pack"
+  });
+  const [finalizeError, setFinalizeError] = useState("");
   const [stats, setStats] = useState({
     totalTransactions: 0,
     totalAmount: 0,
@@ -130,6 +136,41 @@ const TransactionSerdipay = () => {
       }
     } finally {
       setCallbackLoading(false);
+    }
+  };
+
+  // Fonction pour gérer la finalisation d'achat
+  const handleFinalizePurchase = async () => {
+    setFinalizeError("");
+    
+    if (!finalizeForm.session_id.trim()) {
+      setFinalizeError("Veuillez entrer un ID de session");
+      return;
+    }
+    
+    setFinalizeLoading(true);
+    
+    try {
+      const response = await axios.post('/api/admin/finalize-purchase', finalizeForm);
+      
+      if (response.data.success) {
+        toast.success('Achat finalisé avec succès!');
+        setShowFinalizeModal(false);
+        // Réinitialiser le formulaire
+        setFinalizeForm({
+          session_id: "",
+          payment_type: "purchase_pack"
+        });
+        // Rafraîchir les données
+        fetchTransactions();
+      } else {
+        toast.error(response.data.message || "Erreur lors de la finalisation de l'achat");
+      }
+    } catch (error) {
+      console.error('Erreur finalisation achat:', error);
+      toast.error('Erreur lors de la finalisation de l\'achat');
+    } finally {
+      setFinalizeLoading(false);
     }
   };
 
@@ -411,7 +452,7 @@ const TransactionSerdipay = () => {
                   {transaction.transaction_id || 'Non défini'}
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {transaction.user.name || 'Non défini'}
+                  {transaction?.user?.name || 'Non défini'}
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {transaction.phone_number || 'Non défini'}
@@ -476,7 +517,7 @@ const TransactionSerdipay = () => {
               </p>
             </div>
           </div>          
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Bouton Callback Manuel */}
             <button
               onClick={() => setShowCallbackModal(true)}
@@ -487,7 +528,22 @@ const TransactionSerdipay = () => {
               }`}
             >
               <ArrowPathIcon className="h-4 w-4" />
-              Callback manuel
+              <span className="hidden sm:inline">Callback manuel</span>
+              <span className="sm:hidden">Callback</span>
+            </button>
+            
+            {/* Bouton Finaliser un achat */}
+            <button
+              onClick={() => setShowFinalizeModal(true)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                isDarkMode
+                  ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                  : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
+              }`}
+            >
+              <CheckCircleIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Finaliser un achat</span>
+              <span className="sm:hidden">Finaliser</span>
             </button>
             
             <div className="relative" ref={exportMenuRef}>
@@ -996,7 +1052,7 @@ const TransactionSerdipay = () => {
                           }`}>
                             <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nom</h4>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {selectedTransaction.user?.name || 'Non défini'}
+                              {selectedTransaction?.user?.name || 'Non défini'}
                             </p>
                           </div>
                           <div className={`p-3 rounded-lg border ${
@@ -1313,6 +1369,143 @@ const TransactionSerdipay = () => {
         </div>,
         document.body
       )}
+
+      {/* Modal Finalisation d'Achat */}
+      {showFinalizeModal && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`w-full max-w-md rounded-2xl shadow-2xl ${
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          } border`}>
+            {/* Header */}
+            <div className={`px-6 py-4 border-b flex-shrink-0 ${
+              isDarkMode ? "border-gray-700" : "border-gray-200"
+            } rounded-t-2xl`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className={`text-lg font-semibold ${
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  }`}>
+                    Finaliser un achat
+                  </h3>
+                  <p className={`text-sm ${
+                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    Traiter manuellement un achat en attente
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowFinalizeModal(false)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? "hover:bg-gray-700 text-gray-400" 
+                      : "hover:bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-4 overflow-y-auto">
+              <div className="space-y-4">
+                {/* Champ session_id */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    ID de session
+                  </label>
+                  <input
+                    type="text"
+                    value={finalizeForm.session_id}
+                    onChange={(e) => setFinalizeForm({...finalizeForm, session_id: e.target.value})}
+                    placeholder="SERDJIPHWD0P7"
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    } focus:ring-2 focus:ring-green-500 focus:border-transparent`}
+                  />
+                </div>
+
+                {/* Champ payment_type */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Type de paiement
+                  </label>
+                  <select
+                    value={finalizeForm.payment_type}
+                    onChange={(e) => setFinalizeForm({...finalizeForm, payment_type: e.target.value})}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      isDarkMode 
+                        ? "bg-gray-700 border-gray-600 text-white" 
+                        : "bg-white border-gray-300 text-gray-900"
+                    } focus:ring-2 focus:ring-green-500 focus:border-transparent`}
+                  >
+                    <option value="renew_pack">Renouvellement de pack</option>
+                    <option value="purchase_pack">Achat de pack</option>
+                    <option value="purchase_virtual">Achat virtuel</option>
+                  </select>
+                </div>
+
+                {/* Message d'erreur */}
+                {finalizeError && (
+                  <div className={`p-3 rounded-lg ${
+                    isDarkMode ? "bg-red-900/20 border-red-800" : "bg-red-50 border-red-200"
+                  } border`}>
+                    <p className={`text-sm ${
+                      isDarkMode ? "text-red-400" : "text-red-700"
+                    }`}>
+                      {finalizeError}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`px-6 py-4 border-t flex-shrink-0 ${
+              isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50"
+            } rounded-b-2xl`}>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowFinalizeModal(false)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isDarkMode
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                  }`}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleFinalizePurchase}
+                  disabled={finalizeLoading || !finalizeForm.session_id.trim()}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    finalizeLoading || !finalizeForm.session_id.trim()
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                  }`}
+                >
+                  {finalizeLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Traitement...
+                    </div>
+                  ) : (
+                    "Finaliser l'achat"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Toast Container */}
       <ToastContainer
         position="top-right"

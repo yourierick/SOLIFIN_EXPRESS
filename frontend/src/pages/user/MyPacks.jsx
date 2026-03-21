@@ -1012,9 +1012,9 @@ export default function MyPacks() {
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: { xs: "flex-start", sm: "center" },
             mb: 4,
-            p: 4,
+            p: { xs: 3, sm: 4 },
             borderRadius: "16px",
             background: isDarkMode ? "#1f2937" : "#ffffff",
             border: isDarkMode
@@ -1023,6 +1023,8 @@ export default function MyPacks() {
             boxShadow: isDarkMode
               ? "0 1px 3px rgba(0, 0, 0, 0.1)"
               : "0 1px 3px rgba(0, 0, 0, 0.05)",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: { xs: 3, sm: 0 },
           }}
         >
           <Box>
@@ -1031,8 +1033,8 @@ export default function MyPacks() {
               sx={{
                 fontWeight: 700,
                 color: isDarkMode ? "#f8fafc" : "#1e293b",
-                mb: 0.5,
-                fontSize: "1.875rem",
+                mb: { xs: 1, sm: 0.5 },
+                fontSize: { xs: "1.5rem", sm: "1.75rem", md: "1.875rem" },
                 lineHeight: 1.2,
               }}
             >
@@ -1042,8 +1044,9 @@ export default function MyPacks() {
               variant="body2"
               sx={{
                 color: isDarkMode ? "#94a3b8" : "#64748b",
-                fontSize: "0.875rem",
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
                 fontWeight: 500,
+                maxWidth: { xs: "250px", sm: "none" },
               }}
             >
               Gérez vos packs et suivez vos performances
@@ -1057,12 +1060,14 @@ export default function MyPacks() {
             sx={{
               borderRadius: "12px",
               fontWeight: 600,
-              py: 1.25,
-              px: 3,
+              py: { xs: 1, sm: 1.25 },
+              px: { xs: 2, sm: 3 },
               textTransform: "none",
-              fontSize: "0.9rem",
+              fontSize: { xs: "0.85rem", sm: "0.9rem" },
               background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
               boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+              minWidth: { xs: "140px", sm: "160px" },
+              alignSelf: { xs: "stretch", sm: "auto" },
               "&:hover": {
                 background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
                 boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
@@ -1071,7 +1076,7 @@ export default function MyPacks() {
               transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            Acheter un nouveau pack
+            {window.innerWidth < 600 ? "Nouveau pack" : "Acheter un nouveau pack"}
           </Button>
         </Box>
       </motion.div>
@@ -1085,7 +1090,7 @@ export default function MyPacks() {
           <Paper
             elevation={0}
             sx={{
-              p: 6,
+              p: { xs: 3, sm: 4, md: 6 },
               textAlign: "center",
               borderRadius: "16px",
               border: isDarkMode
@@ -1094,11 +1099,13 @@ export default function MyPacks() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 4,
+              gap: { xs: 2, sm: 3, md: 4 },
               background: isDarkMode ? "#1f2937" : "#ffffff",
               boxShadow: isDarkMode
                 ? "0 1px 3px rgba(0, 0, 0, 0.1)"
                 : "0 1px 3px rgba(0, 0, 0, 0.05)",
+              mx: { xs: 2, sm: 0 },
+              my: { xs: 2, sm: 0 },
             }}
           >
             <motion.div
@@ -1108,9 +1115,9 @@ export default function MyPacks() {
             >
               <Box
                 sx={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: "20px",
+                  width: { xs: 80, sm: 90, md: 100 },
+                  height: { xs: 80, sm: 90, md: 100 },
+                  borderRadius: { xs: "16px", sm: "18px", md: "20px" },
                   background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                   display: "flex",
                   alignItems: "center",
@@ -1118,7 +1125,11 @@ export default function MyPacks() {
                   boxShadow: "0 8px 24px rgba(59, 130, 246, 0.3)",
                 }}
               >
-                <GiftIcon style={{ width: 40, height: 40, color: "white" }} />
+                <GiftIcon style={{ 
+                  width: { xs: 32, sm: 36, md: 40 }, 
+                  height: { xs: 32, sm: 36, md: 40 }, 
+                  color: "white" 
+                }} />
               </Box>
             </motion.div>
 
@@ -1131,9 +1142,9 @@ export default function MyPacks() {
                 variant="h4"
                 sx={{
                   fontWeight: 700,
-                  mb: 2,
+                  mb: { xs: 1.5, sm: 2 },
                   color: isDarkMode ? "#f8fafc" : "#1e293b",
-                  fontSize: "1.5rem",
+                  fontSize: { xs: "1.25rem", sm: "1.4rem", md: "1.5rem" },
                   lineHeight: 1.3,
                 }}
               >
@@ -1142,11 +1153,12 @@ export default function MyPacks() {
               <Typography
                 variant="body1"
                 sx={{
-                  maxWidth: "500px",
-                  mb: 4,
+                  maxWidth: { xs: "300px", sm: "400px", md: "500px" },
+                  mb: { xs: 3, sm: 4 },
                   color: isDarkMode ? "#94a3b8" : "#64748b",
-                  fontSize: "1rem",
+                  fontSize: { xs: "0.9rem", sm: "0.95rem", md: "1rem" },
                   lineHeight: 1.6,
+                  px: { xs: 1, sm: 0 },
                 }}
               >
                 Vous n'avez souscrit à aucun pack. Cliquez sur le bouton
@@ -1160,12 +1172,13 @@ export default function MyPacks() {
                 sx={{
                   borderRadius: "12px",
                   fontWeight: 600,
-                  py: 1.25,
-                  px: 3,
+                  py: { xs: 1, sm: 1.25 },
+                  px: { xs: 2, sm: 3 },
                   textTransform: "none",
-                  fontSize: "0.9rem",
+                  fontSize: { xs: "0.85rem", sm: "0.9rem" },
                   background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                   boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                  minWidth: { xs: "140px", sm: "160px" },
                   "&:hover": {
                     background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
                     boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
@@ -1174,7 +1187,7 @@ export default function MyPacks() {
                   transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                Acheter un pack
+                {window.innerWidth < 600 ? "Acheter" : "Acheter un pack"}
               </Button>
             </motion.div>
           </Paper>

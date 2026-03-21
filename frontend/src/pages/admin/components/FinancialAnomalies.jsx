@@ -402,6 +402,7 @@ const FinancialAnomalies = () => {
   const getInvariantLabel = (invariant) => {
     const labels = {
       'balance_ledger_mismatch': 'Incohérence Balance/Grand livre',
+      'batch_wallet_ledger_mismatch': 'Incohérence Balance sur le wallet utilisateur',
       'negative_balance': 'Balance Négative',
       'unusual_transaction_size': 'Transaction Inhabituelle',
       'high_frequency_transactions': 'Transactions Haute Fréquence',
@@ -956,6 +957,18 @@ const FinancialAnomalies = () => {
 
               {/* Contenu */}
               <div className="px-4 sm:px-6 py-4">
+                {/* Description */}
+                {selectedLog.description && (
+                  <div className="mb-6">
+                    <h4 className="text-sm sm:text-base font-semibold mb-2 text-gray-900 dark:text-white">Description</h4>
+                    <p className={`text-xs sm:text-sm ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    } whitespace-pre-wrap`}>
+                      {selectedLog.description}
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <h4 className="text-sm sm:text-base font-semibold mb-3 text-gray-900 dark:text-white">Informations Générales</h4>
@@ -1004,6 +1017,25 @@ const FinancialAnomalies = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Métadonnées */}
+                {selectedLog.metadata && (
+                  <div className="mt-6">
+                    <h4 className="text-sm sm:text-base font-semibold mb-3 text-gray-900 dark:text-white">Métadonnées</h4>
+                    <div className={`rounded-lg p-3 ${
+                      isDarkMode ? 'bg-gray-900 border border-gray-700' : 'bg-gray-50 border border-gray-200'
+                    }`}>
+                      <pre className={`text-xs overflow-x-auto whitespace-pre-wrap ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>
+                        {typeof selectedLog.metadata === 'string' 
+                          ? selectedLog.metadata 
+                          : JSON.stringify(selectedLog.metadata, null, 2)
+                        }
+                      </pre>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
