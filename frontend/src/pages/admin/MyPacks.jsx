@@ -518,7 +518,6 @@ export default function MyPacks() {
   }, [currentPackReferrals, currentTab]);
 
   const transformDataToTree = (referrals) => {
-    console.log(referrals);
     const rootNode = {
       name: "Vous",
       attributes: {

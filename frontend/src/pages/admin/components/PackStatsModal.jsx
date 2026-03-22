@@ -311,7 +311,7 @@ const PackStatsModal = ({ open, onClose, packId, userId }) => {
         maximumFractionDigits: 0,
       }).format(numAmount);
     }
-    return `$${numAmount.toFixed(2)}`;
+    return `$${numAmount?.toFixed(2) || 0}`;
   };
 
   // Composant optimisé pour les statistiques générales
@@ -326,7 +326,7 @@ const GeneralStats = React.memo(({ stats, selectedCurrency, formatAmount, isDark
       ? (
           (general_stats.active_referrals / general_stats.total_referrals) *
           100
-        ).toFixed(1)
+        )?.toFixed(1)
       : 0;
 
   const bestGenerationIndex = general_stats.referrals_by_generation.findIndex(
@@ -449,9 +449,9 @@ const GeneralStats = React.memo(({ stats, selectedCurrency, formatAmount, isDark
                   {general_stats.referrals_by_generation.map(
                     (count, index) => {
                       const commissionUSD =
-                        general_stats.commissions_by_generation_usd[index];
+                        general_stats.commissions_by_generation_usd?.[index] || 0;
                       const commissionCDF =
-                        general_stats.commissions_by_generation_cdf[index];
+                        general_stats.commissions_by_generation_cdf?.[index] || 0;
                       const isActive = count > 0;
                       const generationColors = [
                         "#3b82f6",
@@ -895,7 +895,7 @@ const ReferralActivities = React.memo(({ stats, searchTerm, isDarkMode, hasAnima
                         <TableCell>{referral.expiry_date}</TableCell>
                         <TableCell>
                           {referral.validity_months
-                            ? `${referral.validity_months.toFixed(1)} mois`
+                            ? `${referral?.validity_months?.toFixed(1) || 0} mois`
                             : "-"}
                         </TableCell>
                         <TableCell>

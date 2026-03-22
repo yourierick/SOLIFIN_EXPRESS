@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('amount', 15, 8);
             $table->integer('level');
             $table->string('status');
-            $table->string('error_message')->nullable();
+            $table->text('error_message')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
         });

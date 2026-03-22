@@ -232,7 +232,6 @@ const Users = () => {
     try {
       setGradesLoading(true);
       const response = await axios.get("/api/admin/grades");
-      console.log(response);
       
       if (response.data.success) {
         setGrades(response.data.grades);
@@ -353,8 +352,6 @@ const Users = () => {
           admin_password: resetPasswordData.adminPassword,
         }
       );
-
-      console.log(response.data.success);
 
       if (response.data.success) {
         Notification.success(

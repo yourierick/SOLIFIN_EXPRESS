@@ -867,25 +867,25 @@ export default function UserDetails({ userId }) {
       const cdf = parseFloat(cdfAmount || 0);
 
       if (selectedCurrency === "USD") {
-        return usd > 0 ? `${usd.toFixed(2)}$` : "0";
+        return usd > 0 ? `${usd?.toFixed(2)}$` : "0";
       } else if (selectedCurrency === "CDF") {
-        return cdf > 0 ? `${cdf.toFixed(2)} FC` : "0";
+        return cdf > 0 ? `${cdf?.toFixed(2)} FC` : "0";
       } else {
         // Afficher selon la disponibilité du CDF
         if (isCDFEnabled) {
           // Afficher les deux devises si CDF est activé
           if (usd > 0 && cdf > 0) {
-            return `${usd.toFixed(2)}$ + ${cdf.toFixed(2)} FC`;
+            return `${usd?.toFixed(2)}$ + ${cdf?.toFixed(2)} FC`;
           } else if (usd > 0) {
-            return `${usd.toFixed(2)}$`;
+            return `${usd?.toFixed(2)}$`;
           } else if (cdf > 0) {
-            return `${cdf.toFixed(2)} FC`;
+            return `${cdf?.toFixed(2)} FC`;
           } else {
             return "0";
           }
         } else {
           // Afficher uniquement USD si CDF est désactivé
-          return usd > 0 ? `${usd.toFixed(2)}$` : "0";
+          return usd > 0 ? `${usd?.toFixed(2)}$` : "0";
         }
       }
     };
@@ -899,8 +899,8 @@ export default function UserDetails({ userId }) {
       rootNode.children = referralsData.map((ref) => ({
         name: ref.name || "Inconnu",
         attributes: {
-          commission_usd: parseFloat(ref.total_commission_usd || 0).toFixed(2),
-          commission_cdf: parseFloat(ref.total_commission_cdf || 0).toFixed(2),
+          commission_usd: parseFloat(ref.total_commission_usd || 0)?.toFixed(2),
+          commission_cdf: parseFloat(ref.total_commission_cdf || 0)?.toFixed(2),
           commission: formatCommissionForTree(
             ref.total_commission_usd,
             ref.total_commission_cdf
@@ -920,8 +920,8 @@ export default function UserDetails({ userId }) {
       rootNode.children = referralsData[0].map((ref) => ({
         name: ref.name || "Inconnu",
         attributes: {
-          commission_usd: parseFloat(ref.total_commission_usd || 0).toFixed(2),
-          commission_cdf: parseFloat(ref.total_commission_cdf || 0).toFixed(2),
+          commission_usd: parseFloat(ref.total_commission_usd || 0)?.toFixed(2),
+          commission_cdf: parseFloat(ref.total_commission_cdf || 0)?.toFixed(2),
           commission: formatCommissionForTree(
             ref.total_commission_usd,
             ref.total_commission_cdf
@@ -968,10 +968,10 @@ export default function UserDetails({ userId }) {
           parentNode.children.push({
             name: ref.name || "Inconnu",
             attributes: {
-              commission_usd: parseFloat(ref.total_commission_usd || 0).toFixed(
+              commission_usd: parseFloat(ref.total_commission_usd || 0)?.toFixed(
                 2
               ),
-              commission_cdf: parseFloat(ref.total_commission_cdf || 0).toFixed(
+              commission_cdf: parseFloat(ref.total_commission_cdf || 0)?.toFixed(
                 2
               ),
               commission: formatCommissionForTree(
@@ -1093,7 +1093,7 @@ export default function UserDetails({ userId }) {
         "Commission totale",
         `${dataToExport
           .reduce((sum, ref) => sum + parseFloat(ref.total_commission || 0), 0)
-          .toFixed(2)}$`,
+          ?.toFixed(2)}$`,
       ],
     ];
     const infoWorksheet = XLSX.utils.aoa_to_sheet(infoData);
@@ -1422,381 +1422,6 @@ export default function UserDetails({ userId }) {
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
   };
-
-  // Colonnes pour le tableau des transactions
-  const transactionColumns = [
-    {
-      field: "id",
-      headerName: "ID",
-      width: 60,
-      flex: 0.5,
-    },
-    {
-      field: "type",
-      headerName: "Type",
-      width: 120,
-      flex: 1,
-      renderCell: (params) => {
-        let color, bgColor, label;
-
-        switch (params.value) {
-          case "reception":
-            color = "text-green-800";
-            bgColor = "bg-green-100";
-            label = "Réception des fonds";
-            break;
-          case "withdrawal":
-            color = "text-red-800";
-            bgColor = "bg-red-100";
-            label = "Retrait";
-            break;
-          case "commission de retrait":
-            color = "text-blue-800";
-            bgColor = "bg-blue-100";
-            label = "Commission de retrait";
-            break;
-          case "commission de parrainage":
-            color = "text-blue-800";
-            bgColor = "bg-blue-100";
-            label = "Commission de parrainage";
-            break;
-          case "commission de transfert":
-            color = "text-blue-800";
-            bgColor = "bg-blue-100";
-            label = "Commission de transfert";
-            break;
-          case "transfer":
-            color = "text-purple-800";
-            bgColor = "bg-purple-100";
-            label = "Transfert des fonds";
-            break;
-          case "refund":
-            color = "text-yellow-800";
-            bgColor = "bg-yellow-100";
-            label = "Remboursement";
-            break;
-          case "digital_product_sale":
-            color = "text-indigo-800";
-            bgColor = "bg-indigo-100";
-            label = "Vente de produit numérique";
-            break;
-          case "purchase":
-            color = "text-pink-800";
-            bgColor = "bg-pink-100";
-            label = "Achat";
-            break;
-          default:
-            color = "text-gray-800";
-            bgColor = "bg-gray-100";
-            label = params.value;
-            break;
-        }
-
-        return (
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium ${color} ${bgColor}`}
-          >
-            {label}
-          </span>
-        );
-      },
-    },
-    {
-      field: "amount",
-      headerName: "Montant",
-      width: 100,
-      flex: 1,
-      renderCell: (params) => {
-        const amount = params.value;
-        const currency = params.row.currency || "USD";
-        const mouvment = params.row.mouvment === "in" ? "+" : "-";
-        const formattedAmount = new Intl.NumberFormat("fr-FR", {
-          style: "currency",
-          currency: currency,
-          minimumFractionDigits: 2,
-        }).format(amount);
-
-        return (
-          <span
-            className={`font-semibold ${
-              mouvment === "+"
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {mouvment} {formattedAmount}
-          </span>
-        );
-      },
-    },
-    {
-      field: "status",
-      headerName: "Statut",
-      width: 100,
-      flex: 1,
-      renderCell: (params) => {
-        const statusColors = {
-          pending:
-            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-          approved:
-            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-          completed:
-            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-          failed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-          cancelled:
-            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
-        };
-
-        const statusLabels = {
-          pending: "En attente",
-          approved: "Approuvé",
-          completed: "Complété",
-          failed: "Échoué",
-          cancelled: "Annulé",
-        };
-
-        return (
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
-              statusColors[params.value] || "bg-gray-100 text-gray-800"
-            }`}
-          >
-            {statusLabels[params.value] || params.value}
-          </span>
-        );
-      },
-    },
-    {
-      field: "created_at",
-      headerName: "Date",
-      width: 120,
-      flex: 1.2,
-      renderCell: (params) => {
-        // Utiliser created_at_raw si disponible, sinon parser created_at
-        const dateValue = params.row.created_at_raw || params.value;
-
-        // Vérifier si la valeur est valide
-        if (!dateValue) {
-          return (
-            <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
-          );
-        }
-
-        try {
-          let date;
-
-          // Si c'est la date brute (format ISO), l'utiliser directement
-          if (params.row.created_at_raw) {
-            date = new Date(dateValue);
-          } else {
-            // Parser le format français "dd/mm/YYYY HH:MM:SS"
-            const [datePart, timePart] = dateValue.split(" ");
-            if (!datePart) {
-              return (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Format invalide
-                </span>
-              );
-            }
-
-            const [day, month, year] = datePart.split("/");
-            if (!day || !month || !year) {
-              return (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Format date invalide
-                </span>
-              );
-            }
-
-            // Créer la date au format ISO
-            const isoString = `${year}-${month}-${day}${
-              timePart ? "T" + timePart : ""
-            }`;
-            date = new Date(isoString);
-          }
-
-          // Vérifier si la date est valide
-          if (isNaN(date.getTime())) {
-            return (
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Date invalide
-              </span>
-            );
-          }
-
-          return (
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {date.toLocaleDateString("fr-FR", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-          );
-        } catch (error) {
-          console.error(
-            "Erreur de parsing de date:",
-            error,
-            "Valeur:",
-            dateValue
-          );
-          return (
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Erreur date
-            </span>
-          );
-        }
-      },
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 80,
-      flex: 0.4,
-      renderCell: (params) => {
-        return (
-          <div className="flex space-x-2 p-2">
-            <button
-              onClick={() => handleViewTransactionDetails(params.row)}
-              className="p-2 bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition-all duration-200 hover:scale-105"
-              title="Voir les détails"
-            >
-              <MagnifyingGlassIcon className="h-4 w-4" />
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
-  const getColumnsForGeneration = (generation) => [
-    {
-      field: "name",
-      headerName: "Nom",
-      flex: 1,
-      minWidth: 180,
-      renderCell: (params) => (
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-            <span className="text-blue-700 dark:text-blue-300 font-semibold">
-              {params.value?.charAt(0) || "?"}
-            </span>
-          </div>
-          <div className="font-medium">{params.value || "N/A"}</div>
-        </div>
-      ),
-    },
-    {
-      field: "pack_status",
-      headerName: "Statut",
-      width: 120,
-      renderCell: (params) => {
-        const status = params.value || params.row.status || "N/A";
-        let color, bgColor, icon;
-
-        if (status.toLowerCase() === "active") {
-          color = "text-green-800";
-          bgColor = "bg-green-100";
-          icon = <CheckCircleIcon className="h-4 w-4 mr-1 text-green-700" />;
-        } else if (status.toLowerCase() === "inactive") {
-          color = "text-red-800";
-          bgColor = "bg-red-100";
-          icon = <XCircleIcon className="h-4 w-4 mr-1 text-red-700" />;
-        } else {
-          color = "text-gray-800";
-          bgColor = "bg-gray-100";
-          icon = <XCircleIcon className="h-4 w-4 mr-1 text-gray-700" />;
-        }
-
-        return (
-          <span
-            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color} ${bgColor}`}
-          >
-            {icon}
-            {status === "active"
-              ? "Actif"
-              : status === "inactive"
-              ? "Inactif"
-              : status}
-          </span>
-        );
-      },
-    },
-    {
-      field: "purchase_date",
-      headerName: "Date d'achat",
-      width: 150,
-      renderCell: (params) => <span>{params.value || "N/A"}</span>,
-    },
-    {
-      field: "expiry_date",
-      headerName: "Date d'expiration",
-      width: 150,
-      renderCell: (params) => <span>{params.value || "Illimité"}</span>,
-    },
-    {
-      field: "commission",
-      headerName: "Commission",
-      width: 150,
-      renderCell: (params) => {
-        const usdCommission = parseFloat(params.row.total_commission_usd || 0);
-        const cdfCommission = parseFloat(params.row.total_commission_cdf || 0);
-
-        if (selectedCurrency === "USD") {
-          return (
-            <span className="font-medium text-green-600 dark:text-green-400">
-              {formatAmount(usdCommission, "USD")}
-            </span>
-          );
-        } else if (selectedCurrency === "CDF") {
-          return (
-            <span className="font-medium text-orange-600 dark:text-orange-400">
-              {formatAmount(cdfCommission, "CDF")}
-            </span>
-          );
-        } else {
-          // Afficher selon la disponibilité du CDF
-          if (isCDFEnabled) {
-            return (
-              <div className="flex flex-col">
-                {usdCommission > 0 && (
-                  <span className="font-medium text-green-600 dark:text-green-400 text-sm">
-                    {formatAmount(usdCommission, "USD")}
-                  </span>
-                )}
-                {cdfCommission > 0 && (
-                  <span className="font-medium text-orange-600 dark:text-orange-400 text-sm">
-                    {formatAmount(cdfCommission, "CDF")}
-                  </span>
-                )}
-                {usdCommission === 0 && cdfCommission === 0 && (
-                  <span className="font-medium text-gray-400 text-sm">0</span>
-                )}
-              </div>
-            );
-          } else {
-            // Afficher uniquement USD si CDF est désactivé
-            return (
-              <span className="font-medium text-green-600 dark:text-green-400">
-                {formatAmount(usdCommission, "USD")}
-              </span>
-            );
-          }
-        }
-      },
-    },
-    {
-      field: "referral_code",
-      headerName: "Code parrainage",
-      width: 150,
-      renderCell: (params) => (
-        <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-          {params.value || "N/A"}
-        </span>
-      ),
-    },
-  ];
 
   useEffect(() => {
     if (

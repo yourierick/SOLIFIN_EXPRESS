@@ -542,7 +542,7 @@ export default function WithdrawalForm({
     if (
       !formData.amount ||
       isNaN(parseFloat(formData.amount)) ||
-      parseFloat(formData.amount) <= 0
+      parseFloat(formData.amount) < 1 || parseFloat(formData.amount) > 1000
     ) {
       return false;
     }
@@ -1172,7 +1172,7 @@ export default function WithdrawalForm({
                             setFormData({ ...formData, amount: e.target.value })
                           }
                           className="input-field flex-1"
-                          min="0"
+                          min="1"
                           step="0.01"
                           required
                         />

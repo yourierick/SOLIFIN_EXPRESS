@@ -608,7 +608,7 @@ const PackStatsModal = ({ open, onClose, packId }) => {
                     }}
                   >
                     {selectedCurrency === "USD"
-                      ? `$${bestMonth.amount.toFixed(2)}`
+                      ? `$${bestMonth?.amount?.toFixed(2)}`
                       : new Intl.NumberFormat("fr-CD", {
                           style: "currency",
                           currency: "CDF",
@@ -859,7 +859,7 @@ const PackStatsModal = ({ open, onClose, packId }) => {
                           ...chartOptions.plugins.tooltip,
                           callbacks: {
                             label: function (context) {
-                              const value = context.parsed.y.toFixed(2);
+                              const value = context?.parsed?.y?.toFixed(2);
                               if (selectedCurrency === "USD") {
                                 return `$${value}`;
                               } else {
@@ -1236,7 +1236,7 @@ const PackStatsModal = ({ open, onClose, packId }) => {
                           ...chartOptions.plugins.tooltip,
                           callbacks: {
                             label: function (context) {
-                              const value = context.parsed.y.toFixed(2);
+                              const value = context?.parsed?.y?.toFixed(2);
                               if (selectedCurrency === "USD") {
                                 return `$${value}`;
                               } else {
