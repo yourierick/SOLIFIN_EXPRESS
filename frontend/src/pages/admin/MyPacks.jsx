@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Container,
   Grid,
@@ -19,59 +19,58 @@ import {
   Tooltip,
   Tab,
   Tabs,
-  InputAdornment,
-  Avatar,
-  Divider,
-  Badge,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TablePagination,
   Paper,
-  alpha,
+  Alert,
+  Pagination,
+  Avatar,
+  Badge,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   ListItemAvatar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Alert,
+  Divider,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import axios from "../../utils/axios";
 import { useTheme } from "../../contexts/ThemeContext";
 import {
-  ArrowDownTrayIcon,
-  ChartBarIcon,
-  UsersIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-  GiftIcon,
-} from "@heroicons/react/24/outline";
-import {
+  Download as DownloadIcon,
+  People as UsersIcon,
+  Search as MagnifyingGlassIcon,
+  BarChart as ChartBarIcon,
   Fullscreen,
   FullscreenExit,
-  ContentCopy,
-  CalendarMonth,
-  Cached,
-  Info,
+  ContentCopy as DocumentDuplicateIcon,
+  CalendarToday as CalendarDaysIcon,
+  Refresh as ArrowPathIcon,
+  Info as InformationCircleIcon,
+  Add as PlusIcon,
+  CardGiftcard as GiftIcon,
+  Close as XMarkIcon,
+  KeyboardArrowUp as ChevronUpIcon,
+  KeyboardArrowDown as ChevronDownIcon,
 } from "@mui/icons-material";
 import Notification from "../../components/Notification";
 import Tree from "react-d3-tree";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Link, useNavigate } from "react-router-dom";
 import PackStatsModal from "../../components/PackStatsModal";
-import { motion, AnimatePresence } from "framer-motion";
 import { Fade } from "@mui/material";
-import { toast } from "react-toastify";
-import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -564,7 +563,7 @@ export default function MyPacks() {
           currentGenRefs.forEach((ref) => {
             const parentNode = findParentNode(
               rootNode.children,
-              ref.sponsor_id
+              ref.id_parrain
             );
             if (parentNode) {
               if (!parentNode.children) parentNode.children = [];
@@ -575,8 +574,8 @@ export default function MyPacks() {
                   status: ref.pack_status,
                   generation: gen,
                   userId: ref.id,
-                  sponsorId: ref.sponsor_id,
-                  sponsorName: ref.sponsor_name,
+                  sponsorId: ref.id_parrain,
+                  sponsorName: ref.nom_parrain,
                 },
                 children: [],
               });
@@ -734,7 +733,7 @@ export default function MyPacks() {
               mb: 2,
             }}
           >
-            <PlusIcon className="h-8 w-8" style={{ color: "white" }} />
+            <PlusIcon sx={{ fontSize: '32px', color: 'white' }} />
           </Box>
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
             Ce compte ne possède aucun pack
@@ -904,7 +903,7 @@ export default function MyPacks() {
                             flexShrink: 0,
                           }}
                         >
-                          <ContentCopy sx={{ fontSize: 16, color: "#ffffff" }} />
+                          <DocumentDuplicateIcon sx={{ fontSize: '16px', color: "#ffffff" }} />
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
                           <Typography
@@ -945,7 +944,7 @@ export default function MyPacks() {
                             },
                           }}
                         >
-                          <ContentCopy fontSize="small" />
+                          <DocumentDuplicateIcon sx={{ fontSize: '16px' }} />
                         </IconButton>
                       </Tooltip>
                     </Box>
@@ -981,7 +980,7 @@ export default function MyPacks() {
                             flexShrink: 0,
                           }}
                         >
-                          <CalendarMonth sx={{ fontSize: 16, color: "#ffffff" }} />
+                          <CalendarDaysIcon sx={{ fontSize: '16px', color: "#ffffff" }} />
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
                           <Typography
@@ -1097,7 +1096,7 @@ export default function MyPacks() {
                         },
                       }}
                     >
-                      <UsersIcon className="h-4 w-4" />
+                      <UsersIcon sx={{ fontSize: '16px' }} />
                     </IconButton>
                   </Tooltip>
                 </Box>
@@ -1550,9 +1549,9 @@ export default function MyPacks() {
                   }}
                 >
                   {isFullScreen ? (
-                    <FullscreenExit sx={{ fontSize: 24 }} />
+                    <FullscreenExit sx={{ fontSize: '24px' }} />
                   ) : (
-                    <Fullscreen sx={{ fontSize: 24 }} />
+                    <Fullscreen sx={{ fontSize: '24px' }} />
                   )}
                 </IconButton>
               </Tooltip>
@@ -2087,20 +2086,7 @@ export default function MyPacks() {
                         variant="contained"
                         size="large"
                         onClick={applyFilters}
-                        startIcon={
-                          <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                          </svg>
-                        }
+                        startIcon={<ArrowPathIcon sx={{ fontSize: '18px' }} />}
                         sx={{
                           borderRadius: "16px",
                           textTransform: "none",
@@ -2229,13 +2215,13 @@ export default function MyPacks() {
                             variant="outlined"
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             startIcon={
-                              <ArrowDownTrayIcon className="h-5 w-5" />
+                              <DownloadIcon sx={{ fontSize: '20px' }} />
                             }
                             endIcon={
                               showExportMenu ? (
-                                <ChevronUpIcon className="h-4 w-4" />
+                                <ChevronUpIcon sx={{ fontSize: '16px' }} />
                               ) : (
-                                <ChevronDownIcon className="h-4 w-4" />
+                                <ChevronDownIcon sx={{ fontSize: '16px' }} />
                               )
                             }
                             sx={{
@@ -2335,7 +2321,7 @@ export default function MyPacks() {
                                 }}
                               >
                                 <TableCell sx={{ width: "80px" }}>ID</TableCell>
-                                {currentTab >= 1 && <TableCell sx={{ width: "180px" }}>Parrain</TableCell>}
+                                <TableCell sx={{ width: "180px" }}>Parrain</TableCell>
                                 <TableCell sx={{ width: "180px" }}>Nom</TableCell>
                                 <TableCell sx={{ width: "140px" }}>Date d'achat</TableCell>
                                 <TableCell sx={{ width: "140px" }}>Pack acheté</TableCell>
@@ -2366,16 +2352,14 @@ export default function MyPacks() {
                                   >
                                     {referral.id || "-"}
                                   </TableCell>
-                                  {currentTab >= 1 && (
-                                    <TableCell
+                                  <TableCell
                                       sx={{
                                         color: isDarkMode ? "#e2e8f0" : "#1f2937",
                                         borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
                                       }}
                                     >
-                                      {referral.sponsor_name || "-"}
-                                    </TableCell>
-                                  )}
+                                    {referral.nom_parrain || "-"}
+                                  </TableCell>
                                   <TableCell
                                     sx={{
                                       color: isDarkMode ? "#e2e8f0" : "#1f2937",

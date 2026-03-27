@@ -31,13 +31,44 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
-    <!-- Google Fonts - Poppins -->
+    <!-- Google Fonts - Poppins avec font-display: swap pour éviter le blocage -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
+    <!-- Fallback CSS local si Google Fonts ne se charge pas -->
+    <style>
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: local('Poppins Regular'), local('Poppins-Regular');
+      }
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: local('Poppins Medium'), local('Poppins-Medium');
+      }
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: local('Poppins SemiBold'), local('Poppins-SemiBold');
+      }
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+        src: local('Poppins Bold'), local('Poppins-Bold');
+      }
+    </style>
     <!-- Open Graph Meta Tags pour WhatsApp, Facebook, LinkedIn, etc. -->
     <meta
       property="og:title"

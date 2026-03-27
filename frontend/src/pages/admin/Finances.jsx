@@ -1098,7 +1098,7 @@ const Finances = () => {
                                 switch (stat.type) {
                                   case "funds_withdrawal":
                                     return <MoneyOffIcon sx={{ color: '#ef4444', fontSize: 18 }} />;
-                                  case "sponsorship_commission":
+                                  case "commission":
                                     return <TrendingUpIcon sx={{ color: '#10b981', fontSize: 18 }} />;
                                   case "withdrawal_commission":
                                     return <AccountBalanceWalletIcon sx={{ color: '#3b82f6', fontSize: 18 }} />;
@@ -1285,7 +1285,7 @@ const Finances = () => {
                                     switch (stat.type) {
                                       case "funds_withdrawal":
                                         return <MoneyOffIcon sx={{ color: '#ef4444', fontSize: 18 }} />;
-                                      case "sponsorship_commission":
+                                      case "commission":
                                         return <TrendingUpIcon sx={{ color: '#10b981', fontSize: 18 }} />;
                                       case "withdrawal_commission":
                                         return <AccountBalanceWalletIcon sx={{ color: '#3b82f6', fontSize: 18 }} />;

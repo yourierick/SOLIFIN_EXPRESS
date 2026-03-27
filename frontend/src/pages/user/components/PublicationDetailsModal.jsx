@@ -381,13 +381,13 @@ export default function PublicationDetailsModal({
 
   const getStatusText = (status) => {
     switch (status) {
-      case "en_attente":
+      case "pending":
         return "En attente";
-      case "approuvé":
+      case "approved":
         return "Approuvé";
-      case "rejeté":
+      case "rejected":
         return "Rejeté";
-      case "expiré":
+      case "expired":
         return "Expiré";
       default:
         return "Inconnu";

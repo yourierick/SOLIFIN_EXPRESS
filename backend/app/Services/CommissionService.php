@@ -29,38 +29,39 @@ class CommissionService
                 // Calculer le montant de la commission
                 $commissionAmount = ($amount * $rate->rate) / 100;
 
+                if ($commissionAmount) {
+                    //Vérifier si le pack du sponsor est actif
+                    $checkPack = $currentSponsor->packs()->where('pack_id', $purchase->pack_id)->first();
+                    if ($checkPack->status == "active") {
+                        // Créer la commission
+                        $commission = Commission::create([
+                            'user_id' => $currentSponsor->id,
+                            'source_user_id' => $currentUser->id,
+                            'pack_id' => $purchase->pack_id,
+                            'duree' => $duration_months,
+                            'amount' => $commissionAmount,
+                            'level' => $level,
+                            'status' => 'pending'
+                        ]);
 
-                //Vérifier si le pack du sponsor est actif
-                $checkPack = $currentSponsor->packs()->where('pack_id', $purchase->pack_id)->first();
-                if ($checkPack->status == "active") {
-                    // Créer la commission
-                    $commission = Commission::create([
-                        'user_id' => $currentSponsor->id,
-                        'source_user_id' => $currentUser->id,
-                        'pack_id' => $purchase->pack_id,
-                        'duree' => $duration_months,
-                        'amount' => $commissionAmount,
-                        'level' => $level,
-                        'status' => 'pending'
-                    ]);
-
-                    // Traiter immédiatement la commission
-                    $commission_traite = $this->processCommission($commission->id, $duration_months);
-                    if ($commission_traite) {
-                        // Notifier le parrain
-                        $currentSponsor->notify(new CommissionReceived($commissionAmount, $purchase, $level));
+                        // Traiter immédiatement la commission
+                        $commission_traite = $this->processCommission($commission->id, $duration_months);
+                        if ($commission_traite) {
+                            // Notifier le parrain
+                            $currentSponsor->notify(new CommissionReceived($commissionAmount, $purchase, $level));
+                        }
+                    }else {
+                        $commission = Commission::create([
+                            'user_id' => $currentSponsor->id,
+                            'source_user_id' => $currentUser->id,
+                            'pack_id' => $purchase->pack_id,
+                            'duree' => $duration_months,
+                            'amount' => $amount,
+                            'level' => $level,
+                            'status' => 'failed',
+                            'error_message' => 'pack non actif lors de la distribution des commissions'
+                        ]);
                     }
-                }else {
-                    $commission = Commission::create([
-                        'user_id' => $currentSponsor->id,
-                        'source_user_id' => $currentUser->id,
-                        'pack_id' => $purchase->pack_id,
-                        'duree' => $duration_months,
-                        'amount' => $amount,
-                        'level' => $level,
-                        'status' => 'failed',
-                        'error_message' => 'pack non actif lors de la distribution des commissions'
-                    ]);
                 }
             }
 
@@ -108,8 +109,8 @@ class CommissionService
 
             $description_user = 'Vous avez touché une commission de ' . $commission->amount . '$ sur votre pack ' . $commission->pack?->name;
             $description_system = 'Vous avez payé une commission de ' . $commission->amount . '$ sur le pack ' . $commission->pack?->name;
-            $walletsystem->addEngagements($commission->amount, "sponsorship_commission", "completed", $description_system, $commission->source_user->id, $metadata_system);
-            $wallet->addFunds($commission->amount, 0, 0, "sponsorship_commission", "completed", $description_user, $commission->source_user->id, $metadata_user); 
+            $walletsystem->addEngagements($commission->amount, "commission", "completed", $description_system, $commission->source_user->id, $metadata_system);
+            $wallet->addFunds($commission->amount, 0, 0, "commission", "completed", $description_user, $commission->source_user->id, $metadata_user); 
 
             // Marquer la commission comme traitée
             $commission->update([

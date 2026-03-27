@@ -58,25 +58,26 @@ import axios from "../../utils/axios";
 import { useCurrency } from "../../contexts/CurrencyContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import {
-  ArrowDownTrayIcon,
-  ChartBarIcon,
-  UsersIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-  InformationCircleIcon,
-  GiftIcon,
-  AdjustmentsHorizontalIcon,
-  ExclamationTriangleIcon,
-  ClockIcon,
-} from "@heroicons/react/24/outline";
+  Download as ArrowDownTrayIcon,
+  BarChart as ChartBarIcon,
+  People as UsersIcon,
+  Search as MagnifyingGlassIcon,
+  Add as PlusIcon,
+  Info as InformationCircleIcon,
+  CardGiftcard as GiftIcon,
+  Tune as AdjustmentsHorizontalIcon,
+  Warning as ExclamationTriangleIcon,
+  Schedule as ClockIcon,
+} from "@mui/icons-material";
 import {
   Fullscreen,
   FullscreenExit,
   ContentCopy,
-  CalendarMonth,
-  Cached,
+  CalendarToday as CalendarMonth,
+  Refresh as Cached,
   Info,
 } from "@mui/icons-material";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import Notification from "../../components/Notification";
 import Tree from "react-d3-tree";
 import * as XLSX from "xlsx";
@@ -86,7 +87,7 @@ import PurchasePackForm from "../../components/PurchasePackForm";
 import PackStatsModal from "../../components/PackStatsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
-import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
+import { KeyboardArrowUp as ChevronUpIcon, KeyboardArrowDown as ChevronDownIcon } from "@mui/icons-material";
 
 const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -362,6 +363,26 @@ const getCardStyle = (userPack, isDarkMode) => {
   };
 };
 
+// Composant CheckIcon pour le design Material Tailwind
+const CheckIcon = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      stroke="currentColor"
+      className="h-3 w-3"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4.5 12.75l6 6 9-13.5"
+      />
+    </svg>
+  );
+};
+
 export default function MyPacks() {
   const [renewDialog, setRenewDialog] = useState(false);
   const [selectedPack, setSelectedPack] = useState(null);
@@ -547,7 +568,6 @@ export default function MyPacks() {
       const response = await axios.get(
         `/api/packs/${packId}/referrals?${queryParams.toString()}`
       );
-      console.log(response);
       if (response.data && response.data.success) {
         setCurrentPackReferrals(response.data.data);
         setReferralsPaginationMeta(response.data.pagination || []);
@@ -709,71 +729,72 @@ export default function MyPacks() {
     });
   };
 
-  // Fonction pour trouver un nœud parent dans l'arbre par son userId
-  const findParentNode = (node, userId) => {
-    if (node.attributes && node.attributes.userId === userId) {
-      return node;
-    }
-
-    if (node.children) {
-      for (let child of node.children) {
-        const found = findParentNode(child, userId);
-        if (found) return found;
-      }
-    }
-
-    return null;
-  };
-
   const transformDataToTree = (referrals) => {
+    // Récupérer l'ID de l'utilisateur depuis la première génération
+    const currentUserId = referrals[0] && referrals[0][0] ? referrals[0][0].id_parrain : null;
+    
     const rootNode = {
       name: "Vous",
       attributes: {
         commission: "USD: $0.00",
         status: "active",
         generation: 0,
+        userId: currentUserId,
       },
       children: [],
     };
 
-    // Première génération
-    if (referrals[0]) {
-      rootNode.children = referrals[0].map((ref) => ({
-        name: ref.name,
-        attributes: {
-          commission: `$${parseFloat(ref.total_commission || 0).toFixed(2)}`,
-          status: ref.pack_status,
-          generation: 1,
-          userId: ref.id,
-        },
-        children: [],
-      }));
-
-      // Générations 2 à 4
-      for (let gen = 2; gen <= 4; gen++) {
-        if (referrals[gen - 1]) {
-          referrals[gen - 1].forEach((ref) => {
-            const parentNode = findParentNode(rootNode, ref.sponsor_id);
-            if (parentNode) {
-              if (!parentNode.children) parentNode.children = [];
-              parentNode.children.push({
-                name: ref.name,
-                attributes: {
-                  commission: `USD: $${parseFloat(ref.total_commission_usd || 0).toFixed(2)}`,
-                  status: ref.pack_status,
-                  generation: gen,
-                  userId: ref.id,
-                  sponsorId: ref.sponsor_id,
-                  sponsorName: ref.sponsor_name,
-                },
-                children: [],
-              });
-            }
-          });
-        }
-      }
+    if (!currentUserId) {
+      console.log('Impossible de déterminer l\'ID de l\'utilisateur');
+      return rootNode;
     }
 
+    // Construire une map des nœuds pour un accès rapide
+    const nodeMap = new Map();
+    nodeMap.set('root', rootNode);
+    nodeMap.set(currentUserId, rootNode); // Mapper l'ID de l'utilisateur à la racine
+
+    // Fonction pour créer un nœud à partir d'un referral
+    const createNode = (ref, generation) => ({
+      name: ref.name,
+      attributes: {
+        commission: `$${parseFloat(ref.total_commission || 0).toFixed(2)}`,
+        status: ref.pack_status,
+        generation: generation,
+        userId: ref.id,
+        sponsorId: ref.id_parrain,
+        sponsorName: ref.nom_parrain,
+      },
+      children: [],
+    });
+
+    // Première génération : enfants directs de "Vous"
+    if (referrals[0]) {
+      referrals[0].forEach((ref) => {
+        const childNode = createNode(ref, 1);
+        rootNode.children.push(childNode);
+        nodeMap.set(ref.id, childNode);
+      });
+    }
+
+    // Générations 2 à 4 : attacher les enfants aux bons parents
+    for (let gen = 2; gen <= 4; gen++) {
+      if (!referrals[gen - 1]) continue;
+      
+      referrals[gen - 1].forEach((ref) => {
+        // Chercher le parent par sponsor_id dans la map des nœuds
+        const parentNode = nodeMap.get(ref.id_parrain);
+        
+        if (parentNode) {
+          const childNode = createNode(ref, gen);
+          parentNode.children.push(childNode);
+          nodeMap.set(ref.id, childNode);
+        } else {
+          console.log(`Parent non trouvé pour ${ref.name} (sponsor_id: ${ref.id_parrain})`);
+          console.log('Nœuds disponibles:', Array.from(nodeMap.keys()));
+        }
+      });
+    }
     return rootNode;
   };
 
@@ -909,7 +930,7 @@ export default function MyPacks() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-start pt-24 justify-center bg-white dark:bg-[rgba(17,24,39,0.95)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -991,7 +1012,7 @@ export default function MyPacks() {
 
     if (generation >= 1) {
       baseColumns.splice(1, 0, {
-        field: "sponsor_name",
+        field: "nom_parrain",
         headerName: "Parrain",
         flex: 1,
         minWidth: 150,
@@ -1008,32 +1029,14 @@ export default function MyPacks() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: { xs: "flex-start", sm: "center" },
-            mb: 4,
-            p: { xs: 3, sm: 4 },
-            borderRadius: "16px",
-            background: isDarkMode ? "#1f2937" : "#ffffff",
-            border: isDarkMode
-              ? "1px solid rgba(255, 255, 255, 0.06)"
-              : "1px solid rgba(0, 0, 0, 0.04)",
-            boxShadow: isDarkMode
-              ? "0 1px 3px rgba(0, 0, 0, 0.1)"
-              : "0 1px 3px rgba(0, 0, 0, 0.05)",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: { xs: 3, sm: 0 },
-          }}
-        >
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
           <Box>
             <Typography
               variant="h4"
               sx={{
                 fontWeight: 700,
                 color: isDarkMode ? "#f8fafc" : "#1e293b",
-                mb: { xs: 1, sm: 0.5 },
+                mb: 0.5,
                 fontSize: { xs: "1.5rem", sm: "1.75rem", md: "1.875rem" },
                 lineHeight: 1.2,
               }}
@@ -1052,32 +1055,44 @@ export default function MyPacks() {
               Gérez vos packs et suivez vos performances
             </Typography>
           </Box>
-
-          <Button
-            variant="contained"
-            startIcon={<PlusIcon className="h-5 w-5" />}
-            onClick={() => navigate("../packs")}
-            sx={{
-              borderRadius: "12px",
-              fontWeight: 600,
-              py: { xs: 1, sm: 1.25 },
-              px: { xs: 2, sm: 3 },
-              textTransform: "none",
-              fontSize: { xs: "0.85rem", sm: "0.9rem" },
-              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-              minWidth: { xs: "140px", sm: "160px" },
-              alignSelf: { xs: "stretch", sm: "auto" },
-              "&:hover": {
-                background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
-                boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
-                transform: "translateY(-1px)",
-              },
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            {window.innerWidth < 600 ? "Nouveau pack" : "Acheter un nouveau pack"}
-          </Button>
+          
+          <Tooltip title="Activer un nouveau pack" placement="left">
+            <IconButton
+              onClick={() => navigate("../packs")}
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                color: "white",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
+                  boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)",
+                  transform: "scale(1.1) translateY(-2px)",
+                },
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+            >
+              <PlusIcon
+                sx={{
+                  fontSize: 28,
+                  animation: "pulse 2s infinite",
+                  "@keyframes pulse": {
+                    "0%": {
+                      transform: "scale(1)",
+                    },
+                    "50%": {
+                      transform: "scale(1.1)",
+                    },
+                    "100%": {
+                      transform: "scale(1)",
+                    },
+                  },
+                }}
+              />
+            </IconButton>
+          </Tooltip>
         </Box>
       </motion.div>
 
@@ -1167,7 +1182,7 @@ export default function MyPacks() {
 
               <Button
                 variant="contained"
-                startIcon={<PlusIcon className="h-5 w-5" />}
+                startIcon={<PlusIcon sx={{ fontSize: '20px' }} />}
                 onClick={() => navigate("../packs")}
                 sx={{
                   borderRadius: "12px",
@@ -1211,191 +1226,141 @@ export default function MyPacks() {
                   }}
                   whileHover={{ y: -8 }}
                 >
-                  <Paper
-                    elevation={0}
+                  <Card
                     sx={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      borderRadius: "16px",
-                      overflow: "hidden",
+                      width: "100%",
+                      maxWidth: "400px",
+                      p: 4,
+                      background: isDarkMode
+                        ? "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)"
+                        : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
                       border: isDarkMode
-                        ? "1px solid rgba(255, 255, 255, 0.06)"
-                        : "1px solid rgba(0, 0, 0, 0.04)",
-                      background: isDarkMode 
-                        ? "#1f2937"
-                        : "#f6f6f6ff",
-                      transition:
-                        "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                      position: "relative",
+                        ? "1px solid rgba(255, 255, 255, 0.1)"
+                        : "1px solid rgba(0, 0, 0, 0.06)",
+                      borderRadius: "20px",
+                      boxShadow: isPackExpired(userPack.expiry_date, userPack.status)
+                        ? "0 20px 40px rgba(239, 68, 68, 0.08)"
+                        : isPackExpiringSoon(userPack.expiry_date)
+                        ? "0 20px 40px rgba(245, 158, 11, 0.08)"
+                        : "0 20px 40px rgba(0, 0, 0, 0.08)",
+                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
                       "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: isPackExpired(userPack.expiry_date, userPack.status)
-                          ? "0 12px 24px rgba(239, 68, 68, 0.15), 0 0 0 1px rgba(239, 68, 68, 0.1)"
-                          : isPackExpiringSoon(userPack.expiry_date)
-                          ? "0 12px 24px rgba(245, 158, 11, 0.15), 0 0 0 1px rgba(245, 158, 11, 0.1)"
-                          : "0 12px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(59, 130, 246, 0.05)",
+                        transform: "translateY(-8px) scale(1.02)",
                       },
                     }}
                   >
-                    {/* Bandeau de statut minimaliste */}
+                    {/* Header */}
                     <Box
                       sx={{
-                        height: "3px",
-                        background: isPackExpired(userPack.expiry_date, userPack.status)
-                          ? "#ef4444"
-                          : isPackExpiringSoon(userPack.expiry_date)
-                          ? "#f59e0b"
-                          : userPack.status === "active"
-                          ? "#10b981"
-                          : "#6b7280",
-                      }}
-                    />
-
-                    {/* En-tête épuré */}
-                    <Box sx={{ p: 3, pb: 2 }}>
-                      {/* Badge de statut moderne */}
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="h6"
-                            sx={{ 
-                              fontWeight: 700, 
-                              mb: 1,
-                              color: isDarkMode ? "#f8fafc" : "#1e293b",
-                              lineHeight: 1.3,
-                              fontSize: "1.1rem",
-                            }}
-                          >
-                            {userPack.pack.name}
-                          </Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                            <Typography
-                              variant="body2"
-                              sx={{ 
-                                color: isDarkMode ? "#94a3b8" : "#64748b",
-                                fontWeight: 500,
-                              }}
-                            >
-                              /{userPack.pack.abonnement}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Chip
-                          label={
-                            isPackExpired(userPack.expiry_date, userPack.status)
-                              ? "Expiré"
-                              : isPackExpiringSoon(userPack.expiry_date)
-                              ? "Expire bientôt"
-                              : getStatusLabel(userPack.status)
-                          }
-                          size="small"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: "0.7rem",
-                            borderRadius: "6px",
-                            px: 1,
-                            height: "24px",
-                            background: isPackExpired(userPack.expiry_date, userPack.status)
-                              ? isDarkMode ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)"
-                              : isPackExpiringSoon(userPack.expiry_date)
-                              ? isDarkMode ? "rgba(245, 158, 11, 0.15)" : "rgba(245, 158, 11, 0.1)"
-                              : userPack.status === "active"
-                              ? isDarkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)"
-                              : isDarkMode ? "rgba(107, 114, 128, 0.15)" : "rgba(107, 114, 128, 0.1)",
-                            color: isPackExpired(userPack.expiry_date, userPack.status)
-                              ? "#ef4444"
-                              : isPackExpiringSoon(userPack.expiry_date)
-                              ? "#f59e0b"
-                              : userPack.status === "active"
-                              ? "#10b981"
-                              : "#6b7280",
-                            border: `1px solid ${
-                              isPackExpired(userPack.expiry_date, userPack.status)
-                                ? isDarkMode ? "rgba(239, 68, 68, 0.3)" : "rgba(239, 68, 68, 0.2)"
-                                : isPackExpiringSoon(userPack.expiry_date)
-                                ? isDarkMode ? "rgba(245, 158, 11, 0.3)" : "rgba(245, 158, 11, 0.2)"
-                                : userPack.status === "active"
-                                ? isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(16, 185, 129, 0.2)"
-                                : isDarkMode ? "rgba(107, 114, 128, 0.3)" : "rgba(107, 114, 128, 0.2)"
-                            }`,
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                    {/* Description complète */}
-                    <Box sx={{ px: 3, pb: 2 }}>
+                        textAlign: "center",
+                        mb: 4,
+                        pb: 4,
+                        borderBottom: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)"}`,
+                    }}
+                    >
                       <Typography
-                        variant="body2"
+                        variant="caption"
                         sx={{
                           color: isDarkMode ? "#94a3b8" : "#64748b",
-                          lineHeight: 1.5,
-                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                          fontSize: "0.75rem",
+                          mb: 2,
+                          display: "block",
                         }}
                       >
-                        {userPack.pack.description}
+                        {userPack.pack.abonnement}
                       </Typography>
+                      
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          color: isDarkMode ? "#f1f5f9" : "#0f172a",
+                          fontWeight: 700,
+                          mb: 2,
+                          fontSize: "2rem",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {userPack.pack.name}
+                      </Typography>
+                      
+                      <Chip
+                        label={
+                          isPackExpired(userPack.expiry_date, userPack.status)
+                            ? "Expiré"
+                            : isPackExpiringSoon(userPack.expiry_date)
+                            ? "Expire bientôt"
+                            : getStatusLabel(userPack.status)
+                        }
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: "0.7rem",
+                          borderRadius: "20px",
+                          px: 3,
+                          height: "32px",
+                          background: isPackExpired(userPack.expiry_date, userPack.status)
+                            ? isDarkMode ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)"
+                            : isPackExpiringSoon(userPack.expiry_date)
+                            ? isDarkMode ? "rgba(245, 158, 11, 0.15)" : "rgba(245, 158, 11, 0.1)"
+                            : userPack.status === "active"
+                            ? isDarkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)"
+                            : isDarkMode ? "rgba(107, 114, 128, 0.15)" : "rgba(107, 114, 128, 0.1)",
+                          color: isPackExpired(userPack.expiry_date, userPack.status)
+                            ? "#ef4444"
+                            : isPackExpiringSoon(userPack.expiry_date)
+                            ? "#f59e0b"
+                            : userPack.status === "active"
+                            ? "#10b981"
+                            : "#6b7280",
+                          border: `1px solid ${
+                            isPackExpired(userPack.expiry_date, userPack.status)
+                              ? isDarkMode ? "rgba(239, 68, 68, 0.3)" : "rgba(239, 68, 68, 0.2)"
+                              : isPackExpiringSoon(userPack.expiry_date)
+                              ? isDarkMode ? "rgba(245, 158, 11, 0.3)" : "rgba(245, 158, 11, 0.2)"
+                              : userPack.status === "active"
+                              ? isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(16, 185, 129, 0.2)"
+                              : isDarkMode ? "rgba(107, 114, 128, 0.3)" : "rgba(107, 114, 128, 0.2)"
+                          }`,
+                        }}
+                      />
                     </Box>
-                    {/* Informations structurées */}
-                    <Box sx={{ px: 3, pb: 2, flexGrow: 1 }}>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+
+                    {/* Body */}
+                    <Box sx={{ p: 0, mb: 4 }}>
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                         
                         {/* Code de parrainage */}
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            p: 2,
-                            borderRadius: "8px",
-                            background: isDarkMode
-                              ? "rgba(59, 130, 246, 0.05)"
-                              : "rgba(59, 130, 246, 0.02)",
-                            border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(59, 130, 246, 0.08)"}`,
-                          }}
-                        >
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0 }}>
-                            <Box
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <Box
+                            sx={{
+                              borderRadius: "50%",
+                              border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"}`,
+                              background: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                              p: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <CheckIcon />
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="body2"
                               sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: "6px",
-                                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
+                                color: isDarkMode ? "#cbd5e1" : "#475569",
+                                fontWeight: 400,
+                                fontSize: "0.875rem",
                               }}
                             >
-                              <ContentCopy sx={{ fontSize: 16, color: "#ffffff" }} />
-                            </Box>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: isDarkMode ? "#64748b" : "#6b7280",
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.05em",
-                                  fontSize: "0.7rem",
-                                  display: "block",
-                                }}
-                              >
-                                Code
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 700,
-                                  color: isDarkMode ? "#f1f5f9" : "#1e293b",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {userPack.referral_code}
-                              </Typography>
-                            </Box>
+                              <Box component="span" sx={{ fontWeight: 700 }}>
+                                Code de parrainage:
+                              </Box>{" "}
+                              {userPack.referral_code}
+                            </Typography>
                           </Box>
                           <Tooltip title="Copier">
                             <IconButton
@@ -1415,142 +1380,66 @@ export default function MyPacks() {
 
                         {/* Date d'expiration */}
                         {userPack.expiry_date && (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 2,
-                              p: 2,
-                              borderRadius: "8px",
-                              background: isPackExpired(userPack.expiry_date, userPack.status)
-                                ? isDarkMode ? "rgba(239, 68, 68, 0.05)" : "rgba(239, 68, 68, 0.02)"
-                                : isPackExpiringSoon(userPack.expiry_date)
-                                ? isDarkMode ? "rgba(245, 158, 11, 0.05)" : "rgba(245, 158, 11, 0.02)"
-                                : isDarkMode ? "rgba(16, 185, 129, 0.05)" : "rgba(16, 185, 129, 0.02)",
-                              border: isPackExpired(userPack.expiry_date, userPack.status)
-                                ? `1px solid ${isDarkMode ? "rgba(239, 68, 68, 0.1)" : "rgba(239, 68, 68, 0.08)"}`
-                                : isPackExpiringSoon(userPack.expiry_date)
-                                ? `1px solid ${isDarkMode ? "rgba(245, 158, 11, 0.1)" : "rgba(245, 158, 11, 0.08)"}`
-                                : `1px solid ${isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.08)"}`,
-                            }}
-                          >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
                             <Box
                               sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: "6px",
-                                background: isPackExpired(userPack.expiry_date, userPack.status)
-                                  ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
-                                  : isPackExpiringSoon(userPack.expiry_date)
-                                  ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
-                                  : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                borderRadius: "50%",
+                                border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"}`,
+                                background: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                                p: 1,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                flexShrink: 0,
                               }}
                             >
-                              <CalendarMonth sx={{ fontSize: 16, color: "#ffffff" }} />
+                              <CheckIcon />
                             </Box>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: isPackExpired(userPack.expiry_date, userPack.status)
-                                    ? "#ef4444"
-                                    : isPackExpiringSoon(userPack.expiry_date)
-                                    ? "#f59e0b"
-                                    : "#10b981",
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.05em",
-                                  fontSize: "0.7rem",
-                                  display: "block",
-                                }}
-                              >
-                                {isPackExpired(userPack.expiry_date, userPack.status) ? "Expiré le" : "Expire le"}
-                              </Typography>
+                            <Box sx={{ flex: 1 }}>
                               <Typography
                                 variant="body2"
                                 sx={{
-                                  fontWeight: 700,
-                                  color: isPackExpired(userPack.expiry_date, userPack.status)
-                                    ? "#ef4444"
-                                    : isPackExpiringSoon(userPack.expiry_date)
-                                    ? "#f59e0b"
-                                    : isDarkMode ? "#f1f5f9" : "#1e293b",
+                                  color: isDarkMode ? "#cbd5e1" : "#475569",
+                                  fontWeight: 400,
+                                  fontSize: "0.875rem",
                                 }}
                               >
+                                <Box component="span" sx={{ fontWeight: 700 }}>
+                                  {isPackExpired(userPack.expiry_date, userPack.status) ? "Expiré le" : "Expire le"}:
+                                </Box>{" "}
                                 {new Date(userPack.expiry_date).toLocaleDateString()}
                               </Typography>
-                              {userPack.status !== "expired" && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    display: "block",
-                                    mt: 0.5,
-                                    color: getRemainingTimeColor(userPack.expiry_date),
-                                    fontSize: "0.65rem",
-                                  }}
-                                >
-                                  {formatRemainingTime(userPack.expiry_date)}
-                                </Typography>
-                              )}
                             </Box>
                           </Box>
                         )}
 
                         {/* Utilisateur */}
                         {userPack.user && (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 2,
-                              p: 2,
-                              borderRadius: "8px",
-                              background: isDarkMode
-                                ? "rgba(139, 92, 246, 0.05)"
-                                : "rgba(139, 92, 246, 0.02)",
-                              border: `1px solid ${isDarkMode ? "rgba(139, 92, 246, 0.1)" : "rgba(139, 92, 246, 0.08)"}`,
-                            }}
-                          >
-                            <Avatar
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            <Box
                               sx={{
-                                background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-                                width: 28,
-                                height: 28,
-                                fontWeight: 700,
-                                fontSize: "0.85rem",
-                                flexShrink: 0,
+                                borderRadius: "50%",
+                                border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"}`,
+                                background: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                                p: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
                               }}
                             >
-                              {userPack.user.name.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: isDarkMode ? "#64748b" : "#6b7280",
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.05em",
-                                  fontSize: "0.7rem",
-                                  display: "block",
-                                }}
-                              >
-                                Utilisateur
-                              </Typography>
+                              <CheckIcon />
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
                               <Typography
                                 variant="body2"
                                 sx={{
-                                  fontWeight: 700,
-                                  color: isDarkMode ? "#f1f5f9" : "#1e293b",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
+                                  color: isDarkMode ? "#cbd5e1" : "#475569",
+                                  fontWeight: 400,
+                                  fontSize: "0.875rem",
                                 }}
                               >
+                                <Box component="span" sx={{ fontWeight: 700 }}>
+                                  Utilisateur:
+                                </Box>{" "}
                                 {userPack.user.name}
                               </Typography>
                             </Box>
@@ -1558,17 +1447,10 @@ export default function MyPacks() {
                         )}
                       </Box>
                     </Box>
-                    {/* Actions minimalistes */}
-                    <Box
-                      sx={{
-                        p: 2,
-                        borderTop: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"}`,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Box sx={{ display: "flex", gap: 1 }}>
+
+                    {/* Footer */}
+                    <Box sx={{ mt: 6, p: 0 }}>
+                      <Box sx={{ display: "flex", gap: 2 }}>
                         <Tooltip title="Statistiques détaillées">
                           <IconButton
                             size="small"
@@ -1576,15 +1458,17 @@ export default function MyPacks() {
                             sx={{
                               background: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
                               color: isDarkMode ? "#3b82f6" : "#2563eb",
-                              width: 36,
-                              height: 36,
+                              width: 40,
+                              height: 40,
                               borderRadius: "8px",
                               "&:hover": {
                                 background: isDarkMode ? "rgba(59, 130, 246, 0.15)" : "rgba(37, 99, 235, 0.1)",
+                                transform: "scale(1.05)",
                               },
+                              transition: "all 0.2s ease",
                             }}
                           >
-                            <ChartBarIcon className="h-4 w-4" />
+                            <ChartBarIcon sx={{ fontSize: '18px' }} />
                           </IconButton>
                         </Tooltip>
 
@@ -1595,69 +1479,68 @@ export default function MyPacks() {
                             sx={{
                               background: isDarkMode ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.05)",
                               color: isDarkMode ? "#10b981" : "#059669",
-                              width: 36,
-                              height: 36,
+                              width: 40,
+                              height: 40,
                               borderRadius: "8px",
                               "&:hover": {
                                 background: isDarkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)",
+                                transform: "scale(1.05)",
                               },
+                              transition: "all 0.2s ease",
                             }}
                           >
-                            <UsersIcon className="h-4 w-4" />
+                            <UsersIcon sx={{ fontSize: '18px' }} />
                           </IconButton>
                         </Tooltip>
-                      </Box>
 
-                      {/* Bouton renouveler */}
-                      {(isPackExpired(userPack.expiry_date, userPack.status) ||
-                        isPackExpiringSoon(userPack.expiry_date)) && (
-                        <Button
-                          variant={
-                            isPackExpired(userPack.expiry_date, userPack.status)
-                              ? "contained"
-                              : "outlined"
-                          }
-                          color={
-                            isPackExpired(userPack.expiry_date, userPack.status)
-                              ? "error"
-                              : "warning"
-                          }
-                          onClick={() => handleRenewClick(userPack)}
-                          sx={{
-                            borderRadius: "8px",
-                            fontWeight: 600,
-                            textTransform: "none",
-                            px: 2,
-                            fontSize: "0.85rem",
-                            ...(isPackExpired(userPack.expiry_date, userPack.status) && {
-                              background: "#ef4444",
-                              "&:hover": {
-                                background: "#dc2626",
-                              },
-                            }),
-                            ...(isPackExpiringSoon(userPack.expiry_date) &&
-                              !isPackExpired(userPack.expiry_date, userPack.status) && {
-                                borderColor: "#f59e0b",
-                                color: "#f59e0b",
+                        {/* Bouton renouveler */}
+                        {(isPackExpired(userPack.expiry_date, userPack.status) ||
+                          isPackExpiringSoon(userPack.expiry_date)) && (
+                          <Button
+                            variant={
+                              isPackExpired(userPack.expiry_date, userPack.status)
+                                ? "contained"
+                                : "outlined"
+                            }
+                            color={
+                              isPackExpired(userPack.expiry_date, userPack.status)
+                                ? "error"
+                                : "warning"
+                            }
+                            size="small"
+                            onClick={() => handleRenew(userPack)}
+                            sx={{
+                              flex: 1,
+                              fontWeight: 600,
+                              textTransform: "none",
+                              borderRadius: "8px",
+                              px: 3,
+                              fontSize: "0.85rem",
+                              ...(isPackExpired(userPack.expiry_date, userPack.status) && {
+                                background: "#ef4444",
                                 "&:hover": {
-                                  borderColor: "#d97706",
-                                  background: "rgba(245, 158, 11, 0.1)",
+                                  background: "#dc2626",
                                 },
                               }),
-                          }}
-                          startIcon={
-                            isPackExpired(userPack.expiry_date, userPack.status) ? (
-                              <ExclamationTriangleIcon className="h-4 w-4" />
-                            ) : (
-                              <ClockIcon className="h-4 w-4" />
-                            )
-                          }
-                        >
-                          Renouveler
-                        </Button>
-                      )}
+                              ...(isPackExpiringSoon(userPack.expiry_date) &&
+                                !isPackExpired(userPack.expiry_date, userPack.status) && {
+                                  borderColor: "#f59e0b",
+                                  color: "#f59e0b",
+                                  "&:hover": {
+                                    borderColor: "#d97706",
+                                    background: "rgba(245, 158, 11, 0.1)",
+                                  },
+                                }),
+                            }}
+                          >
+                            {isPackExpired(userPack.expiry_date, userPack.status)
+                              ? "Renouveler"
+                              : "Étendre"}
+                          </Button>
+                        )}
+                      </Box>
                     </Box>
-                  </Paper>
+                  </Card>
                 </motion.div>
               </Grid>
             ))}
@@ -2160,9 +2043,9 @@ export default function MyPacks() {
                   }}
                 >
                   {isFullScreen ? (
-                    <FullscreenExit sx={{ fontSize: 24 }} />
+                    <FullscreenExit sx={{ fontSize: '24px' }} />
                   ) : (
-                    <Fullscreen sx={{ fontSize: 24 }} />
+                    <Fullscreen sx={{ fontSize: '24px' }} />
                   )}
                 </IconButton>
               </Tooltip>
@@ -2291,7 +2174,7 @@ export default function MyPacks() {
                       variant="outlined"
                       size="small"
                       startIcon={
-                        <AdjustmentsHorizontalIcon className="h-4 w-4" />
+                        <AdjustmentsHorizontalIcon sx={{ fontSize: '16px' }} />
                       }
                       sx={{
                         alignSelf: "flex-start",
@@ -2841,31 +2724,17 @@ export default function MyPacks() {
                           }}
                         >
                           {(() => {
-                            const total = (
-                              currentPackReferrals[currentTab] || []
-                            ).reduce((sum, ref) => {
-                              if (selectedCurrency === "USD") {
+                              const total = (
+                                currentPackReferrals[currentTab] || []
+                              ).reduce((sum, ref) => {
                                 return (
                                   sum +
-                                  parseFloat(ref.total_commission_usd || 0)
+                                  parseFloat(ref.total_commission || 0)
                                 );
-                              } else {
-                                return (
-                                  sum +
-                                  parseFloat(ref.total_commission_cdf || 0)
-                                );
-                              }
-                            }, 0);
-
-                            return selectedCurrency === "USD"
-                              ? `$${total.toFixed(2)}`
-                              : new Intl.NumberFormat("fr-CD", {
-                                  style: "currency",
-                                  currency: "CDF",
-                                  minimumFractionDigits: 0,
-                                  maximumFractionDigits: 0,
-                                }).format(total);
-                          })()}
+                              }, 0);
+  
+                              return `${total.toFixed(2)} $`;
+                            })()}
                         </Typography>
                       </Box>
                     </Box>
@@ -2883,13 +2752,13 @@ export default function MyPacks() {
                             variant="outlined"
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             startIcon={
-                              <ArrowDownTrayIcon className="h-5 w-5" />
+                              <ArrowDownTrayIcon sx={{ fontSize: '20px' }} />
                             }
                             endIcon={
                               showExportMenu ? (
-                                <ChevronUpIcon className="h-4 w-4" />
+                                <ChevronUpIcon sx={{ fontSize: '16px' }} />
                               ) : (
-                                <ChevronDownIcon className="h-4 w-4" />
+                                <ChevronDownIcon sx={{ fontSize: '16px' }} />
                               )
                             }
                             sx={{
@@ -3027,7 +2896,7 @@ export default function MyPacks() {
                                         borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
                                       }}
                                     >
-                                      {referral.sponsor_name || "-"}
+                                      {referral.nom_parrain || "-"}
                                     </TableCell>
                                   )}
                                   <TableCell
@@ -3084,9 +2953,7 @@ export default function MyPacks() {
                                       borderBottom: isDarkMode ? "1px solid #334155" : "1px solid #e2e8f0",
                                     }}
                                   >
-                                    {selectedCurrency === "USD"
-                                      ? referral.total_commission_usd || "0"
-                                      : referral.total_commission_cdf || "0"}{" "}{selectedCurrency === "USD" ? "$" : "FC"}
+                                    {referral.total_commission || "0"} $
                                   </TableCell>
                                 </TableRow>
                               ))}

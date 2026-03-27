@@ -130,14 +130,14 @@ const formatDate = (dateString) => {
 // Fonction pour obtenir le statut en français
 const getStatutLabel = (statut) => {
   switch (statut) {
-    case "en_attente":
+    case "pending":
       return "En attente";
-    case "approuve":
+    case "approved":
       return "Approuvé";
-    case "rejete":
-      return "Rejeté";
-    case "expire":
-      return "Expiré";
+    case "rejeted":
+      return "rejeté";
+    case "expired":
+      return "expiré";
     case "active":
       return "Actif";
     case "inactive":
@@ -150,14 +150,12 @@ const getStatutLabel = (statut) => {
 // Fonction pour obtenir la couleur du statut
 const getStatutColor = (statut) => {
   switch (statut) {
-    case "en_attente":
+    case "pending":
       return "warning";
-    case "approuve":
-    case "active":
+    case "approved":
       return "success";
-    case "rejete":
-    case "expire":
-    case "inactive":
+    case "rejected":
+    case "expired":
       return "error";
     default:
       return "default";
@@ -223,8 +221,8 @@ export default function MyPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [catalogSearchTerm, setCatalogSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    statut: "tous", // 'tous', 'en_attente', 'approuvé', 'rejeté'
-    etat: "tous", // 'tous', 'disponible', 'terminé'
+    statut: "tous", // 'tous', 'en attente', 'approuvé', 'rejeté'
+    etat: "tous", // 'tous', 'disponible', 'indiponible'
     date_debut: "", // Format YYYY-MM-DD
     date_fin: "", // Format YYYY-MM-DD
   });
@@ -428,7 +426,7 @@ export default function MyPage() {
   });
   const [isLivreurFormOpen, setIsLivreurFormOpen] = useState(false);
   const [isLoadingLivreurs, setIsLoadingLivreurs] = useState(false);
-  const [candidatureStatus, setCandidatureStatus] = useState(null); // null, 'en_attente', 'approuve', 'rejete'
+  const [candidatureStatus, setCandidatureStatus] = useState(null); // null, 'en_attente', 'approuvé', 'rejeté'
 
   // Fonction pour récupérer les données de la page avec pagination backend
   const fetchPageData = async (activeTab = null, page = 1, rowsPerPage = 25) => {
@@ -803,7 +801,7 @@ export default function MyPage() {
     }
   };
 
-  // Gestionnaire pour le changement d'état d'une publication (disponible/terminé)
+  // Gestionnaire pour le changement d'état d'une publication (disponible/indisponible)
   const handleStateChange = (id, type, newState) => {
     const apiPath = getPublicationTypeApiPath(type);
     axios
@@ -842,14 +840,14 @@ export default function MyPage() {
         // Afficher une notification de succès
         let statusText = "";
         switch (newState) {
-          case "disponible":
+          case "available":
             statusText = "Disponible";
             break;
-          case "terminé":
-            statusText = "Terminé";
+          case "unavailable":
+            statusText = "Indisponible";
             break;
           default:
-            statusText = newStatus;
+            statusText = newState;
         }
         toast.success(
           `État de la publication modifié avec succès: ${statusText}`
@@ -1155,11 +1153,11 @@ export default function MyPage() {
   const getPublicationTypeApiPath = (type) => {
     switch (type) {
       case "publication":
-        return "publicites";
+        return "publicites/store";
       case "jobOffer":
-        return "offres-emploi";
+        return "offres-emploi/store";
       case "businessOpportunity":
-        return "opportunites-affaires";
+        return "opportunites-affaires/store";
       default:
         return "";
     }
@@ -3070,7 +3068,7 @@ export default function MyPage() {
                             Candidature en attente
                           </span>
                         )}
-                        {candidatureStatus === "approuve" && (
+                        {candidatureStatus === "approved" && (
                           <span className={`${
                             isMobile
                               ? "px-2 py-1 text-[10px]"

@@ -37,7 +37,7 @@ const FiltreParTypeOperationUser = ({
       <option value="boost_purchase">Achat de boost de publication</option>
       <option value="digital_product_purchase">Achat de produit digital</option>
       <option value="digital_product_sale">Vente de produit digital</option>
-      <option value="sponsorship_commission">Commission de parrainage</option>
+      <option value="commission">Commission de parrainage</option>
       <option value="withdrawal_commission">Commission sur retrait des fonds</option>
       <option value="transfer_commission">Commission sur transfert des fonds</option>
     </select>

@@ -110,11 +110,11 @@ const useDashboardCounters = (isAdmin = false) => {
     loading, 
     error, 
     refresh: fetchCounters,
-    // Compteurs individuels pour compatibilité avec le code existant
+    
     pendingCount: counters.withdrawals,
     pendingFormationsCount: counters.formations,
     pendingTestimonialsCount: counters.testimonials,
-    pendingPublicationsCount: counters.digital_products + counters.advertisements + counters.job_offers + counters.social_events + counters.business_opportunities,
+    pendingPublicationsCount: (counters.digital_products || 0) + (counters.advertisements || 0) + (counters.job_offers || 0) + (counters.social_events || 0) + (counters.business_opportunities || 0),
     pendingAnomaliesCount: counters.pending_anomalies,
   };
 };

@@ -18,7 +18,7 @@ export const getTransactionColor = (transactionType, isDarkMode = false) => {
     "solifin_funds_withdrawal": isDarkMode ? "#de893aff" : "#fff5d1",
     
     // Commissions
-    "sponsorship_commission": isDarkMode ? "#9f1239" : "#fee2e2",
+    "commission": isDarkMode ? "#9f1239" : "#fee2e2",
     "transfer_commission": isDarkMode ? "#9f1239" : "#fee2e2",
     "sale_commission": isDarkMode ? "#059669" : "#dcfce7",
     

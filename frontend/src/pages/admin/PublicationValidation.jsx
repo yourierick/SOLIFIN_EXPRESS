@@ -51,25 +51,25 @@ export default function PublicationValidation() {
   const pendingCounts = useMemo(
     () => ({
       publications: Array.isArray(allItems.publications?.data)
-        ? allItems.publications.data.filter((item) => item.statut === "en_attente")
+        ? allItems.publications.data.filter((item) => item.statut === "pending")
             .length
         : 0,
       jobOffers: Array.isArray(allItems.jobOffers?.data)
-        ? allItems.jobOffers.data.filter((item) => item.statut === "en_attente")
+        ? allItems.jobOffers.data.filter((item) => item.statut === "pending")
             .length
         : 0,
       businessOpportunities: Array.isArray(allItems.businessOpportunities?.data)
         ? allItems.businessOpportunities.data.filter(
-            (item) => item.statut === "en_attente"
+            (item) => item.statut === "pending"
           ).length
         : 0,
       digitalProducts: Array.isArray(allItems.digitalProducts?.data)
         ? allItems.digitalProducts.data.filter(
-            (item) => item.statut === "en_attente"
+            (item) => item.statut === "pending"
           ).length
         : 0,
       socialEvents: Array.isArray(allItems.socialEvents?.data)
-        ? allItems.socialEvents.data.filter((item) => item.statut === "en_attente")
+        ? allItems.socialEvents.data.filter((item) => item.statut === "pending")
             .length
         : 0,
     }),
@@ -131,7 +131,6 @@ export default function PublicationValidation() {
   // Fonction pour récupérer toutes les données et afficher un toast de confirmation
   const fetchAllItems = () => {
     fetchData();
-    toast.info("Données actualisées");
   };
 
   // Fonction pour changer de page
@@ -435,7 +434,7 @@ export default function PublicationValidation() {
           return;
       }
 
-      await axios.patch(endpoint, { statut: "en_attente" });
+      await axios.patch(endpoint, { statut: "pending" });
 
       // Mettre à jour la liste des items
       fetchData();
@@ -539,7 +538,7 @@ export default function PublicationValidation() {
         ...prev,
         [stateKey]: prev[stateKey].map((item) =>
           item.id === selectedItem.id
-            ? { ...item, statut: "rejeté", raison_rejet: rejectionReason }
+            ? { ...item, statut: "rejected", raison_rejet: rejectionReason }
             : item
         ),
       }));
@@ -557,19 +556,19 @@ export default function PublicationValidation() {
   const StatusBadge = ({ status }) => {
     const getStatusConfig = () => {
       switch (status) {
-        case "en_attente":
+        case "pending":
           return {
             bg: "bg-yellow-100 dark:bg-yellow-900/30",
             text: "text-yellow-800 dark:text-yellow-300",
             label: "En attente",
           };
-        case "approuvé":
+        case "approved":
           return {
             bg: "bg-green-100 dark:bg-green-900/30",
             text: "text-green-800 dark:text-green-300",
             label: "Approuvé",
           };
-        case "rejeté":
+        case "rejected":
           return {
             bg: "bg-red-100 dark:bg-red-900/30",
             text: "text-red-800 dark:text-red-300",
@@ -599,17 +598,17 @@ export default function PublicationValidation() {
   const StateBadge = ({ state }) => {
     const getStateConfig = () => {
       switch (state) {
-        case "disponible":
+        case "available":
           return {
             bg: "bg-blue-100 dark:bg-blue-900/30",
             text: "text-blue-800 dark:text-blue-300",
             label: "Disponible",
           };
-        case "terminé":
+        case "unavailable":
           return {
             bg: "bg-purple-100 dark:bg-purple-900/30",
             text: "text-purple-800 dark:text-purple-300",
-            label: "Terminé",
+            label: "Indisponible",
           };
         default:
           return {
@@ -634,11 +633,11 @@ export default function PublicationValidation() {
   // Fonction pour obtenir la couleur de bordure en fonction du statut
   const getStatusBorderColor = (status) => {
     switch (status) {
-      case "en_attente":
+      case "pending":
         return "border-yellow-200 dark:border-yellow-900/50";
-      case "approuvé":
+      case "approved":
         return "border-green-200 dark:border-green-900/50";
-      case "rejeté":
+      case "rejected":
         return "border-red-200 dark:border-red-900/50";
       default:
         return "border-gray-200 dark:border-gray-700";
@@ -895,17 +894,18 @@ export default function PublicationValidation() {
                   >
                     <EyeIcon className="h-5 w-5" />
                   </button>
-                  {item.statut !== "approuvé" && (
+                  {item.statut !== "approved" && (
                     <button
                       title="Approuver"
                       onClick={() => handleApprove(item.id, type)}
                       className="p-2 rounded-full bg-green-50 hover:bg-green-100 text-green-600 transition-all duration-200 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400"
                       aria-label="Approuver"
                     >
+                      {console.log(type)}
                       <CheckCircleIcon className="h-5 w-5" />
                     </button>
                   )}
-                  {item.statut === "rejeté" ? (
+                  {item.statut === "rejected" ? (
                     <button
                       title="Annuler le rejet"
                       onClick={() => handleCancelReject(item.id, type)}
@@ -932,7 +932,7 @@ export default function PublicationValidation() {
                         handleChangeEtat(
                           item.id,
                           type,
-                          item.etat === "disponible" ? "terminé" : "disponible"
+                          item.etat === "available" ? "disponible" : "indisponible"
                         )
                       }
                       className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all duration-200 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:text-blue-400"
@@ -1003,7 +1003,7 @@ export default function PublicationValidation() {
       setAllItems((prev) => ({
         ...prev,
         [stateKey]: Array.isArray(prev[stateKey]) ? prev[stateKey].map((item) =>
-          item.id === id ? { ...item, statut: "rejeté" } : item
+          item.id === id ? { ...item, statut: "rejected" } : item
         ) : [],
       }));
 
@@ -1046,13 +1046,13 @@ export default function PublicationValidation() {
           return;
       }
 
-      await axios.patch(endpoint, { statut: "en_attente" });
+      await axios.patch(endpoint, { statut: "pending" });
 
       // Mettre à jour la liste des items en attente
       setAllItems((prev) => ({
         ...prev,
         [stateKey]: Array.isArray(prev[stateKey]) ? prev[stateKey].map((item) =>
-          item.id === id ? { ...item, statut: "approuvé" } : item
+          item.id === id ? { ...item, statut: "approved" } : item
         ) : [],
       }));
 
@@ -1083,9 +1083,9 @@ export default function PublicationValidation() {
             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
           >
             <option value="all">Tous</option>
-            <option value="en_attente">En attente</option>
-            <option value="approuvé">Approuvé</option>
-            <option value="rejeté">Rejeté</option>
+            <option value="pending">En attente</option>
+            <option value="approved">Approuvé</option>
+            <option value="rejected">Rejeté</option>
           </select>
         </div>
 
@@ -1100,8 +1100,8 @@ export default function PublicationValidation() {
             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
           >
             <option value="all">Tous</option>
-            <option value="disponible">Disponible</option>
-            <option value="terminé">Terminé</option>
+            <option value="available">Disponible</option>
+            <option value="unavailable">Terminé</option>
           </select>
         </div>
 

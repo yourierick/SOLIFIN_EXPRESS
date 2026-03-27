@@ -69,7 +69,7 @@ export function ThemeProvider({ children }) {
           },
         },
         typography: {
-          fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
+          fontFamily: '"Poppins", "Poppins Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
           h1: {
             fontWeight: 700,
           },

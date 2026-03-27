@@ -19,7 +19,7 @@ class InvoiceService
     {
         $user = $userPack->user;
         $pack = $userPack->pack;
-        $pack_price = $metadata['currency'] === 'USD' ? $pack->price : $pack->cdf_price;
+        $pack_price = $pack->price;
         
         $data = [
             'invoiceNumber' => 'INV-' . str_pad($userPack->id, 6, '0', STR_PAD_LEFT),
@@ -45,7 +45,7 @@ class InvoiceService
                     'quantity' => $durationMonths,
                     'unit_price' => $pack_price,
                     'total' => $pack_price * $durationMonths,
-                    'currency' => $metadata['currency'] === 'USD' ? '$' : 'FC',
+                    'currency' => '$',
                 ]
             ],
             'subscription' => [
@@ -57,7 +57,7 @@ class InvoiceService
                 'subtotal' => ($pack_price * $durationMonths),
                 'tax' => $metadata['fees'],
                 'total' => ($pack_price * $durationMonths) + $metadata['fees'],
-                'currency' => $metadata['currency'] === 'USD' ? '$' : 'FC',
+                'currency' => '$',
             ],
             'payment' => [
                 'method' => $this->getPaymentMethodLabel($metadata['method']),

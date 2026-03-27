@@ -242,7 +242,7 @@ class Wallet extends Model
     public function getCommissionsByPack(): array
     {
         return $this->transactions()
-            ->where('type', 'sponsorship_commission')
+            ->where('type', 'commission')
             ->whereNotNull('metadata->pack_id')
             ->get()
             ->groupBy('metadata.pack_id')
@@ -271,7 +271,7 @@ class Wallet extends Model
                 ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->sum('amount'),
             'commissions' => $this->transactions()
-                ->whereIn('type', ['sponsorship_commission', 'withdrawal_commission', 'transfer_commission'])
+                ->whereIn('type', ['commission', 'withdrawal_commission', 'transfer_commission'])
                 ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->sum('amount'),
         ];

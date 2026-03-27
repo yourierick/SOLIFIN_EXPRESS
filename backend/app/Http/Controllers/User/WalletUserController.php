@@ -1163,7 +1163,7 @@ class WalletUserController extends Controller
             'freeze_funds' => 'Blocage des fonds',
             'virtual_receipt' => 'Réception des fonds',
             'digital_product_sale' => 'Vente de produit numérique',
-            'sponsorship_commission' => 'Commission de parrainage',
+            'commission' => 'Commission de parrainage',
             'transfer_commission' => 'Commission de transfert',
             'withdrawal_commission' => 'Commission de retrait',
             'virtual_sale' => 'Vente des virtuels',

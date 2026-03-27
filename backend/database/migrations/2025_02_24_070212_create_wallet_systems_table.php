@@ -40,7 +40,7 @@ return new class extends Migration
             $table->enum('nature', ['external', 'internal']);
             $table->enum('type', [
                 'boost_sale', 'pack_sale', 'virtual_sale', 'virtual_send', 'withdrawal_commission', 'transfer_commission', 'sale_commission', 'funds_withdrawal', 
-                'esengo_funds_transfer', 'adjustment', 'reverse', 'sponsorship_commission', 'solifin_funds_withdrawal', 'withdrawal_reverse'
+                'esengo_funds_transfer', 'adjustment', 'reverse', 'commission', 'solifin_funds_withdrawal', 'withdrawal_reverse'
             ]);
             $table->decimal('amount', 15, 8);
             $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'reversed'])->default('pending');

@@ -13,7 +13,6 @@ import {
   TableRow,
   Paper,
   Chip,
-  CircularProgress,
   Alert,
   alpha,
   useMediaQuery,
@@ -42,6 +41,7 @@ import axios from "../../utils/axios";
 import { useCurrency } from "../../contexts/CurrencyContext";
 import { Star, StarBorder } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 // Enregistrer les composants Chart.js nécessaires
 ChartJS.register(
@@ -1360,35 +1360,11 @@ export default function Stats() {
         <Box
           display="flex"
           justifyContent="center"
-          alignItems="center"
+          alignItems="flex-start"
           minHeight="60vh"
-          flexDirection="column"
+          pt={8}
         >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <CircularProgress
-              size={60}
-              thickness={4}
-              sx={{
-                color: "primary.main",
-                mb: 3,
-              }}
-            />
-          </motion.div>
-          <Typography
-            variant="h6"
-            sx={{
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              backgroundClip: "text",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              fontWeight: 600,
-            }}
-          >
-            Chargement des statistiques...
-          </Typography>
+          <LoadingSpinner size="lg" />
         </Box>
       </Container>
     );

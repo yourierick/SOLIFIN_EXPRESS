@@ -149,6 +149,7 @@ class PubliciteController extends Controller
             }
             
             if (!$packActif) {
+                \Log::info('Votre pack de publication n\'est pas actif. Veuillez le réactiver pour publier.');
                 return response()->json([
                     'success' => false,
                     'message' => 'Votre pack de publication n\'est pas actif. Veuillez le réactiver pour publier.'
@@ -224,9 +225,10 @@ class PubliciteController extends Controller
                 'publicite' => $publicite
             ], 201);
         } catch (\Exception $e) {
+            \Log::info($e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Une erreur s\'est produite lors de la soumission de la publicité'
             ], 500);
         }
     }

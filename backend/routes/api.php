@@ -322,7 +322,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     // Routes pour les publicités
     Route::get('/publicites', [App\Http\Controllers\PubliciteController::class, 'index']);
-    Route::post('/publicites', [App\Http\Controllers\PubliciteController::class, 'store']);
+    Route::post('/publicites/store', [App\Http\Controllers\PubliciteController::class, 'store']);
     Route::get('/publicites/{id}', [App\Http\Controllers\PubliciteController::class, 'show']);
     Route::get('/publicites/{id}/details', [App\Http\Controllers\PubliciteController::class, 'details']);
     Route::put('/publicites/{id}', [App\Http\Controllers\PubliciteController::class, 'update']);
@@ -343,7 +343,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     // Routes pour les offres d'emploi
     Route::get('/offres-emploi', [App\Http\Controllers\OffreEmploiController::class, 'index']);
-    Route::post('/offres-emploi', [App\Http\Controllers\OffreEmploiController::class, 'store']);
+    Route::post('/offres-emploi/store', [App\Http\Controllers\OffreEmploiController::class, 'store']);
     
     //Route pour ajouter un module à une formation
     //Récupération des frais d'achat d'une formation
@@ -428,7 +428,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     // Routes pour les opportunités d'affaires
     Route::get('/opportunites-affaires', [App\Http\Controllers\OpportuniteAffaireController::class, 'index']);
-    Route::post('/opportunites-affaires', [App\Http\Controllers\OpportuniteAffaireController::class, 'store']);
+    Route::post('/opportunites-affaires/store', [App\Http\Controllers\OpportuniteAffaireController::class, 'store']);
     Route::get('/opportunites-affaires/{id}', [App\Http\Controllers\OpportuniteAffaireController::class, 'show']);
     Route::get('/opportunites-affaires/{id}/details', [App\Http\Controllers\OpportuniteAffaireController::class, 'details']);
     Route::put('/opportunites-affaires/{id}', [App\Http\Controllers\OpportuniteAffaireController::class, 'update']);

@@ -1,0 +1,74 @@
+/* Fallback local fonts pour Poppins */
+
+/* Poppins Regular 400 */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrJJfecg.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrJJfecg.woff') format('woff');
+}
+
+/* Poppins Medium 500 */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff') format('woff');
+}
+
+/* Poppins SemiBold 600 */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff') format('woff');
+}
+
+/* Poppins Bold 700 */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLCz7Z1xlFQ.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLCz7Z1xlFQ.woff') format('woff');
+}
+
+/* Fallback system fonts si Poppins ne se charge pas */
+@font-face {
+  font-family: 'Poppins Fallback';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Arial'), local('Helvetica'), local('sans-serif');
+}
+
+@font-face {
+  font-family: 'Poppins Fallback';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Arial'), local('Helvetica'), local('sans-serif');
+}
+
+@font-face {
+  font-family: 'Poppins Fallback';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Arial'), local('Helvetica'), local('sans-serif');
+}
+
+@font-face {
+  font-family: 'Poppins Fallback';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Arial'), local('Helvetica'), local('sans-serif');
+}

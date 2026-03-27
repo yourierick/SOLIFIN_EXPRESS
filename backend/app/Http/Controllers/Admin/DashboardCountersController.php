@@ -87,7 +87,7 @@ class DashboardCountersController extends Controller
     private function getPendingDigitalProductsCount(): int
     {
         try {
-            return DigitalProduct::where('statut', 'en_attente')->count();
+            return DigitalProduct::where('statut', 'pending')->count();
         } catch (\Exception $e) {
             \Log::error('Erreur comptage produits digitaux: ' . $e->getMessage());
             return 0;
@@ -102,7 +102,7 @@ class DashboardCountersController extends Controller
     private function getPendingAdvertisementsCount(): int
     {
         try {
-            return Publicite::where('statut', 'en_attente')->count();
+            return Publicite::where('statut', 'pending')->count();
         } catch (\Exception $e) {
             \Log::error('Erreur comptage publicités: ' . $e->getMessage());
             return 0;
@@ -117,7 +117,7 @@ class DashboardCountersController extends Controller
     private function getPendingJobOffersCount(): int
     {
         try {
-            return OffreEmploi::where('statut', 'en_attente')->count();
+            return OffreEmploi::where('statut', 'pending')->count();
         } catch (\Exception $e) {
             \Log::error('Erreur comptage offres emploi: ' . $e->getMessage());
             return 0;
@@ -132,7 +132,7 @@ class DashboardCountersController extends Controller
     private function getPendingSocialEventsCount(): int
     {
         try {
-            return SocialEvent::where('statut', 'en_attente')->count();
+            return SocialEvent::where('statut', 'pending')->count();
         } catch (\Exception $e) {
             \Log::error('Erreur comptage événements sociaux: ' . $e->getMessage());
             return 0;
@@ -147,7 +147,7 @@ class DashboardCountersController extends Controller
     private function getPendingBusinessOpportunitiesCount(): int
     {
         try {
-            return OpportuniteAffaire::where('statut', 'en_attente')->count();
+            return OpportuniteAffaire::where('statut', 'pending')->count();
         } catch (\Exception $e) {
             \Log::error('Erreur comptage opportunités affaires: ' . $e->getMessage());
             return 0;

@@ -184,7 +184,7 @@ const SuiviFinancier = React.memo(() => {
       color: 'default',
     },
     {
-      key: 'sponsorship_commission',
+      key: 'commission',
       label: 'Commission de parrainage',
       description: 'Suivi des commissions de parrainage',
       icon: ReferralCommissionIcon,

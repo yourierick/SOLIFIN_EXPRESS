@@ -18,7 +18,8 @@ class HomeController extends Controller
     public function approvedAds()
     {
         try {
-            $ads = Publicite::where('statut', 'approuvé')
+            $ads = Publicite::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->orderBy('created_at', 'desc')
                 ->take(10)
                 ->get()
@@ -47,8 +48,8 @@ class HomeController extends Controller
     public function approvedJobOffers()
     {
         try {
-            $jobOffers = OffreEmploi::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $jobOffers = OffreEmploi::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->orderBy('created_at', 'desc')
                 ->take(10)
                 ->get()
@@ -76,8 +77,8 @@ class HomeController extends Controller
     public function approvedBusinessOpportunities()
     {
         try {
-            $businessOpportunities = OpportuniteAffaire::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $businessOpportunities = OpportuniteAffaire::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->orderBy('created_at', 'desc')
                 ->take(10)
                 ->get()
@@ -109,13 +110,13 @@ class HomeController extends Controller
             $limit = $request->get('limit', 10);
             
             // Récupérer toutes les offres d'emploi approuvées et disponibles
-            $jobOffersQuery = OffreEmploi::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $jobOffersQuery = OffreEmploi::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->orderBy('created_at', 'desc');
 
             // Récupérer toutes les opportunités d'affaire approuvées et disponibles
-            $businessOpportunitiesQuery = OpportuniteAffaire::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $businessOpportunitiesQuery = OpportuniteAffaire::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->orderBy('created_at', 'desc');
 
             // Compter le total des opportunités

@@ -34,7 +34,7 @@ export const getOperationType = (operation) => {
       return "Paiement des fonds esengo";
     case "balance_adjustment":
       return "Ajustement de solde";
-    case "sponsorship_commission":
+    case "commission":
       return "Commission de parrainage";
     case "funds_receipt":
       return "Réception de fonds";

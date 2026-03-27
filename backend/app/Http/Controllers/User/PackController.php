@@ -267,20 +267,22 @@ class PackController extends Controller
         }
     }
 
-    //récupérer les filleuls d'un pack avec pagination
+    //récupérer les filleuls d'un pack avec pagination optimisée
     public function getPackReferrals(Request $request, Pack $pack)
     {
         try {
-            // Récupérer les paramètres de pagination
+            // Récupérer les paramètres
             $page = $request->input('page', 1);
             $perPage = $request->input('per_page', 25);
             $searchTerm = $request->input('search', '');
             $statusFilter = $request->input('status', 'all');
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
-            $generationTab = $request->input('generation_tab', 0); // Onglet de génération actif (0-3)
+            $generationTab = $request->input('generation_tab', 0);
+            $userId = $request->user()->id;
             
-            $userPack = UserPack::where('user_id', $request->user()->id)
+            // Vérifier si l'utilisateur a le pack
+            $userPack = UserPack::where('user_id', $userId)
                 ->where('pack_id', $pack->id)
                 ->first();
 
@@ -291,42 +293,39 @@ class PackController extends Controller
                 ], 404);
             }
 
+            // Récupérer les filleuls par génération (approche simple et éprouvée)
             $allGenerations = [];
-            $paginationData = [];
             
-            // Première génération (niveau 1)
+            // Première génération (niveau 1) - filleuls directs
             $level1Referrals = UserPack::with(['user', 'sponsor', 'pack'])
-                ->where('sponsor_id', $request->user()->id)
+                ->where('sponsor_id', $userId)
                 ->where('pack_id', $pack->id)
                 ->get()
-                ->map(function ($referral) use ($request, $pack) {
-                    $commissions = Commission::where('user_id', $request->user()->id)->where('source_user_id', $referral->user_id)->where('pack_id', $pack->id)->where('status', "completed")->get();
-                    $commissionsByCurrency = $commissions;
-                    
-                    $totalCommissionUSD = $commissionsByCurrency->sum('amount');
-                    $totalCommissionCDF = $commissionsByCurrency->sum('amount');
+                ->map(function ($referral) use ($userId, $pack) {
+                    $commissions = Commission::where('user_id', $userId)
+                        ->where('source_user_id', $referral->user_id)
+                        ->where('pack_id', $pack->id)
+                        ->where('status', 'completed')
+                        ->get();
                     $totalCommission = $commissions->sum('amount');
-
-                    \Log::info($totalCommission);
                     
                     return [
                         'id' => $referral->user->id ?? null,
                         'name' => $referral->user->name ?? 'N/A',
-                        'purchase_date' => optional($referral->purchase_date)->format('d/m/Y'),
+                        'purchase_date' => $referral->purchase_date ? $referral->purchase_date->format('d/m/Y') : '',
                         'pack_status' => $referral->status ?? 'inactive',
                         'total_commission' => $totalCommission ?? 0,
-                        'total_commission_usd' => $totalCommissionUSD ?? 0,
-                        'total_commission_cdf' => $totalCommissionCDF ?? 0,
-                        'sponsor_id' => $referral->sponsor_id,
+                        'id_parrain' => $referral->sponsor_id,
+                        'nom_parrain' => 'Vous',
                         'referral_code' => $referral->referral_code ?? 'N/A',
-                        'pack_name' => $referral->pack->price ? $referral->pack->name : 'N/A',
+                        'pack_name' => $referral->pack->name ?? 'N/A',
                         'pack_price' => $referral->pack->price ?? 0,
-                        'expiry_date' => optional($referral->expiry_date)->format('d/m/Y')
+                        'expiry_date' => $referral->expiry_date ? $referral->expiry_date->format('d/m/Y') : ''
                     ];
                 });
             $allGenerations[] = $level1Referrals;
 
-            // Générations 2 à 4
+            // Générations 2 à 4 - filleuls indirects
             for ($level = 2; $level <= 4; $level++) {
                 $currentGeneration = collect();
                 $previousGeneration = $allGenerations[$level - 2];
@@ -336,38 +335,33 @@ class PackController extends Controller
                         ->where('sponsor_id', $parent['id'])
                         ->where('pack_id', $pack->id)
                         ->get()
-                        ->map(function ($referral) use ($parent, $request, $pack) {
-                            //calcul du total de commission générée par ce filleul pour cet utilisateur.
-                            $commissions = Commission::where('user_id', $request->user()->id)->where('source_user_id', $referral->user_id)->where('pack_id', $pack->id)->where('status', "completed")->get();
-                            $commissionsByCurrency = $commissions;
-                            
-                            $totalCommissionUSD = $commissionsByCurrency->sum('amount');
-                            $totalCommissionCDF = $commissionsByCurrency->sum('amount');
+                        ->map(function ($referral) use ($parent, $userId, $pack) {
+                            $commissions = Commission::where('user_id', $userId)
+                                ->where('source_user_id', $referral->user_id)
+                                ->where('pack_id', $pack->id)
+                                ->where('status', 'completed')
+                                ->get();
                             $totalCommission = $commissions->sum('amount');
 
-                            \Log::info($totalCommission);
-                            
                             return [
                                 'id' => $referral->user->id ?? null,
                                 'name' => $referral->user->name ?? 'N/A',
-                                'purchase_date' => optional($referral->purchase_date)->format('d/m/Y'),
+                                'purchase_date' => $referral->purchase_date ? $referral->purchase_date->format('d/m/Y') : '',
                                 'pack_status' => $referral->status ?? 'inactive',
                                 'total_commission' => $totalCommission ?? 0,
-                                'total_commission_usd' => $totalCommissionUSD ?? 0,
-                                'total_commission_cdf' => $totalCommissionCDF ?? 0,
-                                'sponsor_id' => $referral->sponsor_id,
-                                'sponsor_name' => $parent['name'] ?? 'N/A',
+                                'id_parrain' => $referral->sponsor_id,
+                                'nom_parrain' => $parent['name'] ?? 'N/A',
                                 'referral_code' => $referral->referral_code ?? 'N/A',
                                 'pack_name' => $referral->pack->name ?? 'N/A',
                                 'pack_price' => $referral->pack->price ?? 0,
-                                'expiry_date' => optional($referral->expiry_date)->format('d/m/Y')
+                                'expiry_date' => $referral->expiry_date ? $referral->expiry_date->format('d/m/Y') : ''
                             ];
                         });
                     $currentGeneration = $currentGeneration->concat($children);
                 }
                 $allGenerations[] = $currentGeneration;
             }
-            
+
             // Appliquer les filtres à chaque génération
             for ($i = 0; $i < count($allGenerations); $i++) {
                 $filteredGeneration = $allGenerations[$i];
@@ -384,33 +378,24 @@ class PackController extends Controller
                 // Filtre par statut
                 if ($statusFilter !== 'all') {
                     $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($statusFilter) {
-                        if ($statusFilter === 'active') {
-                            return $referral['pack_status'] === 'active';
-                        } elseif ($statusFilter === 'inactive') {
-                            return $referral['pack_status'] === 'inactive';
-                        } elseif ($statusFilter === 'expired') {
-                            return $referral['pack_status'] === 'expired';
-                        }
-                        return true;
+                        return $referral['pack_status'] === $statusFilter;
                     });
                 }
                 
                 // Filtre par date
                 if (!empty($startDate)) {
-                    $startDateObj = \Carbon\Carbon::createFromFormat('Y-m-d', $startDate)->startOfDay();
-                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($startDateObj) {
-                        if ($referral['purchase_date'] === 'N/A') return false;
-                        $purchaseDate = \Carbon\Carbon::createFromFormat('d/m/Y', $referral['purchase_date'])->startOfDay();
-                        return $purchaseDate->greaterThanOrEqualTo($startDateObj);
+                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($startDate) {
+                        if (empty($referral['purchase_date'])) return false;
+                        $purchaseDate = \DateTime::createFromFormat('d/m/Y', $referral['purchase_date']);
+                        return $purchaseDate && $purchaseDate->format('Y-m-d') >= $startDate;
                     });
                 }
                 
                 if (!empty($endDate)) {
-                    $endDateObj = \Carbon\Carbon::createFromFormat('Y-m-d', $endDate)->endOfDay();
-                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($endDateObj) {
-                        if ($referral['purchase_date'] === 'N/A') return false;
-                        $purchaseDate = \Carbon\Carbon::createFromFormat('d/m/Y', $referral['purchase_date'])->startOfDay();
-                        return $purchaseDate->lessThanOrEqualTo($endDateObj);
+                    $filteredGeneration = $filteredGeneration->filter(function ($referral) use ($endDate) {
+                        if (empty($referral['purchase_date'])) return false;
+                        $purchaseDate = \DateTime::createFromFormat('d/m/Y', $referral['purchase_date']);
+                        return $purchaseDate && $purchaseDate->format('Y-m-d') <= $endDate;
                     });
                 }
                 
@@ -442,14 +427,96 @@ class PackController extends Controller
                 'data' => $allGenerations,
                 'pagination' => $paginationData
             ]);
+
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la récupération des filleuls: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des filleuls'
             ], 500);
         }
+    }
+
+    /**
+     * Organiser les résultats par génération
+     */
+    private function organizeByGenerations($results, $userId, $maxGeneration = 4)
+    {
+        $generations = [[], [], [], [], []]; // 4 générations max
+        $processed = [];
+
+        // Générations 1-4
+        for ($level = 0; $level < $maxGeneration; $level++) {
+            foreach ($results as $result) {
+                if ($result->id == $userId) continue; // Skip l'utilisateur lui-même
+                if (in_array($result->id, $processed)) continue; // Skip déjà traité
+
+                // Vérifier si ce résultat appartient à cette génération
+                if ($this->belongsToGeneration($result, $userId, $level)) {
+                    $formatted = [
+                        'id' => $result->id,
+                        'name' => $result->name,
+                        'purchase_date' => $result->purchase_date ? Carbon::parse($result->purchase_date)->format('d/m/Y') : 'N/A',
+                        'pack_status' => $result->pack_status,
+                        'total_commission' => (float) $result->total_commission,
+                        'id_parrain' => $result->id_parrain,
+                        'nom_parrain' => $result->nom_parrain ?: 'Vous',
+                        'referral_code' => $result->referral_code ?: 'N/A',
+                        'pack_name' => $result->pack_name ?: 'N/A',
+                        'pack_price' => (float) $result->pack_price,
+                        'expiry_date' => $result->expiry_date ? Carbon::parse($result->expiry_date)->format('d/m/Y') : 'N/A'
+                    ];
+
+                    $generations[$level][] = $formatted;
+                    $processed[] = $result->id;
+                }
+            }
+        }
+
+        return $generations;
+    }
+
+    /**
+     * Vérifier si un utilisateur appartient à une génération spécifique
+     */
+    private function belongsToGeneration($result, $userId, $generation)
+    {
+        if ($generation == 0) {
+            // Génération 1: sponsor direct
+            return $result->id_parrain == $userId;
+        }
+
+        // Générations 2-4: trouver récursivement
+        return $this->findGenerationLevel($result->id_parrain, $userId, $generation);
+    }
+
+    /**
+     * Trouver le niveau de génération d'un utilisateur
+     */
+    private function findGenerationLevel($sponsorId, $rootUserId, $targetLevel, $currentLevel = 1)
+    {
+        if ($sponsorId == $rootUserId) {
+            return $currentLevel == $targetLevel;
+        }
+
+        if ($currentLevel >= $targetLevel) {
+            return false;
+        }
+
+        $sponsor = DB::table('user_packs')
+            ->where('user_id', $sponsorId)
+            ->where('pack_id', function ($query) use ($userId) {
+                $query->select('pack_id')
+                    ->from('user_packs')
+                    ->where('user_id', $userId);
+            })
+            ->value('sponsor_id');
+
+        if (!$sponsor) {
+            return false;
+        }
+
+        return $this->findGenerationLevel($sponsor, $rootUserId, $targetLevel, $currentLevel + 1);
     }
 
     /**
@@ -733,6 +800,50 @@ class PackController extends Controller
                 'message' => 'Erreur lors de la récupération des statistiques détaillées'
             ], 500);
         }
+    }
+
+    /**
+     * Vérifie si un userPack est un filleul (direct ou indirect) d'un utilisateur
+     * 
+     * @param UserPack $userPack
+     * @param int $sponsorId
+     * @param Collection $allUserPacks
+     * @return bool
+     */
+    private function isReferralOf($userPack, $sponsorId, $allUserPacks)
+    {
+        // Filleul direct
+        if ($userPack->sponsor_id == $sponsorId) {
+            return true;
+        }
+
+        // Vérifier les générations indirectes (jusqu'à 4)
+        $currentSponsorIds = [$sponsorId];
+        
+        for ($generation = 1; $generation <= 4; $generation++) {
+            $nextSponsorIds = [];
+            
+            foreach ($currentSponsorIds as $currentSponsorId) {
+                $directReferrals = $allUserPacks->where('sponsor_id', $currentSponsorId);
+                
+                foreach ($directReferrals as $referral) {
+                    if ($referral->id == $userPack->id) {
+                        return true;
+                    }
+                    if ($referral->user_id) {
+                        $nextSponsorIds[] = $referral->user_id;
+                    }
+                }
+            }
+            
+            if (empty($nextSponsorIds)) {
+                break;
+            }
+            
+            $currentSponsorIds = $nextSponsorIds;
+        }
+        
+        return false;
     }
 
     /**

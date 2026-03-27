@@ -549,24 +549,24 @@ class DashboardController extends BaseController
     {
         try {
             // Récupérer les publicités approuvées et disponibles
-            $publicites = Publicite::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $publicites = Publicite::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->with(['user', 'page'])
                 ->latest()
                 ->take(5)
                 ->get();
             
             // Récupérer les offres d'emploi approuvées et disponibles
-            $offresEmploi = OffreEmploi::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $offresEmploi = OffreEmploi::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->with(['user', 'page'])
                 ->latest()
                 ->take(5)
                 ->get();
             
             // Récupérer les opportunités d'affaires approuvées et disponibles
-            $opportunitesAffaires = OpportuniteAffaire::where('statut', 'approuvé')
-                ->where('etat', 'disponible')
+            $opportunitesAffaires = OpportuniteAffaire::where('statut', 'approved')
+                ->where('etat', 'available')
                 ->with(['user', 'page'])
                 ->latest()
                 ->take(5)

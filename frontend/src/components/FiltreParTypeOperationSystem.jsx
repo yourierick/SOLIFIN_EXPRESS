@@ -36,7 +36,7 @@ const FiltreParTypeOperationSystem = ({
       <option value="funds_withdrawal">Retrait des fonds</option>
       <option value="esengo_funds_transfer">Paiement des fonds esengo</option>
       <option value="balance_adjustment">Ajustement de solde</option>
-      <option value="sponsorship_commission">Commission de parrainage</option>
+      <option value="commission">Commission de parrainage</option>
       <option value="solifin_funds_withdrawal">Retrait SOLIFIN</option>
     </select>
   );

@@ -149,13 +149,13 @@ export default function PublicationCard({
 
   const getStatusStyles = (status) => {
     switch (status) {
-      case "en_attente":
+      case "pending":
         return "bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/40 dark:to-yellow-800/40 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700/50";
-      case "approuvé":
+      case "approved":
         return "bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700/50";
-      case "rejeté":
+      case "rejected":
         return "bg-gradient-to-r from-red-100 to-red-200 dark:from-red-900/40 dark:to-red-800/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700/50";
-      case "expiré":
+      case "expired":
         return "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700/50 dark:to-gray-600/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600/50";
       default:
         return "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700/50 dark:to-gray-600/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600/50";
@@ -164,13 +164,13 @@ export default function PublicationCard({
 
   const getStatusText = (status) => {
     switch (status) {
-      case "en_attente":
+      case "pending":
         return "En attente";
-      case "approuvé":
+      case "approved":
         return "Approuvé";
-      case "rejeté":
+      case "rejected":
         return "Rejeté";
-      case "expiré":
+      case "expired":
         return "Expiré";
       default:
         return "Inconnu";
@@ -179,9 +179,9 @@ export default function PublicationCard({
 
   const getEtatStyles = (etat) => {
     switch (etat) {
-      case "disponible":
+      case "available":
         return "bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700/50";
-      case "terminé":
+      case "unavailable":
         return "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700/50 dark:to-gray-600/50 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600/50";
       default:
         return "bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700/50";
@@ -190,10 +190,10 @@ export default function PublicationCard({
 
   const getEtatText = (etat) => {
     switch (etat) {
-      case "disponible":
+      case "available":
         return "Disponible";
-      case "terminé":
-        return "Terminé";
+      case "unavailable":
+        return "Indisponible";
       default:
         return "Disponible";
     }
@@ -295,16 +295,16 @@ export default function PublicationCard({
                 isMobile ? "text-[10px]" : "text-xs"
               } font-semibold ${details.statusStyles} shadow-sm`}
             >
-              {details.statusText === "En attente" && (
+              {details.statusText === "pending" && (
                 <ClockIcon className={`w-2 h-2 sm:w-3 sm:h-3 mr-1`} />
               )}
-              {details.statusText === "Approuvé" && (
+              {details.statusText === "approved" && (
                 <CheckCircleIcon className={`w-2 h-2 sm:w-3 sm:h-3 mr-1`} />
               )}
-              {details.statusText === "Rejeté" && (
+              {details.statusText === "rejected" && (
                 <XCircleIcon className={`w-2 h-2 sm:w-3 sm:h-3 mr-1`} />
               )}
-              {details.statusText === "Expiré" && (
+              {details.statusText === "expired" && (
                 <ClockIcon className={`w-2 h-2 sm:w-3 sm:h-3 mr-1`} />
               )}
               {details.statusText}
@@ -366,11 +366,11 @@ export default function PublicationCard({
                     } shadow-2xl z-50 border border-gray-200 dark:border-gray-600/50 overflow-hidden backdrop-blur-sm`}
                   >
                     <div className="py-2">
-                      {publication.statut === "approuvé" &&
-                        publication.etat === "disponible" && (
+                      {publication.statut === "approved" &&
+                        publication.etat === "available" && (
                           <motion.button
                             whileHover={{ x: 4 }}
-                            onClick={() => handleEtatChange("terminé")}
+                            onClick={() => handleEtatChange("unavailable")}
                             className={`flex items-center w-full ${
                               isMobile ? "px-3 py-2" : "px-4 py-3"
                             } ${
@@ -389,8 +389,8 @@ export default function PublicationCard({
                         <EyeIcon className="h-4 w-4 mr-3 text-blue-500" />
                         <span className="font-medium">Voir les détails</span>
                       </motion.button>
-                      {(publication.statut === "approuvé" ||
-                        publication.statut === "expiré") && (
+                      {(publication.statut === "approved" ||
+                        publication.statut === "expired") && (
                         <motion.button
                           whileHover={{ x: 4 }}
                           onClick={handleBoost}

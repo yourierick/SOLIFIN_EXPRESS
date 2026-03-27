@@ -33,7 +33,7 @@ return new class extends Migration
                 'funds_receipt', 'funds_withdrawal', 'freeze_funds', 'unfreeze_funds', 'funds_transfer', 
                 'pack_purchase', 'virtual_purchase', 'virtual_receipt', 'boost_purchase', 
                 'digital_product_purchase', 'digital_product_sale', 
-                'sponsorship_commission', 'withdrawal_commission', 'transfer_commission', 'adjustment', 'reverse'
+                'commission', 'withdrawal_commission', 'transfer_commission', 'adjustment', 'reverse'
             ]);
             $table->decimal('amount', 15, 8);
             $table->decimal('fee_amount', 15, 8)->default(0);
