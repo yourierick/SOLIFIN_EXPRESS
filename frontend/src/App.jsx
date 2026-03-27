@@ -131,7 +131,7 @@ function App() {
               <ToastContainer />
               <ChatInterface />
               <PrefetchManager />
-              {/* <ServiceWorkerUpdater /> */}
+              <ServiceWorkerUpdater />
               <Routes>
                 {/* Routes publiques */}
                 <Route
