@@ -1,23 +1,23 @@
 import { useState, useEffect } from "react";
-import PublicationsDisplay from "./PublicationsDisplay";
+import DisplayPublic from "./DisplayPublic";
 import publicAxios from "../utils/publicAxios";
 
 export default function PublicationsWrapper() {
-  const [hasAds, setHasAds] = useState(false);
+  const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
 
     // Vérifier s'il y a des publicités approuvées
-    const checkAds = async () => {
+    const checkPublications = async () => {
       try {
-        const response = await publicAxios.get("/api/ads/approved");
-
+        const response = await publicAxios.get("/api/publications/approved");
         // Vérifier si le composant est toujours monté avant de mettre à jour l'état
         if (isMounted) {
-          const ads = response.data.ads || [];
-          setHasAds(ads.length > 0);
+          const xpublications = response.data.publications || [];
+          setPublications(xpublications);
           setLoading(false);
         }
       } catch (error) {
@@ -25,13 +25,14 @@ export default function PublicationsWrapper() {
         
         // Vérifier si le composant est toujours monté avant de mettre à jour l'état
         if (isMounted) {
-          setHasAds(false);
+          setPublications([]);
+          setError("Erreur lors du chargement des publicités");
           setLoading(false);
         }
       }
     };
 
-    checkAds();
+    checkPublications();
 
     // Cleanup function pour éviter les fuites de mémoire
     return () => {
@@ -39,11 +40,6 @@ export default function PublicationsWrapper() {
     };
   }, []);
 
-  // Ne rien afficher pendant le chargement ou s'il n'y a pas de publicités
-  if (loading || !hasAds) {
-    return null;
-  }
-
-  // Afficher le composant PublicationsDisplay seulement s'il y a des données
-  return <PublicationsDisplay />;
+  // Afficher toujours le composant PublicationsDisplay avec les données
+  return <DisplayPublic publications={publications} loading={loading} error={error} />;
 }

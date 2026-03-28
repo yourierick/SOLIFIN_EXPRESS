@@ -70,7 +70,9 @@ const ChatHeader = ({ activeRoom, onClose, onBack, showRoomList, isDarkMode }) =
             onClick={onBack}
             style={{ color: isDarkMode ? '#9ca3af' : '#6c757d' }}
           >
-            <i className="fas fa-arrow-left"></i>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20,11H13V4L11,4V11H4L4,13H11V20H13V13H20V11Z" transform="rotate(45 12 12)"/>
+            </svg>
           </button>
           
           <div className="room-info">
@@ -106,7 +108,9 @@ const ChatHeader = ({ activeRoom, onClose, onBack, showRoomList, isDarkMode }) =
               onClick={onClose}
               style={{ color: isDarkMode ? '#9ca3af' : '#6c757d' }}
             >
-              <i className="fas fa-times"></i>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+            </svg>
             </button>
             
             <div className="custom-dropdown" ref={menuRef}>
@@ -121,7 +125,9 @@ const ChatHeader = ({ activeRoom, onClose, onBack, showRoomList, isDarkMode }) =
                   padding: '5px'
                 }}
               >
-                <i className="fas fa-ellipsis-v"></i>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"/>
+                </svg>
               </button>
               
               {showMenu && (
@@ -153,7 +159,9 @@ const ChatHeader = ({ activeRoom, onClose, onBack, showRoomList, isDarkMode }) =
                       cursor: 'pointer'
                     }}
                   >
-                    <i className="fas fa-trash me-2"></i> Supprimer la conversation
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
+                      <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                    </svg> Supprimer la conversation
                   </button>
                 </div>
               )}
@@ -173,7 +181,9 @@ const ChatHeader = ({ activeRoom, onClose, onBack, showRoomList, isDarkMode }) =
             onClick={onClose}
             style={{ color: isDarkMode ? '#9ca3af' : '#6c757d' }}
           >
-            <i className="fas fa-times"></i>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+            </svg>
           </button>
         </>
       )}

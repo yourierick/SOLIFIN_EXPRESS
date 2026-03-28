@@ -65,7 +65,9 @@ const ChatMessages = ({ messages, loading, typingUsers, isDarkMode }) => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <i className="fas fa-file"></i> Télécharger le fichier
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '5px' }}>
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+              </svg> Télécharger le fichier
             </a>
           </div>
         );
@@ -209,7 +211,9 @@ const ChatMessages = ({ messages, loading, typingUsers, isDarkMode }) => {
                           {formatMessageTime(message.created_at)}
                           {isOwnMessage && message.is_read && (
                             <span className="read-status">
-                              <i className="fas fa-check-double"></i>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M21 7L9 19H3.5L21 1.5M5.5 18.5L18.5 5.5M12 12L18.5 5.5"/>
+                              </svg>
                             </span>
                           )}
                         </div>
@@ -273,7 +277,9 @@ const ChatMessages = ({ messages, loading, typingUsers, isDarkMode }) => {
             zIndex: 10
           }}
         >
-          <i className="fas fa-arrow-down"></i>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+          </svg>
         </button>
       )}
     </div>

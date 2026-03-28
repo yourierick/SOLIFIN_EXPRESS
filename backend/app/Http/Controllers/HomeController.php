@@ -31,7 +31,7 @@ class HomeController extends Controller
                 });
             return response()->json([
                 'success' => true,
-                'ads' => $ads
+                'publications' => $ads
             ]);
         } catch (\Exception $e) {
             return response()->json([

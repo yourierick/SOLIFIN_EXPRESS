@@ -28,7 +28,6 @@ const withSupport = (fn) => (...args) =>
 export const register = withSupport(() => {
   return navigator.serviceWorker.register('/service-worker.js')
     .then(registration => {
-      console.log('✅ Service Worker enregistré avec succès');
       
       // Configurer la détection de mises à jour de manière passive
       setupUpdateDetection(registration);

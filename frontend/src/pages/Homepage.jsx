@@ -45,7 +45,7 @@ import Testimonials from "../components/Testimonials";
 import FAQ from "../components/FAQ";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import PublicationsWrapper from "../components/PublicationsWrapper";
+import WrappersPublic from "../components/WrappersPublic";
 import OpportunitiesTable from "../components/OpportunitiesTable";
 import ThemeToggle from "../components/ThemeToggle";
 import SectionDivider from "../components/SectionDivider";
@@ -136,7 +136,7 @@ export default function Homepage() {
         </section>
         <SectionDivider />
         <section id="ads">
-          <PublicationsWrapper />
+          <WrappersPublic />
         </section>
         
         <SectionDivider />

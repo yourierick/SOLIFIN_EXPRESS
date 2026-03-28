@@ -32,13 +32,10 @@ const formatPublishedDate = (dateString) => {
   }
 };
 
-export default function PublicationsDisplay() {
+export default function DisplayPublic({ publications = [], loading = false, error = null }) {
   const { isDarkMode } = useTheme();
   const { user, loading: authLoading } = useAuth(); // Récupère l'utilisateur et l'état de chargement de l'auth
   const navigate = useNavigate();
-  const [publications, setPublications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false); // Pour afficher la modale si non authentifié
@@ -46,21 +43,6 @@ export default function PublicationsDisplay() {
   const [isSeeking, setIsSeeking] = useState(false); // État pour suivre si l'utilisateur est en train de chercher dans la vidéo
   const intervalRef = useRef(null);
   const videoRef = useRef(null); // Référence à l'élément vidéo
-
-  useEffect(() => {
-    setLoading(true);
-    publicAxios
-      .get("/api/ads/approved")
-      .then((response) => {
-        setPublications(response.data.ads);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Erreur lors du chargement des publicités", error);
-        setError("Erreur lors du chargement des publicités");
-        setLoading(false);
-      });
-  }, []);
 
   // Effet pour le défilement automatique du carrousel
   useEffect(() => {
@@ -152,9 +134,22 @@ export default function PublicationsDisplay() {
         ) : error ? (
           <div className="text-center py-12 text-red-500">{error}</div>
         ) : !publications?.length ? (
-          <div className="text-center py-12 text-gray-400">
-            Aucune publicité à afficher.
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-center py-16"
+          >
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 mb-6">
+              <SparklesIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+            </div>
+            <h3 className={`text-xl font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Aucune publicité disponible
+            </h3>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} max-w-md mx-auto`}>
+              Revenez plus tard pour découvrir nos nouvelles offres et promotions
+            </p>
+          </motion.div>
         ) : (
           <div className="relative max-w-6xl mx-auto">
             <motion.div

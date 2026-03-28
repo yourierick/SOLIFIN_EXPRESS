@@ -62,10 +62,11 @@ Route::get('/user', function (Request $request) {
 // Routes publiques (chargement des packs dans la page d'accueil)
 Route::get('/packs', [App\Http\Controllers\HomeController::class, 'index']);
 // Route publique pour les publicités approuvées (carrousel)
-Route::get('/ads/approved', [App\Http\Controllers\HomeController::class, 'approvedAds']);
+Route::get('/publications/approved', [App\Http\Controllers\HomeController::class, 'approvedAds']);
 Route::get('/job-offers/approved', [App\Http\Controllers\HomeController::class, 'approvedJobOffers']);
 Route::get('/business-opportunities/approved', [App\Http\Controllers\HomeController::class, 'approvedBusinessOpportunities']);
 Route::get('/opportunities/all', [App\Http\Controllers\HomeController::class, 'getAllOpportunities']);
+
 // Routes publiques pour les témoignages
 Route::get('/testimonials/featured', [App\Http\Controllers\TestimonialController::class, 'getFeatured']);
 Route::get('/testimonials/approved', [App\Http\Controllers\TestimonialController::class, 'getApproved']);

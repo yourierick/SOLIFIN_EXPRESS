@@ -149,54 +149,55 @@ export default function OpportunitiesTable() {
           </h2>
         </motion.div>
 
-        <div className={`overflow-x-auto ${isDarkMode ? "bg-gray-800" : "bg-white"}`} id="opportunities-table">
+        <div className={`overflow-x-auto rounded-xl shadow-2xl border ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`} id="opportunities-table">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
+            className="p-1"
           >
             <table className={`w-full rounded-lg overflow-hidden ${
               isDarkMode ? "bg-gray-800" : "bg-white"
-            } shadow-lg`}>
+            }`}>
               <thead className={
-                isDarkMode ? "bg-gray-700" : "bg-gray-50"
+                isDarkMode ? "bg-gradient-to-r from-gray-700 to-gray-600 border-b border-gray-600" : "bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200"
               }>
                 <tr>
-                  <th className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${
-                    isDarkMode ? "text-gray-300" : "text-gray-500"
+                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider border-b ${
+                    isDarkMode ? "text-gray-200 border-gray-600" : "text-gray-700 border-gray-200"
                   }`}>
                     Type
                   </th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${
-                    isDarkMode ? "text-gray-300" : "text-gray-500"
+                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider border-b ${
+                    isDarkMode ? "text-gray-200 border-gray-600" : "text-gray-700 border-gray-200"
                   }`}>
                     Poste/Opportunité
                   </th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${
-                    isDarkMode ? "text-gray-300" : "text-gray-500"
+                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider border-b ${
+                    isDarkMode ? "text-gray-200 border-gray-600" : "text-gray-700 border-gray-200"
                   }`}>
                     Entreprise
                   </th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${
-                    isDarkMode ? "text-gray-300" : "text-gray-500"
+                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider border-b ${
+                    isDarkMode ? "text-gray-200 border-gray-600" : "text-gray-700 border-gray-200"
                   }`}>
                     Localisation
                   </th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${
-                    isDarkMode ? "text-gray-300" : "text-gray-500"
+                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider border-b ${
+                    isDarkMode ? "text-gray-200 border-gray-600" : "text-gray-700 border-gray-200"
                   }`}>
                     Date limite
                   </th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${
-                    isDarkMode ? "text-gray-300" : "text-gray-500"
+                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider border-b ${
+                    isDarkMode ? "text-gray-200 border-gray-600" : "text-gray-700 border-gray-200"
                   }`}>
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className={`divide-y ${
-                isDarkMode ? "divide-gray-700" : "divide-gray-200"
+                isDarkMode ? "divide-gray-700" : "divide-gray-100"
               }`}>
                 {opportunities.map((opportunity, index) => (
                   <motion.tr
@@ -206,23 +207,27 @@ export default function OpportunitiesTable() {
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1 }}
                     className={`hover:${
-                      isDarkMode ? "bg-gray-700" : "bg-gray-50"
-                    } transition-colors`}
+                      isDarkMode ? "bg-gray-700/50" : "bg-gray-50/80"
+                    } transition-all duration-200 border-b ${
+                      isDarkMode ? "border-gray-700" : "border-gray-100"
+                    }`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getOpportunityTypeColor(opportunity.type_opportunite)}`}>
+                      <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${getOpportunityTypeColor(opportunity.type_opportunite)} shadow-sm border ${
+                        isDarkMode ? "border-gray-600" : "border-gray-300"
+                      }`}>
                         {getOpportunityIcon(opportunity.type_opportunite)}
                         <span className="ml-2">{getOpportunityTypeLabel(opportunity.type_opportunite)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className={`text-sm font-medium ${
+                      <div className={`text-sm font-semibold ${
                         isDarkMode ? "text-white" : "text-gray-900"
                       }`}>
                         {opportunity.titre}
                       </div>
                       {opportunity.reference && (
-                        <div className={`text-sm ${
+                        <div className={`text-xs font-medium ${
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}>
                           Réf: {opportunity.reference}
@@ -230,13 +235,13 @@ export default function OpportunitiesTable() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className={`text-sm ${
-                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                      <div className={`text-sm font-medium ${
+                        isDarkMode ? "text-gray-200" : "text-gray-700"
                       }`}>
                         {opportunity.entreprise}
                       </div>
                       {opportunity.secteur && (
-                        <div className={`text-sm ${
+                        <div className={`text-xs font-medium ${
                           isDarkMode ? "text-gray-400" : "text-gray-500"
                         }`}>
                           {opportunity.secteur}
@@ -244,62 +249,41 @@ export default function OpportunitiesTable() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className={`flex items-center text-sm ${
-                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                      <div className={`flex items-center text-sm font-medium ${
+                        isDarkMode ? "text-gray-200" : "text-gray-700"
                       }`}>
                         <MapPinIcon className="h-4 w-4 mr-1" />
                         {opportunity.ville}, {opportunity.pays}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`flex items-center text-sm ${
-                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                      <div className={`flex items-center text-sm font-medium ${
+                        isDarkMode ? "text-gray-200" : "text-gray-700"
                       }`}>
                         <CalendarIcon className="h-4 w-4 mr-1" />
                         {formatDate(opportunity.date_limite)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          // Télécharger le document associé
-                          const fileUrl = opportunity.type_opportunite === 'emploi' 
+                      <a
+                          href={opportunity.type_opportunite === 'emploi' 
                             ? opportunity.offer_file_url 
-                            : opportunity.opportunity_file_url;
-                          
-                          if (fileUrl) {
-                            // Créer un lien temporaire pour le téléchargement
-                            const link = document.createElement('a');
-                            link.href = fileUrl;
-                            link.download = opportunity.type_opportunite === 'emploi' 
-                              ? `offre-emploi-${opportunity.reference || opportunity.id}.pdf`
-                              : `opportunite-affaire-${opportunity.reference || opportunity.id}.pdf`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          } else {
-                            // Rediriger vers la page si aucun document n'est disponible
-                            if (opportunity.type_opportunite === 'emploi') {
-                              window.location.href = `/dashboard/pages/${opportunity.page_id}#job-${opportunity.id}`;
-                            } else {
-                              window.location.href = `/dashboard/pages/${opportunity.page_id}#opportunity-${opportunity.id}`;
-                            }
+                            : opportunity.opportunity_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 ${
+                            isDarkMode 
+                              ? "bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white border border-primary-500" 
+                              : "bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white border border-primary-400"
+                          }`}
+                          download
+                        >
+                          {opportunity.type_opportunite === 'emploi' 
+                            ? (opportunity.offer_file_url ? "Télécharger" : "Voir plus")
+                            : (opportunity.opportunity_file_url ? "Télécharger" : "Voir plus")
                           }
-                        }}
-                        className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                          isDarkMode 
-                            ? "bg-primary-600 hover:bg-primary-700 text-white" 
-                            : "bg-primary-500 hover:bg-primary-600 text-white"
-                        }`}
-                      >
-                        {opportunity.type_opportunite === 'emploi' 
-                          ? (opportunity.offer_file_url ? "Télécharger" : "Voir plus")
-                          : (opportunity.opportunity_file_url ? "Télécharger" : "Voir plus")
-                        }
-                        <ArrowRightIcon className="ml-2 h-4 w-4" />
-                      </motion.button>
+                          <ArrowRightIcon className="ml-2 h-4 w-4" />
+                        </a>
                     </td>
                   </motion.tr>
                 ))}

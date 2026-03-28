@@ -111,7 +111,12 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
           }}
         >
           <div className="file-info">
-            <i className={file.type.startsWith('image/') ? 'fas fa-image' : 'fas fa-file'}></i>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
+              {file.type.startsWith('image/') ? 
+                <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/> :
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+              }
+            </svg>
             <span className="file-name">{file.name}</span>
           </div>
           <button 
@@ -120,7 +125,9 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
             style={{ color: isDarkMode ? '#9ca3af' : '#6c757d' }}
             onClick={() => setFile(null)}
           >
-            <i className="fas fa-times"></i>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+            </svg>
           </button>
         </div>
       )}
@@ -132,7 +139,9 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
           style={{ color: isDarkMode ? '#9ca3af' : '#6c757d' }}
           onClick={() => fileInputRef.current.click()}
         >
-          <i className="fas fa-paperclip"></i>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16.5,4V7.5H23V16.5H16.5V20H21A2,2 0 0,0 23,18V6A2,2 0 0,0 21,4H16.5M9.5,4H3A2,2 0 0,0 1,6V18A2,2 0 0,0 3,20H9.5V16.5H3V7.5H9.5V4M14.5,7.5H9.5V16.5H14.5V7.5M21,9H23V15H21V9M1,9H3V15H1V9Z"/>
+          </svg>
         </button>
         
         <button 
@@ -142,7 +151,9 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
           style={{ color: isDarkMode ? '#9ca3af' : '#6c757d' }}
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
         >
-          <i className="far fa-smile"></i>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M16.18,7.76L15.12,6.7L10.59,11.23L8.88,9.5L7.82,10.56L10.59,13.33L16.18,7.76Z"/>
+          </svg>
         </button>
         
         {showEmojiPicker && (
@@ -194,7 +205,9 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
               <span className="visually-hidden">Envoi en cours...</span>
             </div>
           ) : (
-            <i className="fas fa-paper-plane"></i>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+            </svg>
           )}
         </Button>
       </div>
