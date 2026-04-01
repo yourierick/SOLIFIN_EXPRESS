@@ -221,7 +221,7 @@ class WithdrawalService
      * @param WithdrawalRequest $withdrawal
      * @return void
      */
-    private function paySponsorCommission(User $sponsor, float $commissionFees, WithdrawalRequest $withdrawal): void
+    public function paySponsorCommission(User $sponsor, float $commissionFees, WithdrawalRequest $withdrawal): void
     {
         $sponsor->addFunds(
             $commissionFees,

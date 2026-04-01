@@ -158,7 +158,6 @@ const UsersManagement = () => {
     root: {
       backgroundColor: isDarkMode ? "#1e293b" : "#f8fafc",
       borderRadius: "0.75rem",
-      padding: "0.5rem",
       marginBottom: "1.5rem",
       border: isDarkMode
         ? "1px solid rgba(59, 130, 246, 0.1)"
@@ -234,11 +233,11 @@ const UsersManagement = () => {
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 6, sm: 8 },
             textAlign: "center",
             borderRadius: "1rem",
+            padding: "10px",
             bgcolor: isDarkMode
-              ? "#1f2937"
+              ? "linear-gradient(145deg, #1f2937, #111827)"
               : "linear-gradient(145deg, #ffffff, #f9fafb)",
             border: isDarkMode
               ? "1px solid rgba(59, 130, 246, 0.1)"
@@ -311,23 +310,23 @@ const UsersManagement = () => {
     return (
       <div className="container mx-auto p-4 lg:p-6">
         {/* En-tête moderne pour l'écran d'erreur */}
-        <div className="mb-6 lg:mb-8">
-          <div className="flex items-center space-x-4 mb-4">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-center sm:space-x-4 mb-4">
             <Avatar
               sx={{
-                width: 56,
-                height: 56,
+                width: { xs: 48, sm: 56 },
+                height: { xs: 48, sm: 56 },
                 bgcolor: isDarkMode ? "#1f2937" : "#fff",
                 border: `2px solid ${isDarkMode ? "#60a5fa" : "#2563eb"}`,
               }}
             >
-              <UserGroupIcon className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+              <UserGroupIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-300" />
             </Avatar>
-            <div className="flex-1">
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            <div className="flex-1 mt-2 sm:mt-0">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                 Gestion des utilisateurs et administrateurs
               </h1>
-              <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 max-w-3xl">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-full sm:max-w-3xl">
                 Gérez les comptes utilisateurs et les permissions d'accès au
                 système avec une interface moderne et intuitive.
               </p>
@@ -337,7 +336,9 @@ const UsersManagement = () => {
               label="Admin Panel"
               size="medium"
               sx={{
-                bgcolor: isDarkMode ? "#1f2937" : "#fff",
+                bgcolor: isDarkMode
+                  ? "#1f2937"
+                  : "linear-gradient(145deg, #f3f4f6, #e5e7eb)",
                 color: isDarkMode ? "#d1d5db" : "#374151",
                 fontWeight: 600,
                 border: `1px solid ${
@@ -354,7 +355,6 @@ const UsersManagement = () => {
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 6, sm: 8 },
             textAlign: "center",
             borderRadius: "1rem",
             bgcolor: isDarkMode
@@ -611,7 +611,6 @@ const UsersManagement = () => {
               ? "linear-gradient(145deg, #1f2937, #111827)"
               : "linear-gradient(145deg, #ffffff, #f9fafb)",
             borderRadius: "1rem",
-            p: 0,
             border: isDarkMode
               ? "1px solid rgba(59, 130, 246, 0.1)"
               : "1px solid rgba(226, 232, 240, 1)",
@@ -627,7 +626,6 @@ const UsersManagement = () => {
             >
               <Box
                 sx={{
-                  p: { xs: 3, sm: 4 },
                   minHeight: "500px",
                 }}
               >

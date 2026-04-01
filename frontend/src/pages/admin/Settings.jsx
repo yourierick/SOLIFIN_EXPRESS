@@ -144,7 +144,7 @@ const Settings = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header avec dégradé */}
-      <div className="relative overflow-hidden bg-white dark:bg-gray-900 shadow-xl border-b border-gray-200 dark:border-gray-700">
+      <div className="mb-3 relative overflow-hidden bg-white dark:bg-gray-900 shadow-xl border-b border-gray-200 dark:border-gray-700">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-5"></div>
         <div className="relative px-6 py-8">
           <div className="flex items-center gap-4">
@@ -167,7 +167,7 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="px-6 py-8">
+      <div>
         <Tab.Group>
           {/* Navigation par onglets */}
           <div className="relative mb-8">

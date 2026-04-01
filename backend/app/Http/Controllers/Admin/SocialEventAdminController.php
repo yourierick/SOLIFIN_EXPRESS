@@ -87,11 +87,14 @@ class SocialEventAdminController extends Controller
     public function approve($id)
     {
         $socialEvent = SocialEvent::findOrFail($id);
-        $socialEvent->statut = 'approuvé';
+        $socialEvent->statut = 'approved';
         $socialEvent->created_at = now();
         $socialEvent->save();
 
-        return response()->json(['message' => 'Statut social approuvé avec succès']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Statut social approuvé avec succès'
+        ]);
     }
 
     /**
@@ -110,11 +113,14 @@ class SocialEventAdminController extends Controller
         \Log::info($validator->fails());
 
         $socialEvent = SocialEvent::findOrFail($id);
-        $socialEvent->statut = 'rejeté';
+        $socialEvent->statut = 'rejected';
         $socialEvent->raison_rejet = $request->raison_rejet;
         $socialEvent->save();
 
-        return response()->json(['message' => 'Statut social rejeté avec succès']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Statut social rejeté avec succès'
+        ]);
     }
 
     /**

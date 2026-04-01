@@ -206,8 +206,6 @@ const SuiviFinancier = React.memo(() => {
       const response = await axios.get(`/api/admin/tableau-de-suivi/financial-transactions`, {
         params: params
       });
-
-      console.log(response);
       
       setTotalTransactions(response.data.pagination?.total || 0);
       setAllTransactions(response.data.data || []); // ✅ Charger les premières données

@@ -42,6 +42,7 @@ import {
   Divider,
   alpha,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   PencilIcon,
@@ -85,6 +86,7 @@ import ConfirmationModal from "../ConfirmationModal";
 const AdminBroadcastMessages = () => {
   const { isDarkMode } = useCustomTheme();
   const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   // États pour la liste des messages
   const [messages, setMessages] = useState([]);
@@ -811,27 +813,33 @@ const AdminBroadcastMessages = () => {
         >
           <Box
             sx={{
-              p: 3,
+              p: { xs: 1.5, sm: 3 },
               display: "flex",
+              flexDirection: { xs: "row", sm: "row" },
               justifyContent: "space-between",
               alignItems: "center",
+              gap: { xs: 1, sm: 0 },
               borderBottom: `1px solid ${alpha(muiTheme.palette.divider, isDarkMode ? 0.2 : 0.1)}`,
               background: isDarkMode 
                 ? `linear-gradient(90deg, ${alpha(muiTheme.palette.primary.main, 0.05)} 0%, transparent 100%)`
                 : `linear-gradient(90deg, ${alpha(muiTheme.palette.primary.light, 0.05)} 0%, transparent 100%)`,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Box sx={{ 
+              display: "flex", 
+              alignItems: "center",
+              flex: { xs: 1, sm: "auto" }
+            }}>
               <Avatar
                 sx={{
                   bgcolor: muiTheme.palette.primary.main,
-                  width: 40,
-                  height: 40,
-                  mr: 2,
+                  width: { xs: 28, sm: 40 },
+                  height: { xs: 28, sm: 40 },
+                  mr: { xs: 1, sm: 2 },
                   boxShadow: `0 4px 12px ${alpha(muiTheme.palette.primary.main, 0.3)}`
                 }}
               >
-                <CampaignIcon />
+                <CampaignIcon sx={{ fontSize: { xs: 16, sm: 24 } }} />
               </Avatar>
               <Typography
                 variant="h5"
@@ -843,6 +851,8 @@ const AdminBroadcastMessages = () => {
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
+                  fontSize: { xs: "1rem", sm: "1.5rem" },
+                  display: { xs: "none", sm: "block" }
                 }}
               >
                 Messages de diffusion
@@ -850,29 +860,33 @@ const AdminBroadcastMessages = () => {
             </Box>
             
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: { xs: 1.02, sm: 1.05 } }}
+              whileTap={{ scale: { xs: 0.98, sm: 0.95 } }}
+              style={{ width: { xs: "auto", sm: "auto" } }}
             >
               <Button
                 variant="contained"
-                size="large"
+                size={isMobile ? "small" : "large"}
                 startIcon={<SendIcon />}
                 onClick={handleOpenAddModal}
+                fullWidth={false}
                 sx={{
                   background: `linear-gradient(135deg, ${muiTheme.palette.primary.main}, ${muiTheme.palette.primary.light})`,
                   boxShadow: `0 8px 16px ${alpha(muiTheme.palette.primary.main, 0.3)}`,
                   textTransform: "none",
                   fontWeight: "600",
-                  px: 3,
-                  py: 1.5,
+                  px: { xs: 1.5, sm: 3 },
+                  py: { xs: 0.75, sm: 1.5 },
                   borderRadius: "12px",
+                  fontSize: { xs: "0.75rem", sm: "1rem" },
+                  minWidth: { xs: "auto", sm: "auto" },
                   "&:hover": {
                     background: `linear-gradient(135deg, ${muiTheme.palette.primary.dark}, ${muiTheme.palette.primary.main})`,
                     boxShadow: `0 12px 24px ${alpha(muiTheme.palette.primary.main, 0.4)}`,
                   }
                 }}
               >
-                Nouveau message
+                {isMobile ? "" : "Nouveau message"}
               </Button>
             </motion.div>
           </Box>

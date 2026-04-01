@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { createTimeout, createInterval, clearTimer as clearTimerUtil } from '../utils/timeoutUtils';
 
 /**
  * Hook centralisé pour récupérer tous les compteurs du dashboard en une seule requête
@@ -29,10 +30,10 @@ const useDashboardCounters = (isAdmin = false) => {
     try {
       setIsFetching(true);
       // Ajouter un délai court pour éviter le clignotement
-      const loadingTimeout = setTimeout(() => setLoading(true), 300);
+      const loadingTimeout = createTimeout(() => setLoading(true), 300);
       
       const response = await axios.get("/api/admin/dashboard/counters");
-      clearTimeout(loadingTimeout);
+      clearTimerUtil(loadingTimeout);
       
       if (response.data.success) {
         setCounters(response.data.data);
@@ -82,7 +83,7 @@ const useDashboardCounters = (isAdmin = false) => {
     fetchCounters();
 
     // Rafraîchir les compteurs toutes les 5 minutes
-    const intervalId = setInterval(() => {
+    const intervalId = createInterval(() => {
       // Vérifier si la page est visible avant de faire la requête
       if (document.visibilityState === "visible" && isAdmin) {
         fetchCounters();
@@ -100,7 +101,9 @@ const useDashboardCounters = (isAdmin = false) => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [isAdmin]);

@@ -62,7 +62,7 @@ class RealtimeAuditor
             ->where('nature', 'internal')
             ->where('status', 'completed')
             ->whereIn('flow', ['in', 'out'])
-            ->selectRaw('SUM(CASE WHEN flow = "in" THEN amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0) ELSE -(amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0)) END) as total')
+            ->selectRaw('SUM(CASE WHEN flow = "in" THEN amount ELSE -amount END) as total')
             ->value('total') ?? 0;
         
         $difference = abs($balance - $ledgerBalance);
@@ -203,6 +203,10 @@ class RealtimeAuditor
     private function createAuditLog(array $data): FinancialAuditLog
     {
         $data['fingerprint'] = $this->generateFingerprintFromData($data);
+        if ($this->existsDuplicate($data['fingerprint'])) {
+            $auditLog = FinancialAuditLog::where('fingerprint', $data['fingerprint'])->first();
+            return $auditLog;
+        }
         $data['status'] = 'pending';
         
         $auditLog = FinancialAuditLog::create($data);

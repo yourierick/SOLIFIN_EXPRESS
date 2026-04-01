@@ -273,35 +273,40 @@ export default function DashboardCarousel() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-8">
       {/* Header du carrousel */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex items-center justify-center"
+        className="mb-8 px-4 sm:px-0"
       >
-        <div className="flex items-center space-x-4">
-          <div className="p-3 rounded-2xl bg-blue-500 shadow-xl">
-            <BriefcaseIcon className="h-7 w-7 text-white" />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          {/* Icône */}
+          <div className="p-3 rounded-2xl bg-blue-500 shadow-xl order-1 sm:order-1">
+            <BriefcaseIcon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
           </div>
-          <div className="text-center">
+          
+          {/* Titre et description */}
+          <div className="text-center flex-1 order-3 sm:order-2">
             <h2
-              className={`text-2xl font-bold ${
+              className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
                 isDarkMode ? "text-white" : "text-gray-900"
               }`}
             >
               Découvertes du jour
             </h2>
             <p
-              className={`text-sm ${
+              className={`text-xs sm:text-sm ${
                 isDarkMode ? "text-gray-400" : "text-gray-600"
               } mt-1`}
             >
               Les meilleures opportunités pour vous
             </p>
           </div>
+          
+          {/* Badge compteur */}
           <div
-            className={`px-4 py-2 rounded-full text-sm font-medium ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium order-2 sm:order-3 ${
               isDarkMode
                 ? "bg-gray-700 text-gray-300"
                 : "bg-gray-100 text-gray-700"
@@ -315,10 +320,9 @@ export default function DashboardCarousel() {
       <div className="flex justify-center">
         <div className="w-full">
           <Swiper
-            modules={[Navigation, Pagination, Autoplay, EffectCreative]}
+            modules={[Pagination, Autoplay, EffectCreative]}
             spaceBetween={16}
             slidesPerView={3}
-            navigation
             pagination={{
               clickable: true,
               dynamicBullets: true,
@@ -345,8 +349,8 @@ export default function DashboardCarousel() {
             breakpoints={{
               320: {
                 slidesPerView: 1,
-                spaceBetween: 16,
-                centeredSlides: true,
+                spaceBetween: 0,
+                centeredSlides: false,
               },
               640: {
                 slidesPerView: 2,
@@ -365,6 +369,10 @@ export default function DashboardCarousel() {
               },
             }}
             className="dashboard-carousel-modern"
+            style={{
+              '--swiper-navigation-color': '#60a5fa',
+              '--swiper-navigation-size': '22px',
+            }}
           >
             {carouselItems.map((item, index) => (
               <SwiperSlide key={index}>
@@ -511,17 +519,17 @@ export default function DashboardCarousel() {
                             } flex items-center`}
                           >
                             <CalendarIcon className="h-3 w-3 mr-1" />
-                            {item.type === "publicité" ? `Expire ${formatDeadline(item.expiry_date)}` : formatDeadline(item.date_limite)}
+                            {item.type === "publicité" ? `Expiration: ${formatDeadline(item.expiry_date)}` : formatDeadline(item.date_limite)}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Bouton d'action au survol */}
+                    {/* Bouton d'action au survol (desktop) */}
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
-                      className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-500"
+                      className="hidden sm:flex absolute inset-0 items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-500"
                     >
                       <motion.div
                         initial={{ scale: 0.8, y: 20 }}
@@ -558,6 +566,29 @@ export default function DashboardCarousel() {
                         </Link>
                       </motion.div>
                     </motion.div>
+
+                    {/* Bouton flèche mobile (toujours visible) */}
+                    <div className="sm:hidden absolute bottom-4 right-4">
+                      <Link
+                        to={
+                          item.pageId
+                            ? `/dashboard/pages/${item.pageId}`
+                            : item.userId
+                            ? `/users/${item.userId}`
+                            : "#"
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                        className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${
+                          item.type === "publicité"
+                            ? "bg-blue-500"
+                            : item.type === "emploi"
+                            ? "bg-green-500"
+                            : "bg-purple-500"
+                        } text-white shadow-lg transition-all duration-300 hover:scale-110`}
+                      >
+                        <ArrowTopRightOnSquareIcon className="h-5 w-5" />
+                      </Link>
+                    </div>
                   </div>
                 </motion.div>
               </SwiperSlide>
@@ -599,11 +630,23 @@ export default function DashboardCarousel() {
       <style>
         {`
           .dashboard-carousel-modern {
-            padding: 20px 20px 80px 20px;
+            padding: 20px 0px 80px 0px;
+          }
+
+          @media (max-width: 640px) {
+            .dashboard-carousel-modern {
+              padding: 0px 0px 80px 0px;
+            }
           }
 
           .dashboard-carousel-modern .swiper-slide {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+
+          @media (max-width: 640px) {
+            .dashboard-carousel-modern .swiper-slide {
+              width: 100% !important;
+            }
           }
 
           .dashboard-carousel-modern .swiper-slide-active {
@@ -614,6 +657,14 @@ export default function DashboardCarousel() {
           .dashboard-carousel-modern .swiper-slide-next {
             opacity: 0.8;
             transform: scale(0.9);
+          }
+
+          @media (max-width: 640px) {
+            .dashboard-carousel-modern .swiper-slide-prev,
+            .dashboard-carousel-modern .swiper-slide-next {
+              opacity: 1;
+              transform: scale(1);
+            }
           }
 
           .dashboard-carousel-modern .swiper-pagination-bullet {
@@ -633,71 +684,6 @@ export default function DashboardCarousel() {
             width: 14px;
             height: 14px;
             box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
-          }
-
-          .dashboard-carousel-modern .swiper-button-next,
-          .dashboard-carousel-modern .swiper-button-prev {
-            color: ${
-              isDarkMode ? "rgba(96, 165, 250, 0.9)" : "rgba(59, 130, 246, 0.9)"
-            };
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: linear-gradient(135deg,
-              ${
-                isDarkMode
-                  ? "rgba(31, 41, 55, 0.95)"
-                  : "rgba(255, 255, 255, 0.95)"
-              },
-              ${
-                isDarkMode
-                  ? "rgba(55, 65, 81, 0.95)"
-                  : "rgba(249, 250, 251, 0.95)"
-              }
-            );
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(16px);
-            border: 2px solid ${
-              isDarkMode ? "rgba(96, 165, 250, 0.3)" : "rgba(59, 130, 246, 0.3)"
-            };
-            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
-            top: 50%;
-            transform: translateY(-50%);
-          }
-
-          .dashboard-carousel-modern .swiper-button-next:after,
-          .dashboard-carousel-modern .swiper-button-prev:after {
-            font-size: 22px;
-            font-weight: 700;
-          }
-
-          .dashboard-carousel-modern .swiper-button-next:hover,
-          .dashboard-carousel-modern .swiper-button-prev:hover {
-            transform: translateY(-50%) scale(1.1);
-            background: linear-gradient(135deg,
-              ${
-                isDarkMode
-                  ? "rgba(55, 65, 81, 0.98)"
-                  : "rgba(255, 255, 255, 0.98)"
-              },
-              ${
-                isDarkMode
-                  ? "rgba(75, 85, 99, 0.98)"
-                  : "rgba(243, 244, 246, 0.98)"
-              }
-            );
-            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.3);
-            border-color: ${
-              isDarkMode ? "rgba(96, 165, 250, 0.5)" : "rgba(59, 130, 246, 0.5)"
-            };
-          }
-
-          .dashboard-carousel-modern .swiper-button-disabled {
-            opacity: 0.3;
-            transform: translateY(-50%) scale(0.85);
           }
         `}
       </style>

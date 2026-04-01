@@ -49,7 +49,7 @@ class PackService
         $userPack->save();
 
         // Distribuer les commissions
-        $this->commissionService->distributeCommissions($userPack, $paymentData['amount'], $durationMonths);
+        $this->commissionService->distributeCommissions($userPack, $pack->price, $durationMonths);
 
         $metadata = [ 
             "type" => $paymentData['payment_type'],
@@ -105,7 +105,7 @@ class PackService
         }
 
         // Distribuer les commissions
-        $this->commissionService->distributeCommissions($userPack, $paymentData['amount'], $durationMonths);
+        $this->commissionService->distributeCommissions($userPack, $pack->price, $durationMonths);
 
         $metadata = [ 
             "type" => $paymentData['payment_type'],
@@ -114,6 +114,9 @@ class PackService
             "amount" => $paymentData['amount'],
             "fees" => $paymentData['fees'],
         ];
+
+        $user->pack_de_publication_id = $pack->id;
+        $user->save();
         // Envoyer la notification d'achat de pack
         $user->notify(new \App\Notifications\PackPurchased($userPack, $durationMonths, $metadata));
 

@@ -94,7 +94,7 @@ Schedule::command('solifin:check-expired-tickets-gagnants --notify')
     ->description('Vérifie et marque les tickets gagnants expirés');
 
 // Planification du traitement des invitations à témoigner
-// Vérification quotidienne des utilisateurs éligibles (tous les jours à 02:00)
+// Vérification quotidienne des utilisateurs éligibles chaque minute
 Schedule::command('testimonials:process-prompts --expire')
     ->everyMinute()
     ->appendOutputTo(storage_path('logs/testimonial-prompts.log'))

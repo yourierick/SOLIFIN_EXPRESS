@@ -43,6 +43,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
+  ChevronUpDownIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import PostCard from "./components/PostCard";
@@ -57,6 +58,18 @@ function classNames(...classes) {
 }
 
 export default function Page() {
+  // Détection mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const { id } = useParams(); // Récupérer l'ID de la page depuis l'URL
   const { isDarkMode } = useTheme();
   const { user } = useAuth();
@@ -71,6 +84,14 @@ export default function Page() {
   const [isPostDetailModalOpen, setIsPostDetailModalOpen] = useState(false);
   const [isLivreurFormOpen, setIsLivreurFormOpen] = useState(false);
   const [candidatureStatus, setCandidatureStatus] = useState(null);
+
+  // Définition des onglets pour le dropdown mobile et les tabs desktop
+  const tabs = [
+    { id: 0, name: "Publications", shortName: "Pub", icon: NewspaperIcon },
+    { id: 1, name: "Offres d'emploi", shortName: "Emploi", icon: BriefcaseIcon },
+    { id: 2, name: "Opportunités d'affaires", shortName: "Opp", icon: LightBulbIcon },
+    { id: 3, name: "À propos", shortName: "Info", icon: InformationCircleIcon },
+  ];
   // Champs de recherche séparés pour chaque onglet
   const [publiciteSearchQuery, setPubliciteSearchQuery] = useState("");
   const [offreEmploiSearchQuery, setOffreEmploiSearchQuery] = useState("");
@@ -1269,13 +1290,13 @@ export default function Page() {
     return (
       <div
         key={`${postType}-${publication.id}`}
-        className={`mb-6 ${
+        className={`mb-4 sm:mb-6 ${
           isDarkMode ? "bg-gray-800 text-white" : "bg-white"
         } rounded-lg shadow-md overflow-hidden`}
       >
         {/* En-tête de la publication avec photo de profil et nom */}
-        <div className="p-4 flex items-center">
-          <div className="h-10 w-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+        <div className="p-3 sm:p-4 flex items-center">
+          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full overflow-hidden mr-2 sm:mr-3 flex-shrink-0">
             <img
               src={
                 pageData.user?.picture ||
@@ -1287,10 +1308,10 @@ export default function Page() {
               className="h-full w-full object-cover"
             />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold text-base">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm sm:text-base truncate">
                   {pageData.user?.name || "Utilisateur"}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
@@ -1300,7 +1321,7 @@ export default function Page() {
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    className="w-3 h-3 ml-1"
+                    className="w-3 h-3 ml-1 flex-shrink-0"
                   >
                     <path
                       fillRule="evenodd"
@@ -1310,11 +1331,11 @@ export default function Page() {
                   </svg>
                 </p>
               </div>
-              <Menu as="div" className="relative">
-                <Menu.Button className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 flex items-center justify-center">
+              <Menu as="div" className="relative flex-shrink-0 ml-2">
+                <Menu.Button className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 flex items-center justify-center p-1">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-4 w-4 sm:h-5 sm:w-5"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -1369,34 +1390,34 @@ export default function Page() {
         </div>
 
         {/* Corps de la publication */}
-        <div className="px-4 pb-3">
+        <div className="px-3 sm:px-4 pb-3">
           {/* Titre et description */}
           {publication.titre && (
-            <h4 className="text-lg font-semibold mb-2">{publication.titre}</h4>
+            <h4 className="text-base sm:text-lg font-semibold mb-2">{publication.titre}</h4>
           )}
           {publication.description && (
-            <p className="mb-4 text-sm">{publication.description}</p>
+            <p className="mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed">{publication.description}</p>
           )}
 
           {/* Informations spécifiques selon le type */}
           {isOffreEmploi && (
-            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="flex items-center">
-                <BuildingOfficeIcon className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
-                <span>{publication.entreprise || "Non spécifié"}</span>
+            <div className="mb-3 sm:mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+              <div className="flex items-center min-w-0">
+                <BuildingOfficeIcon className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <span className="truncate">{publication.entreprise || "Non spécifié"}</span>
               </div>
-              <div className="flex items-center">
-                <TagIcon className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
-                <span>{publication.sector || "Non spécifié"}</span>
+              <div className="flex items-center min-w-0">
+                <TagIcon className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <span className="truncate">{publication.sector || "Non spécifié"}</span>
               </div>
             </div>
           )}
 
           {isOpportuniteAffaire && (
-            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="flex items-center">
-                <TagIcon className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
-                <span>{publication.sector || "Non spécifié"}</span>
+            <div className="mb-3 sm:mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+              <div className="flex items-center min-w-0">
+                <TagIcon className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <span className="truncate">{publication.sector || "Non spécifié"}</span>
               </div>
             </div>
           )}
@@ -1404,7 +1425,7 @@ export default function Page() {
 
         {/* Carrousel de médias (images et vidéos) */}
         {mediaItems[`${postType}-${publication.id}`]?.length > 0 && (
-          <div className="mb-3 relative">
+          <div className="mb-2 sm:mb-3 relative">
             {/* Affichage du média actuel */}
             <div className="relative overflow-hidden rounded-lg">
               {mediaItems[`${postType}-${publication.id}`][
@@ -1425,7 +1446,7 @@ export default function Page() {
                         0) + 1
                     }`
                   }
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover cursor-pointer"
                   onClick={() => openPostDetail(publication.id, postType)}
                 />
               ) : (
@@ -1499,27 +1520,27 @@ export default function Page() {
                     e.stopPropagation();
                     prevMedia(publication);
                   }}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1.5 hover:bg-opacity-70 transition-all z-10"
+                  className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 sm:p-1.5 hover:bg-opacity-70 transition-all z-10 touch-manipulation"
                   aria-label="Média précédent"
                 >
-                  <ChevronLeftIcon className="h-5 w-5" />
+                  <ChevronLeftIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     nextMedia(publication);
                   }}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1.5 hover:bg-opacity-70 transition-all z-10"
+                  className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-1 sm:p-1.5 hover:bg-opacity-70 transition-all z-10 touch-manipulation"
                   aria-label="Média suivant"
                 >
-                  <ChevronRightIcon className="h-5 w-5" />
+                  <ChevronRightIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </>
             )}
 
             {/* Indicateurs de position dans le carrousel */}
             {mediaItems[`${postType}-${publication.id}`]?.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1.5 z-10">
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 sm:space-x-1.5 z-10">
                 {mediaItems[`${postType}-${publication.id}`].map((_, index) => (
                   <button
                     key={index}
@@ -1527,11 +1548,11 @@ export default function Page() {
                       e.stopPropagation();
                       goToMedia(publication, index);
                     }}
-                    className={`w-2 h-2 rounded-full ${
+                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-200 ${
                       index ===
                       (currentMediaIndex[`${postType}-${publication.id}`] || 0)
-                        ? "bg-white"
-                        : "bg-white bg-opacity-50"
+                        ? "bg-white scale-125"
+                        : "bg-white bg-opacity-50 hover:bg-opacity-75"
                     }`}
                     aria-label={`Aller au média ${index + 1}`}
                   />
@@ -1543,28 +1564,29 @@ export default function Page() {
 
         {/* Lien externe si disponible */}
         {publication.lien && (
-          <div className="px-4 mb-3">
+          <div className="px-3 sm:px-4 mb-2 sm:mb-3">
             <a
               href={publication.lien}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium ${
+              className={`inline-flex items-center px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
                 isDarkMode
                   ? "bg-blue-600 hover:bg-blue-700"
                   : "bg-blue-500 hover:bg-blue-600"
-              } text-white transition-colors duration-200`}
+              } text-white`}
             >
-              <InformationCircleIcon className="h-4 w-4 mr-1" />
-              En savoir plus
+              <InformationCircleIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden xs:inline">En savoir plus</span>
+              <span className="xs:hidden">Plus</span>
             </a>
           </div>
         )}
 
         {/* Compteurs de likes et commentaires */}
-        <div className="px-4 py-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 border-t border-b border-gray-100 dark:border-gray-700">
+        <div className="px-3 sm:px-4 py-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 border-t border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center">
-            <div className="bg-blue-500 rounded-full p-1 mr-1">
-              <HeartIconSolid className="h-3 w-3 text-white" />
+            <div className="bg-blue-500 rounded-full p-0.5 sm:p-1 mr-1 sm:mr-2">
+              <HeartIconSolid className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
             </div>
             <span>{publication.likes_count || 0}</span>
           </div>
@@ -1575,24 +1597,27 @@ export default function Page() {
         </div>
 
         {/* Boutons d'action (J'aime, Commenter, Partager) */}
-        <div className="px-2 py-1 flex justify-between">
+        <div className="px-2 sm:px-3 py-1 sm:py-2 flex justify-between gap-1 sm:gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleLike(publication.id, postType);
             }}
-            className={`flex items-center justify-center flex-1 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 ${
+            className={`flex items-center justify-center flex-1 py-1.5 sm:py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
               publication.liked_by_current_user
                 ? "text-blue-500"
                 : "text-gray-500 dark:text-gray-400"
             }`}
           >
             <HeartIcon
-              className={`h-5 w-5 mr-2 ${
+              className={`h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 ${
                 publication.liked_by_current_user ? "fill-current" : ""
               }`}
             />
-            <span className="text-sm font-medium">J'aime</span>
+            <span className="text-xs sm:text-sm font-medium hidden xs:inline">J'aime</span>
+            <span className="text-xs sm:text-sm font-medium xs:hidden">
+              {publication.liked_by_current_user ? "❤️" : "🤍"}
+            </span>
           </button>
 
           <button
@@ -1603,39 +1628,39 @@ export default function Page() {
                 [`${postType}-${publication.id}`]: !isCommentsExpanded,
               }));
             }}
-            className="flex items-center justify-center flex-1 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+            className="flex items-center justify-center flex-1 py-1.5 sm:py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
           >
-            <ChatBubbleLeftIcon className="h-5 w-5 mr-1" />
-            <span className="text-sm font-medium">
-              {isCommentsExpanded
-                ? "Masquer les commentaires"
-                : `Commentaires (${
-                    publication.comments_count ||
-                    publication.comments?.length ||
-                    0
-                  })`}
+            <ChatBubbleLeftIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
+            <span className="text-xs sm:text-sm font-medium hidden xs:inline">
+              `({publication.comments_count})`
             </span>
-            {hasComments &&
-              (isCommentsExpanded ? (
-                <ChevronUpIcon className="h-4 w-4 ml-1" />
-              ) : (
-                <ChevronDownIcon className="h-4 w-4 ml-1" />
-              ))}
+            <span className="text-xs sm:text-sm font-medium xs:hidden">
+              {publication.comments_count || publication.comments?.length || 0}
+            </span>
+            {hasComments && (
+              <div className="ml-1">
+                {isCommentsExpanded ? (
+                  <ChevronUpIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                ) : (
+                  <ChevronDownIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                )}
+              </div>
+            )}
           </button>
 
           <div className="relative flex-1">
-            <div className="flex space-x-2 justify-center">
+            <div className="flex space-x-1 sm:space-x-2 justify-center">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleShare(publication.id, publication.type, "facebook");
                 }}
-                className="p-1.5 rounded-full text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                className="p-1 sm:p-1.5 rounded-full text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                 title="Partager sur Facebook"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3 sm:h-4 sm:w-4"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -1647,12 +1672,12 @@ export default function Page() {
                   e.stopPropagation();
                   handleShare(publication.id, postType, "twitter");
                 }}
-                className="p-1.5 rounded-full text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                className="p-1 sm:p-1.5 rounded-full text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                 title="Partager sur Twitter"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3 sm:h-4 sm:w-4"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -1664,12 +1689,12 @@ export default function Page() {
                   e.stopPropagation();
                   handleShare(publication.id, postType, "linkedin");
                 }}
-                className="p-1.5 rounded-full text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                className="p-1 sm:p-1.5 rounded-full text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                 title="Partager sur LinkedIn"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3 sm:h-4 sm:w-4"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -1681,12 +1706,12 @@ export default function Page() {
                   e.stopPropagation();
                   handleShare(publication.id, postType, "whatsapp");
                 }}
-                className="p-1.5 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30"
+                className="p-1 sm:p-1.5 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                 title="Partager sur WhatsApp"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3 sm:h-4 sm:w-4"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -1698,10 +1723,10 @@ export default function Page() {
                   e.stopPropagation();
                   handleShare(publication.id, postType, "copy");
                 }}
-                className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-1 sm:p-1.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title="Copier le lien"
               >
-                <LinkIcon className="h-4 w-4" />
+                <LinkIcon className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
             </div>
           </div>
@@ -1739,13 +1764,6 @@ export default function Page() {
                       </p>
                     </div>
                     <div className="flex items-center mt-1 ml-2 text-xs text-gray-500">
-                      <button className="font-medium hover:underline">
-                        J'aime
-                      </button>
-                      <span className="mx-1">·</span>
-                      <button className="font-medium hover:underline">
-                        Répondre
-                      </button>
                       <span className="mx-1">·</span>
                       <span>{formatTimeAgo(comment.created_at)}</span>
                     </div>
@@ -2111,71 +2129,97 @@ export default function Page() {
           }`}
         >
           <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
-            <Tab.List className="flex p-1 space-x-1 bg-blue-900/10 rounded-t-lg">
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    "w-full py-2.5 text-sm font-medium leading-5 text-blue-700",
-                    "focus:outline-none focus:ring-0",
-                    selected
-                      ? "bg-white dark:bg-gray-700 shadow"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-blue-700 dark:hover:text-white"
-                  )
-                }
-              >
-                <div className="flex items-center justify-center">
-                  <NewspaperIcon className="h-5 w-5 mr-2" />
-                  Publications
-                </div>
-              </Tab>
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    "w-full py-2.5 text-sm font-medium leading-5 text-blue-700",
-                    "focus:outline-none focus:ring-0",
-                    selected
-                      ? "bg-white dark:bg-gray-700 shadow"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-blue-700 dark:hover:text-white"
-                  )
-                }
-              >
-                <div className="flex items-center justify-center">
-                  <BriefcaseIcon className="h-5 w-5 mr-2" />
-                  Offres d'emploi
-                </div>
-              </Tab>
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    "w-full py-2.5 text-sm font-medium leading-5 text-blue-700",
-                    "focus:outline-none focus:ring-0",
-                    selected
-                      ? "bg-white dark:bg-gray-700 shadow"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-blue-700 dark:hover:text-white"
-                  )
-                }
-              >
-                <div className="flex items-center justify-center">
-                  <LightBulbIcon className="h-5 w-5 mr-2" />
-                  Opportunités d'affaires
-                </div>
-              </Tab>
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    "w-full py-2.5 text-sm font-medium leading-5 text-blue-700",
-                    "focus:outline-none focus:ring-0",
-                    selected
-                      ? "bg-white dark:bg-gray-700 shadow"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-blue-700 dark:hover:text-white"
-                  )
-                }
-              >
-                <div className="flex items-center justify-center">
-                  <InformationCircleIcon className="h-5 w-5 mr-2" />À propos
-                </div>
-              </Tab>
-            </Tab.List>
+            {/* Dropdown pour mobile */}
+            {isMobile ? (
+              <div className="p-4">
+                <Menu as="div" className="relative">
+                  <Menu.Button className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg border transition-colors ${
+                    isDarkMode 
+                      ? "bg-gray-800 border-gray-700 text-white hover:bg-gray-700" 
+                      : "bg-white border-gray-300 text-gray-900 hover:bg-gray-50"
+                  }`}>
+                    <div className="flex items-center">
+                      {(() => {
+                        const IconComponent = tabs[activeTab].icon;
+                        return IconComponent ? <IconComponent className="h-5 w-5 mr-3" /> : null;
+                      })()}
+                      <span>{tabs[activeTab].name}</span>
+                    </div>
+                    <ChevronUpDownIcon className="h-5 w-5 ml-2" aria-hidden="true" />
+                  </Menu.Button>
+                  
+                  <Transition
+                    as={Fragment}
+                    enter="transition ease-out duration-200"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                  >
+                    <Menu.Items className={`absolute z-10 mt-2 w-full origin-top-right rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none ${
+                      isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                    }`}>
+                      <div className="py-1">
+                        {tabs.map((tab) => (
+                          <Menu.Item key={tab.id}>
+                            {({ active }) => (
+                              <button
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`w-full flex items-center px-4 py-3 text-sm transition-colors ${
+                                  activeTab === tab.id
+                                    ? isDarkMode
+                                      ? "bg-gray-700 text-blue-400"
+                                      : "bg-blue-50 text-blue-600"
+                                    : isDarkMode
+                                    ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                }`}
+                              >
+                                {(() => {
+                                  const IconComponent = tab.icon;
+                                  return IconComponent ? <IconComponent className="h-5 w-5 mr-3 flex-shrink-0" /> : null;
+                                })()}
+                                <span>{tab.name}</span>
+                              </button>
+                            )}
+                          </Menu.Item>
+                        ))}
+                      </div>
+                    </Menu.Items>
+                  </Transition>
+                </Menu>
+              </div>
+            ) : (
+              /* Tabs pour desktop */
+              <div className="relative">
+                <Tab.List className="flex p-1 space-x-1 bg-blue-900/10 rounded-t-lg">
+                  {tabs.map((tab) => (
+                    <Tab
+                      key={tab.id}
+                      className={({ selected }) =>
+                        classNames(
+                          "flex-shrink-0 min-w-max px-4 py-2.5 text-sm font-medium leading-5 text-blue-700 rounded-lg transition-all duration-200 transform",
+                          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+                          "hover:scale-105 active:scale-95",
+                          selected
+                            ? "bg-white dark:bg-gray-700 shadow-lg text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-600"
+                            : "text-gray-600 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-700/60 hover:text-blue-700 dark:hover:text-blue-400"
+                        )
+                      }
+                    >
+                      <div className="flex items-center justify-center">
+                        {(() => {
+                          const IconComponent = tab.icon;
+                          return IconComponent ? <IconComponent className="h-5 w-5 mr-2 flex-shrink-0" /> : null;
+                        })()}
+                        <span>{tab.name}</span>
+                      </div>
+                    </Tab>
+                  ))}
+                </Tab.List>
+              </div>
+            )}
 
             <Tab.Panels>
               {/* Onglet Publications */}
@@ -2236,48 +2280,51 @@ export default function Page() {
                   </button>
 
                   {/* Filtres de statut */}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     <button
-                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                      className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 text-xs sm:text-sm font-medium ${
                         newsStatusFilter === "all"
                           ? isDarkMode
-                            ? "bg-primary-600 text-white"
-                            : "bg-primary-500 text-white"
+                            ? "bg-primary-600 text-white shadow-md"
+                            : "bg-primary-500 text-white shadow-md"
                           : isDarkMode
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-200 text-gray-700"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                       }`}
                       onClick={() => setNewsStatusFilter("all")}
                     >
-                      <span className="text-sm">Toutes</span>
+                      <span className="hidden xs:inline">Toutes</span>
+                      <span className="xs:hidden">Tout</span>
                     </button>
                     <button
-                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                      className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 text-xs sm:text-sm font-medium ${
                         newsStatusFilter === "disponible"
                           ? isDarkMode
-                            ? "bg-green-600 text-white"
-                            : "bg-green-500 text-white"
+                            ? "bg-green-600 text-white shadow-md"
+                            : "bg-green-500 text-white shadow-md"
                           : isDarkMode
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-200 text-gray-700"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                       }`}
                       onClick={() => setNewsStatusFilter("disponible")}
                     >
-                      <span className="text-sm">En cours</span>
+                      <span className="hidden xs:inline">En cours</span>
+                      <span className="xs:hidden">Actif</span>
                     </button>
                     <button
-                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                      className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 text-xs sm:text-sm font-medium ${
                         newsStatusFilter === "terminé"
                           ? isDarkMode
-                            ? "bg-red-600 text-white"
-                            : "bg-red-500 text-white"
+                            ? "bg-red-600 text-white shadow-md"
+                            : "bg-red-500 text-white shadow-md"
                           : isDarkMode
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-200 text-gray-700"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                       }`}
                       onClick={() => setNewsStatusFilter("terminé")}
                     >
-                      <span className="text-sm">Terminées</span>
+                      <span className="hidden xs:inline">Terminées</span>
+                      <span className="xs:hidden">Fin</span>
                     </button>
                   </div>
                 </div>
@@ -3236,45 +3283,45 @@ export default function Page() {
 
                             {/* Actions sociales (j'aime, commentaires, partages) */}
                             <div
-                              className={`flex items-center justify-end mt-2 text-sm ${
+                              className={`flex items-center justify-end mt-2 text-sm gap-2 sm:gap-3 ${
                                 isDarkMode ? "text-gray-400" : "text-gray-500"
                               }`}
                             >
                               <button
-                                className="flex items-center mr-3"
+                                className="flex items-center px-1.5 sm:px-2 py-1 rounded transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleLike(offre.id, "offres-emploi");
                                 }}
                               >
                                 {offre.liked_by_current_user ? (
-                                  <HeartIconSolid className="h-4 w-4 text-red-500 mr-1" />
+                                  <HeartIconSolid className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 mr-1" />
                                 ) : (
-                                  <HeartIcon className="h-4 w-4 mr-1" />
+                                  <HeartIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                 )}
-                                <span>{offre.likes_count || 0}</span>
+                                <span className="text-xs sm:text-sm">{offre.likes_count || 0}</span>
                               </button>
 
                               <button
-                                className="flex items-center mr-3"
+                                className="flex items-center px-1.5 sm:px-2 py-1 rounded transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openPostDetail(offre.id, "offres-emploi");
                                 }}
                               >
-                                <ChatBubbleLeftEllipsisIcon className="h-4 w-4 mr-1" />
-                                <span>{offre.comments_count || 0}</span>
+                                <ChatBubbleLeftEllipsisIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                <span className="text-xs sm:text-sm">{offre.comments_count || 0}</span>
                               </button>
 
                               <button
-                                className="flex items-center"
+                                className="flex items-center px-1.5 sm:px-2 py-1 rounded transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleShare(offre.id, "offres-emploi");
                                 }}
                               >
-                                <ShareIcon className="h-4 w-4 mr-1" />
-                                <span>{offre.shares_count || 0}</span>
+                                <ShareIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                <span className="text-xs sm:text-sm">{offre.shares_count || 0}</span>
                               </button>
                             </div>
 
@@ -3873,7 +3920,7 @@ export default function Page() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                   {/* Actions sociales (j'aime, commentaires, partages) avec compteurs */}
-                                  <div className="flex justify-center space-x-3 mb-2">
+                                  <div className="flex justify-center space-x-2 sm:space-x-3 mb-2">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3882,7 +3929,7 @@ export default function Page() {
                                           "opportunites-affaires"
                                         );
                                       }}
-                                      className={`flex items-center ${
+                                      className={`flex items-center px-1.5 sm:px-2 py-1 rounded transition-colors ${
                                         post.liked_by_current_user
                                           ? "text-red-500"
                                           : isDarkMode
@@ -3892,11 +3939,11 @@ export default function Page() {
                                       title="J'aime"
                                     >
                                       {post.liked_by_current_user ? (
-                                        <HeartIconSolid className="h-4 w-4 mr-1" />
+                                        <HeartIconSolid className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                       ) : (
-                                        <HeartIcon className="h-4 w-4 mr-1" />
+                                        <HeartIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                       )}
-                                      <span className="text-xs">
+                                      <span className="text-xs sm:text-xs">
                                         {post.likes_count || 0}
                                       </span>
                                     </button>
@@ -3908,15 +3955,15 @@ export default function Page() {
                                           "opportunites-affaires"
                                         );
                                       }}
-                                      className={`flex items-center ${
+                                      className={`flex items-center px-1.5 sm:px-2 py-1 rounded transition-colors ${
                                         isDarkMode
                                           ? "text-gray-400 hover:text-gray-300"
                                           : "text-gray-500 hover:text-gray-700"
                                       }`}
                                       title="Commentaires"
                                     >
-                                      <ChatBubbleLeftIcon className="h-4 w-4 mr-1" />
-                                      <span className="text-xs">
+                                      <ChatBubbleLeftIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                      <span className="text-xs sm:text-xs">
                                         {post.comments_count || 0}
                                       </span>
                                     </button>
@@ -3929,15 +3976,15 @@ export default function Page() {
                                           "facebook"
                                         );
                                       }}
-                                      className={`flex items-center ${
+                                      className={`flex items-center px-1.5 sm:px-2 py-1 rounded transition-colors ${
                                         isDarkMode
                                           ? "text-gray-400 hover:text-gray-300"
                                           : "text-gray-500 hover:text-gray-700"
                                       }`}
                                       title="Partager"
                                     >
-                                      <ShareIcon className="h-4 w-4 mr-1" />
-                                      <span className="text-xs">
+                                      <ShareIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                      <span className="text-xs sm:text-xs">
                                         {post.shares_count || 0}
                                       </span>
                                     </button>

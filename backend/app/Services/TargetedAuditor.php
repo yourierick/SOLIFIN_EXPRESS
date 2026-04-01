@@ -91,8 +91,7 @@ class TargetedAuditor
         $transactionDetails = [];
 
         foreach ($transactions as $tx) {
-            $totalAmount = $tx->amount + ($tx->fee_amount ?? 0) + ($tx->commission_amount ?? 0);
-            $amount = $tx->flow === 'in' ? $totalAmount : -$totalAmount;
+            $amount = $tx->flow === 'in' ? $tx->amount : -$tx->amount;
             $ledgerBalance += $amount;
             
             $transactionDetails[] = [

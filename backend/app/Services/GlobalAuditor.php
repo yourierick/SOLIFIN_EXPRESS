@@ -175,7 +175,7 @@ class GlobalAuditor
                     ->where('nature', 'internal')
                     ->where('status', 'completed')
                     ->whereIn('flow', ['in', 'out'])
-                    ->selectRaw('SUM(CASE WHEN flow = "in" THEN amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0) ELSE -(amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0)) END) as total')
+                    ->selectRaw('SUM(CASE WHEN flow = "in" THEN amount ELSE -amount END) as total')
                     ->value('total') ?? 0;
 
                 $difference = abs($wallet->balance - $ledgerBalance);
@@ -279,13 +279,13 @@ class GlobalAuditor
         $totalIn = WalletTransaction::where('status', 'completed')
             ->where('flow', 'in')
             ->where('nature', 'internal')
-            ->selectRaw('SUM(amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0)) as total')
+            ->selectRaw('SUM(amount) as total')
             ->value('total') ?? 0;
 
         $totalOut = WalletTransaction::where('status', 'completed')
             ->where('flow', 'out')
             ->where('nature', 'internal')
-            ->selectRaw('SUM(amount + COALESCE(fee_amount, 0) + COALESCE(commission_amount, 0)) as total')
+            ->selectRaw('SUM(amount) as total')
             ->value('total') ?? 0;
 
         $netTransactions = $totalIn - $totalOut;

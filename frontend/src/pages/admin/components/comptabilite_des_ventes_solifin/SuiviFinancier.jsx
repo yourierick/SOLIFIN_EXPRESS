@@ -836,7 +836,7 @@ const SuiviFinancier = React.memo(() => {
           px: 1
         }}>
           <Typography variant="h6" fontWeight={600} sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }}>
-            Transactions financières
+            {isMobile ? 'Transactions' : 'Transactions financières'}
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -869,7 +869,7 @@ const SuiviFinancier = React.memo(() => {
                 },
               }}
             >
-              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+              {isMobile ? '' : isRefreshing ? 'Actualisation...' : 'Actualiser'}
             </Button>
             
             <Button
@@ -901,7 +901,7 @@ const SuiviFinancier = React.memo(() => {
                 },
               }}
             >
-              {isExporting ? 'Exportation...' : 'Exporter'}
+              {isMobile ? '' : isExporting ? 'Exportation...' : 'Exporter'}
             </Button>
           </Box>
         </Box>

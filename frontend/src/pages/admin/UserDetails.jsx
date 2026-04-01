@@ -667,11 +667,11 @@ export default function UserDetails({ userId }) {
 
     // Calculer les commissions par devise
     const totalUSD = referrals.reduce(
-      (sum, ref) => sum + parseFloat(ref.total_commission_usd || 0),
+      (sum, ref) => sum + parseFloat(ref.total_commission || 0),
       0
     );
     const totalCDF = referrals.reduce(
-      (sum, ref) => sum + parseFloat(ref.total_commission_cdf || 0),
+      (sum, ref) => sum + parseFloat(ref.total_commission || 0),
       0
     );
 
@@ -797,25 +797,14 @@ export default function UserDetails({ userId }) {
               }}
             >
               {selectedCurrency === "USD" && (
-                <>Commission USD: {nodeDatum.attributes.commission_usd}$</>
+                <>Commission USD: {nodeDatum.attributes.commission}</>
               )}
               {selectedCurrency === "CDF" && (
-                <>Commission CDF: {nodeDatum.attributes.commission_cdf} FC</>
+                <>Commission CDF: {nodeDatum.attributes.commission}</>
               )}
               {selectedCurrency === "" && (
                 <>
-                  {isCDFEnabled ? (
-                    <>
-                      <div>
-                        Commission USD: {nodeDatum.attributes.commission_usd}$
-                      </div>
-                      <div>
-                        Commission CDF: {nodeDatum.attributes.commission_cdf} FC
-                      </div>
-                    </>
-                  ) : (
-                    <>Commission: {nodeDatum.attributes.commission_usd}$</>
-                  )}
+                  <>Commission: {nodeDatum.attributes.commission}</>
                 </>
               )}
             </div>
@@ -843,8 +832,6 @@ export default function UserDetails({ userId }) {
     const rootNode = {
       name: "Vous",
       attributes: {
-        commission_usd: "0",
-        commission_cdf: "0",
         commission: "0",
         status: "active",
         generation: 0,
@@ -899,11 +886,11 @@ export default function UserDetails({ userId }) {
       rootNode.children = referralsData.map((ref) => ({
         name: ref.name || "Inconnu",
         attributes: {
-          commission_usd: parseFloat(ref.total_commission_usd || 0)?.toFixed(2),
-          commission_cdf: parseFloat(ref.total_commission_cdf || 0)?.toFixed(2),
+          commission_usd: parseFloat(ref.total_commission || 0)?.toFixed(2),
+          commission_cdf: parseFloat(ref.total_commission || 0)?.toFixed(2),
           commission: formatCommissionForTree(
-            ref.total_commission_usd,
-            ref.total_commission_cdf
+            ref.total_commission,
+            ref.total_commission
           ),
           status: ref.pack_status || ref.status || "N/A",
           generation: 1,
@@ -920,11 +907,11 @@ export default function UserDetails({ userId }) {
       rootNode.children = referralsData[0].map((ref) => ({
         name: ref.name || "Inconnu",
         attributes: {
-          commission_usd: parseFloat(ref.total_commission_usd || 0)?.toFixed(2),
-          commission_cdf: parseFloat(ref.total_commission_cdf || 0)?.toFixed(2),
+          commission_usd: parseFloat(ref.total_commission || 0)?.toFixed(2),
+          commission_cdf: parseFloat(ref.total_commission || 0)?.toFixed(2),
           commission: formatCommissionForTree(
-            ref.total_commission_usd,
-            ref.total_commission_cdf
+            ref.total_commission,
+            ref.total_commission
           ),
           status: ref.pack_status || ref.status || "N/A",
           generation: 1,
@@ -968,15 +955,15 @@ export default function UserDetails({ userId }) {
           parentNode.children.push({
             name: ref.name || "Inconnu",
             attributes: {
-              commission_usd: parseFloat(ref.total_commission_usd || 0)?.toFixed(
+              commission_usd: parseFloat(ref.total_commission || 0)?.toFixed(
                 2
               ),
-              commission_cdf: parseFloat(ref.total_commission_cdf || 0)?.toFixed(
+              commission_cdf: parseFloat(ref.total_commission || 0)?.toFixed(
                 2
               ),
               commission: formatCommissionForTree(
-                ref.total_commission_usd,
-                ref.total_commission_cdf
+                ref.total_commission,
+                ref.total_commission
               ),
               status: ref.pack_status || ref.status || "N/A",
               generation: generation,
@@ -1020,8 +1007,8 @@ export default function UserDetails({ userId }) {
     // Formater les données pour l'export
     const formattedData = dataToExport.map((referral) => {
       // Créer un objet pour chaque ligne d'export
-      const usdCommission = parseFloat(referral.total_commission_usd || 0);
-      const cdfCommission = parseFloat(referral.total_commission_cdf || 0);
+      const usdCommission = parseFloat(referral.total_commission || 0);
+      const cdfCommission = parseFloat(referral.total_commission || 0);
 
       let commissionText = "";
       if (selectedCurrency === "USD") {
@@ -4252,7 +4239,7 @@ export default function UserDetails({ userId }) {
                           color: isDarkMode ? "grey.400" : "text.secondary",
                         }}
                       >
-                        Commissions USD
+                        Commissions
                       </Typography>
                     </Box>
                   </Box>
@@ -4686,8 +4673,8 @@ export default function UserDetails({ userId }) {
                                   </TableCell>
                                   <TableCell>
                                     {(() => {
-                                      const usdCommission = parseFloat(referral.total_commission_usd || 0);
-                                      const cdfCommission = parseFloat(referral.total_commission_cdf || 0);
+                                      const usdCommission = parseFloat(referral.total_commission || 0);
+                                      const cdfCommission = parseFloat(referral.total_commission || 0);
 
                                       if (selectedCurrency === "USD") {
                                         return (

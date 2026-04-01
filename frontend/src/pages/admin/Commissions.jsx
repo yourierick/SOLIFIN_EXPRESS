@@ -92,8 +92,7 @@ ChartJS.register(
 
 const Commissions = () => {
   // Hooks
-  const theme = useTheme();
-  const { isDarkMode } = useAppTheme();
+  const { isDarkMode } = useTheme();
 
   // États
   const [activeTab, setActiveTab] = useState(0);

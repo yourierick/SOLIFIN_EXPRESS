@@ -104,63 +104,13 @@ class UserController extends BaseController
                 ->withCount('referrals')
                 ->findOrFail($id);
 
-            // Récupérer les informations de connexion de l'utilisateur depuis Redis ou la base de données
-            $session = null;
-            
-            try {
-                // Essayer de récupérer depuis Redis d'abord
-                $redis = Redis::connection();
+            // Récupérer les informations de connexion de l'utilisateur
+            $session = DB::table('sessions')
+                ->where('user_id', $id)
+                ->orderBy('id', 'desc')
+                ->first();
                 
-                // Laravel stocke les sessions avec différents patterns selon la configuration
-                $sessionPatterns = [
-                    "laravel_database_sessions:*",  // Pattern par défaut
-                    "sessions:*",                   // Pattern alternatif
-                    "laravel_sessions:*",           // Pattern Laravel 8+
-                    "*{$id}*"                       // Pattern contenant l'ID utilisateur
-                ];
-                
-                foreach ($sessionPatterns as $pattern) {
-                    $sessionKeys = $redis->keys($pattern);
-                    
-                    foreach ($sessionKeys as $key) {
-                        $sessionData = $redis->get($key);
-                        if ($sessionData) {
-                            // Les sessions Laravel sont sérialisées, essayer différentes méthodes
-                            try {
-                                // Essayer JSON d'abord
-                                $decodedSession = json_decode($sessionData, true);
-                            } catch (\Exception $e) {
-                                // Si JSON échoue, essayer unserialize
-                                $decodedSession = unserialize($sessionData);
-                            }
-                            
-                            // Vérifier si cette session appartient à l'utilisateur
-                            if (is_array($decodedSession) && 
-                                ((isset($decodedSession['user_id']) && $decodedSession['user_id'] == $id) ||
-                                 (isset($decodedSession['login_web_59ba36addc2b2f9401580dd0c370a017']) && 
-                                  $decodedSession['login_web_59ba36addc2b2f9401580dd0c370a017'] == $id))) {
-                                $session = $decodedSession;
-                                break 2; // Sortir des deux boucles
-                            }
-                        }
-                    }
-                    
-                    if ($session) break;
-                }
-            } catch (\Exception $e) {
-                // En cas d'erreur Redis, utiliser la base de données
-                \Log::warning('Erreur Redis pour session utilisateur: ' . $e->getMessage());
-            }
-            
-            // Fallback vers la base de données si Redis ne fonctionne pas
-            if (!$session) {
-                $session = DB::table('sessions')
-                    ->where('user_id', $id)
-                    ->orderBy('id', 'desc')
-                    ->first();
-            }
-            
-            $user->last_ip_address = $session ? ($session['ip_address'] ?? null) : null;
+            $user->last_ip_address = $session ? $session->ip_address : null;
 
             // Récupérer le wallet de l'utilisateur à détailler
             $userWallet = Wallet::where('user_id', $id)->first();

@@ -39,6 +39,7 @@ class TestimonialPromptService
      */
     public function checkEligibilityAndCreatePrompt(User $user): ?TestimonialPrompt
     {
+        \Log::info('Vérification éligibilité utilisateur', ['user_id' => $user->id]);
         // Vérifier si l'utilisateur est éligible pour recevoir une invitation
         if (!$user->isEligibleForTestimonialPrompt()) {
             return null;
@@ -96,31 +97,29 @@ class TestimonialPromptService
             return null;
         }
         
-        // Récupérer toutes les transactions de retrait en une seule requête
+        // Récupérer toutes les transactions de retrait complétées
         $withdrawalTransactions = $user->wallet->transactions()
             ->where('type', 'funds_withdrawal')
             ->where('status', 'completed')
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', 'desc')
             ->get();
             
         if ($withdrawalTransactions->isEmpty()) {
             return null;
         }
         
-        // Vérifier si l'utilisateur a effectué exactement un retrait avec succès
-        if ($withdrawalTransactions->count() === 1) {
-            $firstWithdrawal = $withdrawalTransactions->first();
-            
-            if ($firstWithdrawal->created_at->diffInDays(now()) <= 7) {
-                return [
-                    'type' => TestimonialPrompt::TRIGGER_WITHDRAWAL,
-                    'data' => [
-                        'amount' => $firstWithdrawal->amount,
-                        'currency' => "USD",
-                        'date' => $firstWithdrawal->created_at->toDateString(),
-                    ],
-                ];
-            }
+        // Vérifier si l'utilisateur a effectué un retrait dans les 7 derniers jours
+        $lastWithdrawal = $withdrawalTransactions->first();
+        
+        if ($lastWithdrawal->created_at->diffInDays(now()) <= 7) {
+            return [
+                'type' => TestimonialPrompt::TRIGGER_WITHDRAWAL,
+                'data' => [
+                    'amount' => $lastWithdrawal->amount,
+                    'currency' => "USD",
+                    'date' => $lastWithdrawal->created_at->toDateString(),
+                ],
+            ];
         }
         
         return null;
@@ -140,10 +139,11 @@ class TestimonialPromptService
         }
         
         // Vérifier si l'utilisateur a gagné un montant significatif
-        if ($user->wallet->total_earned >= self::MIN_EARNINGS_THRESHOLD) {
+        $totalInTransactions = $user->wallet->transactions()->where('flow', 'in')->sum('amount');
+        if ($totalInTransactions >= self::MIN_EARNINGS_THRESHOLD) {
             // Vérifier si l'utilisateur a atteint un palier significatif
             $significantThresholds = [100, 500, 1000, 5000, 10000, 100000, 1000000];
-            $currentEarnings = $user->wallet->total_earned;
+            $currentEarnings = $totalInTransactions;
             
             foreach ($significantThresholds as $threshold) {
                 // Si les gains sont juste au-dessus d'un seuil (marge de 10%)

@@ -42,6 +42,12 @@ const TestimonialPrompt = () => {
     };
 
     fetchActivePrompts();
+
+    // Vérification périodique toutes les 10 minutes
+    const interval = setInterval(fetchActivePrompts, 10 * 60 * 1000); // 10 minutes en millisecondes
+
+    // Nettoyage de l'intervalle au démontage
+    return () => clearInterval(interval);
   }, []);
 
   // Si aucune invitation active, ne rien afficher
@@ -108,10 +114,10 @@ const TestimonialPrompt = () => {
     <AnimatePresence>
       {activePrompt && (
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 right-4 z-50 max-w-md"
+          exit={{ opacity: 0, y: -50 }}
+          className="fixed top-4 right-4 z-50 max-w-md"
         >
           <div
             className={`rounded-lg shadow-xl overflow-hidden ${
@@ -165,7 +171,7 @@ const TestimonialPrompt = () => {
                       } transition-colors`}
                       disabled={isLoading}
                     >
-                      Plus tard
+                      Pas intéressé
                     </button>
                     <button
                       onClick={handleSubmit}

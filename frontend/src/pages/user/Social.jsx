@@ -28,6 +28,7 @@ import {
   ChevronRightIcon,
   Bars3Icon,
   XMarkIcon as CloseIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { formatDistanceToNow } from "date-fns";
@@ -318,6 +319,13 @@ export default function Social() {
     // Vérifier que c'est bien une image
     if (!file.type.startsWith("image/")) {
       setFileError("Veuillez sélectionner un fichier image valide");
+      return;
+    }
+
+    // Vérifier que l'image fait maximum 2Mo
+    const maxSize = 2 * 1024 * 1024; // 2Mo en octets
+    if (file.size > maxSize) {
+      setFileError("L'image ne doit pas dépasser 2Mo");
       return;
     }
 
@@ -917,11 +925,11 @@ export default function Social() {
         )}
 
         {/* Boutons d'action optimisés pour mobile */}
-        <div className={`flex justify-between ${
-          isMobile ? "flex-col gap-3" : "flex"
+        <div className={`flex ${
+          isMobile ? "justify-center gap-2" : "justify-between"
         }`}>
           <div className={`flex space-x-2 ${
-            isMobile ? "justify-center w-full" : "flex space-x-2"
+            isMobile ? "flex-1 justify-center" : "flex space-x-2"
           }`}>
             <input
               type="file"
@@ -940,30 +948,30 @@ export default function Social() {
             <button
               type="button"
               onClick={() => imageInputRef.current?.click()}
-              className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+              className={`inline-flex items-center px-2 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
                 isDarkMode
                   ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
                   : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              } ${isMobile ? "px-4 py-3 text-sm active:scale-95" : "px-3 py-2 text-sm"}`}
+              } ${isMobile ? "px-2 py-2 text-xs active:scale-95" : "px-3 py-2 text-sm"}`}
             >
-              <PhotoIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-4 w-4"}`} />
-              {isMobile ? "Photo" : "Image"}
+              <PhotoIcon className={`mr-1 ${isMobile ? "h-4 w-4" : "h-4 w-4"}`} />
+              {isMobile ? "" : "Image"}
             </button>
             <button
               type="button"
               onClick={() => videoInputRef.current?.click()}
-              className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+              className={`inline-flex items-center px-2 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
                 isDarkMode
                   ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
                   : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              } ${isMobile ? "px-4 py-3 text-sm active:scale-95" : "px-3 py-2 text-sm"}`}
+              } ${isMobile ? "px-2 py-2 text-xs active:scale-95" : "px-3 py-2 text-sm"}`}
             >
-              <VideoCameraIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-4 w-4"}`} />
-              {isMobile ? "Vidéo" : "Vidéo"}
+              <VideoCameraIcon className={`mr-1 ${isMobile ? "h-4 w-4" : "h-4 w-4"}`} />
+              {isMobile ? "" : "Vidéo"}
             </button>
           </div>
           <div className={`flex space-x-2 ${
-            isMobile ? "justify-center w-full space-x-3" : "flex space-x-2"
+            isMobile ? "flex-1 justify-center" : "flex space-x-2"
           }`}>
             <button
               type="button"
@@ -971,34 +979,35 @@ export default function Social() {
                 setIsCreating(false);
                 resetForm();
               }}
-              className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+              className={`inline-flex items-center px-2 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
                 isDarkMode
                   ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
                   : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              } ${isMobile ? "px-6 py-3 text-sm active:scale-95" : "px-4 py-2 text-sm"}`}
+              } ${isMobile ? "px-2 py-2 text-xs active:scale-95" : "px-4 py-2 text-sm"}`}
             >
-              Annuler
+              <XCircleIcon className={`mr-1 ${isMobile ? "h-4 w-4" : "h-4 w-4"}`} />
+              {isMobile ? "" : "Annuler"}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || (!description.trim() && !selectedFile)}
-              className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
+              className={`inline-flex items-center px-2 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ${
                 isSubmitting || (!description.trim() && !selectedFile)
                   ? "opacity-50 cursor-not-allowed"
                   : ""
-              } ${isMobile ? "px-6 py-3 text-sm active:scale-95" : "px-4 py-2 text-sm"}`}
+              } ${isMobile ? "px-2 py-2 text-xs active:scale-95" : "px-4 py-2 text-sm"}`}
             >
               {isSubmitting ? (
                 <>
-                  <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 ${
-                    isMobile ? "h-5 w-5" : "h-4 w-4"
+                  <div className={`animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1 ${
+                    isMobile ? "h-3 w-3" : "h-4 w-4"
                   }`}></div>
-                  Publication...
+                  {isMobile ? "" : "Publication..."}
                 </>
               ) : (
                 <>
-                  <CheckIcon className={`mr-2 ${isMobile ? "h-5 w-5" : "h-4 w-4"}`} />
-                  Publier
+                  <CheckIcon className={`mr-1 ${isMobile ? "h-4 w-4" : "h-4 w-4"}`} />
+                  {isMobile ? "" : "Publier"}
                 </>
               )}
             </button>

@@ -404,7 +404,6 @@ const WithdrawalRequests = () => {
       const response = await axios.get(url);
 
       if (response.data.success) {
-        console.log(response.data);
         // Vérifier si les données sont paginées
         if (response.data.withdrawal_requests) {
           const requests = response.data.withdrawal_requests.data || [];

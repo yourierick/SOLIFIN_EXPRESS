@@ -353,8 +353,8 @@ const GeneralStats = React.memo(({ stats, selectedCurrency, formatAmount, isDark
       title: "Commission Totale",
       value: formatAmount(
         selectedCurrency === "USD"
-          ? general_stats.total_commission_usd
-          : general_stats.total_commission_cdf,
+          ? general_stats.total_commission
+          : general_stats.total_commission,
         selectedCurrency
       ),
       icon: <AttachMoneyIcon />,
@@ -449,9 +449,9 @@ const GeneralStats = React.memo(({ stats, selectedCurrency, formatAmount, isDark
                   {general_stats.referrals_by_generation.map(
                     (count, index) => {
                       const commissionUSD =
-                        general_stats.commissions_by_generation_usd?.[index] || 0;
+                        general_stats.commissions_by_generation?.[index] || 0;
                       const commissionCDF =
-                        general_stats.commissions_by_generation_cdf?.[index] || 0;
+                        general_stats.commissions_by_generation?.[index] || 0;
                       const isActive = count > 0;
                       const generationColors = [
                         "#3b82f6",
@@ -579,8 +579,8 @@ const ProgressionStats = React.memo(({ stats, selectedCurrency, formatAmount, is
     () => ({
       labels: Object.keys(
         selectedCurrency === "USD"
-          ? progression.monthly_commissions_usd || {}
-          : progression.monthly_commissions_cdf || {}
+          ? progression.monthly_commissions || {}
+          : progression.monthly_commissions || {}
       ),
       datasets: [
         {
@@ -590,8 +590,8 @@ const ProgressionStats = React.memo(({ stats, selectedCurrency, formatAmount, is
               : "Commissions (FC)",
           data: Object.values(
             selectedCurrency === "USD"
-              ? progression.monthly_commissions_usd || {}
-              : progression.monthly_commissions_cdf || {}
+              ? progression.monthly_commissions || {}
+              : progression.monthly_commissions || {}
           ).map((val) => parseFloat(val) || 0),
           backgroundColor:
             selectedCurrency === "USD"
@@ -610,8 +610,8 @@ const ProgressionStats = React.memo(({ stats, selectedCurrency, formatAmount, is
       ],
     }),
     [
-      progression.monthly_commissions_usd,
-      progression.monthly_commissions_cdf,
+      progression.monthly_commissions,
+      progression.monthly_commissions,
       selectedCurrency,
       isDarkMode,
     ]
@@ -763,14 +763,14 @@ const ProgressionStats = React.memo(({ stats, selectedCurrency, formatAmount, is
                         <Typography variant="body2" color="text.secondary">
                           USD:{" "}
                           {formatAmount(
-                            progression.top_referral.commission_usd,
+                            progression.top_referral.commission,
                             "USD"
                           )}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           CDF:{" "}
                           {formatAmount(
-                            progression.top_referral.commission_cdf,
+                            progression.top_referral.commission,
                             "CDF"
                           )}
                         </Typography>
@@ -895,7 +895,7 @@ const ReferralActivities = React.memo(({ stats, searchTerm, isDarkMode, hasAnima
                         <TableCell>{referral.expiry_date}</TableCell>
                         <TableCell>
                           {referral.validity_months
-                            ? `${referral?.validity_months?.toFixed(1) || 0} mois`
+                            ? `${referral?.validity_months || 0} mois`
                             : "-"}
                         </TableCell>
                         <TableCell>
@@ -986,8 +986,8 @@ const Visualizations = React.memo(({ stats, selectedCurrency, isDarkMode, hasAni
           label: `Commissions (${selectedCurrency})`,
           data:
             selectedCurrency === "USD"
-              ? general_stats.commissions_by_generation_usd
-              : general_stats.commissions_by_generation_cdf,
+              ? general_stats.commissions_by_generation
+              : general_stats.commissions_by_generation,
           backgroundColor:
             selectedCurrency === "USD"
               ? "rgba(16, 185, 129, 0.7)"
@@ -998,8 +998,8 @@ const Visualizations = React.memo(({ stats, selectedCurrency, isDarkMode, hasAni
       ],
     }),
     [
-      general_stats.commissions_by_generation_usd,
-      general_stats.commissions_by_generation_cdf,
+      general_stats.commissions_by_generation,
+      general_stats.commissions_by_generation,
       selectedCurrency,
       isDarkMode,
     ]

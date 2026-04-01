@@ -31,7 +31,7 @@ import {
 import {
   Search as SearchIcon,
   CalendarToday as CalendarIcon,
-  FilterList as FilterIcon,
+  FilterAlt as FilterIcon,
   Star as StarIcon,
   TrendingUp as TrendingUpIcon,
   People as UsersIcon,
@@ -42,12 +42,14 @@ import {
   FileDownload as ExportIcon,
 } from "@mui/icons-material";
 import { useTheme } from "../../../../contexts/ThemeContext";
+import { useMediaQuery } from "@mui/material";
 import axios from "axios";
 import * as XLSX from 'xlsx';
 import Alert from "../../../../components/Alert";
 
 const GradeHistory = ({ period }) => {
   const { isDarkMode } = useTheme();
+  const isMobile = useMediaQuery('(max-width:600px)');
   
   // États
   const [histories, setHistories] = useState([]);
@@ -568,51 +570,84 @@ const GradeHistory = ({ period }) => {
           borderRadius: 3,
         }}
       >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar 
-                sx={{ 
-                  bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
-                  width: 32,
-                  height: 32
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: { xs: 'center', sm: 'center' }, 
+            justifyContent: 'space-between', 
+            mb: 3,
+            flexDirection: { xs: 'row', sm: 'row' },
+            gap: { xs: 1, sm: 0 }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              gap: { xs: 1.5, sm: 2 },
+              flex: { xs: 1, sm: 'auto' }
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: { xs: 1.5, sm: 2 }
+              }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
+                    width: { xs: 28, sm: 32 },
+                    height: { xs: 28, sm: 32 }
+                  }}
+                >
+                  <SettingsIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: '#3b82f6' }} />
+                </Avatar>
+                <Box>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      color: isDarkMode ? '#ffffff' : '#111827',
+                      fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                    }}
+                  >
+                    Filtres de recherche
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: '#6b7280',
+                      display: { xs: 'none', sm: 'block' }
+                    }}
+                  >
+                    Affinez votre recherche avec les critères ci-dessous
+                  </Typography>
+                </Box>
+              </Box>
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                startIcon={<FilterIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: '#3b82f6' }} />}
+                sx={{
+                  px: { xs: 1.5, sm: 2 },
+                  py: { xs: 0.75, sm: 1 },
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
+                  color: '#3b82f6',
+                  '&:hover': {
+                    backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.12)',
+                  }
                 }}
               >
-                <SettingsIcon sx={{ fontSize: 16, color: '#3b82f6' }} />
-              </Avatar>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: isDarkMode ? '#ffffff' : '#111827' }}>
-                  Filtres de recherche
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#6b7280' }}>
-                  Affinez votre recherche avec les critères ci-dessous
-                </Typography>
-              </Box>
+                {isMobile ? "" : (showFilters ? 'Masquer les filtres' : 'Afficher les filtres')}
+              </Button>
             </Box>
-            <Button
-              onClick={() => setShowFilters(!showFilters)}
-              startIcon={<FilterIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                px: 2,
-                py: 1,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-                backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
-                color: '#3b82f6',
-                '&:hover': {
-                  backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.12)',
-                }
-              }}
-            >
-              {showFilters ? 'Masquer' : 'Afficher'} les filtres
-            </Button>
           </Box>
           
           {showFilters && (
             <>
-              <Grid container spacing={3}>
-            <Grid item xs={12} md={3}>
+              <Grid container spacing={{ xs: 2, sm: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -622,7 +657,7 @@ const GradeHistory = ({ period }) => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 16, color: '#6b7280' }} />
+                      <SearchIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: '#6b7280' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -642,11 +677,12 @@ const GradeHistory = ({ period }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="small">
                 <InputLabel sx={{ 
                   backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                  px: 1
+                  px: 1,
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' }
                 }}>Grade</InputLabel>
                 <Select
                   value={filters.grade_id}
@@ -678,7 +714,9 @@ const GradeHistory = ({ period }) => {
                             backgroundColor: getGradeColor(grade.niveau) 
                           }} 
                         />
-                        Niv. {grade.niveau} - {grade.designation}
+                        <Box sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                          Niv. {grade.niveau} - {grade.designation}
+                        </Box>
                       </Box>
                     </MenuItem>
                   ))}
@@ -686,7 +724,7 @@ const GradeHistory = ({ period }) => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -698,7 +736,7 @@ const GradeHistory = ({ period }) => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <CalendarIcon sx={{ fontSize: 16, color: '#6b7280' }} />
+                      <CalendarIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: '#6b7280' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -718,7 +756,7 @@ const GradeHistory = ({ period }) => {
               />
             </Grid>
 
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -730,7 +768,7 @@ const GradeHistory = ({ period }) => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <CalendarIcon sx={{ fontSize: 16, color: '#6b7280' }} />
+                      <CalendarIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: '#6b7280' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -751,7 +789,13 @@ const GradeHistory = ({ period }) => {
             </Grid>
           </Grid>
 
-          <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+          <Box sx={{ 
+            mt: 3, 
+            display: 'flex', 
+            gap: { xs: 1, sm: 2 }, 
+            justifyContent: { xs: 'stretch', sm: 'flex-end' },
+            flexDirection: { xs: 'column', sm: 'row' }
+          }}>
             <Button
               variant="contained"
               onClick={fetchGradeHistory}
@@ -819,14 +863,14 @@ const GradeHistory = ({ period }) => {
               >
                 <ClockIcon sx={{ fontSize: 16, color: '#10b981' }} />
               </Avatar>
-              <Box>
+              {!isMobile && <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: isDarkMode ? '#ffffff' : '#111827' }}>
                   Historique des attributions
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#6b7280' }}>
                   {pagination.total > 0 ? `${pagination.total} attribution${pagination.total > 1 ? 's' : ''} trouvée${pagination.total > 1 ? 's' : ''}` : 'Aucune attribution trouvée'}
                 </Typography>
-              </Box>
+              </Box>}
             </Box>
 
             <Button
@@ -850,7 +894,7 @@ const GradeHistory = ({ period }) => {
                 }
               }}
             >
-              {isExporting ? 'Exportation...' : 'Exporter'}
+              {isMobile ? "" : isExporting ? 'Exportation...' : 'Exporter'}
             </Button>
           </Box>
 

@@ -440,7 +440,7 @@ const Users = () => {
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="bg-gray-50 p-4 dark:bg-gray-900 min-h-screen">
       <div className="mb-4 p-3 sm:mb-6 max-w-4xl">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg sm:text-xl font-semibold flex items-center text-gray-900 dark:text-white">
@@ -839,7 +839,7 @@ const Users = () => {
         )}
 
         {/* Tableau de bord statistiques */}
-        <div className="mb-6 p-3 max-w-5xl mx-auto">
+        <div className="mb-6 max-w-5xl">
           {statsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, index) => (

@@ -41,7 +41,7 @@ class PackPurchased extends Notification implements ShouldQueue
                 'durationMonths' => $this->durationMonths,
                 'amount' => $this->metadata['amount'], 
                 'fees' => $this->metadata['fees'],
-                'currency' => $this->metadata['currency'] === 'USD' ? '$':'FC',
+                'currency' => '$',
             ])
             ->attachData($pdf->output(), 'facture-pack-' . $this->userPack->id . '.pdf', [
                 'mime' => 'application/pdf',

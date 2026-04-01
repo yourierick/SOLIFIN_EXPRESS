@@ -21,7 +21,7 @@ class SocialEventController extends Controller
     public function index()
     {
         $socialEvents = SocialEvent::with(['page', 'likes', 'views'])
-            ->where('statut', 'approuvé')
+            ->where('statut', 'approved')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -46,7 +46,7 @@ class SocialEventController extends Controller
 
         $socialEvents = SocialEvent::with(['page', 'likes', 'views', 'user'])
             ->whereIn('page_id', $followedPagesIds)
-            ->where('statut', 'approuvé')
+            ->where('statut', 'approved')
             ->orderBy('created_at', 'desc')
             ->get();
             
@@ -132,7 +132,7 @@ class SocialEventController extends Controller
             $socialEvent->page_id = $page->id;
             $socialEvent->user_id = $user->id;
             $socialEvent->description = $request->description;
-            $socialEvent->statut = 'approuvé';
+            $socialEvent->statut = 'approved';
 
             // Traitement de l'image
             if ($request->hasFile('image')) {
@@ -223,7 +223,7 @@ class SocialEventController extends Controller
         }
 
         // Remettre le statut à "en_attente" si le contenu a été modifié
-        $socialEvent->statut = 'en_attente';
+        $socialEvent->statut = 'pending';
         $socialEvent->save();
 
         return response()->json(['message' => 'Statut social mis à jour avec succès', 'social_event' => $socialEvent]);

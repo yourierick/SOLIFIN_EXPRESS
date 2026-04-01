@@ -15,6 +15,7 @@ class CommissionService
     {
         $currentUser = $purchase->user;
         $currentSponsor = User::find($purchase->sponsor_id);
+        $totalAmount = $amount * $duration_months;
 
         $level = 1;
         $maxLevel = 4; // Maximum 4 générations
@@ -27,7 +28,7 @@ class CommissionService
                 ->first();
             if ($rate) {
                 // Calculer le montant de la commission
-                $commissionAmount = ($amount * $rate->rate) / 100;
+                $commissionAmount = ($totalAmount * $rate->rate) / 100;
 
                 if ($commissionAmount) {
                     //Vérifier si le pack du sponsor est actif

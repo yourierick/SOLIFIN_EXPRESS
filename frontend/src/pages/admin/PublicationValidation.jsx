@@ -536,7 +536,7 @@ export default function PublicationValidation() {
       // Mettre à jour la liste des items
       setAllItems((prev) => ({
         ...prev,
-        [stateKey]: prev[stateKey].map((item) =>
+        [stateKey]: (prev[stateKey] || []).map((item) =>
           item.id === selectedItem.id
             ? { ...item, statut: "rejected", raison_rejet: rejectionReason }
             : item
@@ -758,8 +758,10 @@ export default function PublicationValidation() {
 
         {/* Sélecteur de page rapide (mobile uniquement) */}
         <div className="flex items-center space-x-2 order-3 sm:hidden">
-          <label className="text-xs text-gray-600 dark:text-gray-400">Aller à:</label>
+          <label htmlFor={`page-select-${type}`} className="text-xs text-gray-600 dark:text-gray-400">Aller à:</label>
           <select
+            id={`page-select-${type}`}
+            name={`page-select-${type}`}
             value={currentPage}
             onChange={(e) => changePage(type, parseInt(e.target.value))}
             className="text-sm border border-gray-300 rounded-md px-2 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
@@ -901,7 +903,6 @@ export default function PublicationValidation() {
                       className="p-2 rounded-full bg-green-50 hover:bg-green-100 text-green-600 transition-all duration-200 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400"
                       aria-label="Approuver"
                     >
-                      {console.log(type)}
                       <CheckCircleIcon className="h-5 w-5" />
                     </button>
                   )}
@@ -1074,10 +1075,12 @@ export default function PublicationValidation() {
       <div className="flex flex-wrap gap-4 mb-6">
         {/* Filtre par statut */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor={`statut-filter-${type}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Statut
           </label>
           <select
+            id={`statut-filter-${type}`}
+            name={`statut-filter-${type}`}
             value={filters[type].statut}
             onChange={(e) => updateFilter(type, "statut", e.target.value)}
             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
@@ -1091,10 +1094,12 @@ export default function PublicationValidation() {
 
         {/* Filtre par état (si applicable) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor={`etat-filter-${type}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             État
           </label>
           <select
+            id={`etat-filter-${type}`}
+            name={`etat-filter-${type}`}
             value={filters[type].etat}
             onChange={(e) => updateFilter(type, "etat", e.target.value)}
             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
@@ -1170,12 +1175,12 @@ export default function PublicationValidation() {
             </button>
           </div>
           <div className="p-6">
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
-              Veuillez fournir une raison pour le rejet de cette publication.
-              Cela aidera l'utilisateur à comprendre pourquoi sa publication n'a
-              pas été approuvée.
-            </p>
+            <label htmlFor="rejection-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Raison du rejet
+            </label>
             <textarea
+              id="rejection-reason"
+              name="rejection-reason"
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 h-32 dark:bg-gray-700 dark:text-white"
