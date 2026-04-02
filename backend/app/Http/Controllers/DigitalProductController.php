@@ -149,6 +149,7 @@ class DigitalProductController extends Controller
                 'product' => $product
             ], 201);
         } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
             DB::rollBack();
             return response()->json([
                 'message' => 'Erreur lors de la création du produit numérique',

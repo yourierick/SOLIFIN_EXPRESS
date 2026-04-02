@@ -615,7 +615,7 @@ export default function PublicationDetailsModal({
                 </div>
 
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg border-t border-gray-200 dark:border-gray-700">
-                  {onEdit && (
+                  {onEdit && publication.statut !== 'approved' && publication.statut !== 'expired' && (
                     <button
                       type="button"
                       onClick={onEdit}

@@ -63,15 +63,15 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
   // Fonction pour déterminer la couleur du badge de statut
   const getStatusBadgeClass = () => {
     switch (product.statut) {
-      case "approuve":
+      case "approved":
         return isDarkMode
           ? "bg-green-900/30 text-green-300"
           : "bg-green-100 text-green-800";
-      case "rejete":
+      case "rejected":
         return isDarkMode
           ? "bg-red-900/30 text-red-300"
           : "bg-red-100 text-red-800";
-      case "en_attente":
+      case "pending":
       default:
         return isDarkMode
           ? "bg-yellow-900/30 text-yellow-300"
@@ -82,11 +82,11 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
   // Fonction pour formater le statut
   const formatStatus = (status) => {
     switch (status) {
-      case "approuve":
+      case "approved":
         return "Approuvé";
-      case "rejete":
+      case "rejected":
         return "Rejeté";
-      case "en_attente":
+      case "pending":
         return "En attente";
       default:
         return status;
@@ -96,11 +96,11 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
   // Fonction pour déterminer la couleur du badge d'état
   const getStateBadgeClass = () => {
     switch (product.etat) {
-      case "disponible":
+      case "available":
         return isDarkMode
           ? "bg-blue-900/30 text-blue-300"
           : "bg-blue-100 text-blue-800";
-      case "termine":
+      case "unavailable":
         return isDarkMode
           ? "bg-gray-700/50 text-gray-300"
           : "bg-gray-100 text-gray-800";
@@ -114,9 +114,9 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
   // Fonction pour formater l'état
   const formatState = (state) => {
     switch (state) {
-      case "disponible":
+      case "available":
         return "Disponible";
-      case "termine":
+      case "unavailable":
         return "Terminé";
       default:
         return state;
@@ -227,7 +227,7 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
                 isDarkMode ? "text-white" : "text-gray-900"
               }`}
             >
-              {product.prix} {product.devise}
+              {product.prix} $
             </div>
           </div>
           <div
@@ -302,7 +302,7 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
               </motion.button>
             )}
 
-            {onChangeStatus && product.statut === "approuve" && (
+            {onChangeStatus && product.statut === "approved" && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

@@ -808,7 +808,7 @@ const CreateFormationModal = ({ open, onClose, onFormationCreated }) => {
       <Box sx={{ px: 3, pt: 2, pb: 1 }}>
         <Stepper
           activeStep={activeStep}
-          alternativeLabels={!isMobile}
+          alternativeLabel={!isMobile}
           orientation={isMobile ? "vertical" : "horizontal"}
           sx={{
             "& .MuiStepLabel-root .Mui-active .MuiStepIcon-text": {

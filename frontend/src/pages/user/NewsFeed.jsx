@@ -250,8 +250,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
       setJobOffersTotal(response.data.total || jobOffers.length);
      
     } catch (err) {
-      console.error("Erreur lors du chargement des offres d'emploi:", err);
-      setError("Erreur lors du chargement des offres d'emploi");
     } finally {
       setLoadingJobOffers(false);
     }
@@ -330,8 +328,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
       setOppoTotal(response.data.total || oppoPosts.length);
      
     } catch (err) {
-      console.error("Erreur lors du chargement des opportunités d'affaires:", err);
-      setError("Erreur lors du chargement des opportunités d'affaires");
     } finally {
       setLoadingOppo(false);
     }
@@ -458,7 +454,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
         setLoading(false);
         setLoadingMore(false); // Réinitialiser le chargement infini
       } catch (err) {
-        console.error("Erreur lors du chargement des publications:", err);
 
         // Vérifier si l'erreur est liée aux ressources insuffisantes ou au timeout
         const isResourceError =

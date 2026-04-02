@@ -1016,8 +1016,8 @@ export default function PublicationForm({
 
       // Ajouter le statut et l'état pour les nouvelles publications
       if (!isEditMode) {
-        data.statut = "en_attente";
-        data.etat = "disponible";
+        data.statut = "pending";
+        data.etat = "available";
       }
 
       // En mode édition, conserver l'ID

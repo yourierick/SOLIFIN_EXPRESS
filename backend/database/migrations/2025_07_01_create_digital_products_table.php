@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('fichier');
             $table->enum('statut', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('raison_rejet')->nullable();
-            $table->enum('etat', ['disponible', 'termine'])->default('disponible');
+            $table->enum('etat', ['available', 'unavailable'])->default('available');
             $table->integer('nombre_ventes')->default(0);
             $table->timestamps();
         });

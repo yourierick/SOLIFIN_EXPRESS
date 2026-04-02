@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -203,6 +203,8 @@ export default function BoostPublicationModal({
   publication,
   publicationType,
 }) {
+  const modalRef = useRef(null);
+  const previousActiveElement = useRef(null);
   const { isDarkMode } = useTheme();
   const { isCDFEnabled, canUseCDF } = useCurrency();
   const [loading, setLoading] = useState(false);
@@ -221,11 +223,21 @@ export default function BoostPublicationModal({
   // Récupérer le solde du wallet au chargement et réinitialiser quand le modal s'ouvre
   useEffect(() => {
     if (isOpen) {
+      // Sauvegarder l'élément actuellement focusé
+      previousActiveElement.current = document.activeElement;
+      
       fetchWalletBalance();
       setCurrentStep(0); // Toujours commencer à l'étape 0
       setSelectedCurrency("USD"); // Réinitialiser la devise
       setDays(7); // Réinitialiser les jours
       setFormIsValid(false); // Réinitialiser la validation
+    } else {
+      // Restaurer le focus sur l'élément précédent quand le modal se ferme
+      if (previousActiveElement.current && typeof previousActiveElement.current.focus === 'function') {
+        setTimeout(() => {
+          previousActiveElement.current.focus();
+        }, 0);
+      }
     }
   }, [isOpen]);
 
@@ -252,7 +264,6 @@ export default function BoostPublicationModal({
   const fetchWalletBalance = async () => {
     try {
       const response = await axios.get("/api/userwallet/balance");
-      console.log(response);
       if (response.data.success) {
         // Nettoyer les valeurs avant de les parser
         const cleanBalanceUSD = (response.data.balance_usd || "0").replace(
@@ -428,7 +439,7 @@ export default function BoostPublicationModal({
       {/* Overlay semi-transparent avec effet de flou */}
       <div
         className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm modal-blur-overlay transition-all duration-300"
-        onClick={onClose}
+        onClick={() => onClose(false)}
       ></div>
 
       {/* Contenu du modal */}
@@ -469,7 +480,7 @@ export default function BoostPublicationModal({
           </div>
 
           <IconButton
-            onClick={onClose}
+            onClick={() => onClose(false)}
             size="small"
             className="text-white hover:text-gray-200 hover:bg-white/20 backdrop-blur-sm transition-all duration-200 relative z-10"
             sx={{ padding: "8px" }}
@@ -913,7 +924,7 @@ export default function BoostPublicationModal({
               <div className="flex gap-3 ml-auto">
                 <Button
                   variant="outlined"
-                  onClick={onClose}
+                  onClick={() => onClose(false)}
                   disabled={loading}
                   className="text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl"
                 >

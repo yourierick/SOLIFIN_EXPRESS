@@ -384,7 +384,7 @@ const PurchaseDigitalProductModal = ({
               >
                 <Typography variant="body2">Prix du produit:</Typography>
                 <Typography variant="body2" fontWeight="bold">
-                  {parseFloat(product.prix).toFixed(2)} {product.devise}
+                  {parseFloat(product.prix).toFixed(2)} $
                 </Typography>
               </Box>
 
@@ -395,7 +395,7 @@ const PurchaseDigitalProductModal = ({
                   Frais de commodité ({feePercentage}%):
                 </Typography>
                 <Typography variant="body2">
-                  {calculateFees().toFixed(2)} {product.devise}
+                  {calculateFees().toFixed(2)} $
                 </Typography>
               </Box>
 
@@ -404,7 +404,7 @@ const PurchaseDigitalProductModal = ({
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="subtitle2">Total à payer:</Typography>
                 <Typography variant="subtitle2" fontWeight="bold">
-                  {calculateTotal().toFixed(2)} {product.devise}
+                  {calculateTotal().toFixed(2)} $
                 </Typography>
               </Box>
             </Paper>
@@ -447,7 +447,7 @@ const PurchaseDigitalProductModal = ({
                 color={hasSufficientFunds() ? "success.main" : "error.main"}
                 sx={{ fontWeight: 600 }}
               >
-                {userWallet?.balance_usd || "0.00"} {product.devise}
+                {userWallet?.balance_usd || "0.00"} $
               </Typography>
             </Box>
 

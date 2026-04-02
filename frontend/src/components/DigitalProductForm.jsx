@@ -18,7 +18,6 @@ const DigitalProductForm = ({ product, onSubmit, onCancel }) => {
     description: "",
     type: "ebook",
     prix: "",
-    devise: "USD", // Devise fixée à USD
     image: null,
     fichier: null,
   });
@@ -35,7 +34,6 @@ const DigitalProductForm = ({ product, onSubmit, onCancel }) => {
         description: product.description || "",
         type: product.type || "ebook",
         prix: product.prix || "",
-        devise: "USD", // Devise toujours fixée à USD
         image: null,
         fichier: null,
       });
@@ -133,7 +131,6 @@ const DigitalProductForm = ({ product, onSubmit, onCancel }) => {
       data.append("description", formData.description);
       data.append("type", formData.type);
       data.append("prix", formData.prix);
-      data.append("devise", formData.devise);
 
       if (formData.image) {
         data.append("image", formData.image);

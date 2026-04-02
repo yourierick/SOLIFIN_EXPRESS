@@ -6,7 +6,7 @@ const POLLING_INTERVALS = {
   INACTIVE: parseInt(import.meta.env.VITE_POLLING_INTERVAL_INACTIVE || "60000"), // Intervalle quand la fenêtre est inactive (défaut: 60 secondes)
   TYPING_ACTIVE: 2000, // 2 secondes pour les notifications de frappe quand la fenêtre est active
   STATUS_UPDATE: 30000, // 30 secondes pour la mise à jour du statut utilisateur
-  STATUS_FETCH: 15000, // 15 secondes pour récupérer les statuts des utilisateurs
+  STATUS_FETCH: 60000, // 1 minute pour récupérer les statuts des utilisateurs
   get TYPING() {
     // Utiliser l'intervalle inactif si la fenêtre est inactive, sinon utiliser l'intervalle actif pour les notifications de frappe
     return window.document.hasFocus() ? this.TYPING_ACTIVE : this.INACTIVE;

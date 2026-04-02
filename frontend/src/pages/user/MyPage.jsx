@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Tab } from "@headlessui/react";
 import {
   PlusIcon,
@@ -397,7 +398,7 @@ export default function MyPage() {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 25,
+    itemsPerPage: 10,
   });
 
   // État pour le modal de boost
@@ -410,7 +411,7 @@ export default function MyPage() {
   const [livreursPagination, setLivreursPagination] = useState({
     currentPage: 1,
     totalPages: 1,
-    rowsPerPage: 25,
+    rowsPerPage: 10,
     totalCount: 0,
   });
   const [catalogPagination, setCatalogPagination] = useState({
@@ -430,7 +431,7 @@ export default function MyPage() {
   const [candidatureStatus, setCandidatureStatus] = useState(null); // null, 'en_attente', 'approuvé', 'rejeté'
 
   // Fonction pour récupérer les données de la page avec pagination backend
-  const fetchPageData = async (activeTab = null, page = 1, rowsPerPage = 25) => {
+  const fetchPageData = async (activeTab = null, page = 1, rowsPerPage = 10) => {
     try {
       setIsLoading(true);
       
@@ -560,7 +561,7 @@ export default function MyPage() {
           currentPage: 1,
           totalPages: 1,
           totalItems: response.data.livreurs?.length || 0,
-          itemsPerPage: 25
+          itemsPerPage: 10
         });
       }
     } catch (error) {
@@ -591,6 +592,7 @@ export default function MyPage() {
 
   // Gestionnaire pour la fermeture du modal de boost
   const handleBoostModalClose = (success) => {
+    console.log(success)
     if (success) {
       // Si le boost a réussi, rafraîchir les données
       fetchPageData();
@@ -727,7 +729,7 @@ export default function MyPage() {
   };
 
   // Fonction pour récupérer les livreurs d'une page
-  const fetchLivreurs = async (page = 1, rowsPerPage = 25) => {
+  const fetchLivreurs = async (page = 1, rowsPerPage = 10) => {
     if (!pageData?.id) return;
 
     try {
@@ -771,7 +773,7 @@ export default function MyPage() {
     try {
       await axios.post(`/api/livreurs/approuver/${livreurId}`);
       toast.success("Candidature approuvée avec succès");
-      await fetchLivreurs(1, 25);
+      await fetchLivreurs(1, 10);
     } catch (error) {
       console.error("Erreur lors de l'approbation du livreur:", error);
       toast.error("Impossible d'approuver cette candidature");
@@ -783,7 +785,7 @@ export default function MyPage() {
     try {
       await axios.post(`/api/livreurs/rejeter/${livreurId}`);
       toast.success("Candidature rejetée");
-      await fetchLivreurs(1, 25);
+      await fetchLivreurs(1, 10);
     } catch (error) {
       console.error("Erreur lors du rejet du livreur:", error);
       toast.error("Impossible de rejeter cette candidature");
@@ -795,7 +797,7 @@ export default function MyPage() {
     try {
       await axios.post(`/api/livreurs/revoquer/${livreurId}`);
       toast.success("Livreur révoqué avec succès");
-      await fetchLivreurs(1, 25);
+      await fetchLivreurs(1, 10);
     } catch (error) {
       console.error("Erreur lors de la révocation du livreur:", error);
       toast.error("Impossible de révoquer ce livreur");
@@ -934,7 +936,7 @@ export default function MyPage() {
     try {
       await axios.delete(`/api/livreurs/${livreurId}`);
       toast.success("Candidature supprimée avec succès");
-      await fetchLivreurs(1, 25);
+      await fetchLivreurs(1, 10);
       // Si c'est l'utilisateur connecté qui supprime sa propre candidature
       if (user && !pageData?.is_owner) {
         setCandidatureStatus(null);
@@ -977,7 +979,7 @@ export default function MyPage() {
 
   useEffect(() => {
     if (pageData?.id) {
-      fetchLivreurs(1, 25);
+      fetchLivreurs(1, 10);
       checkCandidatureStatus();
     }
   }, [pageData?.id]);
@@ -1335,9 +1337,9 @@ export default function MyPage() {
     
     // Si c'est le premier chargement, charger les infos de base + données de l'onglet en un seul appel
     if (!pageData?.id) {
-      await fetchPageData(tabType, 1, 25); // Premier appel : infos de base + données de l'onglet
+      await fetchPageData(tabType, 1, 10); // Premier appel : infos de base + données de l'onglet
     } else {
-      await fetchPageData(tabType, 1, 25); // Changements d'onglet : seulement les données de l'onglet
+      await fetchPageData(tabType, 1, 10); // Changements d'onglet : seulement les données de l'onglet
     }
   };
 
@@ -1733,230 +1735,415 @@ export default function MyPage() {
                                       : "Vous n'avez pas encore de publicités."}
                                   </Alert>
                                 ) : (
-                                  <TableContainer
-                                    sx={{
-                                      boxShadow: isDarkMode
-                                        ? "none"
-                                        : "0 2px 10px rgba(0, 0, 0, 0.05)",
-                                      borderRadius: { xs: 1.5, sm: 2 },
-                                      overflow: "auto",
-                                      maxWidth: "100%",
-                                      "&::-webkit-scrollbar": {
-                                        height: { xs: 4, sm: 6 },
-                                        width: { xs: 4, sm: 6 },
-                                      },
-                                      "&::-webkit-scrollbar-track": {
-                                        backgroundColor: isDarkMode
-                                          ? "rgba(55, 65, 81, 0.4)"
-                                          : "rgba(0, 0, 0, 0.06)",
-                                        borderRadius: { xs: 2, sm: 3 },
-                                      },
-                                      "&::-webkit-scrollbar-thumb": {
-                                        backgroundColor: isDarkMode
-                                          ? "rgba(156, 163, 175, 0.6)"
-                                          : "rgba(156, 163, 175, 0.4)",
-                                        borderRadius: { xs: 2, sm: 3 },
-                                        "&:hover": {
-                                          backgroundColor: isDarkMode
-                                            ? "rgba(156, 163, 175, 0.8)"
-                                            : "rgba(156, 163, 175, 0.6)",
+                                  isMobile ? (
+                                    // Vue cartes pour mobile
+                                    <div className="space-y-4">
+                                      {getFilteredPublications("publication", false).map((ad) => (
+                                          <div
+                                            key={ad.id}
+                                            className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                              isDarkMode 
+                                                ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' 
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                            }`}
+                                          >
+                                            {/* Header de la carte */}
+                                            <div className="flex items-start justify-between mb-3">
+                                              <div className="flex-1">
+                                                <div className="flex items-center mb-2">
+                                                  <div
+                                                    className={`w-2 h-2 rounded-full mr-2 ${
+                                                      ad.statut === 'approved' ? 'bg-green-500' : 
+                                                      ad.statut === 'pending' ? 'bg-yellow-500' : 
+                                                      ad.statut === 'rejected' || ad.statut === 'expired' ? 'bg-red-500' : 'bg-gray-500'
+                                                    }`}
+                                                  />
+                                                  <h3 className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                    {ad.titre || "Sans titre"}
+                                                  </h3>
+                                                </div>
+                                                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                  ad.statut === 'approved' 
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                    : ad.statut === 'pending'
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                    : ad.statut === 'rejected' || ad.statut === 'expired'
+                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                }`}>
+                                                  {getStatutLabel(ad.statut)}
+                                                </div>
+                                              </div>
+                                              <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                                                isDarkMode 
+                                                  ? 'bg-blue-900 text-blue-300 border border-blue-700' 
+                                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                              }`}>
+                                                #{ad.id}
+                                              </div>
+                                            </div>
+
+                                            {/* Description */}
+                                            {ad.description && (
+                                              <div className="mb-3">
+                                                <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2`}>
+                                                  {ad.description.length > 100
+                                                    ? ad.description.substring(0, 100) + "..."
+                                                    : ad.description}
+                                                </p>
+                                              </div>
+                                            )}
+
+                                            {/* Informations principales */}
+                                            <div className="space-y-2 mb-3">
+                                              <div className="flex items-center text-xs">
+                                                <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                                                  {formatDate(ad.created_at)}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                                              <div className="flex items-center space-x-2">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewDetails(ad, "publication");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-blue-400 hover:bg-blue-900/30' 
+                                                      : 'text-blue-600 hover:bg-blue-50'
+                                                  }`}
+                                                  title="Voir les détails"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                  </svg>
+                                                </button>
+                                                
+                                                {ad.statut !== 'approved' && ad.statut !== 'expired' && (
+                                                    <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleEdit(ad, "publication");
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      isDarkMode 
+                                                        ? 'text-green-400 hover:bg-green-900/30' 
+                                                        : 'text-green-600 hover:bg-green-50'
+                                                    }`}
+                                                    title="Modifier"
+                                                  >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                  </button>
+                                                )}
+                                                
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteConfirm(ad.id, "publication");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-red-400 hover:bg-red-900/30' 
+                                                      : 'text-red-600 hover:bg-red-50'
+                                                  }`}
+                                                  title="Supprimer"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                  </svg>
+                                                </button>
+                                              </div>
+
+                                              {/* Bouton de boost */}
+                                              {(ad.statut === 'approved' || ad.statut === 'expired') && (
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleBoost(ad, "publication");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-purple-400 hover:bg-purple-900/30' 
+                                                      : 'text-purple-600 hover:bg-purple-50'
+                                                  }`}
+                                                  title="Booster cette publication"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                  </svg>
+                                                </button>
+                                              )}
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleViewDetails(ad, "publication");
+                                                }}
+                                                className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition-colors"
+                                              >
+                                                Voir
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ):(
+                                    <TableContainer
+                                      sx={{
+                                        boxShadow: isDarkMode
+                                          ? "none"
+                                          : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                        borderRadius: { xs: 1.5, sm: 2 },
+                                        overflow: "auto",
+                                        maxWidth: "100%",
+                                        "&::-webkit-scrollbar": {
+                                          height: { xs: 4, sm: 6 },
+                                          width: { xs: 4, sm: 6 },
                                         },
-                                      },
-                                    }}
-                                  >
-                                    <Table 
-                                      size="small" 
-                                      sx={{ 
-                                        minWidth: { xs: "800px", sm: "900px" },
-                                        tableLayout: "fixed"
+                                        "&::-webkit-scrollbar-track": {
+                                          backgroundColor: isDarkMode
+                                            ? "rgba(55, 65, 81, 0.4)"
+                                            : "rgba(0, 0, 0, 0.06)",
+                                          borderRadius: { xs: 2, sm: 3 },
+                                        },
+                                        "&::-webkit-scrollbar-thumb": {
+                                          backgroundColor: isDarkMode
+                                            ? "rgba(156, 163, 175, 0.6)"
+                                            : "rgba(156, 163, 175, 0.4)",
+                                          borderRadius: { xs: 2, sm: 3 },
+                                          "&:hover": {
+                                            backgroundColor: isDarkMode
+                                              ? "rgba(156, 163, 175, 0.8)"
+                                              : "rgba(156, 163, 175, 0.6)",
+                                          },
+                                        },
                                       }}
                                     >
-                                      <TableHead>
-                                        <TableRow
-                                          sx={{
-                                            bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
-                                            "& th": {
-                                              fontWeight: "bold",
-                                              color: isDarkMode ? "#fff" : "#334155",
-                                              fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                                              padding: { xs: "8px 10px", sm: "12px 16px" },
-                                              borderBottom: isDarkMode
-                                                ? "1px solid #374151"
-                                                : "2px solid #e2e8f0",
-                                              textTransform: "uppercase",
-                                              letterSpacing: "0.05em",
-                                              whiteSpace: "nowrap",
-                                            },
-                                          }}
-                                        >
-                                          <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
-                                          <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
-                                          <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
-                                          <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
-                                          <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
-                                        </TableRow>
-                                      </TableHead>
-                                      <TableBody>
-                                        {getFilteredPublications("publication", false).map((ad) => (
+                                      <Table 
+                                        size="small" 
+                                        sx={{ 
+                                          minWidth: { xs: "800px", sm: "900px" },
+                                          tableLayout: "fixed"
+                                        }}
+                                      >
+                                        <TableHead>
                                           <TableRow
-                                            key={ad.id}
                                             sx={{
-                                              "&:hover": {
-                                                bgcolor: isDarkMode ? "#374151" : "#f8fafc",
-                                              },
-                                              borderBottom: `1px solid ${
-                                                isDarkMode ? "#374151" : "#e2e8f0"
-                                              }`,
-                                              "& td": {
-                                                padding: { xs: "6px 10px", sm: "10px 16px" },
-                                                color: isDarkMode ? "#fff" : "#475569",
-                                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                              bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                                              "& th": {
+                                                fontWeight: "bold",
+                                                color: isDarkMode ? "#fff" : "#334155",
+                                                fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                                                padding: { xs: "8px 10px", sm: "12px 16px" },
+                                                borderBottom: isDarkMode
+                                                  ? "1px solid #374151"
+                                                  : "2px solid #e2e8f0",
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
                                                 whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
                                               },
-                                              bgcolor: isDarkMode ? "#1d2432" : "#fff",
                                             }}
                                           >
-                                            <TableCell>
-                                              <Box
-                                                sx={{
-                                                  display: "inline-flex",
-                                                  alignItems: "center",
-                                                  px: { xs: 0.75, sm: 1 },
-                                                  py: { xs: 0.4, sm: 0.5 },
-                                                  borderRadius: { xs: 0.75, sm: 1 },
-                                                  background: isDarkMode
-                                                    ? "rgba(59, 130, 246, 0.2)"
-                                                    : "rgba(59, 130, 246, 0.1)",
-                                                  border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"}`,
-                                                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                                                  fontWeight: 600,
-                                                  color: isDarkMode ? "#60a5fa" : "#2563eb",
-                                                }}
-                                              >
-                                                #{ad.id}
-                                              </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Box
-                                                sx={{
-                                                  maxWidth: { xs: "180px", sm: "230px" },
-                                                }}
-                                              >
+                                            <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                                            <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
+                                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
+                                            <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                            <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {getFilteredPublications("publication", false).map((ad) => (
+                                            <TableRow
+                                              key={ad.id}
+                                              sx={{
+                                                "&:hover": {
+                                                  bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                                                },
+                                                borderBottom: `1px solid ${
+                                                  isDarkMode ? "#374151" : "#e2e8f0"
+                                                }`,
+                                                "& td": {
+                                                  padding: { xs: "6px 10px", sm: "10px 16px" },
+                                                  color: isDarkMode ? "#fff" : "#475569",
+                                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                                  whiteSpace: "nowrap",
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                },
+                                                bgcolor: isDarkMode ? "#1d2432" : "#fff",
+                                              }}
+                                            >
+                                              <TableCell>
                                                 <Box
                                                   sx={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    px: { xs: 0.75, sm: 1 },
+                                                    py: { xs: 0.4, sm: 0.5 },
+                                                    borderRadius: { xs: 0.75, sm: 1 },
+                                                    background: isDarkMode
+                                                      ? "rgba(59, 130, 246, 0.2)"
+                                                      : "rgba(59, 130, 246, 0.1)",
+                                                    border: `1px solid ${isDarkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"}`,
+                                                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
                                                     fontWeight: 600,
-                                                    color: isDarkMode ? "#fff" : "#1f2937",
-                                                    fontSize: { xs: "0.8rem", sm: "0.9rem" },
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
+                                                    color: isDarkMode ? "#60a5fa" : "#2563eb",
                                                   }}
                                                 >
-                                                  {ad.titre || "Sans titre"}
+                                                  #{ad.id}
                                                 </Box>
-                                                {ad.description && (
+                                              </TableCell>
+                                              <TableCell>
+                                                <Box
+                                                  sx={{
+                                                    maxWidth: { xs: "180px", sm: "230px" },
+                                                  }}
+                                                >
                                                   <Box
                                                     sx={{
-                                                      color: isDarkMode ? "#9ca3af" : "#6b7280",
-                                                      fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                                                      mt: 0.5,
+                                                      fontWeight: 600,
+                                                      color: isDarkMode ? "#fff" : "#1f2937",
+                                                      fontSize: { xs: "0.8rem", sm: "0.9rem" },
                                                       overflow: "hidden",
                                                       textOverflow: "ellipsis",
                                                       whiteSpace: "nowrap",
                                                     }}
                                                   >
-                                                    {ad.description.length > 50
-                                                      ? ad.description.substring(0, 50) + "..."
-                                                      : ad.description}
+                                                    {ad.titre || "Sans titre"}
                                                   </Box>
-                                                )}
-                                              </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Chip
-                                                label={getStatutLabel(ad.statut)}
-                                                size="small"
-                                                color={getStatutColor(ad.statut)}
-                                                sx={{
-                                                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                                  height: { xs: 20, sm: 24 },
-                                                  fontWeight: 600,
-                                                  borderRadius: { xs: 1, sm: 1.5 },
-                                                }}
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              <Box
-                                                sx={{
-                                                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                                                  color: isDarkMode ? "#9ca3af" : "#6b7280",
-                                                }}
-                                              >
-                                                {formatDate(ad.created_at)}
-                                              </Box>
-                                            </TableCell>
-                                            <TableCell align="center">
-                                              <Box
-                                                sx={{
-                                                  display: "flex",
-                                                  gap: 0.5,
-                                                  justifyContent: "center",
-                                                }}
-                                              >
-                                                <Tooltip title="Voir les détails" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleViewDetails(ad, "publication")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#60a5fa" : "#2563eb",
-                                                      bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <EyeIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Modifier" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleEdit(ad, "publication")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#34d399" : "#059669",
-                                                      bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <PencilIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Supprimer" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleDeleteConfirm(ad.id, "publication")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#f87171" : "#dc2626",
-                                                      bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                              </Box>
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </TableContainer>
+                                                  {ad.description && (
+                                                    <Box
+                                                      sx={{
+                                                        color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                                        mt: 0.5,
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                      }}
+                                                    >
+                                                      {ad.description.length > 50
+                                                        ? ad.description.substring(0, 50) + "..."
+                                                        : ad.description}
+                                                    </Box>
+                                                  )}
+                                                </Box>
+                                              </TableCell>
+                                              <TableCell>
+                                                <Chip
+                                                  label={getStatutLabel(ad.statut)}
+                                                  size="small"
+                                                  color={getStatutColor(ad.statut)}
+                                                  sx={{
+                                                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                                    height: { xs: 20, sm: 24 },
+                                                    fontWeight: 600,
+                                                    borderRadius: { xs: 1, sm: 1.5 },
+                                                  }}
+                                                />
+                                              </TableCell>
+                                              <TableCell>
+                                                <Box
+                                                  sx={{
+                                                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                                    color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                  }}
+                                                >
+                                                  {formatDate(ad.created_at)}
+                                                </Box>
+                                              </TableCell>
+                                              <TableCell align="center">
+                                                <Box
+                                                  sx={{
+                                                    display: "flex",
+                                                    gap: 0.5,
+                                                    justifyContent: "center",
+                                                  }}
+                                                >
+                                                  <Tooltip title="Voir les détails" arrow>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleViewDetails(ad, "publication")}
+                                                      sx={{
+                                                        color: isDarkMode ? "#60a5fa" : "#2563eb",
+                                                        bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                                                        "&:hover": {
+                                                          bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
+                                                        },
+                                                      }}
+                                                    >
+                                                      <EyeIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+
+                                                  {ad.statut !== 'approved' && ad.statut !== 'expired'  && (
+                                                    <Tooltip title="Modifier" arrow>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() => handleEdit(ad, "publication")}
+                                                        sx={{
+                                                          color: isDarkMode ? "#34d399" : "#059669",
+                                                          bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
+                                                          "&:hover": {
+                                                            bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
+                                                          },
+                                                        }}
+                                                      >
+                                                        <PencilIcon className="h-4 w-4" />
+                                                      </IconButton>
+                                                    </Tooltip>
+                                                  )}
+
+                                                  {(ad.statut === 'approved' || ad.statut === 'expired') && (
+                                                    <Tooltip title="Booster cette publication" arrow>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() => handleBoost(ad, "publication")}
+                                                        sx={{
+                                                          color: isDarkMode ? "#a78bfa" : "#7c3aed",
+                                                          bgcolor: isDarkMode ? "rgba(167, 139, 250, 0.1)" : "rgba(124, 58, 237, 0.05)",
+                                                          "&:hover": {
+                                                            bgcolor: isDarkMode ? "rgba(167, 139, 250, 0.2)" : "rgba(124, 58, 237, 0.1)",
+                                                          },
+                                                        }}
+                                                      >
+                                                        <SparklesIcon className="h-4 w-4" />
+                                                      </IconButton>
+                                                    </Tooltip>
+                                                  )}
+
+                                                  <Tooltip title="Supprimer" arrow>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleDeleteConfirm(ad.id, "publication")}
+                                                      sx={{
+                                                        color: isDarkMode ? "#f87171" : "#dc2626",
+                                                        bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
+                                                        "&:hover": {
+                                                          bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
+                                                        },
+                                                      }}
+                                                    >
+                                                      <TrashIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                </Box>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  )
                                 )}
 
                                 {/* Pagination backend pour les publicités */}
@@ -2084,7 +2271,7 @@ export default function MyPage() {
                                       isMobile ? "h-4 w-4" : "h-5 w-5"
                                     }`}
                                   />
-                                  {isMobile ? "Actualiser" : "Actualiser"}
+                                    Actualiser
                                 </button>
                                 <button
                                   onClick={() => handleFormOpen("jobOffer")}
@@ -2148,6 +2335,170 @@ export default function MyPage() {
                                       : "Vous n'avez pas encore d'offres d'emploi."}
                                   </Alert>
                                 ) : (
+                                  isMobile ? (
+                                    // Vue cartes pour mobile
+                                    <div className="space-y-4">
+                                      {getFilteredPublications("jobOffer", false).map((offer) => (
+                                          <div
+                                            key={offer.id}
+                                            className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                              isDarkMode 
+                                                ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' 
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                            }`}
+                                          >
+                                            {/* Header de la carte */}
+                                            <div className="flex items-start justify-between mb-3">
+                                              <div className="flex-1">
+                                                <div className="flex items-center mb-2">
+                                                  <div
+                                                    className={`w-2 h-2 rounded-full mr-2 ${
+                                                      offer.statut === 'approved' ? 'bg-green-500' : 
+                                                      offer.statut === 'pending' ? 'bg-yellow-500' : 
+                                                      offer.statut === 'rejected' || offer.statut === 'expired' ? 'bg-red-500' : 'bg-gray-500'
+                                                    }`}
+                                                  />
+                                                  <h3 className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                    {offer.titre || "Sans titre"}
+                                                  </h3>
+                                                </div>
+                                                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                  offer.statut === 'approved' 
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                    : offer.statut === 'pending'
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                    : offer.statut === 'rejected' || offer.statut === 'expired'
+                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                }`}>
+                                                  {getStatutLabel(offer.statut)}
+                                                </div>
+                                              </div>
+                                              <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                                                isDarkMode 
+                                                  ? 'bg-blue-900 text-blue-300 border border-blue-700' 
+                                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                              }`}>
+                                                #{offer.id}
+                                              </div>
+                                            </div>
+
+                                            {/* Description */}
+                                            {offer.description && (
+                                              <div className="mb-3">
+                                                <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2`}>
+                                                  {offer.description.length > 100
+                                                    ? offer.description.substring(0, 100) + "..."
+                                                    : offer.description}
+                                                </p>
+                                              </div>
+                                            )}
+
+                                            {/* Informations principales */}
+                                            <div className="space-y-2 mb-3">
+                                              <div className="flex items-center text-xs">
+                                                <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                                                  {formatDate(offer.created_at)}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                                              <div className="flex items-center space-x-2">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewDetails(offer, "jobOffer");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-blue-400 hover:bg-blue-900/30' 
+                                                      : 'text-blue-600 hover:bg-blue-50'
+                                                  }`}
+                                                  title="Voir les détails"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                  </svg>
+                                                </button>
+                                                
+                                                {offer.statut !== 'approved' && offer.statut !== 'expired'  && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleEdit(offer, "jobOffer");
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      isDarkMode 
+                                                        ? 'text-green-400 hover:bg-green-900/30' 
+                                                        : 'text-green-600 hover:bg-green-50'
+                                                    }`}
+                                                    title="Modifier"
+                                                  >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                  </button>
+                                                )}
+                                                
+                                                
+                                                {(offer.statut === 'approved' || offer.statut === 'expired') && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleBoost(offer, "jobOffer");
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      isDarkMode 
+                                                        ? 'text-purple-400 hover:bg-purple-900/30' 
+                                                        : 'text-purple-600 hover:bg-purple-50'
+                                                    }`}
+                                                    title="Booster cette offre"
+                                                  >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                  </button>
+                                                )}
+                                                
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteConfirm(offer.id, "jobOffer");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-red-400 hover:bg-red-900/30' 
+                                                      : 'text-red-600 hover:bg-red-50'
+                                                  }`}
+                                                  title="Supprimer"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                  </svg>
+                                                </button>
+                                              </div>
+
+                                              {/* Bouton de boost */}
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleViewDetails(offer, "jobOffer");
+                                                }}
+                                                className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition-colors"
+                                              >
+                                                Voir
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ):(
                                   <TableContainer
                                     sx={{
                                       boxShadow: isDarkMode
@@ -2335,21 +2686,42 @@ export default function MyPage() {
                                                     <EyeIcon className="h-4 w-4" />
                                                   </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title="Modifier" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleEdit(offer, "jobOffer")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#34d399" : "#059669",
-                                                      bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <PencilIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
+                                                {offer.statut !== 'approved' && offer.statut !== 'expired'  && (
+                                                  <Tooltip title="Modifier" arrow>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleEdit(offer, "jobOffer")}
+                                                      sx={{
+                                                        color: isDarkMode ? "#34d399" : "#059669",
+                                                        bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
+                                                        "&:hover": {
+                                                          bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
+                                                        },
+                                                      }}
+                                                    >
+                                                      <PencilIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                )}
+
+                                                {(offer.statut === 'approved' || offer.statut === 'expired') && (
+                                                  <Tooltip title="Booster cette offre" arrow>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleBoost(offer, "jobOffer")}
+                                                      sx={{
+                                                        color: isDarkMode ? "#a78bfa" : "#7c3aed",
+                                                        bgcolor: isDarkMode ? "rgba(167, 139, 250, 0.1)" : "rgba(124, 58, 237, 0.05)",
+                                                        "&:hover": {
+                                                          bgcolor: isDarkMode ? "rgba(167, 139, 250, 0.2)" : "rgba(124, 58, 237, 0.1)",
+                                                        },
+                                                      }}
+                                                    >
+                                                      <SparklesIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                )}
+
                                                 <Tooltip title="Supprimer" arrow>
                                                   <IconButton
                                                     size="small"
@@ -2372,6 +2744,7 @@ export default function MyPage() {
                                       </TableBody>
                                     </Table>
                                   </TableContainer>
+                                  )
                                 )}
 
                                 {/* Pagination backend pour les offres d'emploi */}
@@ -2565,230 +2938,403 @@ export default function MyPage() {
                                       : "Vous n'avez pas encore d'opportunités d'affaires."}
                                   </Alert>
                                 ) : (
-                                  <TableContainer
-                                    sx={{
-                                      boxShadow: isDarkMode
-                                        ? "none"
-                                        : "0 2px 10px rgba(0, 0, 0, 0.05)",
-                                      borderRadius: { xs: 1.5, sm: 2 },
-                                      overflow: "auto",
-                                      maxWidth: "100%",
-                                      "&::-webkit-scrollbar": {
-                                        height: { xs: 4, sm: 6 },
-                                        width: { xs: 4, sm: 6 },
-                                      },
-                                      "&::-webkit-scrollbar-track": {
-                                        backgroundColor: isDarkMode
-                                          ? "rgba(55, 65, 81, 0.4)"
-                                          : "rgba(0, 0, 0, 0.06)",
-                                        borderRadius: { xs: 2, sm: 3 },
-                                      },
-                                      "&::-webkit-scrollbar-thumb": {
-                                        backgroundColor: isDarkMode
-                                          ? "rgba(156, 163, 175, 0.6)"
-                                          : "rgba(156, 163, 175, 0.4)",
-                                        borderRadius: { xs: 2, sm: 3 },
-                                        "&:hover": {
-                                          backgroundColor: isDarkMode
-                                            ? "rgba(156, 163, 175, 0.8)"
-                                            : "rgba(156, 163, 175, 0.6)",
+                                  isMobile ? (
+                                    // Vue cartes pour mobile
+                                    <div className="space-y-4">
+                                      {getFilteredPublications("businessOpportunity", false).map((opportunity) => (
+                                          <div
+                                            key={opportunity.id}
+                                            className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                              isDarkMode 
+                                                ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' 
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                            }`}
+                                          >
+                                            {/* Header de la carte */}
+                                            <div className="flex items-start justify-between mb-3">
+                                              <div className="flex-1">
+                                                <div className="flex items-center mb-2">
+                                                  <div
+                                                    className={`w-2 h-2 rounded-full mr-2 ${
+                                                      opportunity.statut === 'approved' ? 'bg-green-500' : 
+                                                      opportunity.statut === 'pending' ? 'bg-yellow-500' : 
+                                                      opportunity.statut === 'rejected' || opportunity.statut === 'expired' ? 'bg-red-500' : 'bg-gray-500'
+                                                    }`}
+                                                  />
+                                                  <h3 className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                    {opportunity.titre || "Sans titre"}
+                                                  </h3>
+                                                </div>
+                                                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                  opportunity.statut === 'approved' 
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                    : opportunity.statut === 'pending'
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                    : opportunity.statut === 'rejected' || opportunity.statut === 'expired'
+                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                }`}>
+                                                  {getStatutLabel(opportunity.statut)}
+                                                </div>
+                                              </div>
+                                              <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                                                isDarkMode 
+                                                  ? 'bg-blue-900 text-blue-300 border border-blue-700' 
+                                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                              }`}>
+                                                #{opportunity.id}
+                                              </div>
+                                            </div>
+
+                                            {/* Description */}
+                                            {opportunity.description && (
+                                              <div className="mb-3">
+                                                <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2`}>
+                                                  {opportunity.description.length > 100
+                                                    ? opportunity.description.substring(0, 100) + "..."
+                                                    : opportunity.description}
+                                                </p>
+                                              </div>
+                                            )}
+
+                                            {/* Informations principales */}
+                                            <div className="space-y-2 mb-3">
+                                              <div className="flex items-center text-xs">
+                                                <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                                                  {formatDate(opportunity.created_at)}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                                              <div className="flex items-center space-x-2">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewDetails(opportunity, "businessOpportunity");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-blue-400 hover:bg-blue-900/30' 
+                                                      : 'text-blue-600 hover:bg-blue-50'
+                                                  }`}
+                                                  title="Voir les détails"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                  </svg>
+                                                </button>
+                                                
+                                                {opportunity.statut !== 'approved' && opportunity.statut !== 'expired'  && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleEdit(opportunity, "businessOpportunity");
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      isDarkMode 
+                                                        ? 'text-green-400 hover:bg-green-900/30' 
+                                                        : 'text-green-600 hover:bg-green-50'
+                                                    }`}
+                                                    title="Modifier"
+                                                  >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                  </button>
+                                                )}
+                                                
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteConfirm(opportunity.id, "businessOpportunity");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-red-400 hover:bg-red-900/30' 
+                                                      : 'text-red-600 hover:bg-red-50'
+                                                  }`}
+                                                  title="Supprimer"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                  </svg>
+                                                </button>
+                                              </div>
+
+                                              {/* Bouton de boost */}
+                                              {(opportunity.statut === 'approved' || opportunity.statut === 'expired') && (
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleBoost(opportunity, "businessOpportunity");
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    isDarkMode 
+                                                      ? 'text-purple-400 hover:bg-purple-900/30' 
+                                                      : 'text-purple-600 hover:bg-purple-50'
+                                                  }`}
+                                                  title="Booster cette opportunité"
+                                                >
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                  </svg>
+                                                </button>
+                                              )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ):(
+                                    <TableContainer
+                                      sx={{
+                                        boxShadow: isDarkMode
+                                          ? "none"
+                                          : "0 2px 10px rgba(0, 0, 0, 0.05)",
+                                        borderRadius: { xs: 1.5, sm: 2 },
+                                        overflow: "auto",
+                                        maxWidth: "100%",
+                                        "&::-webkit-scrollbar": {
+                                          height: { xs: 4, sm: 6 },
+                                          width: { xs: 4, sm: 6 },
                                         },
-                                      },
-                                    }}
-                                  >
-                                    <Table 
-                                      size="small" 
-                                      sx={{ 
-                                        minWidth: { xs: "800px", sm: "900px" },
-                                        tableLayout: "fixed"
+                                        "&::-webkit-scrollbar-track": {
+                                          backgroundColor: isDarkMode
+                                            ? "rgba(55, 65, 81, 0.4)"
+                                            : "rgba(0, 0, 0, 0.06)",
+                                          borderRadius: { xs: 2, sm: 3 },
+                                        },
+                                        "&::-webkit-scrollbar-thumb": {
+                                          backgroundColor: isDarkMode
+                                            ? "rgba(156, 163, 175, 0.6)"
+                                            : "rgba(156, 163, 175, 0.4)",
+                                          borderRadius: { xs: 2, sm: 3 },
+                                          "&:hover": {
+                                            backgroundColor: isDarkMode
+                                              ? "rgba(156, 163, 175, 0.8)"
+                                              : "rgba(156, 163, 175, 0.6)",
+                                          },
+                                        },
                                       }}
                                     >
-                                      <TableHead>
-                                        <TableRow
-                                          sx={{
-                                            bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
-                                            "& th": {
-                                              fontWeight: "bold",
-                                              color: isDarkMode ? "#fff" : "#334155",
-                                              fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                                              padding: { xs: "8px 10px", sm: "12px 16px" },
-                                              borderBottom: isDarkMode
-                                                ? "1px solid #374151"
-                                                : "2px solid #e2e8f0",
-                                              textTransform: "uppercase",
-                                              letterSpacing: "0.05em",
-                                              whiteSpace: "nowrap",
-                                            },
-                                          }}
-                                        >
-                                          <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
-                                          <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
-                                          <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
-                                          <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
-                                          <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
-                                        </TableRow>
-                                      </TableHead>
-                                      <TableBody>
-                                        {getFilteredPublications("businessOpportunity", false).map((opportunity) => (
+                                      <Table 
+                                        size="small" 
+                                        sx={{ 
+                                          minWidth: { xs: "800px", sm: "900px" },
+                                          tableLayout: "fixed"
+                                        }}
+                                      >
+                                        <TableHead>
                                           <TableRow
-                                            key={opportunity.id}
                                             sx={{
-                                              "&:hover": {
-                                                bgcolor: isDarkMode ? "#374151" : "#f8fafc",
-                                              },
-                                              borderBottom: `1px solid ${
-                                                isDarkMode ? "#374151" : "#e2e8f0"
-                                              }`,
-                                              "& td": {
-                                                padding: { xs: "6px 10px", sm: "10px 16px" },
-                                                color: isDarkMode ? "#fff" : "#475569",
-                                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                              bgcolor: isDarkMode ? "#111827" : "#f0f4f8",
+                                              "& th": {
+                                                fontWeight: "bold",
+                                                color: isDarkMode ? "#fff" : "#334155",
+                                                fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                                                padding: { xs: "8px 10px", sm: "12px 16px" },
+                                                borderBottom: isDarkMode
+                                                  ? "1px solid #374151"
+                                                  : "2px solid #e2e8f0",
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
                                                 whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
                                               },
-                                              bgcolor: isDarkMode ? "#1d2432" : "#fff",
                                             }}
                                           >
-                                            <TableCell>
-                                              <Box
-                                                sx={{
-                                                  display: "inline-flex",
-                                                  alignItems: "center",
-                                                  px: { xs: 0.75, sm: 1 },
-                                                  py: { xs: 0.4, sm: 0.5 },
-                                                  borderRadius: { xs: 0.75, sm: 1 },
-                                                  background: isDarkMode
-                                                    ? "rgba(168, 85, 247, 0.2)"
-                                                    : "rgba(168, 85, 247, 0.1)",
-                                                  border: `1px solid ${isDarkMode ? "rgba(168, 85, 247, 0.3)" : "rgba(168, 85, 247, 0.2)"}`,
-                                                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                                                  fontWeight: 600,
-                                                  color: isDarkMode ? "#a78bfa" : "#7c3aed",
-                                                }}
-                                              >
-                                                #{opportunity.id}
-                                              </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Box
-                                                sx={{
-                                                  maxWidth: { xs: "180px", sm: "230px" },
-                                                }}
-                                              >
+                                            <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
+                                            <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
+                                            <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
+                                            <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                            <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {getFilteredPublications("businessOpportunity", false).map((opportunity) => (
+                                            <TableRow
+                                              key={opportunity.id}
+                                              sx={{
+                                                "&:hover": {
+                                                  bgcolor: isDarkMode ? "#374151" : "#f8fafc",
+                                                },
+                                                borderBottom: `1px solid ${
+                                                  isDarkMode ? "#374151" : "#e2e8f0"
+                                                }`,
+                                                "& td": {
+                                                  padding: { xs: "6px 10px", sm: "10px 16px" },
+                                                  color: isDarkMode ? "#fff" : "#475569",
+                                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                                  whiteSpace: "nowrap",
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                },
+                                                bgcolor: isDarkMode ? "#1d2432" : "#fff",
+                                              }}
+                                            >
+                                              <TableCell>
                                                 <Box
                                                   sx={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    px: { xs: 0.75, sm: 1 },
+                                                    py: { xs: 0.4, sm: 0.5 },
+                                                    borderRadius: { xs: 0.75, sm: 1 },
+                                                    background: isDarkMode
+                                                      ? "rgba(168, 85, 247, 0.2)"
+                                                      : "rgba(168, 85, 247, 0.1)",
+                                                    border: `1px solid ${isDarkMode ? "rgba(168, 85, 247, 0.3)" : "rgba(168, 85, 247, 0.2)"}`,
+                                                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
                                                     fontWeight: 600,
-                                                    color: isDarkMode ? "#fff" : "#1f2937",
-                                                    fontSize: { xs: "0.8rem", sm: "0.9rem" },
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
+                                                    color: isDarkMode ? "#a78bfa" : "#7c3aed",
                                                   }}
                                                 >
-                                                  {opportunity.titre || "Sans titre"}
+                                                  #{opportunity.id}
                                                 </Box>
-                                                {opportunity.description && (
+                                              </TableCell>
+                                              <TableCell>
+                                                <Box
+                                                  sx={{
+                                                    maxWidth: { xs: "180px", sm: "230px" },
+                                                  }}
+                                                >
                                                   <Box
                                                     sx={{
-                                                      color: isDarkMode ? "#9ca3af" : "#6b7280",
-                                                      fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                                                      mt: 0.5,
+                                                      fontWeight: 600,
+                                                      color: isDarkMode ? "#fff" : "#1f2937",
+                                                      fontSize: { xs: "0.8rem", sm: "0.9rem" },
                                                       overflow: "hidden",
                                                       textOverflow: "ellipsis",
                                                       whiteSpace: "nowrap",
                                                     }}
                                                   >
-                                                    {opportunity.description.length > 50
-                                                      ? opportunity.description.substring(0, 50) + "..."
-                                                      : opportunity.description}
+                                                    {opportunity.titre || "Sans titre"}
                                                   </Box>
-                                                )}
-                                              </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Chip
-                                                label={getStatutLabel(opportunity.statut)}
-                                                size="small"
-                                                color={getStatutColor(opportunity.statut)}
-                                                sx={{
-                                                  fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                                  height: { xs: 20, sm: 24 },
-                                                  fontWeight: 600,
-                                                  borderRadius: { xs: 1, sm: 1.5 },
-                                                }}
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              <Box
-                                                sx={{
-                                                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                                                  color: isDarkMode ? "#9ca3af" : "#6b7280",
-                                                }}
-                                              >
-                                                {formatDate(opportunity.created_at)}
-                                              </Box>
-                                            </TableCell>
-                                            <TableCell align="center">
-                                              <Box
-                                                sx={{
-                                                  display: "flex",
-                                                  gap: 0.5,
-                                                  justifyContent: "center",
-                                                }}
-                                              >
-                                                <Tooltip title="Voir les détails" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleViewDetails(opportunity, "businessOpportunity")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#60a5fa" : "#2563eb",
-                                                      bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <EyeIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Modifier" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleEdit(opportunity, "businessOpportunity")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#34d399" : "#059669",
-                                                      bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <PencilIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Supprimer" arrow>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() => handleDeleteConfirm(opportunity.id, "businessOpportunity")}
-                                                    sx={{
-                                                      color: isDarkMode ? "#f87171" : "#dc2626",
-                                                      bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
-                                                      "&:hover": {
-                                                        bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
-                                                      },
-                                                    }}
-                                                  >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                              </Box>
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </TableContainer>
+                                                  {opportunity.description && (
+                                                    <Box
+                                                      sx={{
+                                                        color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                                        mt: 0.5,
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                      }}
+                                                    >
+                                                      {opportunity.description.length > 50
+                                                        ? opportunity.description.substring(0, 50) + "..."
+                                                        : opportunity.description}
+                                                    </Box>
+                                                  )}
+                                                </Box>
+                                              </TableCell>
+                                              <TableCell>
+                                                <Chip
+                                                  label={getStatutLabel(opportunity.statut)}
+                                                  size="small"
+                                                  color={getStatutColor(opportunity.statut)}
+                                                  sx={{
+                                                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                                    height: { xs: 20, sm: 24 },
+                                                    fontWeight: 600,
+                                                    borderRadius: { xs: 1, sm: 1.5 },
+                                                  }}
+                                                />
+                                              </TableCell>
+                                              <TableCell>
+                                                <Box
+                                                  sx={{
+                                                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                                    color: isDarkMode ? "#9ca3af" : "#6b7280",
+                                                  }}
+                                                >
+                                                  {formatDate(opportunity.created_at)}
+                                                </Box>
+                                              </TableCell>
+                                              <TableCell align="center">
+                                                <Box
+                                                  sx={{
+                                                    display: "flex",
+                                                    gap: 0.5,
+                                                    justifyContent: "center",
+                                                  }}
+                                                >
+                                                  <Tooltip title="Voir les détails" arrow>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleViewDetails(opportunity, "businessOpportunity")}
+                                                      sx={{
+                                                        color: isDarkMode ? "#60a5fa" : "#2563eb",
+                                                        bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+                                                        "&:hover": {
+                                                          bgcolor: isDarkMode ? "rgba(59, 130, 246, 0.2)" : "rgba(37, 99, 235, 0.1)",
+                                                        },
+                                                      }}
+                                                    >
+                                                      <EyeIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                  {opportunity.statut !== 'approved' && opportunity.statut !== 'expired'  && (
+                                                    <Tooltip title="Modifier" arrow>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() => handleEdit(opportunity, "businessOpportunity")}
+                                                        sx={{
+                                                          color: isDarkMode ? "#34d399" : "#059669",
+                                                          bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.1)" : "rgba(5, 150, 105, 0.05)",
+                                                          "&:hover": {
+                                                            bgcolor: isDarkMode ? "rgba(52, 211, 153, 0.2)" : "rgba(5, 150, 105, 0.1)",
+                                                          },
+                                                        }}
+                                                      >
+                                                        <PencilIcon className="h-4 w-4" />
+                                                      </IconButton>
+                                                    </Tooltip>
+                                                  )}
+                                                  {(opportunity.statut === 'approved' || opportunity.statut === 'expired') && (
+                                                    <Tooltip title="Booster cette opportunité" arrow>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() => handleBoost(opportunity, "businessOpportunity")}
+                                                        sx={{
+                                                          color: isDarkMode ? "#a78bfa" : "#7c3aed",
+                                                          bgcolor: isDarkMode ? "rgba(167, 139, 250, 0.1)" : "rgba(124, 58, 237, 0.05)",
+                                                          "&:hover": {
+                                                            bgcolor: isDarkMode ? "rgba(167, 139, 250, 0.2)" : "rgba(124, 58, 237, 0.1)",
+                                                          },
+                                                        }}
+                                                      >
+                                                        <SparklesIcon className="h-4 w-4" />
+                                                      </IconButton>
+                                                    </Tooltip>
+                                                  )}
+                                                  <Tooltip title="Supprimer" arrow>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleDeleteConfirm(opportunity.id, "businessOpportunity")}
+                                                      sx={{
+                                                        color: isDarkMode ? "#f87171" : "#dc2626",
+                                                        bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.1)" : "rgba(220, 38, 38, 0.05)",
+                                                        "&:hover": {
+                                                          bgcolor: isDarkMode ? "rgba(248, 113, 113, 0.2)" : "rgba(220, 38, 38, 0.1)",
+                                                        },
+                                                      }}
+                                                    >
+                                                      <TrashIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                </Box>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  )
                                 )}
 
                                 {/* Pagination backend pour les opportunités d'affaires */}
@@ -3066,7 +3612,7 @@ export default function MyPage() {
                                                 </span>
                                               </div>
                                               <div className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                                                {product.prix} {product.devise}
+                                                {product.prix} $
                                               </div>
                                             </div>
                                             {product.page?.user?.id === user.id ? (
@@ -3602,7 +4148,7 @@ export default function MyPage() {
         </Tab.Group>
 
         {/* Publication Form Modal */}
-        {isFormOpen && (
+        {isFormOpen && createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
             <div
               className={`bg-white dark:bg-gray-800 ${
@@ -3648,11 +4194,12 @@ export default function MyPage() {
                 />
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Publication Details Modal */}
-        {showDetailsModal && currentPublication && (
+        {showDetailsModal && currentPublication && createPortal(
           <PublicationDetailsModal
             isOpen={showDetailsModal}
             publication={currentPublication}
@@ -3666,7 +4213,8 @@ export default function MyPage() {
               handleCloseDetailsModal();
               handleDelete(currentPublication.id, currentFormType);
             }}
-          />
+          />,
+          document.body
         )}
 
         {/* Modal de confirmation de suppression */}
@@ -3773,15 +4321,20 @@ export default function MyPage() {
         </Modal>
 
         {/* Modal de boost */}
-        <BoostPublicationModal
-          isOpen={showBoostModal}
-          onClose={(success) => handleBoostModalClose(success)}
-          publication={publicationToBoost}
-          publicationType={boostPublicationType}
-        />
+        {showBoostModal &&
+          createPortal(
+            <BoostPublicationModal
+              isOpen={showBoostModal}
+              onClose={(success) => handleBoostModalClose(success)}
+              publication={publicationToBoost}
+              publicationType={boostPublicationType}
+            />,
+            document.body
+          )
+        }
 
         {/* Modal d'achat de produit numérique */}
-        {showPurchaseModal && productToPurchase && (
+        {showPurchaseModal && productToPurchase && createPortal(
           <PurchaseDigitalProductModal
             open={showPurchaseModal}
             onClose={() => {
@@ -3790,7 +4343,8 @@ export default function MyPage() {
             }}
             product={productToPurchase}
             onPurchaseComplete={handlePurchaseComplete}
-          />
+          />,
+          document.body
         )}
 
         <ToastContainer
