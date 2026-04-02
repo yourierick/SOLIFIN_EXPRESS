@@ -68,6 +68,21 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
+  
+  // Détection mobile
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   const [activeTab, setActiveTab] = useState(adjustedInitialActiveTab);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +139,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailModalOpen, setIsPostDetailModalOpen] = useState(false);
   const observer = useRef();
-  const limit = 5; // Nombre de posts à charger à chaque fois
+  const limit = 10; // Nombre de posts à charger à chaque fois
 
   const tabTypes = ["publicites", "offres-emploi", "opportunites-affaires"];
 
@@ -517,74 +532,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
     ]
   );
 
-  // Chargement des pages abonnées et recommandées
-  const [subscribedPages, setSubscribedPages] = useState([]);
-  const [recommendedPages, setRecommendedPages] = useState([]);
   const [loadingPages, setLoadingPages] = useState(false);
-
-  // Charger les pages abonnées
-  const fetchSubscribedPages = useCallback(async () => {
-    try {
-      const response = await axios.get("/api/pages/subscribed");
-      setSubscribedPages(response.data.pages || []);
-    } catch (err) {
-      console.error("Erreur lors du chargement des pages abonnées:", err);
-    }
-  }, []);
-
-  // Charger les pages recommandées
-  const fetchRecommendedPages = useCallback(async () => {
-    try {
-      const response = await axios.get("/api/pages/recommended");
-      // Filtrer les pages recommandées pour exclure la page de l'utilisateur actuel
-      const filteredPages = (response.data.pages || []).filter((page) => {
-        // Vérifier si la page appartient à l'utilisateur actuel
-        return page.user_id !== user?.id;
-      });
-
-      setRecommendedPages(filteredPages);
-    } catch (err) {
-      console.error("Erreur lors du chargement des pages recommandées:", err);
-    }
-  }, [user?.id]);
-
-  // S'abonner à une page
-  const handleSubscribe = useCallback(async (pageId) => {
-    try {
-      await axios.post(`/api/pages/${pageId}/subscribe`);
-      // Rafraîchir les listes de pages
-      fetchSubscribedPages();
-      fetchRecommendedPages();
-      // Mettre à jour l'attribut is_subscribed dans les posts
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.page_id === pageId ? { ...post, is_subscribed: true } : post
-        )
-      );
-    } catch (err) {
-      console.error("Erreur lors de l'abonnement à la page:", err);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Se désabonner d'une page
-  const handleUnsubscribe = useCallback(async (pageId) => {
-    try {
-      await axios.post(`/api/pages/${pageId}/unsubscribe`);
-      // Rafraîchir les listes de pages
-      fetchSubscribedPages();
-      fetchRecommendedPages();
-      // Mettre à jour l'attribut is_subscribed dans les posts
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.page_id === pageId ? { ...post, is_subscribed: false } : post
-        )
-      );
-    } catch (err) {
-      console.error("Erreur lors du désabonnement de la page:", err);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Initialiser le chargement des posts et des pages
   useEffect(() => {
@@ -605,8 +553,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           // Charger les posts et les pages en parallèle
           await Promise.all([
             fetchPosts(true),
-            fetchSubscribedPages(),
-            fetchRecommendedPages(),
           ]);
 
           setLoadingPages(false);
@@ -887,7 +833,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-gray-50 via-white to-gray-50'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto">
         <Tab.Group
           selectedIndex={activeTab}
           onChange={(index) => {
@@ -916,7 +862,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             fetchPosts(true);
           }}
         >
-        {showTabs && (
+        {/* {showTabs && (
           <Tab.List className="flex space-x-2 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-2 mb-8 shadow-lg backdrop-blur-sm">
             <Tab
               className={({ selected }) =>
@@ -961,112 +907,182 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
               <span>Opportunités</span>
             </Tab>
           </Tab.List>
-        )}
+        )} */}
+
         <Tab.Panels className="mt-2">
           {/* Premier onglet: Fil d'actualité */}
           <Tab.Panel
             className={classNames(
               "rounded-xl",
-              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
+              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none"
             )}
           >
-            {/* Filtres et recherche */}
-            {/* Filtres et recherche */}
-            <div className={`flex flex-wrap justify-between items-center gap-4 p-6 mb-6 rounded-2xl shadow-lg backdrop-blur-sm transition-all duration-300 ${
-              isDarkMode 
-                ? 'bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-700/50 shadow-gray-900/50' 
-                : 'bg-gradient-to-r from-white/95 to-gray-50/95 border border-gray-200/50 shadow-blue-100/50'
-            }`}>
-              {/* Barre de recherche */}
-              <div className="relative w-full md:w-1/3 group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Rechercher une publication..."
-                  className={`block w-full pl-10 pr-10 py-3 border-2 rounded-xl transition-all duration-300 transform focus:scale-[1.02] ${
-                    isDarkMode
-                      ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-lg focus:shadow-primary-500/20"
-                      : "bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:bg-white focus:shadow-lg focus:shadow-primary-500/20"
-                  }`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
+            {/* Header */}
+            <div className={`${isMobile ? "px-3" : "px-6"} ${isMobile ? "mb-6" : "mb-8"}`}>
+              <div className={`flex ${isMobile ? "flex-col space-y-4" : "items-center justify-between"}`}>
+                {/* Bouton filtre */}
+                <div className={`mt-2${isMobile ? "flex" : ""}`}>
                   <button
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center group"
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => setShowNewsFilters(!showNewsFilters)}
+                    className={`relative group ${isMobile ? "px-5 py-2.5" : "px-6 py-3"} rounded-full text-sm font-medium transition-all duration-500 ${
+                      showNewsFilters
+                        ? "bg-gray-900 text-white shadow-2xl shadow-black/20"
+                        : "bg-white text-gray-700 shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-gray-300/50 dark:bg-gray-800 dark:text-gray-300 dark:shadow-gray-900/50"
+                    } border border-gray-200 dark:border-gray-700`}
                   >
-                    <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-red-500 transition-colors duration-200" />
+                    <div className="flex items-center space-x-2">
+                      <svg className={`w-4 h-4 transition-transform duration-500 ${showNewsFilters ? 'rotate-45' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                      <span>{showNewsFilters ? 'Filtrage actif' : 'Filtrer'}</span>
+                    </div>
+                    {showNewsFilters && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                    )}
                   </button>
-                )}
-              </div>
-
-              {/* Bouton pour afficher/masquer les filtres avancés */}
-              <button
-                className={`px-6 py-3 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg ${
-                  isDarkMode
-                    ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-primary-900/30 hover:shadow-primary-900/50"
-                    : "bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-primary-500/30 hover:shadow-primary-500/50"
-                }`}
-                onClick={() => setShowNewsFilters(!showNewsFilters)}
-              >
-                <FunnelIcon className="h-5 w-5 mr-2" />
-                <span className="text-sm">
-                  {showNewsFilters ? "Masquer les filtres" : "Filtres avancés"}
-                </span>
-                <ChevronDownIcon className={`h-4 w-4 ml-2 transition-transform duration-300 ${showNewsFilters ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Filtres de statut */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
-                    newsStatusFilter === "all"
-                      ? isDarkMode
-                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/30"
-                        : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                      : isDarkMode
-                      ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
-                      : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
-                  }`}
-                  onClick={() => setNewsStatusFilter("all")}
-                >
-                  <span className="text-sm">Toutes</span>
-                </button>
-                <button
-                  className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
-                    newsStatusFilter === "disponible"
-                      ? isDarkMode
-                        ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
-                        : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
-                      : isDarkMode
-                      ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
-                      : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
-                  }`}
-                  onClick={() => setNewsStatusFilter("disponible")}
-                >
-                  <CheckCircleIcon className="h-4 w-4 mr-1" />
-                    <span className="text-sm">En cours</span>
-                </button>
-                <button
-                  className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
-                    newsStatusFilter === "termine"
-                      ? isDarkMode
-                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/30"
-                        : "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30"
-                      : isDarkMode
-                      ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
-                      : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
-                  }`}
-                  onClick={() => setNewsStatusFilter("termine")}
-                >
-                  <XCircleIcon className="h-4 w-4 mr-1" />
-                  <span className="text-sm">Terminées</span>
-                </button>
+                </div>
               </div>
             </div>
+
+            {/* Panneau de filtres */}
+            {showNewsFilters && (
+              <div className={`${isMobile ? "px-3" : "px-6"} mb-8`}>
+                <div className={`relative overflow-hidden rounded-2xl transition-all duration-700 ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/90 border border-gray-800/50' 
+                    : 'bg-gradient-to-br from-white/95 via-gray-50/90 to-white/95 border border-gray-200/50'
+                } backdrop-blur-xl shadow-2xl shadow-black/10 dark:shadow-black/30`}>
+                  
+                  {/* Header du panneau */}
+                  <div className={`px-6 py-4 border-b ${
+                    isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          isDarkMode ? 'bg-primary-500/20 text-primary-400' : 'bg-primary-100 text-primary-600'
+                        }`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">Filtres avancés</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Affinez votre recherche</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setNewsStatusFilter("all");
+                        }}
+                        className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all duration-300 ${
+                          isDarkMode
+                            ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100/50'
+                        }`}
+                      >
+                        Tout effacer
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Contenu des filtres */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      
+                      {/* Recherche */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Recherche
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Mots-clés..."
+                            className={`w-full px-4 py-3 rounded-xl border transition-all duration-300 ${
+                              isDarkMode
+                                ? "bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 focus:border-primary-500 focus:bg-gray-800/80"
+                                : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:bg-white"
+                            }`}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                          {searchQuery && (
+                            <button
+                              onClick={() => setSearchQuery("")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Statut */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Statut
+                        </label>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setNewsStatusFilter("all")}
+                            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                              newsStatusFilter === "all"
+                                ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white shadow-lg"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            Tous
+                          </button>
+                          <button
+                            onClick={() => setNewsStatusFilter("available")}
+                            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                              newsStatusFilter === "available"
+                                ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            Actifs
+                          </button>
+                          <button
+                            onClick={() => setNewsStatusFilter("unavailable")}
+                            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                              newsStatusFilter === "unavailable"
+                                ? "bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            Terminés
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Actions rapides */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Actions
+                        </label>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setShowNewsFilters(false)}
+                            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                              isDarkMode
+                                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                          >
+                            Appliquer
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Panneau de filtres avancés pour le fil d'actualités */}
             {showNewsFilters && (
@@ -1307,26 +1323,92 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                 // Afficher un message si aucune publication ne correspond aux critères
                 if (filteredPosts.length === 0 && !loading) {
                   return (
-                    <div
-                      className={`p-6 rounded-lg text-center ${
-                        isDarkMode
-                          ? "bg-gray-800 text-gray-300"
-                          : "bg-white text-gray-500"
-                      }`}
-                    >
-                      <p className="text-lg font-medium">
-                        Aucune publication ne correspond à vos critères
-                      </p>
-                      <p className="mt-2">
-                        Essayez de modifier vos filtres ou votre recherche
-                      </p>
-                      <button
-                        onClick={resetNewsFilters}
-                        className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                      >
-                        <ArrowPathIcon className="h-5 w-5 mr-2" />
-                        Réinitialiser les filtres
-                      </button>
+                    <div className={`relative overflow-hidden rounded-2xl transition-all duration-500 ${
+                      isDarkMode
+                        ? "bg-gradient-to-br from-gray-800/50 via-gray-900/50 to-gray-800/50 border border-gray-700/50"
+                        : "bg-gradient-to-br from-white/70 via-gray-50/70 to-white/70 border border-gray-200/50"
+                    } backdrop-blur-xl shadow-xl shadow-black/10 dark:shadow-black/30`}>
+                      
+                      {/* Header décoratif */}
+                      <div className={`px-8 py-6 border-b ${
+                        isDarkMode ? 'border-gray-700/30' : 'border-gray-200/30'
+                      }`}>
+                        <div className="flex items-center justify-center">
+                          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                            isDarkMode 
+                              ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-gray-400' 
+                              : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500'
+                          }`}>
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0L20.808 7.192a4 4 0 00-5.656-5.656L9.172 7.757a4 4 0 000 5.656l-1.414 1.415a6 6 0 11-8.486-8.486l4.95-4.95a6 6 0 018.485 0l5.657 5.657a6 6 0 010 8.485l-1.414 1.414a5 5 0 01-7.071-7.07l1.414-1.414z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contenu principal */}
+                      <div className="px-8 py-8 text-center">
+                        <h3 className="text-2xl font-light text-gray-900 dark:text-white mb-3">
+                          Aucune publication trouvée
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                          Essayez d'ajuster vos filtres ou votre recherche pour découvrir plus de contenu
+                        </p>
+                        
+                        {/* Actions */}
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <button
+                            onClick={() => {
+                              setSearchQuery("");
+                              setNewsStatusFilter("all");
+                            }}
+                            className={`group px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                              isDarkMode
+                                ? "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white border border-gray-700 hover:border-gray-600"
+                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md"
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <svg className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              <span>Réinitialiser</span>
+                            </div>
+                          </button>
+                          
+                          <button
+                            onClick={() => setShowNewsFilters(true)}
+                            className={`group px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                              isDarkMode
+                                ? "bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-600/30 hover:shadow-xl hover:shadow-primary-700/40"
+                                : "bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-600/40"
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                              </svg>
+                              <span>Ajuster les filtres</span>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Footer décoratif */}
+                      <div className={`px-8 py-4 border-t ${
+                        isDarkMode ? 'border-gray-700/30' : 'border-gray-200/30'
+                      }`}>
+                        <div className="flex items-center justify-center space-x-6 text-xs text-gray-400 dark:text-gray-500">
+                          <span className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            Conseil
+                          </span>
+                          <span>•</span>
+                          <span>Élargissez votre recherche</span>
+                        </div>
+                      </div>
                     </div>
                   );
                 }
@@ -1363,7 +1445,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                   // Si c'est le dernier élément, ajouter la ref pour l'infinite scroll
                   if (index === posts.length - 1) {
                     return (
-                      <div key={post.id} ref={lastPostElementRef}>
+                      <div key={post.id} ref={lastPostElementRef} className={isMobile ? "flex justify-center" : ""}>
                         <PostCard
                           post={post}
                           onLike={handleLike}
@@ -1380,17 +1462,18 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                     );
                   } else {
                     return (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        onLike={handleLike}
-                        onComment={handleAddComment}
-                        onDeleteComment={handleDeleteComment}
-                        onShare={handleShare}
-                        onViewDetails={() => openPostDetail(post.id, post.type)}
-                        isDarkMode={isDarkMode}
-                        user={user}
-                      />
+                      <div key={post.id} className={isMobile ? "flex justify-center" : ""}>
+                        <PostCard
+                          post={post}
+                          onLike={handleLike}
+                          onComment={handleAddComment}
+                          onDeleteComment={handleDeleteComment}
+                          onShare={handleShare}
+                          onViewDetails={() => openPostDetail(post.id, post.type)}
+                          isDarkMode={isDarkMode}
+                          user={user}
+                        />
+                      </div>
                     );
                   }
                 });
@@ -1414,489 +1497,647 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           {/* Deuxième onglet: Offres d'emploi */}
           <Tab.Panel
             className={classNames(
-              "rounded-xl p-3",
-              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
+              "rounded-xl",
+              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none"
             )}
           >
-            {/* Barre de recherche et filtres */}
-            <div
-              className={`mb-6 rounded-lg overflow-hidden ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              } shadow`}
-            >
-              <div
-                className={`p-4 border-b ${
-                  isDarkMode ? "border-gray-700" : "border-gray-200"
-                }`}
-              >
-                <h2
-                  className={`text-xl font-bold ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  Offres d'emploi et appels à manifestation d'intérêt
-                </h2>
-                <p
-                  className={`mt-1 text-sm ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
+            {/* Header responsive pour mobile */}
+            <div>
+              {/* Titre et description responsive */}
+              <div>
+                <p className={`mt-1 ${isMobile ? "text-xs" : "text-sm"} ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                   Découvrez les dernières opportunités professionnelles
                 </p>
-                <div
-                  className={`mt-4 p-3 rounded-lg ${
-                    isDarkMode
-                      ? "bg-yellow-900/30 text-yellow-200"
-                      : "bg-yellow-50 text-yellow-800"
-                  }`}
-                >
-                  <p className="text-sm font-medium">AVIS AUX CANDIDATS</p>
-                  <p className="text-sm mt-1">
-                    <span className="font-semibold">
-                      NE PAS ENVOYER DE L'ARGENT
-                    </span>{" "}
-                    sous quelque forme que ce soit (cash, virement, transfert
-                    Western Union, mobile money,...). Merci de signaler
-                    immédiatement toute demande suspecte.
-                  </p>
-                </div>
               </div>
 
-              {/* Filtres et recherche */}
-              <div className={`flex flex-wrap justify-between items-center gap-4 p-6 mb-6 rounded-2xl shadow-lg backdrop-blur-sm transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-gradient-to-r from-gray-800/90 to-gray-900/90 border border-gray-700/50 shadow-gray-900/50' 
-                  : 'bg-gradient-to-r from-white/95 to-gray-50/95 border border-gray-200/50 shadow-blue-100/50'
+              {/* Avis aux candidats responsive */}
+              <div className={`p-3 rounded-lg ${
+                isDarkMode ? "bg-yellow-900/30 text-yellow-200" : "bg-yellow-50 text-yellow-800"
               }`}>
-                {/* Barre de recherche */}
-                <div className="relative w-full md:w-1/3 group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Rechercher une offre..."
-                    className={`block w-full pl-10 pr-10 py-3 border-2 rounded-xl transition-all duration-300 transform focus:scale-[1.02] ${
-                      isDarkMode
-                        ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary-500 focus:bg-gray-700/80 focus:shadow-lg focus:shadow-primary-500/20"
-                        : "bg-white/80 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:bg-white focus:shadow-lg focus:shadow-primary-500/20"
-                    }`}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center group"
-                      onClick={() => setSearchQuery("")}
-                    >
-                      <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-red-500 transition-colors duration-200" />
-                    </button>
-                  )}
-                </div>
+                <p className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>AVIS AUX CANDIDATS</p>
+                <p className={`mt-1 ${isMobile ? "text-xs" : "text-sm"}`}>
+                  <span className="font-semibold">
+                    NE PAS ENVOYER DE L'ARGENT
+                  </span>{" "}
+                  sous quelque forme que ce soit (cash, virement, transfert Western Union, mobile money,...). 
+                  Merci de signaler immédiatement toute demande suspecte.
+                </p>
+              </div>
+            </div>
 
-                {/* Bouton pour afficher/masquer les filtres avancés */}
-                <button
-                  className={`px-6 py-3 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg ${
-                    isDarkMode
-                      ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-primary-900/30 hover:shadow-primary-900/50"
-                      : "bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-primary-500/30 hover:shadow-primary-500/50"
-                  }`}
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <FunnelIcon className="h-5 w-5 mr-2" />
-                  <span className="text-sm">
-                    {showFilters ? "Masquer les filtres" : "Filtres avancés"}
-                  </span>
-                  <ChevronDownIcon className={`h-4 w-4 ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Filtres de statut */}
-                <div className="flex flex-wrap gap-2">
+            {/* Header minimaliste et élégant pour les offres - Responsive */}
+            <div className={`mt-4 ${isMobile ? "px-3" : "px-6"} ${isMobile ? "mb-6" : "mb-8"} max-w-full overflow-hidden`}>
+              <div className={`flex ${isMobile ? "flex-col space-y-4" : "items-center justify-between"}`}>
+                {!isMobile && (<div className={`${isMobile ? "text-center" : ""}`}>
+                  <h1 
+                    style={{fontWeight : 'bold'}}
+                    className="font-light text-gray-900 dark:text-white">
+                    Offres d'emploi
+                  </h1>
+                </div>)
+                }
+                
+                {/* Bouton filtre élégant - Responsive */}
+                <div className={`${isMobile ? "flex" : ""}`}>
                   <button
-                    className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
-                      jobFilter === "all"
-                        ? isDarkMode
-                          ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/30"
-                          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                        : isDarkMode
-                        ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
-                        : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
-                    }`}
-                    onClick={() => setJobFilter("all")}
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`relative group ${isMobile ? "px-5 py-2.5" : "px-6 py-3"} rounded-full text-sm font-medium transition-all duration-500 ${
+                      showFilters
+                        ? "bg-gray-900 text-white shadow-2xl shadow-black/20"
+                        : "bg-white text-gray-700 shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-gray-300/50 dark:bg-gray-800 dark:text-gray-300 dark:shadow-gray-900/50"
+                    } border border-gray-200 dark:border-gray-700`}
                   >
-                    <span className="text-sm">Toutes</span>
-                  </button>
-                  <button
-                    className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
-                      jobFilter === "disponible"
-                        ? isDarkMode
-                          ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
-                          : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
-                        : isDarkMode
-                        ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
-                        : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
-                    }`}
-                    onClick={() => setJobFilter("disponible")}
-                  >
-                    <CheckCircleIcon className="h-4 w-4 mr-1" />
-                    <span className="text-sm">En cours</span>
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                      jobFilter === "recent"
-                        ? isDarkMode
-                          ? "bg-orange-600 text-white"
-                          : "bg-orange-500 text-white"
-                        : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                    onClick={() => setJobFilter("recent")}
-                  >
-                    <span className="text-sm">Récentes</span>
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                      jobFilter === "expired"
-                        ? isDarkMode
-                          ? "bg-red-600 text-white"
-                          : "bg-red-500 text-white"
-                        : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                    onClick={() => setJobFilter("expired")}
-                  >
-                    <span className="text-sm">Expirées</span>
+                    <div className="flex items-center space-x-2">
+                      <svg className={`w-4 h-4 transition-transform duration-500 ${showFilters ? 'rotate-45' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                      <span>{showFilters ? 'Filtrage actif' : 'Filtrer'}</span>
+                    </div>
+                    {showFilters && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping"></div>
+                    )}
                   </button>
                 </div>
               </div>
+            </div>
 
-              {/* Panneau de filtres avancés */}
-              {showFilters && (
-                <div
-                  className={`p-4 mb-4 rounded-lg ${
-                    isDarkMode
-                      ? "bg-gray-800 border border-gray-700"
-                      : "bg-gray-50 border border-gray-200"
-                  }`}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <h3
-                      className={`font-medium ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      Filtres avancés
-                    </h3>
-                    <button
-                      className={`text-sm px-2 py-1 rounded ${
-                        isDarkMode
-                          ? "text-primary-400 hover:text-primary-300 hover:bg-gray-700"
-                          : "text-primary-600 hover:text-primary-700 hover:bg-gray-100"
-                      }`}
-                      onClick={resetFilters}
-                    >
-                      <span className="flex items-center">
-                        <ArrowPathIcon className="h-4 w-4 mr-1" />
-                        Réinitialiser les filtres
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Filtre par type de publication */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Type de publication
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={postTypeFilter}
-                          onChange={(e) => setPostTypeFilter(e.target.value)}
-                        >
-                          <option value="">Tous les types</option>
-                          <option value="offre_emploi">Offre d'emploi</option>
-                          <option value="appel_manifestation_interet">
-                            Appel à manifestation d'intérêt
-                          </option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
+            {/* Panneau de filtres ultra-moderne pour les offres - Responsive */}
+            {showFilters && (
+              <div className={`${isMobile ? "px-3" : "px-6"} mb-8 max-w-full overflow-hidden`}>
+                <div className={`relative overflow-hidden rounded-2xl transition-all duration-700 ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/90 border border-gray-800/50' 
+                    : 'bg-gradient-to-br from-white/95 via-gray-50/90 to-white/95 border border-gray-200/50'
+                } backdrop-blur-xl shadow-2xl shadow-black/10 dark:shadow-black/30`}>
+                  
+                  {/* Header du panneau - Responsive */}
+                  <div className={`px-4 py-3 border-b ${
+                    isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
+                  }`}>
+                    <div className={`flex ${isMobile ? "flex-col space-y-3" : "items-center justify-between"}`}>
+                      <div className={`flex items-center space-x-3 ${isMobile ? "justify-center" : ""}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
                         </div>
-                        {postTypeFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setPostTypeFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Filtre par type de contrat */}
-                    <div>
-                      <label
-                        className={`block text-sm font-medium mb-1 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Type de contrat
-                      </label>
-                      <div className="relative">
-                        <select
-                          className={`block w-full px-3 py-2 pr-8 rounded border ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                          value={contractTypeFilter}
-                          onChange={(e) =>
-                            setContractTypeFilter(e.target.value)
-                          }
-                        >
-                          <option value="">Tous les contrats</option>
-                          {uniqueContractTypes.map((type) => (
-                            <option key={type} value={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                          <ChevronDownIcon className="h-4 w-4" />
+                        <div className={`${isMobile ? "text-center" : ""}`}>
+                          <h3 className={`font-semibold ${isMobile ? "text-sm" : "text-base"} text-gray-900 dark:text-white`}>Filtres des offres</h3>
+                          <p className={`text-xs text-gray-500 dark:text-gray-400 ${isMobile ? "mt-1" : ""}`}>Affinez votre recherche d'emploi</p>
                         </div>
-                        {contractTypeFilter && (
-                          <button
-                            className="absolute inset-y-0 right-0 pr-8 flex items-center"
-                            onClick={() => setContractTypeFilter("")}
-                            title="Effacer la sélection"
-                          >
-                            <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        )}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Indicateurs de filtres actifs */}
-                  {(postTypeFilter ||
-                    contractTypeFilter) && (
-                    <div
-                      className={`mt-6 pt-4 border-t ${
-                        isDarkMode ? "border-gray-700/50" : "border-gray-200/50"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`text-sm font-semibold ${
-                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                      <div className={`${isMobile ? "flex justify-center" : ""}`}>
+                        <button
+                          onClick={() => {
+                            setSearchQuery("");
+                            setJobFilter("all");
+                          }}
+                          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all duration-300 ${
+                            isDarkMode
+                              ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
+                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100/50'
                           }`}
                         >
-                          Filtres actifs:
-                        </span>
-                        {postTypeFilter && (
-                          <span
-                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
-                              isDarkMode
-                                ? "bg-gradient-to-r from-primary-600/20 to-primary-700/20 text-primary-300 border border-primary-600/30 hover:border-primary-500/50"
-                                : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 border border-primary-300/50 hover:border-primary-400/50"
-                            }`}
-                          >
-                            Type: {postTypeFilter === "offre_emploi" ? "Offre d'emploi" : "Appel à manifestation d'intérêt"}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-2 cursor-pointer hover:text-red-500 transition-colors duration-200"
-                              onClick={() => setPostTypeFilter("")}
-                            />
-                          </span>
-                        )}
-                        {contractTypeFilter && (
-                          <span
-                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
-                              isDarkMode
-                                ? "bg-gradient-to-r from-blue-600/20 to-blue-700/20 text-blue-300 border border-blue-600/30 hover:border-blue-500/50"
-                                : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300/50 hover:border-blue-400/50"
-                            }`}
-                          >
-                            Contrat: {contractTypeFilter}
-                            <XMarkIcon
-                              className="h-3 w-3 ml-2 cursor-pointer hover:text-red-500 transition-colors duration-200"
-                              onClick={() => setContractTypeFilter("")}
-                            />
-                          </span>
-                        )}
+                          Tout effacer
+                        </button>
                       </div>
                     </div>
-                  )}
+                  </div>
+            
+                  {/* Contenu des filtres - Responsive */}
+                  <div className={`p-4 ${isMobile ? "space-y-4" : ""} max-w-full overflow-x-hidden`}>
+                    <div className={`grid ${isMobile ? "grid-cols-1 gap-4" : "grid-cols-1 lg:grid-cols-3 gap-6"}`}>
+                      
+                      {/* Recherche - Responsive */}
+                      <div className="space-y-2">
+                        <label className={`text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${isMobile ? "text-center" : ""}`}>
+                          Recherche
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Mots-clés..."
+                            className={`w-full ${isMobile ? "px-3 py-2" : "px-4 py-3"} rounded-xl border transition-all duration-300 ${
+                              isDarkMode
+                                ? "bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 focus:border-primary-500 focus:bg-gray-800/80"
+                                : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:bg-white"
+                            }`}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                          {searchQuery && (
+                            <button
+                              onClick={() => setSearchQuery("")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+            
+                      {/* Statut - Responsive */}
+                      <div className="space-y-2">
+                        <label className={`text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${isMobile ? "text-center" : ""}`}>
+                          Statut
+                        </label>
+                        <div className={`${isMobile ? "space-y-2" : "flex space-x-2"}`}>
+                          <button
+                            onClick={() => setJobFilter("all")}
+                            className={`${isMobile ? "w-full" : "flex-1"} ${isMobile ? "px-3 py-2" : "px-4 py-3"} rounded-xl text-sm font-medium transition-all duration-300 ${
+                              jobFilter === "all"
+                                ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white shadow-lg"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            Toutes
+                          </button>
+                          <button
+                            onClick={() => setJobFilter("available")}
+                            className={`${isMobile ? "w-full" : "flex-1"} ${isMobile ? "px-3 py-2" : "px-4 py-3"} rounded-xl text-sm font-medium transition-all duration-300 ${
+                              jobFilter === "available"
+                                ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            Actives
+                          </button>
+                        </div>
+                      </div>
+            
+                      {/* Actions rapides - Responsive */}
+                      <div className="space-y-2">
+                        <label className={`text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${isMobile ? "text-center" : ""}`}>
+                          Actions
+                        </label>
+                        <div className={`${isMobile ? "space-y-2" : "flex space-x-2"}`}>
+                          <button
+                            onClick={() => setShowFilters(false)}
+                            className={`${isMobile ? "w-full" : "flex-1"} ${isMobile ? "px-3 py-2" : "px-4 py-3"} rounded-xl text-sm font-medium transition-all duration-300 ${
+                              isDarkMode
+                                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                          >
+                            Appliquer
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Options de tri et informations */}
+            {/* Panneau de filtres avancés */}
+            {showFilters && (
               <div
-                className={`flex flex-wrap justify-between items-center gap-3 p-4 border-t ${
-                  isDarkMode ? "border-gray-700" : "border-gray-200"
+                className={`p-4 mb-4 rounded-lg ${
+                  isDarkMode
+                    ? "bg-gray-800 border border-gray-700"
+                    : "bg-gray-50 border border-gray-200"
                 }`}
               >
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
-                  <InformationCircleIcon className="h-5 w-5 mr-1" />
-                  <span>Cliquez sur une offre pour voir les détails</span>
+                <div className="flex justify-between items-center mb-3">
+                  <h3
+                    className={`font-medium ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}
+                  >
+                    {isMobile ? 'Avancés': 'Filtres avancés'}
+                  </h3>
+                  <button
+                    className={`text-sm px-2 py-1 rounded ${
+                      isDarkMode
+                        ? "text-primary-400 hover:text-primary-300 hover:bg-gray-700"
+                        : "text-primary-600 hover:text-primary-700 hover:bg-gray-100"
+                    }`}
+                    onClick={resetFilters}
+                  >
+                    <span className="flex items-center">
+                      <ArrowPathIcon className="h-4 w-4 mr-1" />
+                      Réinitialiser les filtres
+                    </span>
+                  </button>
                 </div>
+            
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Filtre par type de publication */}
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1 ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Type de publication
+                    </label>
+                    <div className="relative">
+                      <select
+                        className={`block w-full px-3 py-2 pr-8 rounded border ${
+                          isDarkMode
+                            ? "bg-gray-700 border-gray-600 text-white"
+                            : "bg-white border-gray-300 text-gray-900"
+                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                        value={postTypeFilter}
+                        onChange={(e) => setPostTypeFilter(e.target.value)}
+                      >
+                        <option value="">Tous les types</option>
+                        <option value="offre_emploi">Offre d'emploi</option>
+                        <option value="appel_manifestation_interet">
+                          Appel à manifestation d'intérêt
+                        </option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <ChevronDownIcon className="h-4 w-4" />
+                      </div>
+                      {postTypeFilter && (
+                        <button
+                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
+                          onClick={() => setPostTypeFilter("")}
+                          title="Effacer la sélection"
+                        >
+                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+            
+                  {/* Filtre par type de contrat */}
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1 ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Type de contrat
+                    </label>
+                    <div className="relative">
+                      <select
+                        className={`block w-full px-3 py-2 pr-8 rounded border ${
+                          isDarkMode
+                            ? "bg-gray-700 border-gray-600 text-white"
+                            : "bg-white border-gray-300 text-gray-900"
+                        } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                        value={contractTypeFilter}
+                        onChange={(e) =>
+                          setContractTypeFilter(e.target.value)
+                        }
+                      >
+                        <option value="">Tous les contrats</option>
+                        {uniqueContractTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <ChevronDownIcon className="h-4 w-4" />
+                      </div>
+                      {contractTypeFilter && (
+                        <button
+                          className="absolute inset-y-0 right-0 pr-8 flex items-center"
+                          onClick={() => setContractTypeFilter("")}
+                          title="Effacer la sélection"
+                        >
+                          <XMarkIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+            
+                {/* Indicateurs de filtres actifs */}
+                {(postTypeFilter ||
+                  contractTypeFilter) && (
+                  <div
+                    className={`mt-6 pt-4 border-t ${
+                      isDarkMode ? "border-gray-700/50" : "border-gray-200/50"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`text-sm font-semibold ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Filtres actifs:
+                      </span>
+                      {postTypeFilter && (
+                        <span
+                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
+                            isDarkMode
+                              ? "bg-gradient-to-r from-primary-600/20 to-primary-700/20 text-primary-300 border border-primary-600/30 hover:border-primary-500/50"
+                              : "bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 border border-primary-300/50 hover:border-primary-400/50"
+                          }`}
+                        >
+                          Type: {postTypeFilter === "offre_emploi" ? "Offre d'emploi" : "Appel à manifestation d'intérêt"}
+                          <XMarkIcon
+                            className="h-3 w-3 ml-2 cursor-pointer hover:text-red-500 transition-colors duration-200"
+                            onClick={() => setPostTypeFilter("")}
+                          />
+                        </span>
+                      )}
+                      {contractTypeFilter && (
+                        <span
+                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 transform hover:scale-105 ${
+                            isDarkMode
+                              ? "bg-gradient-to-r from-blue-600/20 to-blue-700/20 text-blue-300 border border-blue-600/30 hover:border-blue-500/50"
+                              : "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300/50 hover:border-blue-400/50"
+                          }`}
+                        >
+                          Contrat: {contractTypeFilter}
+                          <XMarkIcon
+                            className="h-3 w-3 ml-2 cursor-pointer hover:text-red-500 transition-colors duration-200"
+                            onClick={() => setContractTypeFilter("")}
+                          />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Options de tri et informations */}
+            <div
+              className={`flex flex-wrap justify-between items-center gap-3 p-4 border-t ${
+                isDarkMode ? "border-gray-700" : "border-gray-200"
+              }`}
+            >
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
+                <InformationCircleIcon className="h-5 w-5 mr-1" />
+                <span>Cliquez sur une offre pour voir les détails</span>
               </div>
             </div>
 
             {/* Tableau Material-UI des offres d'emploi avec pagination */}
             <Box sx={{ width: '100%' }}>
-              <TableContainer 
-                component={Paper} 
-                sx={{ 
-                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                  color: isDarkMode ? '#ffffff' : '#000000',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                }}
-              >
-                {loadingJobOffers && <LinearProgress />}
-                <Table>
-                  <TableHead sx={{ backgroundColor: isDarkMode ? '#374151' : '#f9fafb' }}>
-                    <TableRow>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Titre
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Organisme
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Pays
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Date de clôture
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Actions
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {posts
-                      .filter((post) => post.type === "offres-emploi")
-                      .map((post) => (
-                        <TableRow 
-                          key={post.id}
-                          sx={{ 
-                            '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => openPostDetail(post.id, post.type)}
-                        >
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Box
-                                sx={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  backgroundColor: post.etat === 'disponible' ? '#10b981' : 
-                                                  post.etat === 'expiré' ? '#ef4444' : '#f59e0b',
-                                  mr: 1,
-                                  mt: 1
-                                }}
+              {isMobile ? (
+                // Vue cartes pour mobile
+                <div className="space-y-4">
+                  {posts
+                    .filter((post) => post.type === "offres-emploi")
+                    .map((post) => (
+                      <div
+                        key={post.id}
+                        onClick={() => openPostDetail(post.id, post.type)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                          isDarkMode 
+                            ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' 
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {/* Header de la carte */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <div
+                                className={`w-2 h-2 rounded-full mr-2 ${
+                                  post.etat === 'available' ? 'bg-green-500' : 
+                                  post.etat === 'unavailable' ? 'bg-red-500' : 'bg-yellow-500'
+                                }`}
                               />
-                              <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                                  {post.title}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                  {post.reference || "Réf. non précisée"}
-                                </Typography>
+                              <h3 className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {post.title}
+                              </h3>
+                            </div>
+                            {post.reference && (
+                              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                Réf: {post.reference}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Informations principales */}
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center text-xs">
+                            <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                              {post.company_name || "Non précisé"}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-xs">
+                            <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                              {post.pays || "Non précisé"}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-xs">
+                            <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                              {post.date_limite
+                                ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })
+                                : "Date non spécifiée"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center space-x-4">
+                            {/* Actions sociales */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLike(post.id, post.type);
+                              }}
+                              className={`flex items-center space-x-1 ${
+                                post.is_liked ? 'text-red-500' : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                              }`}
+                            >
+                              <svg className="w-4 h-4" fill={post.is_liked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              <span className="text-xs">{post.likes_count || 0}</span>
+                            </button>
+                            
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPostDetail(post.id, post.type);
+                              }}
+                              className={`flex items-center space-x-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              <span className="text-xs">{post.comments_count || 0}</span>
+                            </button>
+                          </div>
+
+                          {/* Bouton détails */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPostDetail(post.id, post.type);
+                            }}
+                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition-colors"
+                          >
+                            Voir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                // Vue tableau pour desktop
+                <TableContainer 
+                  component={Paper} 
+                  sx={{ 
+                    backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                    color: isDarkMode ? '#ffffff' : '#000000',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  }}
+                >
+                  {loadingJobOffers && <LinearProgress />}
+                  <Table>
+                    <TableHead sx={{ backgroundColor: isDarkMode ? '#374151' : '#f9fafb' }}>
+                      <TableRow>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Titre
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Organisme
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Pays
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Date de clôture
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+
+                    <TableBody>
+                      {posts
+                        .filter((post) => post.type === "offres-emploi")
+                        .map((post) => (
+                          <TableRow 
+                            key={post.id}
+                            sx={{ 
+                              '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => openPostDetail(post.id, post.type)}
+                          >
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Box
+                                  sx={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: '50%',
+                                    backgroundColor: post.etat === 'available' ? '#10b981' : 
+                                                    post.etat === 'unavailable' ? '#ef4444' : '#f59e0b',
+                                    mr: 1,
+                                    mt: 1
+                                  }}
+                                />
+                                <Box>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+                                    {post.title}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {post.reference || "Réf. non précisée"}
+                                  </Typography>
+                                </Box>
                               </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            {post.company_name || "Non précisé"}
-                          </TableCell>
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            {post.pays || "Non précisé"}
-                          </TableCell>
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            {post.date_limite
-                              ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
-                              : "Date non spécifiée"}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {/* Actions sociales */}
-                              <Tooltip title="J'aime">
-                                <IconButton 
-                                  size="small" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleLike(post.id, post.type);
-                                  }}
-                                  sx={{ color: post.is_liked ? '#ef4444' : 'text.secondary' }}
-                                >
-                                  {post.is_liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {post.likes_count || 0}
-                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              {post.company_name || "Non précisé"}
+                            </TableCell>
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              {post.pays || "Non précisé"}
+                            </TableCell>
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              {post.date_limite
+                                ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })
+                                : "Date non spécifiée"}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {/* Actions sociales */}
+                                <Tooltip title="J'aime">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleLike(post.id, post.type);
+                                    }}
+                                    sx={{ color: post.is_liked ? '#ef4444' : 'text.secondary' }}
+                                  >
+                                    {post.is_liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                  </IconButton>
+                                </Tooltip>
+                                
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {post.likes_count || 0}
+                                </Typography>
 
-                              <Tooltip title="Commentaires">
-                                <IconButton 
-                                  size="small" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPostDetail(post.id, post.type);
-                                  }}
-                                  sx={{ color: 'text.secondary' }}
-                                >
-                                  <CommentIcon />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {post.comments_count || 0}
-                              </Typography>
+                                <Tooltip title="Commentaires">
+                                  <IconButton 
+                                    size="small" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPostDetail(post.id, post.type);
+                                    }}
+                                    sx={{ color: 'text.secondary' }}
+                                  >
+                                    <CommentIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {post.comments_count || 0}
+                                </Typography>
 
-                              {/* Bouton détails */}
-                              <Tooltip title="Voir les détails">
-                                <IconButton 
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPostDetail(post.id, post.type);
-                                  }}
-                                  sx={{ 
-                                    backgroundColor: '#3b82f6',
-                                    color: 'white',
-                                    '&:hover': { backgroundColor: '#2563eb' }
-                                  }}
-                                >
-                                  <VisibilityIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                                {/* Bouton détails */}
+                                <Tooltip title="Voir les détails">
+                                  <IconButton 
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPostDetail(post.id, post.type);
+                                    }}
+                                    sx={{ 
+                                      backgroundColor: '#3b82f6',
+                                      color: 'white',
+                                      '&:hover': { backgroundColor: '#2563eb' }
+                                    }}
+                                  >
+                                    <VisibilityIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
               
               {/* Pagination Material-UI */}
               <TablePagination
@@ -1907,13 +2148,23 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                 page={jobOffersPage}
                 onPageChange={handleJobOffersPageChange}
                 onRowsPerPageChange={handleJobOffersRowsPerPageChange}
-                labelRowsPerPage="Lignes par page:"
+                labelRowsPerPage={isMobile ? "" : "Lignes par page:"}
                 labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`}
                 sx={{ 
                   backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
                   color: isDarkMode ? '#ffffff' : '#000000',
                   '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
                     color: isDarkMode ? '#ffffff' : '#000000'
+                  },
+                  '.MuiTablePagination-selectLabel': {
+                    display: isMobile ? 'none' : 'block'
+                  },
+                  '.MuiTablePagination-toolbar': {
+                    justifyContent: isMobile ? 'flex-start' : 'space-between',
+                    paddingLeft: isMobile ? '16px' : '0'
+                  },
+                  '.MuiTablePagination-spacer': {
+                    display: isMobile ? 'none' : 'block'
                   }
                 }}
               />
@@ -1923,18 +2174,18 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           {/* Troisième onglet: Opportunités d'affaires /partenariat et appel à projet */}
           <Tab.Panel
             className={classNames(
-              "rounded-xl p-3",
-              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
+              "rounded-xl",
+              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none"
             )}
           >
             {/* Barre de recherche et filtres */}
             <div
               className={`mb-6 rounded-lg overflow-hidden ${
                 isDarkMode ? "bg-gray-800" : "bg-white"
-              } shadow`}
+              }`}
             >
               <div
-                className={`p-4 border-b ${
+                className={`border-b ${
                   isDarkMode ? "border-gray-700" : "border-gray-200"
                 }`}
               >
@@ -1968,118 +2219,126 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                     avant tout engagement. Assurez-vous de bien comprendre les
                     termes et conditions de chaque opportunité.
                   </p>
+
+                </div>
+                
+                {/* Bouton filtre élégant - Responsive */}
+                <div className={`mt-4 mb-3 ${isMobile ? "flex justify-center" : ""}`}>
+                  <button
+                    onClick={() => setShowOppoFilters(!showOppoFilters)}
+                    className={`relative group ${isMobile ? "px-5 py-2.5" : "px-6 py-3"} rounded-full text-sm font-medium transition-all duration-500 ${
+                      showOppoFilters
+                        ? "bg-gray-900 text-white shadow-2xl shadow-black/20"
+                        : "bg-white text-gray-700 shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-gray-300/50 dark:bg-gray-800 dark:text-gray-300 dark:shadow-gray-900/50"
+                    } border border-gray-200 dark:border-gray-700`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <svg className={`w-4 h-4 transition-transform duration-500 ${showOppoFilters ? 'rotate-45' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                      <span>{showOppoFilters ? 'Filtrage actif' : 'Filtrer'}</span>
+                    </div>
+                    {showOppoFilters && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping"></div>
+                    )}
+                  </button>
                 </div>
               </div>
+            </div>
 
-              {/* Filtres et recherche */}
-              <div className="flex flex-wrap justify-between items-center gap-3 p-4">
-                {/* Barre de recherche */}
-                <div className="relative w-full md:w-1/3">
-                  <input
-                    type="text"
-                    placeholder="Rechercher une opportunité..."
-                    className={`block w-full pl-10 pr-3 py-2 border ${
-                      isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            {/* Filtres et recherche - Caché par défaut */}
+            {showOppoFilters && (
+              <div className={`${isMobile ? "px-3" : "px-6"} mb-8 max-w-full overflow-hidden`}>
+                <div className="flex flex-wrap justify-between items-center gap-3 p-4">
+                  {/* Barre de recherche */}
+                  <div className="relative w-full md:w-1/3">
+                    <input
+                      type="text"
+                      placeholder="Rechercher une opportunité..."
+                      className={`block w-full pl-10 pr-3 py-2 border ${
+                        isDarkMode
+                          ? "bg-gray-700 border-gray-600 text-white"
+                          : "bg-white border-gray-300 text-gray-900"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    {searchQuery && (
+                      <button
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => setSearchQuery("")}
+                      >
+                        <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      </button>
+                    )}
                   </div>
-                  {searchQuery && (
+
+                  {/* Filtres de statut */}
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => setSearchQuery("")}
+                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                        jobFilter === "all"
+                          ? isDarkMode
+                            ? "bg-primary-600 text-white"
+                            : "bg-primary-500 text-white"
+                          : isDarkMode
+                            ? "bg-gray-700 text-gray-300"
+                            : "bg-gray-200 text-gray-700"
+                      }`}
+                      onClick={() => setJobFilter("all")}
                     >
-                      <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <span className="text-sm">Toutes</span>
                     </button>
-                  )}
+                    <button
+                      className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
+                        jobFilter === "available"
+                          ? isDarkMode
+                            ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
+                            : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
+                          : isDarkMode
+                            ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
+                            : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
+                      }`}
+                      onClick={() => setJobFilter("available")}
+                    >
+                      <CheckCircleIcon className="h-4 w-4 mr-1" />
+                      <span className="text-sm">En cours</span>
+                    </button>
+                    <button
+                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                        jobFilter === "recent"
+                          ? isDarkMode
+                            ? "bg-orange-600 text-white"
+                            : "bg-orange-500 text-white"
+                          : isDarkMode
+                            ? "bg-gray-700 text-gray-300"
+                            : "bg-gray-200 text-gray-700"
+                      }`}
+                      onClick={() => setJobFilter("recent")}
+                    >
+                      <span className="text-sm">Récentes</span>
+                    </button>
+                    <button
+                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                        jobFilter === "expired"
+                          ? isDarkMode
+                            ? "bg-red-600 text-white"
+                            : "bg-red-500 text-white"
+                          : isDarkMode
+                            ? "bg-gray-700 text-gray-300"
+                            : "bg-gray-200 text-gray-700"
+                      }`}
+                      onClick={() => setJobFilter("expired")}
+                    >
+                      <span className="text-sm">Expirées</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Bouton pour afficher/masquer les filtres avancés */}
-                <button
-                  className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                    isDarkMode
-                      ? "bg-gray-700 text-white hover:bg-gray-600"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                  onClick={() => setShowOppoFilters(!showOppoFilters)}
-                >
-                  <FunnelIcon className="h-5 w-5 mr-1" />
-                  <span className="text-sm">
-                    {showOppoFilters
-                      ? "Masquer les filtres"
-                      : "Filtres avancés"}
-                  </span>
-                </button>
-
-                {/* Filtres de statut */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                      jobFilter === "all"
-                        ? isDarkMode
-                          ? "bg-primary-600 text-white"
-                          : "bg-primary-500 text-white"
-                        : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                    onClick={() => setJobFilter("all")}
-                  >
-                    <span className="text-sm">Toutes</span>
-                  </button>
-                  <button
-                    className={`px-4 py-2 rounded-xl flex items-center justify-center font-medium transition-all duration-300 transform hover:scale-105 ${
-                      jobFilter === "disponible"
-                        ? isDarkMode
-                          ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-900/30"
-                          : "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30"
-                        : isDarkMode
-                        ? "bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 border border-gray-600/50"
-                        : "bg-gray-100/80 text-gray-700 hover:bg-gray-200/80 border border-gray-300/50"
-                    }`}
-                    onClick={() => setJobFilter("disponible")}
-                  >
-                    <CheckCircleIcon className="h-4 w-4 mr-1" />
-                    <span className="text-sm">En cours</span>
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                      jobFilter === "recent"
-                        ? isDarkMode
-                          ? "bg-orange-600 text-white"
-                          : "bg-orange-500 text-white"
-                        : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                    onClick={() => setJobFilter("recent")}
-                  >
-                    <span className="text-sm">Récentes</span>
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                      jobFilter === "expired"
-                        ? isDarkMode
-                          ? "bg-red-600 text-white"
-                          : "bg-red-500 text-white"
-                        : isDarkMode
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                    onClick={() => setJobFilter("expired")}
-                  >
-                    <span className="text-sm">Expirées</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Panneau de filtres avancés pour les opportunités d'affaires */}
-              {showOppoFilters && (
+                {/* Panneau de filtres avancés pour les opportunités d'affaires */}
                 <div
                   className={`p-4 mb-4 rounded-lg ${
                     isDarkMode
@@ -2237,176 +2496,288 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                     </div>
                   )}
                 </div>
+              </div>
               )}
-            </div>
 
             {/* Tableau Material-UI des opportunités d'affaires avec pagination */}
             <Box sx={{ width: '100%' }}>
-              <TableContainer 
-                component={Paper} 
-                sx={{ 
-                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                  color: isDarkMode ? '#ffffff' : '#000000',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                }}
-              >
-                {loadingOppo && <LinearProgress />}
-                <Table>
-                  <TableHead sx={{ backgroundColor: isDarkMode ? '#374151' : '#f9fafb' }}>
-                    <TableRow>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Titre
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Type
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Entreprise
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Date de clôture
-                      </TableCell>
-                      <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
-                        Actions
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {posts
-                      .filter((post) => post.type === "opportunites-affaires")
-                      .map((post) => (
-                        <TableRow 
-                          key={post.id}
-                          sx={{ 
-                            '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => openPostDetail(post.id, post.type)}
-                        >
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Box
-                                sx={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  backgroundColor: post.etat === 'disponible' ? '#10b981' : 
-                                                  post.etat === 'expiré' ? '#ef4444' : '#f59e0b',
-                                  mr: 1,
-                                  mt: 1
-                                }}
+              {isMobile ? (
+                // Vue cartes pour mobile
+                <div className="space-y-4">
+                  {posts
+                    .filter((post) => post.type === "opportunites-affaires")
+                    .map((post) => (
+                      <div
+                        key={post.id}
+                        onClick={() => openPostDetail(post.id, post.type)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                          isDarkMode
+                            ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {/* Header de la carte */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <div
+                                className={`w-2 h-2 rounded-full mr-2 ${
+                                  post.etat === 'available' ? 'bg-green-500' :
+                                  post.etat === 'unavailable' ? 'bg-red-500' : 'bg-yellow-500'
+                                }`}
                               />
-                              <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
-                                  {post.title || "Non précisé"}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                  {post.reference || "Réf. non précisée"}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            <Chip
-                              label={
-                                post.post_type === "appel_offre"
-                                  ? "Appel d'offre"
-                                  : post.post_type === "appel_projet"
-                                  ? "Appel à projet"
-                                  : "Partenariat"
-                              }
-                              size="small"
-                              sx={{
-                                backgroundColor: 
-                                  post.post_type === "appel_offre"
-                                    ? '#dbeafe'
-                                    : post.post_type === "appel_projet"
-                                    ? '#f3e8ff'
-                                    : '#dcfce7',
-                                color: 
-                                  post.post_type === "appel_offre"
-                                    ? '#1e40af'
-                                    : post.post_type === "appel_projet"
-                                    ? '#6b21a8'
-                                    : '#166534',
-                                fontSize: '0.75rem'
+                              <h3 className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {post.title || "Non précisé"}
+                              </h3>
+                            </div>
+                            {post.reference && (
+                              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                Réf: {post.reference}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Informations principales */}
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center text-xs">
+                            <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              post.type === 'opportunité' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                              post.type === 'appel_projet' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            }`}>
+                              {post.type === 'opportunité' ? 'Opportunité' :
+                               post.type === 'appel_projet' ? 'Appel à projet' :
+                               'Partenariat'}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-xs">
+                            <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                              {post.company_name || "Non précisé"}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-xs">
+                            <svg className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                              {post.date_limite
+                                ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })
+                                : "Date non spécifiée"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center space-x-4">
+                            {/* Actions sociales */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLike(post.id, post.type);
                               }}
-                            />
-                          </TableCell>
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            {post.company_name || "Non précisé"}
-                          </TableCell>
-                          <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
-                            {post.date_limite
-                              ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
-                              : "Date non spécifiée"}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {/* Actions sociales */}
-                              <Tooltip title="J'aime">
-                                <IconButton 
-                                  size="small" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleLike(post.id, post.type);
-                                  }}
-                                  sx={{ color: post.is_liked ? '#ef4444' : 'text.secondary' }}
-                                >
-                                  {post.is_liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {post.likes_count || 0}
-                              </Typography>
+                              className={`flex items-center space-x-1 ${
+                                post.is_liked ? 'text-red-500' : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                              }`}
+                            >
+                              <svg className="w-4 h-4" fill={post.is_liked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              <span className="text-xs">{post.likes_count || 0}</span>
+                            </button>
+                            
 
-                              <Tooltip title="Commentaires">
-                                <IconButton 
-                                  size="small" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPostDetail(post.id, post.type);
-                                  }}
-                                  sx={{ color: 'text.secondary' }}
-                                >
-                                  <CommentIcon />
-                                </IconButton>
-                              </Tooltip>
-                              
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {post.comments_count || 0}
-                              </Typography>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPostDetail(post.id, post.type);
+                              }}
+                              className={`flex items-center space-x-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              <span className="text-xs">{post.comments_count || 0}</span>
+                            </button>
+                          </div>
 
-                              {/* Bouton détails */}
-                              <Tooltip title="Voir les détails">
-                                <IconButton 
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPostDetail(post.id, post.type);
+                          {/* Bouton détails */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPostDetail(post.id, post.type);
+                            }}
+                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition-colors"
+                          >
+                            Voir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                // Vue tableau pour desktop
+                <TableContainer
+                  component={Paper}
+                  sx={{
+                    backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                    color: isDarkMode ? '#ffffff' : '#000000',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  }}
+                >
+                  {loadingOppo && <LinearProgress />}
+                  <Table>
+                    <TableHead sx={{ backgroundColor: isDarkMode ? '#374151' : '#f9fafb' }}>
+                      <TableRow>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Titre
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Type
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Entreprise
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Date de clôture
+                        </TableCell>
+                        <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827', fontWeight: 'bold' }}>
+                          Actions
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {posts
+                        .filter((post) => post.type === "opportunites-affaires")
+                        .map((post) => (
+                          <TableRow
+                            key={post.id}
+                            sx={{
+                              '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => openPostDetail(post.id, post.type)}
+                          >
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Box
+                                  sx={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: '50%',
+                                    backgroundColor: post.etat === 'available' ? '#10b981' :
+                                                    post.etat === 'unavailable' ? '#ef4444' : '#f59e0b',
+                                    mr: 1,
+                                    mt: 1
                                   }}
-                                  sx={{ 
-                                    backgroundColor: '#3b82f6',
-                                    color: 'white',
-                                    '&:hover': { backgroundColor: '#2563eb' }
-                                  }}
-                                >
-                                  <VisibilityIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              
+                                />
+                                <Box>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+                                    {post.title || "Non précisé"}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {post.reference || "Réf. non précisée"}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </TableCell>
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                post.type === 'opportunité' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                post.type === 'appel_projet' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              }`}>
+                                {post.type === 'opportunité' ? 'Opportunité' :
+                                 post.type === 'appel_projet' ? 'Appel à projet' :
+                                 'Partenariat'}
+                              </span>
+                            </TableCell>
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              {post.company_name || "Non précisé"}
+                            </TableCell>
+                            <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
+                              {post.date_limite
+                                ? new Date(post.date_limite).toLocaleDateString("fr-FR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })
+                                : "Date non spécifiée"}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {/* Actions sociales */}
+                                <Tooltip title="J'aime">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleLike(post.id, post.type);
+                                    }}
+                                    sx={{ color: post.is_liked ? '#ef4444' : 'text.secondary' }}
+                                  >
+                                    {post.is_liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                  </IconButton>
+                                </Tooltip>
+
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {post.likes_count || 0}
+                                </Typography>
+
+                                <Tooltip title="Commentaires">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPostDetail(post.id, post.type);
+                                    }}
+                                    sx={{ color: 'text.secondary' }}
+                                  >
+                                    <CommentIcon />
+                                  </IconButton>
+                                </Tooltip>
+
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {post.comments_count || 0}
+                                </Typography>
+
+                                {/* Bouton détails */}
+                                <Tooltip title="Voir les détails">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPostDetail(post.id, post.type);
+                                    }}
+                                    sx={{
+                                      backgroundColor: '#3b82f6',
+                                      color: 'white',
+                                      '&:hover': { backgroundColor: '#2563eb' }
+                                    }}
+                                  >
+                                    <VisibilityIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+
               {/* Pagination Material-UI */}
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}
@@ -2416,15 +2787,25 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                 page={oppoPage}
                 onPageChange={handleOppoPageChange}
                 onRowsPerPageChange={handleOppoRowsPerPageChange}
-                labelRowsPerPage="Lignes par page:"
+                labelRowsPerPage={isMobile ? "" : "Lignes par page:"}
                 labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`}
                 sx={{ 
                   backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
                   color: isDarkMode ? '#ffffff' : '#000000',
                   '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
                     color: isDarkMode ? '#ffffff' : '#000000'
+                  },
+                  '.MuiTablePagination-selectLabel': {
+                    display: isMobile ? 'none' : 'block'
+                  },
+                  '.MuiTablePagination-toolbar': {
+                    justifyContent: isMobile ? 'flex-start' : 'space-between',
+                    paddingLeft: isMobile ? '16px' : '0'
+                  },
+                  '.MuiTablePagination-spacer': {
+                    display: isMobile ? 'none' : 'block'
                   }
-                }}
+                }} 
               />
             </Box>
           </Tab.Panel>
@@ -2437,339 +2818,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
             )}
           >
             <Formations />
-          </Tab.Panel>
-
-          {/* Quatrième onglet: Pages */}
-          <Tab.Panel
-            className={classNames(
-              "rounded-xl p-3",
-              "ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
-            )}
-          >
-            <div
-              className={`rounded-lg shadow p-4 ${
-                isDarkMode ? "bg-[#1f2937]" : "bg-white"
-              }`}
-            >
-              <div className="mb-6">
-                <h2
-                  className={`text-xl font-bold mb-4 ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  Découvrir des Pages
-                </h2>
-                <h3
-                  className={`text-lg font-semibold mb-4 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Suggestions
-                </h3>
-
-                {loadingPages ? (
-                  <div className="flex items-center justify-center py-10">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Pages recommandées */}
-                    {recommendedPages.length > 0 ? (
-                      recommendedPages.map((page) => (
-                        <div
-                          key={page.id}
-                          className={`rounded-lg overflow-hidden shadow-md ${
-                            isDarkMode ? "bg-gray-800" : "bg-white"
-                          } cursor-pointer group`}
-                        >
-                          {/* Image de couverture avec photo de profil superposée */}
-                          <div
-                            className="relative h-40 w-full"
-                            onClick={() =>
-                              navigate(`/dashboard/pages/${page.id}`)
-                            }
-                          >
-                            <button
-                              className="absolute top-2 right-2 z-10 p-1 rounded-full bg-gray-800 bg-opacity-50 hover:bg-opacity-70"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/dashboard/pages/${page.id}`);
-                              }}
-                            >
-                              <ArrowTopRightOnSquareIcon className="h-5 w-5 text-white" />
-                            </button>
-                            <div
-                              className="w-full h-full bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                              style={{
-                                backgroundImage: page.photo_de_couverture
-                                  ? `url(${page.photo_de_couverture})`
-                                  : "url(https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80)",
-                              }}
-                            ></div>
-
-                            {/* Photo de profil superposée sur la photo de couverture */}
-                            <div className="absolute -bottom-8 left-4">
-                              <div
-                                className={`h-16 w-16 rounded-full border-4 ${
-                                  isDarkMode
-                                    ? "border-gray-800"
-                                    : "border-white"
-                                } overflow-hidden bg-white dark:bg-gray-700`}
-                              >
-                                {page.user?.picture ? (
-                                  <img
-                                    src={page.user.picture}
-                                    alt={page.user.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <img
-                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                      page.user?.name || "Page"
-                                    )}&background=${
-                                      isDarkMode ? "374151" : "F3F4F6"
-                                    }&color=${
-                                      isDarkMode ? "FFFFFF" : "1F2937"
-                                    }&size=128`}
-                                    alt={page.user?.name || "Page"}
-                                    className="h-full w-full object-cover"
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Contenu de la carte */}
-                          <div
-                            className="p-4 pt-10"
-                            onClick={() =>
-                              navigate(`/dashboard/pages/${page.id}`)
-                            }
-                          >
-                            <div className="flex flex-col">
-                              {/* Informations de la page */}
-                              <div className="flex-1">
-                                <h3
-                                  className={`text-lg font-bold ${
-                                    isDarkMode ? "text-white" : "text-gray-900"
-                                  }`}
-                                >
-                                  {page.user?.name || "Page sans nom"}
-                                </h3>
-                                <p
-                                  className={`text-sm ${
-                                    isDarkMode
-                                      ? "text-gray-400"
-                                      : "text-gray-500"
-                                  }`}
-                                >
-                                  Personnalité publique
-                                </p>
-                                <p
-                                  className={`text-xs mt-1 ${
-                                    isDarkMode
-                                      ? "text-gray-500"
-                                      : "text-gray-600"
-                                  }`}
-                                >
-                                  {page.nombre_abonnes > 0 ? (
-                                    <>
-                                      {page.nombre_abonnes}{" "}
-                                      {page.nombre_abonnes > 1
-                                        ? "personnes aiment"
-                                        : "personne aime"}{" "}
-                                      cette Page
-                                    </>
-                                  ) : (
-                                    "Soyez le premier à aimer cette Page"
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Bouton d'abonnement */}
-                            <button
-                              onClick={() => handleSubscribe(page.id)}
-                              className={`w-full mt-4 py-2 px-4 rounded-md flex items-center justify-center font-medium transition-colors ${
-                                isDarkMode
-                                  ? "bg-gray-700 text-white hover:bg-gray-600"
-                                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                              }`}
-                            >
-                              S'abonner
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p
-                        className={`col-span-full text-center py-6 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Aucune page recommandée pour le moment.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-8">
-                <h3
-                  className={`text-lg font-semibold mb-4 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Pages que vous suivez
-                </h3>
-
-                {loadingPages ? (
-                  <div className="flex items-center justify-center py-10">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Pages auxquelles l'utilisateur est abonné */}
-                    {subscribedPages.length > 0 ? (
-                      subscribedPages.map((page) => (
-                        <div
-                          key={page.id}
-                          className={`rounded-lg overflow-hidden shadow-md ${
-                            isDarkMode ? "bg-gray-800" : "bg-white"
-                          } cursor-pointer group`}
-                        >
-                          {/* Image de couverture avec photo de profil superposée */}
-                          <div
-                            className="relative h-40 w-full"
-                            onClick={() =>
-                              navigate(`/dashboard/pages/${page.id}`)
-                            }
-                          >
-                            <button
-                              className="absolute top-2 right-2 z-10 p-1 rounded-full bg-gray-800 bg-opacity-50 hover:bg-opacity-70"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/dashboard/pages/${page.id}`);
-                              }}
-                            >
-                              <ArrowTopRightOnSquareIcon className="h-5 w-5 text-white" />
-                            </button>
-                            <div
-                              className="w-full h-full bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                              style={{
-                                backgroundImage: page.photo_de_couverture
-                                  ? `url(${page.photo_de_couverture})`
-                                  : "url(https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80)",
-                              }}
-                            ></div>
-
-                            {/* Photo de profil superposée sur la photo de couverture */}
-                            <div className="absolute -bottom-8 left-4">
-                              <div
-                                className={`h-16 w-16 rounded-full border-4 ${
-                                  isDarkMode
-                                    ? "border-gray-800"
-                                    : "border-white"
-                                } overflow-hidden bg-white dark:bg-gray-700`}
-                              >
-                                {page.user?.picture ? (
-                                  <img
-                                    src={page.user.picture}
-                                    alt={page.user.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <img
-                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                      page.user?.name || "Page"
-                                    )}&background=${
-                                      isDarkMode ? "374151" : "F3F4F6"
-                                    }&color=${
-                                      isDarkMode ? "FFFFFF" : "1F2937"
-                                    }&size=128`}
-                                    alt={page.user?.name || "Page"}
-                                    className="h-full w-full object-cover"
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Contenu de la carte */}
-                          <div
-                            className="p-4 pt-10"
-                            onClick={() =>
-                              navigate(`/dashboard/pages/${page.id}`)
-                            }
-                          >
-                            <div className="flex flex-col">
-                              {/* Informations de la page */}
-                              <div className="flex-1">
-                                <h3
-                                  className={`text-lg font-bold ${
-                                    isDarkMode ? "text-white" : "text-gray-900"
-                                  }`}
-                                >
-                                  {page.user?.name || "Page sans nom"}
-                                </h3>
-                                <p
-                                  className={`text-sm ${
-                                    isDarkMode
-                                      ? "text-gray-400"
-                                      : "text-gray-500"
-                                  }`}
-                                >
-                                  Personnalité publique
-                                </p>
-                                <p
-                                  className={`text-xs mt-1 ${
-                                    isDarkMode
-                                      ? "text-gray-500"
-                                      : "text-gray-600"
-                                  }`}
-                                >
-                                  {page.nombre_abonnes > 0 ? (
-                                    <>
-                                      {page.nombre_abonnes}{" "}
-                                      {page.nombre_abonnes > 1
-                                        ? "personnes aiment"
-                                        : "personne aime"}{" "}
-                                      cette Page
-                                    </>
-                                  ) : (
-                                    "Soyez le premier à aimer cette Page"
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Bouton de désabonnement */}
-                            <button
-                              onClick={() => handleUnsubscribe(page.id)}
-                              className={`w-full mt-4 py-2 px-4 rounded-md flex items-center justify-center font-medium transition-colors ${
-                                isDarkMode
-                                  ? "bg-gray-700 text-white hover:bg-gray-600"
-                                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                              }`}
-                            >
-                              Se désabonner
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p
-                        className={`col-span-full text-center py-6 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Vous ne suivez aucune page pour le moment.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>

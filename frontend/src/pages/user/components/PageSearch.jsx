@@ -41,7 +41,7 @@ export default function PageSearch() {
     perPage: 6
   });
 
-  // Charger les abonnés de l'utilisateur
+  // Charger les abonnés de l'utilisateur (relations de suivi)
   const fetchSubscribedPages = useCallback(async (page = 1, perPage = subscribedPagination.perPage) => {
     try {
       const response = await axios.get(`/api/pages/subscriptions?page=${page}&per_page=${perPage}`);
@@ -408,10 +408,10 @@ export default function PageSearch() {
 
   return (
     <div className={`rounded-lg shadow p-4 ${isDarkMode ? "bg-[#1f2937]" : "bg-white"}`}>
-      {/* Liste des abonnés */}
+      {/* Liste des abonnements */}
       <div className="mt-8 mb-5">
         <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-          Mes abonnés
+          Suivis
         </h3>
 
         {loadingPages ? (
@@ -439,11 +439,19 @@ export default function PageSearch() {
                         alt={page.user?.name || 'Utilisateur'}
                         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-primary-500"
                       />
-                      {/* Indicateur d'abonnement mutuel */}
-                      {page.is_subscribed && (
+                      {/* Indicateur de relation mutuelle */}
+                      {page.is_mutual && (
                         <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
                           <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                      {/* Indicateur de suivi unilatéral (page suit l'utilisateur) */}
+                      {!page.is_mutual && page.page_follows_user && (
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                          <svg className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                         </div>
                       )}
@@ -458,6 +466,27 @@ export default function PageSearch() {
                         <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                           {page.nombre_abonnes || 0} abonnés
                         </span>
+                        
+                        {/* Indicateur de relation */}
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          page.is_mutual 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : page.user_follows_page
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            : page.page_follows_user
+                            ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                        }`}>
+                          {page.is_mutual 
+                            ? 'Suivi mutuel' 
+                            : page.user_follows_page 
+                            ? 'Vous suivez'
+                            : page.page_follows_user
+                            ? 'Vous suit'
+                            : 'Aucune relation'
+                          }
+                        </span>
+                        
                         {page.subscription_date && (
                           <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                             Abonné {formatDistanceToNow(new Date(page.subscription_date), { 
@@ -472,43 +501,89 @@ export default function PageSearch() {
                   
                   {/* Actions */}
                   <div className="flex items-center space-x-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => handleSubscribe(page.id)}
-                      disabled={subscribingPageId === page.id}
-                      className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center min-w-[100px] sm:min-w-[120px] ${
-                        page.is_subscribed
-                          ? isDarkMode
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : isDarkMode
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      } ${subscribingPageId === page.id ? "opacity-75 cursor-not-allowed" : ""}`}
-                    >
-                      {subscribingPageId === page.id ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span className="hidden sm:inline">
-                            {page.is_subscribed ? "Arrêt..." : "Suivi..."}
-                          </span>
-                          <span className="sm:hidden">
-                            {page.is_subscribed ? "Arrêt" : "Suivi"}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="hidden sm:inline">
-                            {page.is_subscribed ? "Arrêter de suivre" : "Suivre en retour"}
-                          </span>
-                          <span className="sm:hidden">
-                            {page.is_subscribed ? "Arrêter" : "Suivre"}
-                          </span>
-                        </>
-                      )}
-                    </button>
+                    {/* Bouton d'action principal */}
+                    {page.user_follows_page ? (
+                      // Si l'utilisateur suit la page (mutuel ou unilatéral)
+                      <button
+                        onClick={() => handleSubscribe(page.id)}
+                        disabled={subscribingPageId === page.id}
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center min-w-[100px] sm:min-w-[120px] ${
+                          isDarkMode
+                            ? "bg-red-600 text-white hover:bg-red-700"
+                            : "bg-red-500 text-white hover:bg-red-600"
+                        } ${subscribingPageId === page.id ? "opacity-75 cursor-not-allowed" : ""}`}
+                      >
+                        {subscribingPageId === page.id ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="hidden sm:inline">Désabonnement...</span>
+                            <span className="sm:hidden">Désab.</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="hidden sm:inline">Se désabonner</span>
+                            <span className="sm:hidden">Désab.</span>
+                          </>
+                        )}
+                      </button>
+                    ) : page.page_follows_user ? (
+                      // Si la page suit l'utilisateur mais que l'utilisateur ne suit pas
+                      <button
+                        onClick={() => handleSubscribe(page.id)}
+                        disabled={subscribingPageId === page.id}
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center min-w-[100px] sm:min-w-[120px] ${
+                          isDarkMode
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "bg-blue-500 text-white hover:bg-blue-600"
+                        } ${subscribingPageId === page.id ? "opacity-75 cursor-not-allowed" : ""}`}
+                      >
+                        {subscribingPageId === page.id ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="hidden sm:inline">Abonnement...</span>
+                            <span className="sm:hidden">Abon.</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="hidden sm:inline">Suivre en retour</span>
+                            <span className="sm:hidden">Suivre</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      // Cas par défaut (ne devrait pas arriver avec la nouvelle API)
+                      <button
+                        onClick={() => handleSubscribe(page.id)}
+                        disabled={subscribingPageId === page.id}
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center min-w-[100px] sm:min-w-[120px] ${
+                          isDarkMode
+                            ? "bg-gray-600 text-white hover:bg-gray-700"
+                            : "bg-gray-500 text-white hover:bg-gray-600"
+                        } ${subscribingPageId === page.id ? "opacity-75 cursor-not-allowed" : ""}`}
+                      >
+                        {subscribingPageId === page.id ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="hidden sm:inline">Chargement...</span>
+                            <span className="sm:hidden">...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="hidden sm:inline">Suivre</span>
+                            <span className="sm:hidden">Suivre</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                     <button
                       onClick={() => navigate(`/dashboard/pages/${page.id}`)}
                       className={`p-2 rounded-lg transition-all duration-200 ${

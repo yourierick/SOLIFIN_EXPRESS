@@ -753,8 +753,8 @@ class PageController extends Controller
     }
 
     /**
-     * Récupérer la liste des abonnés de l'utilisateur connecté
-     * avec vérification d'abonnement mutuel
+     * Récupérer toutes les pages que l'utilisateur suit ET qui le suivent
+     * (relations mutuelles et unilatérales)
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
@@ -765,7 +765,7 @@ class PageController extends Controller
         $page = $request->input('page', 1);
         $perPage = $request->input('per_page', 10);
         
-        // Récupérer les abonnés de la page de l'utilisateur connecté
+        // Récupérer la page de l'utilisateur connecté
         $userPage = Page::where('user_id', $userId)->first();
         
         if (!$userPage) {
@@ -778,54 +778,96 @@ class PageController extends Controller
             ]);
         }
         
-        // Récupérer les abonnés de la page de l'utilisateur avec leurs pages
-        $subscribersQuery = $userPage->abonnes()->with(['user' => function($query) {
-            $query->select('id', 'name', 'picture');
-        }]);
+        // Récupérer tous les IDs des pages que l'utilisateur suit
+        $userSubscribedPageIds = PageAbonnes::where('user_id', $userId)
+            ->pluck('page_id')
+            ->toArray();
+        
+        // Récupérer tous les IDs des utilisateurs qui suivent l'utilisateur
+        $userFollowersUserIds = PageAbonnes::where('page_id', $userPage->id)
+            ->pluck('user_id')
+            ->toArray();
+        
+        // Récupérer les pages correspondantes à ces utilisateurs
+        $followerPages = Page::whereIn('user_id', $userFollowersUserIds)
+            ->pluck('id')
+            ->toArray();
+        
+        // Combiner tous les IDs de pages (uniques)
+        $allRelatedPageIds = array_unique(array_merge($userSubscribedPageIds, $followerPages));
+        
+        if (empty($allRelatedPageIds)) {
+            return response()->json([
+                'pages' => [],
+                'current_page' => 1,
+                'last_page' => 1,
+                'total' => 0,
+                'per_page' => $perPage
+            ]);
+        }
+        
+        // Récupérer les pages avec leurs informations
+        $pagesQuery = Page::whereIn('id', $allRelatedPageIds)
+            ->with(['user' => function($query) {
+                $query->select('id', 'name', 'picture');
+            }])
+            ->orderBy('created_at', 'desc');
         
         // Paginer les résultats
-        $paginatedSubscribers = $subscribersQuery->paginate($perPage, ['*'], 'page', $page);
-        $subscribers = $paginatedSubscribers->items();
-
-        $pages = [];
-        foreach ($subscribers as $subscriber) {
-            // Récupérer la page de l'abonné séparément pour éviter la récursion
-            $subscriberPage = Page::where('user_id', $subscriber->user_id)->first();
-            
-            if ($subscriberPage) {
-                // Formater les URLs des images
-                if ($subscriber->user->picture) {
-                    $subscriber->user->picture = asset('storage/' . $subscriber->user->picture);
-                }
-
-                if ($subscriberPage->photo_de_couverture) {
-                    $subscriberPage->photo_de_couverture = asset('storage/' . $subscriberPage->photo_de_couverture);
-                }
-
-                // Vérifier si l'utilisateur connecté est abonné à la page de cet abonné (abonnement mutuel)
-                $subscriberPage->is_subscribed = PageAbonnes::where('page_id', $subscriberPage->id)
-                                                          ->where('user_id', $userId)
-                                                          ->exists();
-                
-                // Ajouter la date d'abonnement de l'abonné
-                $subscriberPage->subscription_date = $subscriber->created_at;
-                
-                // Ajouter le nombre d'abonnés de la page
-                $subscriberPage->nombre_abonnes = $subscriberPage->abonnes()->count();
-                
-                // Ajouter les informations de l'utilisateur propriétaire
-                $subscriberPage->user = $subscriber->user;
-                
-                $pages[] = $subscriberPage;
+        $paginatedPages = $pagesQuery->paginate($perPage, ['*'], 'page', $page);
+        $pages = $paginatedPages->items();
+        
+        $formattedPages = [];
+        foreach ($pages as $page) {
+            // Formater les URLs des images
+            if ($page->user->picture) {
+                $page->user->picture = asset('storage/' . $page->user->picture);
             }
+
+            if ($page->photo_de_couverture) {
+                $page->photo_de_couverture = asset('storage/' . $page->photo_de_couverture);
+            }
+
+            // Déterminer le statut de la relation
+            $userFollowsPage = in_array($page->id, $userSubscribedPageIds);
+            $pageFollowsUser = in_array($page->user_id, $userFollowersUserIds);
+            
+            // Ajouter les informations de relation
+            $page->user_follows_page = $userFollowsPage;
+            $page->page_follows_user = $pageFollowsUser;
+            $page->is_mutual = $userFollowsPage && $pageFollowsUser;
+            
+            // Pour la compatibilité avec le code existant
+            $page->is_subscribed = $userFollowsPage;
+            
+            // Ajouter le nombre d'abonnés de la page
+            $page->nombre_abonnes = $page->abonnes()->count();
+            
+            // Ajouter la date d'abonnement si l'utilisateur suit cette page
+            if ($userFollowsPage) {
+                $subscription = PageAbonnes::where('page_id', $page->id)
+                    ->where('user_id', $userId)
+                    ->first();
+                $page->subscription_date = $subscription->created_at;
+            }
+            
+            // Ajouter la date où la page a commencé à suivre l'utilisateur
+            if ($pageFollowsUser) {
+                $followerSubscription = PageAbonnes::where('page_id', $userPage->id)
+                    ->where('user_id', $page->user_id)
+                    ->first();
+                $page->followed_user_date = $followerSubscription->created_at;
+            }
+            
+            $formattedPages[] = $page;
         }
         
         return response()->json([
-            'pages' => $pages,
-            'current_page' => $paginatedSubscribers->currentPage(),
-            'last_page' => $paginatedSubscribers->lastPage(),
-            'total' => $paginatedSubscribers->total(),
-            'per_page' => $paginatedSubscribers->perPage()
+            'pages' => $formattedPages,
+            'current_page' => $paginatedPages->currentPage(),
+            'last_page' => $paginatedPages->lastPage(),
+            'total' => $paginatedPages->total(),
+            'per_page' => $paginatedPages->perPage()
         ]);
     }
 

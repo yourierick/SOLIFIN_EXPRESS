@@ -108,16 +108,36 @@ class HomeController extends Controller
         try {
             $page = $request->get('page', 1);
             $limit = $request->get('limit', 10);
+            $type = $request->get('type', 'all'); // Récupérer le paramètre de type
             
-            // Récupérer toutes les offres d'emploi approuvées et disponibles
-            $jobOffersQuery = OffreEmploi::where('statut', 'approved')
-                ->where('etat', 'available')
-                ->orderBy('created_at', 'desc');
+            // Initialiser les requêtes selon le type de filtre
+            if ($type === 'emploi') {
+                // Seulement les offres d'emploi
+                $jobOffersQuery = OffreEmploi::where('statut', 'approved')
+                    ->where('etat', 'available')
+                    ->orderBy('created_at', 'desc');
+                
+                // Requête vide pour les opportunités d'affaire
+                $businessOpportunitiesQuery = OpportuniteAffaire::whereRaw('1 = 0');
+                
+            } elseif ($type === 'affaire') {
+                // Seulement les opportunités d'affaire
+                $jobOffersQuery = OffreEmploi::whereRaw('1 = 0'); // Requête vide
+                
+                $businessOpportunitiesQuery = OpportuniteAffaire::where('statut', 'approved')
+                    ->where('etat', 'available')
+                    ->orderBy('created_at', 'desc');
+                    
+            } else {
+                // Les deux types (comportement par défaut)
+                $jobOffersQuery = OffreEmploi::where('statut', 'approved')
+                    ->where('etat', 'available')
+                    ->orderBy('created_at', 'desc');
 
-            // Récupérer toutes les opportunités d'affaire approuvées et disponibles
-            $businessOpportunitiesQuery = OpportuniteAffaire::where('statut', 'approved')
-                ->where('etat', 'available')
-                ->orderBy('created_at', 'desc');
+                $businessOpportunitiesQuery = OpportuniteAffaire::where('statut', 'approved')
+                    ->where('etat', 'available')
+                    ->orderBy('created_at', 'desc');
+            }
 
             // Compter le total des opportunités
             $totalJobOffers = $jobOffersQuery->count();

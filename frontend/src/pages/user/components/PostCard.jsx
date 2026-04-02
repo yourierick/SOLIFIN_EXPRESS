@@ -321,11 +321,12 @@ export default function PostCard({
 
   return (
     <div
-      className={`rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl mb-2 sm:mb-3 ${
+      className={`rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl h-full flex flex-col ${
         isDarkMode
           ? "bg-gray-800 text-white border border-gray-700"
           : "bg-white text-gray-900 border border-gray-100"
       }`}
+      style={{ width: "100%" }}
     >
       {/* En-tête du post */}
       <div
@@ -339,7 +340,7 @@ export default function PostCard({
             {post.user?.picture_url ? (
               <img
                 src={post.user.picture_url}
-                alt={`${post.user.name || "Utilisateur"}`}
+                alt={`${(post.user?.name || "U").charAt(0).toUpperCase()}`}
                 className="h-10 w-10 sm:h-14 sm:w-14 rounded-full object-cover ring-2 ring-primary-500 ring-opacity-50 shadow-md transition-all duration-300 group-hover:ring-primary-400 group-hover:scale-105"
               />
             ) : (
@@ -375,89 +376,28 @@ export default function PostCard({
               <span className="truncate">{formatDate(post.created_at)}</span>
             </div>
           </div>
-          {post.status === "pending" && (
-            <span
-              className={`ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+          
+          {/* Bouton En savoir plus dans l'en-tête - seulement l'icône */}
+          {post.external_link && (
+            <a
+              href={post.external_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center justify-center p-1.5 rounded-lg shadow-sm text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
                 isDarkMode
-                  ? "bg-yellow-500/20 text-yellow-300"
-                  : "bg-yellow-100 text-yellow-800"
-              } shadow-sm`}
+                  ? "bg-transparent hover:bg-gray-700 text-gray-400 hover:text-white"
+                  : "bg-transparent hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+              }`}
+              title="En savoir plus"
             >
-              <ClockIcon className="h-3.5 w-3.5 mr-1.5" />
-              En attente
-            </span>
+              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+            </a>
           )}
-        </div>
-        <div className="relative">
-          <button
-            onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}
-            className={`p-1 sm:p-1.5 rounded-full transition-all duration-200 ${
-              isDarkMode
-                ? "hover:bg-gray-700 text-gray-300 hover:text-white"
-                : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-            }`}
-            aria-label="Options du post"
-          >
-            <EllipsisHorizontalIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-          </button>
-
-          {/* Menu d'options avec animation améliorée */}
-          <AnimatePresence>
-            {isOptionsMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                transition={{ duration: 0.2, type: "spring", stiffness: 300 }}
-                className={`absolute right-0 mt-2 w-48 sm:w-56 rounded-xl overflow-hidden shadow-lg z-10 backdrop-blur-sm ${
-                  isDarkMode
-                    ? "bg-gray-800/95 border border-gray-700"
-                    : "bg-white/95 border border-gray-200"
-                }`}
-              >
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      onViewDetails(post.id, post.type);
-                      setIsOptionsMenuOpen(false);
-                    }}
-                    className={`flex items-center w-full text-left px-4 py-3 text-sm transition-colors duration-200 ${
-                      isDarkMode
-                        ? "text-gray-200 hover:bg-gray-700/70"
-                        : "text-gray-700 hover:bg-gray-100/80"
-                    }`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                    Voir les détails
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
 
       {/* Contenu du post */}
-      <div className="px-1.5 sm:px-3 py-1.5 sm:py-2">
+      <div className="px-1.5 sm:px-3 py-1.5 sm:py-2 flex-1 flex flex-col">
         {/* Badge de type de post */}
         <div className="flex items-center mb-1.5 sm:mb-2">
           <div
@@ -486,7 +426,7 @@ export default function PostCard({
 
         {/* Contenu textuel avec première lettre stylisée */}
         <div
-          className={`mb-2 sm:mb-3 whitespace-pre-wrap leading-relaxed text-xs sm:text-sm ${
+          className={`mb-2 sm:mb-3 whitespace-pre-wrap leading-relaxed text-xs sm:text-sm flex-1 ${
             isDarkMode ? "text-gray-200" : "text-gray-700"
           }`}
         >
@@ -509,31 +449,6 @@ export default function PostCard({
                   : "shadow-gray-300/70 border border-gray-200/70"
               }`}
             >
-              {/* Icône WhatsApp flottante avec animation améliorée */}
-              {post.user?.phone && (
-                <motion.a
-                  href={`https://wa.me/${post.user.phone.replace(
-                    /[^0-9]/g,
-                    ""
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="absolute top-2 sm:top-3 right-2 sm:right-3 z-20 bg-green-600 hover:bg-green-700 text-white p-2 sm:p-2.5 rounded-full shadow-lg"
-                  title="Contacter via WhatsApp"
-                  whileHover={{ scale: 1.15, rotate: 10 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                  >
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                </motion.a>
-              )}
-
               {/* Affichage du média actuel avec effets */}
               <div className="relative overflow-hidden">
                 {mediaItems[currentMediaIndex]?.type === "image" ? (
@@ -548,7 +463,35 @@ export default function PostCard({
                       className="w-full h-auto object-cover cursor-pointer transition-all duration-500 group-hover:scale-105"
                       onClick={onViewDetails}
                       loading="lazy"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
+                    {/* Placeholder pour image qui ne charge pas */}
+                    <div 
+                      className="w-full h-48 bg-gray-200 dark:bg-gray-700 flex flex-col items-center justify-center cursor-pointer transition-all duration-500 group-hover:scale-105"
+                      style={{ display: 'none' }}
+                      onClick={onViewDetails}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Image non disponible
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   mediaItems[currentMediaIndex]?.type === "video" && (
@@ -571,6 +514,10 @@ export default function PostCard({
                           className="w-full h-full absolute top-0 left-0"
                           title="Vidéo"
                           loading="lazy"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
                         ></iframe>
                       ) : (
                         <video
@@ -578,10 +525,37 @@ export default function PostCard({
                           className="w-full h-full absolute top-0 left-0 focus:outline-none"
                           src={mediaItems[currentMediaIndex].url}
                           preload="metadata"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
                         >
                           Votre navigateur ne supporte pas la lecture de vidéos.
                         </video>
                       )}
+                      {/* Placeholder pour vidéo qui ne charge pas */}
+                      <div 
+                        className="w-full h-full absolute top-0 left-0 bg-gray-900 flex flex-col items-center justify-center"
+                        style={{ display: 'none' }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-12 w-12 text-gray-600 mb-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span className="text-sm text-gray-400">
+                          Vidéo non disponible
+                        </span>
+                      </div>
                     </div>
                   )
                 )}
@@ -698,221 +672,62 @@ export default function PostCard({
           </div>
         )}
 
-        {/* Lien externe et bouton WhatsApp */}
-        {post.external_link && (
-          <div className="mt-1.5 sm:mt-2 flex flex-col sm:flex-row sm:justify-end sm:space-x-2 space-y-1.5 sm:space-y-0">
-            {/* Bouton En savoir plus */}
+        {/* Lien externe - plus nécessaire car déplacé dans l'en-tête */}
+
+        {/* Boutons WhatsApp et Voir les détails - sur la même ligne */}
+        <div className="mt-1.5 sm:mt-2 flex items-start space-x-2">
+          {/* Bouton WhatsApp - toujours visible si numéro disponible */}
+          {post.user?.phone && (
             <a
-              href={post.external_link}
+              href={`https://wa.me/${post.user.phone.replace(/[^0-9]/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center justify-center px-2 sm:px-3 py-1.5 rounded-lg shadow-sm text-xs font-medium ${
-                isDarkMode
-                  ? "bg-primary-600 hover:bg-primary-700 text-white"
-                  : "bg-primary-500 hover:bg-primary-600 text-white"
-              }`}
+              className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 rounded-lg shadow-sm text-xs font-medium bg-green-600 hover:bg-green-700 text-white"
+              title="Contacter via WhatsApp"
             >
-              <ArrowTopRightOnSquareIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-              <span>{isMobile ? "Voir" : "En savoir plus"}</span>
-            </a>
-
-            {/* Bouton WhatsApp */}
-            {post.user?.phone && !post.images?.length && !post.video_url && (
-              <a
-                href={`https://wa.me/${post.user.phone.replace(/[^0-9]/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 rounded-lg shadow-sm text-xs font-medium bg-green-600 hover:bg-green-700 text-white"
-                title="Contacter via WhatsApp"
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
-                >
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                </svg>
-                <span>{isMobile ? "WA" : "WhatsApp"}</span>
-              </a>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Compteurs */}
-      <div
-        className={`flex items-center justify-between px-1.5 sm:px-3 py-1.5 sm:py-2 ${
-          isDarkMode
-            ? "border-t border-b border-gray-700/50"
-            : "border-t border-b border-gray-200/70"
-        }`}
-      >
-        <div className="flex space-x-3 sm:space-x-4">
-          <motion.div
-            className="flex items-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="relative">
-              <HeartIconSolid
-                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                  post.is_liked
-                    ? "text-red-500"
-                    : isDarkMode
-                    ? "text-gray-400"
-                    : "text-gray-500"
-                }`}
-              />
-              {post.likes_count > 0 && (
-                <span
-                  className={`absolute -top-1.5 sm:-top-2 -right-1.5 sm:-right-2 flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-medium ${
-                    post.is_liked
-                      ? "bg-red-100 text-red-600"
-                      : isDarkMode
-                      ? "bg-gray-700 text-gray-300"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {post.likes_count > 99 ? "99+" : post.likes_count}
-                </span>
-              )}
-            </div>
-            <span
-              className={`ml-1 sm:ml-1.5 text-xs sm:text-sm ${
-                isDarkMode ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              {post.likes_count || 0}
-            </span>
-          </motion.div>
-
-          <motion.div
-            className="flex items-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="relative">
-              <ChatBubbleLeftIcon
-                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                  isDarkMode ? "text-blue-400" : "text-blue-500"
-                }`}
-              />
-              {post.comments_count > 0 && (
-                <span
-                  className={`absolute -top-1.5 sm:-top-2 -right-1.5 sm:-right-2 flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-medium ${
-                    isDarkMode
-                      ? "bg-blue-900/40 text-blue-300"
-                      : "bg-blue-100 text-blue-600"
-                  }`}
-                >
-                  {post.comments_count > 99 ? "99+" : post.comments_count}
-                </span>
-              )}
-            </div>
-            <span
-              className={`ml-1 sm:ml-1.5 text-xs sm:text-sm ${
-                isDarkMode ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              {post.comments_count || 0}
-            </span>
-          </motion.div>
-
-          <motion.div
-            className="flex items-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="relative">
-              <ShareIcon
-                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                  isDarkMode ? "text-green-400" : "text-green-500"
-                }`}
-              />
-              {post.shares_count > 0 && (
-                <span
-                  className={`absolute -top-1.5 sm:-top-2 -right-1.5 sm:-right-2 flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-medium ${
-                    isDarkMode
-                      ? "bg-green-900/40 text-green-300"
-                      : "bg-green-100 text-green-600"
-                  }`}
-                >
-                  {post.shares_count > 99 ? "99+" : post.shares_count}
-                </span>
-              )}
-            </div>
-            <span
-              className={`ml-1 sm:ml-1.5 text-xs sm:text-sm ${
-                isDarkMode ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              {post.shares_count || 0}
-            </span>
-          </motion.div>
-        </div>
-
-        <div className="flex items-center space-x-1.5 sm:space-x-2">
-          {post.comments && post.comments.length > 0 && (
-            <motion.button
-              onClick={() => {
-                if (showComments) {
-                  // Reset visible comments count when hiding comments
-                  setVisibleCommentsCount(5);
-                }
-                setShowComments(!showComments);
-              }}
-              className={`flex items-center text-xs font-medium ${
-                isDarkMode
-                  ? "text-gray-400 hover:text-gray-300"
-                  : "text-gray-500 hover:text-gray-700"
-              } transition-colors duration-200`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {showComments ? (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">Masquer</span>
-                  <span className="sm:hidden">Moins</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 15l7-7 7 7"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">
-                    Voir les commentaires ({post.comments_count})
-                  </span>
-                  <span className="sm:hidden">{post.comments_count} com.</span>
-                </>
-              )}
-            </motion.button>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              <span>{isMobile ? "WA" : "WhatsApp"}</span>
+            </a>
           )}
+
+          {/* Bouton Voir les détails - toujours visible */}
+          <button
+            onClick={() => onViewDetails(post.id, post.type)}
+            className={`inline-flex items-center justify-center p-1.5 rounded-lg shadow-sm text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
+              isDarkMode
+                ? "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800"
+            }`}
+            title="Voir les détails"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -924,7 +739,7 @@ export default function PostCard({
       >
         <button
           onClick={() => onLike(post.id, post.type)}
-          className={`flex items-center justify-center flex-1 py-1 sm:py-1.5 rounded-lg ${
+          className={`flex items-center justify-center flex-1 py-1 sm:py-1.5 rounded-lg relative ${
             isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
           } ${
             post.is_liked
@@ -940,17 +755,47 @@ export default function PostCard({
             <HeartIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
           )}
           <span className="text-xs">J'aime</span>
+          {post.likes_count > 0 && (
+            <span
+              className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
+                post.is_liked
+                  ? "bg-red-100 text-red-600"
+                  : isDarkMode
+                  ? "bg-gray-700 text-gray-300"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {post.likes_count > 99 ? "99+" : post.likes_count}
+            </span>
+          )}
         </button>
         <button
-          onClick={activateCommentMode}
-          className={`flex items-center justify-center flex-1 py-1 sm:py-1.5 rounded-lg ${
+          onClick={() => {
+            if (showComments) {
+              // Reset visible comments count when hiding comments
+              setVisibleCommentsCount(5);
+            }
+            setShowComments(!showComments);
+          }}
+          className={`flex items-center justify-center flex-1 py-1 sm:py-1.5 rounded-lg relative ${
             isDarkMode
               ? "hover:bg-gray-700 text-gray-400"
               : "hover:bg-gray-100 text-gray-500"
           }`}
         >
           <ChatBubbleLeftIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-          <span className="text-xs">Commenter</span>
+          <span className="text-xs">{showComments ? "Masquer" : "Commenter"}</span>
+          {post.comments_count > 0 && (
+            <span
+              className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
+                isDarkMode
+                  ? "bg-blue-900/40 text-blue-300"
+                  : "bg-blue-100 text-blue-600"
+              }`}
+            >
+              {post.comments_count > 99 ? "99+" : post.comments_count}
+            </span>
+          )}
         </button>
         {/* Afficher le bouton "Discuter" uniquement si l'utilisateur n'est pas l'auteur de la publication */}
         {user &&
@@ -988,7 +833,7 @@ export default function PostCard({
         <div className="relative flex-1">
           <button
             onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
-            className={`flex items-center justify-center w-full py-1 sm:py-1.5 rounded-lg ${
+            className={`flex items-center justify-center w-full py-1 sm:py-1.5 rounded-lg relative ${
               isDarkMode
                 ? "hover:bg-gray-700 text-gray-400"
                 : "hover:bg-gray-100 text-gray-500"
@@ -996,6 +841,17 @@ export default function PostCard({
           >
             <ShareIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             <span className="text-xs">Partager</span>
+            {post.shares_count > 0 && (
+              <span
+                className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
+                  isDarkMode
+                    ? "bg-green-900/40 text-green-300"
+                    : "bg-green-100 text-green-600"
+                }`}
+              >
+                {post.shares_count > 99 ? "99+" : post.shares_count}
+              </span>
+            )}
           </button>
 
           {/* Menu de partage */}
@@ -1075,15 +931,14 @@ export default function PostCard({
 
       {/* Section commentaires avec design moderne et animations */}
       <AnimatePresence>
-        {(isCommenting ||
-          (showComments && post.comments && post.comments.length > 0)) && (
+        {(isCommenting || showComments) && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeInOut" }}
-            className={`px-2 sm:px-3 py-1.5 sm:py-2 border-t ${
-              isDarkMode ? "border-gray-700/50" : "border-gray-200/70"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className={`overflow-hidden p-5 ${
+              isDarkMode ? "bg-gray-800/50" : "bg-white/50"
             }`}
           >
             {/* Formulaire de commentaire modernisé */}
@@ -1319,7 +1174,9 @@ export default function PostCard({
                                   : "text-gray-500 hover:text-red-500"
                               } transition-colors duration-200`}
                             >
-                              <XMarkIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                               <span className="hidden sm:inline">
                                 Supprimer
                               </span>

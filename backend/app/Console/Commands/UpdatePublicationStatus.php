@@ -136,11 +136,11 @@ class UpdatePublicationStatus extends Command
         $query->whereNotNull('duree_affichage');
         
         // Traitement par lots optimisé
-        $query->chunk($this->chunkSize, function ($publications) use (&$stats, $modelClass) {
+        $query->chunk($this->chunkSize, function ($publications) use (&$stats, $modelClass, $conditions) {
             $this->info("Traitement d'un lot de {$publications->count()} publications...");
             
             try {
-                DB::transaction(function () use ($publications, &$stats) {
+                DB::transaction(function () use ($publications, &$stats, $modelClass) {
                     $now = Carbon::now();
                     
                     // Préparer les données pour mises à jour en masse

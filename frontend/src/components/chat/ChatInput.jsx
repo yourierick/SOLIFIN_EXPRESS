@@ -113,7 +113,7 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
           <div className="file-info">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
               {file.type.startsWith('image/') ? 
-                <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/> :
+                <path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5M8.5,7.5L11,10.5L14.5,6L19,12H5"/> :
                 <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
               }
             </svg>
@@ -140,7 +140,7 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
           onClick={() => fileInputRef.current.click()}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M16.5,4V7.5H23V16.5H16.5V20H21A2,2 0 0,0 23,18V6A2,2 0 0,0 21,4H16.5M9.5,4H3A2,2 0 0,0 1,6V18A2,2 0 0,0 3,20H9.5V16.5H3V7.5H9.5V4M14.5,7.5H9.5V16.5H14.5V7.5M21,9H23V15H21V9M1,9H3V15H1V9Z"/>
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M13,11H8V13H13V11M13,15H8V17H13V15Z"/>
           </svg>
         </button>
         
@@ -152,7 +152,7 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M16.18,7.76L15.12,6.7L10.59,11.23L8.88,9.5L7.82,10.56L10.59,13.33L16.18,7.76Z"/>
+            <path d="M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2M8.5,8A1.5,1.5 0 0,1 10,9.5A1.5,1.5 0 0,1 8.5,8M15.5,8A1.5,1.5 0 0,1 17,9.5A1.5,1.5 0 0,1 15.5,8M12,17.23C10.25,17.23 8.71,16.5 7.81,15.42L9.23,14C9.68,14.72 10.75,15.23 12,15.23C13.25,15.23 14.32,14.72 14.77,14L16.19,15.42C15.29,16.5 13.75,17.23 12,17.23Z"/>
           </svg>
         </button>
         
@@ -205,8 +205,19 @@ const ChatInput = ({ onSendMessage, onTyping, isDarkMode }) => {
               <span className="visually-hidden">Envoi en cours...</span>
             </div>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="currentColor"
+              style={{ 
+                display: 'inline-block',
+                verticalAlign: 'middle',
+                minWidth: '20px',
+                minHeight: '20px'
+              }}
+            >
+              <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" fill="currentColor"/>
             </svg>
           )}
         </Button>

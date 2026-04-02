@@ -47,7 +47,7 @@ class FeedController extends Controller
         switch ($type) {
             case 'offres-emploi':
                 $query = OffreEmploi::with(['page', 'page.user'])
-                    ->where('statut', 'approuvé')
+                    ->where('statut', 'approved')
                     ->latest();
                 
                 // Appliquer les filtres spécifiques aux offres d'emploi
@@ -84,10 +84,10 @@ class FeedController extends Controller
                     $query->where('type_contrat', $request->input('type_contrat'));
                 }
                 if ($request->has('statut') && $request->input('statut') !== 'all') {
-                    if ($request->input('statut') === 'disponible') {
-                        $query->where('etat', 'disponible');
+                    if ($request->input('statut') === 'available') {
+                        $query->where('etat', 'available');
                     } elseif ($request->input('statut') === 'expired') {
-                        $query->where('etat', 'terminé');
+                        $query->where('etat', 'unavailable');
                     } elseif ($request->input('statut') === 'recent') {
                         $threeDaysAgo = now()->subDays(3);
                         $query->where('created_at', '>=', $threeDaysAgo);
@@ -97,7 +97,7 @@ class FeedController extends Controller
                 
             case 'opportunites-affaires':
                 $query = OpportuniteAffaire::with(['page', 'page.user'])
-                    ->where('statut', 'approuvé')
+                    ->where('statut', 'approved')
                     ->latest();
                 
                 // Appliquer les filtres spécifiques aux opportunités d'affaires
@@ -132,10 +132,10 @@ class FeedController extends Controller
                     }
                 }
                 if ($request->has('statut') && $request->input('statut') !== 'all') {
-                    if ($request->input('statut') === 'disponible') {
-                        $query->where('etat', 'disponible');
+                    if ($request->input('statut') === 'available') {
+                        $query->where('etat', 'available');
                     } elseif ($request->input('statut') === 'expired') {
-                        $query->where('etat', 'terminé');
+                        $query->where('etat', 'unvailable');
                     } elseif ($request->input('statut') === 'recent') {
                         $threeDaysAgo = now()->subDays(3);
                         $query->where('created_at', '>=', $threeDaysAgo);
@@ -175,7 +175,7 @@ class FeedController extends Controller
                 
             default: // 'publicites'
                 $query = Publicite::with(['page', 'page.user'])
-                    ->where('statut', 'approuvé')
+                    ->where('statut', 'approved')
                     ->latest();
                 
                 // Appliquer la recherche pour les publicités
@@ -218,10 +218,10 @@ class FeedController extends Controller
             
             // Filtre par statut
             if ($request->has('statut') && $request->input('statut') !== 'all') {
-                if ($request->input('statut') === 'disponible') {
-                    $query->where('etat', 'disponible');
-                } elseif ($request->input('statut') === 'termine') {
-                    $query->where('etat', 'terminé');
+                if ($request->input('statut') === 'available') {
+                    $query->where('etat', 'available');
+                } elseif ($request->input('statut') === 'unavailable') {
+                    $query->where('etat', 'unavailable');
                 }
             }
         }
@@ -285,7 +285,7 @@ class FeedController extends Controller
             $post->page_id = $publication->page_id;
             $post->page = $publication->page;
             $post->user = $publication->page->user;
-            $post->user->picture_url = asset('storage/' . $publication->page->user->picture);
+            $post->user->picture_url = $publication->page->user->picture ? asset('storage/' . $publication->page->user->picture) : null;
             
             // Vérifier si l'utilisateur est abonné à cette page
             $post->is_subscribed = PageAbonnes::where('user_id', $userId)
@@ -809,7 +809,7 @@ class FeedController extends Controller
             ->pluck('page_id')
             ->toArray();
         
-        // Récupérer des pages recommandées (exclure celles auxquelles l'utilisateur est déjà abonné)
+        //Récupérer des pages recommandées (exclure celles auxquelles l'utilisateur est déjà abonné)
         $pagesQuery = Page::whereNotIn('id', $subscribedPageIds)
             ->orderBy('nombre_abonnes', 'desc')
             ->with('user');

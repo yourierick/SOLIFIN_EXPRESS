@@ -39,9 +39,6 @@ export default function Faq() {
           axios.get("/api/faq/categories"),
         ]);
 
-        console.log('FAQs data:', faqsResponse.data);
-        console.log('Categories data:', categoriesResponse.data);
-
         setFaqs(faqsResponse.data);
         setCategories(categoriesResponse.data);
       } catch (error) {
