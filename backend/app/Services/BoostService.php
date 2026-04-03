@@ -88,11 +88,11 @@ class BoostService
             // Préparer les métadonnées pour la transaction
             $metadata = $this->prepareBoostMetadata($publication, $publicationType, $days, $amount);
             
-            // Enregistrer la transaction dans le wallet system
-            $this->updateWalletSystem($user, $amount, $days, $metadata);
-
             // Débiter le wallet utilisateur
             $this->debitUserWallet($wallet, $amount, $days, $publication, $metadata);
+            
+            // Enregistrer la transaction dans le wallet system
+            $this->updateWalletSystem($user, $amount, $days, $metadata);
             
             // Mettre à jour la durée d'affichage de la publication
             $this->updatePublicationDuration($publication, $days, $publicationType);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Tab } from "@headlessui/react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
@@ -2155,8 +2156,8 @@ export default function Social() {
         />
       </div>
 
-      {/* Modal de signalement - rendu en dehors du conteneur principal */}
-      {isReportModalOpen && (
+      {/* Modal de signalement - rendu avec createPortal */}
+      {isReportModalOpen && createPortal(
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div
@@ -2225,9 +2226,9 @@ export default function Social() {
                           }`}
                         >
                           <option value="">Sélectionnez une raison</option>
-                          {reportReasons.map((reason) => (
-                            <option key={reason.id} value={reason.id}>
-                              {reason.name}
+                          {Object.entries(reportReasons).map(([key, value]) => (
+                            <option key={key} value={key}>
+                              {value}
                             </option>
                           ))}
                         </select>
@@ -2280,7 +2281,8 @@ export default function Social() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       <ToastContainer

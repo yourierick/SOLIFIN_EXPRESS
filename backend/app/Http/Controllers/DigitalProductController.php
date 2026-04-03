@@ -120,7 +120,6 @@ class DigitalProductController extends Controller
                 'description' => $request->description,
                 'type' => $request->type,
                 'prix' => $request->prix,
-                'devise' => $request->devise,
                 'image' => $imagePath,
                 'fichier' => $fichierPath,
                 'statut' => 'pending',

@@ -2262,71 +2262,23 @@ export default function Page() {
                     )}
                   </div>
 
-                  {/* Bouton pour afficher/masquer les filtres avancés */}
+                  {/* Bouton subtil pour afficher/masquer les filtres avancés */}
                   <button
-                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                    className={`px-3 py-2 rounded-md flex items-center justify-center transition-all duration-200 hover:scale-105 ${
                       isDarkMode
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                        ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                    } ${showNewsFilters ? (isDarkMode ? "text-primary-400 bg-gray-700" : "text-primary-600 bg-gray-100") : ""}`}
                     onClick={() => setShowNewsFilters(!showNewsFilters)}
+                    title="Filtres avancés"
                   >
-                    <FunnelIcon className="h-5 w-5 mr-1" />
-                    <span className="text-sm">
-                      {showNewsFilters
-                        ? "Masquer les filtres"
-                        : "Filtres avancés"}
-                    </span>
+                    <FunnelIcon className={`h-4 w-4 ${showNewsFilters ? "mr-1" : ""}`} />
+                    {showNewsFilters && (
+                      <span className="text-xs font-medium">
+                        Filtres actifs
+                      </span>
+                    )}
                   </button>
-
-                  {/* Filtres de statut */}
-                  <div className="flex flex-wrap gap-2 sm:gap-3">
-                    <button
-                      className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 text-xs sm:text-sm font-medium ${
-                        newsStatusFilter === "all"
-                          ? isDarkMode
-                            ? "bg-primary-600 text-white shadow-md"
-                            : "bg-primary-500 text-white shadow-md"
-                          : isDarkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                      onClick={() => setNewsStatusFilter("all")}
-                    >
-                      <span className="hidden xs:inline">Toutes</span>
-                      <span className="xs:hidden">Tout</span>
-                    </button>
-                    <button
-                      className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 text-xs sm:text-sm font-medium ${
-                        newsStatusFilter === "disponible"
-                          ? isDarkMode
-                            ? "bg-green-600 text-white shadow-md"
-                            : "bg-green-500 text-white shadow-md"
-                          : isDarkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                      onClick={() => setNewsStatusFilter("disponible")}
-                    >
-                      <span className="hidden xs:inline">En cours</span>
-                      <span className="xs:hidden">Actif</span>
-                    </button>
-                    <button
-                      className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 text-xs sm:text-sm font-medium ${
-                        newsStatusFilter === "terminé"
-                          ? isDarkMode
-                            ? "bg-red-600 text-white shadow-md"
-                            : "bg-red-500 text-white shadow-md"
-                          : isDarkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                      onClick={() => setNewsStatusFilter("terminé")}
-                    >
-                      <span className="hidden xs:inline">Terminées</span>
-                      <span className="xs:hidden">Fin</span>
-                    </button>
-                  </div>
                 </div>
 
                 {/* Panneau de filtres avancés pour les publications */}
@@ -2359,6 +2311,61 @@ export default function Page() {
                           Réinitialiser les filtres
                         </span>
                       </button>
+                    </div>
+
+                    {/* Filtres de statut */}
+                    <div className="mb-4">
+                      <label
+                        className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Statut de la publication
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            newsStatusFilter === "all"
+                              ? isDarkMode
+                                ? "bg-primary-600 text-white"
+                                : "bg-primary-500 text-white"
+                              : isDarkMode
+                              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                          onClick={() => setNewsStatusFilter("all")}
+                        >
+                          Toutes
+                        </button>
+                        <button
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            newsStatusFilter === "disponible"
+                              ? isDarkMode
+                                ? "bg-green-600 text-white"
+                                : "bg-green-500 text-white"
+                              : isDarkMode
+                              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                          onClick={() => setNewsStatusFilter("disponible")}
+                        >
+                          En cours
+                        </button>
+                        <button
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            newsStatusFilter === "terminé"
+                              ? isDarkMode
+                                ? "bg-red-600 text-white"
+                                : "bg-red-500 text-white"
+                              : isDarkMode
+                              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                          onClick={() => setNewsStatusFilter("terminé")}
+                        >
+                          Terminées
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2727,82 +2734,23 @@ export default function Page() {
                       )}
                     </div>
 
-                    {/* Bouton pour afficher/masquer les filtres avancés */}
+                    {/* Bouton subtil pour afficher/masquer les filtres avancés */}
                     <button
-                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-all duration-200 hover:scale-105 ${
                         isDarkMode
-                          ? "bg-gray-700 text-white hover:bg-gray-600"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
+                          ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      } ${showNewsFilters ? (isDarkMode ? "text-primary-400 bg-gray-700" : "text-primary-600 bg-gray-100") : ""}`}
                       onClick={() => setShowNewsFilters(!showNewsFilters)}
+                      title="Filtres avancés"
                     >
-                      <FunnelIcon className="h-5 w-5 mr-1" />
-                      <span className="text-sm">
-                        {showNewsFilters
-                          ? "Masquer les filtres"
-                          : "Filtres avancés"}
-                      </span>
+                      <FunnelIcon className={`h-4 w-4 ${showNewsFilters ? "mr-1" : ""}`} />
+                      {showNewsFilters && (
+                        <span className="text-xs font-medium">
+                          Filtres actifs
+                        </span>
+                      )}
                     </button>
-
-                    {/* Filtres de statut */}
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "all"
-                            ? isDarkMode
-                              ? "bg-primary-600 text-white"
-                              : "bg-primary-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("all")}
-                      >
-                        <span className="text-sm">Toutes</span>
-                      </button>
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "active"
-                            ? isDarkMode
-                              ? "bg-green-600 text-white"
-                              : "bg-green-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("active")}
-                      >
-                        <span className="text-sm">En cours</span>
-                      </button>
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "recent"
-                            ? isDarkMode
-                              ? "bg-orange-600 text-white"
-                              : "bg-orange-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("recent")}
-                      >
-                        <span className="text-sm">Récentes</span>
-                      </button>
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "expired"
-                            ? isDarkMode
-                              ? "bg-red-600 text-white"
-                              : "bg-red-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("expired")}
-                      >
-                        <span className="text-sm">Expirées</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* Panneau de filtres avancés */}
@@ -2842,6 +2790,75 @@ export default function Page() {
                             Réinitialiser les filtres
                           </span>
                         </button>
+                      </div>
+
+                      {/* Filtres de statut pour les offres d'emploi */}
+                      <div className="mb-4">
+                        <label
+                          className={`block text-sm font-medium mb-2 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Statut de l'offre
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "all"
+                                ? isDarkMode
+                                  ? "bg-primary-600 text-white"
+                                  : "bg-primary-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("all")}
+                          >
+                            Toutes
+                          </button>
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "active"
+                                ? isDarkMode
+                                  ? "bg-green-600 text-white"
+                                  : "bg-green-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("active")}
+                          >
+                            En cours
+                          </button>
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "recent"
+                                ? isDarkMode
+                                  ? "bg-orange-600 text-white"
+                                  : "bg-orange-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("recent")}
+                          >
+                            Récentes
+                          </button>
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "expired"
+                                ? isDarkMode
+                                  ? "bg-red-600 text-white"
+                                  : "bg-red-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("expired")}
+                          >
+                            Expirées
+                          </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3513,21 +3530,22 @@ export default function Page() {
                       )}
                     </div>
 
-                    {/* Bouton pour afficher/masquer les filtres avancés */}
+                    {/* Bouton subtil pour afficher/masquer les filtres avancés */}
                     <button
-                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
+                      className={`px-3 py-2 rounded-md flex items-center justify-center transition-all duration-200 hover:scale-105 ${
                         isDarkMode
-                          ? "bg-gray-700 text-white hover:bg-gray-600"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
+                          ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      } ${showNewsFilters ? (isDarkMode ? "text-primary-400 bg-gray-700" : "text-primary-600 bg-gray-100") : ""}`}
                       onClick={() => setShowNewsFilters(!showNewsFilters)}
+                      title="Filtres avancés"
                     >
-                      <FunnelIcon className="h-5 w-5 mr-1" />
-                      <span className="text-sm">
-                        {showNewsFilters
-                          ? "Masquer les filtres"
-                          : "Filtres avancés"}
-                      </span>
+                      <FunnelIcon className={`h-4 w-4 ${showNewsFilters ? "mr-1" : ""}`} />
+                      {showNewsFilters && (
+                        <span className="text-xs font-medium">
+                          Filtres actifs
+                        </span>
+                      )}
                     </button>
 
                     {/* Bouton pour réinitialiser tous les filtres */}
@@ -3549,66 +3567,6 @@ export default function Page() {
                       <ArrowPathIcon className="h-5 w-5 mr-1" />
                       <span className="text-sm">Réinitialiser</span>
                     </button>
-
-                    {/* Filtres de statut */}
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "all"
-                            ? isDarkMode
-                              ? "bg-primary-600 text-white"
-                              : "bg-primary-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("all")}
-                      >
-                        <span className="text-sm">Toutes</span>
-                      </button>
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "active"
-                            ? isDarkMode
-                              ? "bg-green-600 text-white"
-                              : "bg-green-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("active")}
-                      >
-                        <span className="text-sm">En cours</span>
-                      </button>
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "recent"
-                            ? isDarkMode
-                              ? "bg-orange-600 text-white"
-                              : "bg-orange-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("recent")}
-                      >
-                        <span className="text-sm">Récentes</span>
-                      </button>
-                      <button
-                        className={`px-3 py-2 rounded-md flex items-center justify-center transition-colors ${
-                          filter === "expired"
-                            ? isDarkMode
-                              ? "bg-red-600 text-white"
-                              : "bg-red-500 text-white"
-                            : isDarkMode
-                            ? "bg-gray-700 text-gray-300"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                        onClick={() => setFilter("expired")}
-                      >
-                        <span className="text-sm">Expirées</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* Filtres avancés */}
@@ -3618,6 +3576,75 @@ export default function Page() {
                         isDarkMode ? "border-gray-700" : "border-gray-200"
                       }`}
                     >
+                      {/* Filtres de statut pour les opportunités */}
+                      <div className="mb-4">
+                        <label
+                          className={`block text-sm font-medium mb-2 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Statut de l'opportunité
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "all"
+                                ? isDarkMode
+                                  ? "bg-primary-600 text-white"
+                                  : "bg-primary-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("all")}
+                          >
+                            Toutes
+                          </button>
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "active"
+                                ? isDarkMode
+                                  ? "bg-green-600 text-white"
+                                  : "bg-green-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("active")}
+                          >
+                            En cours
+                          </button>
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "recent"
+                                ? isDarkMode
+                                  ? "bg-orange-600 text-white"
+                                  : "bg-orange-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("recent")}
+                          >
+                            Récentes
+                          </button>
+                          <button
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              filter === "expired"
+                                ? isDarkMode
+                                  ? "bg-red-600 text-white"
+                                  : "bg-red-500 text-white"
+                                : isDarkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                            onClick={() => setFilter("expired")}
+                          >
+                            Expirées
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Filtre par pays */}
                         <div>
