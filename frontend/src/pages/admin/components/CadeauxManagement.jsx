@@ -2012,11 +2012,11 @@ const CadeauxManagement = () => {
                         .slice((currentPage - 1) * 5, currentPage * 5)
                         .map((cadeau) => (
                           <li key={cadeau.id} className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all duration-200">
-                            <div className="px-6 py-5">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start space-x-4 flex-1">
+                            <div className="px-4 py-4 sm:px-6 sm:py-5">
+                              <div className="flex flex-col sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-4">
+                                <div className="flex items-start space-x-3 sm:space-x-4 w-full sm:w-auto">
                                   {cadeau.image_url ? (
-                                    <div className="h-16 w-16 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-700 shadow-md">
+                                    <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-700 shadow-md">
                                       <img
                                         src={cadeau.image_url}
                                         alt={cadeau.nom}
@@ -2029,17 +2029,19 @@ const CadeauxManagement = () => {
                                       />
                                     </div>
                                   ) : (
-                                    <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 flex-shrink-0 flex items-center justify-center shadow-md">
-                                      <GiftIcon className="h-8 w-8 text-primary-600 dark:text-primary-400" />
+                                    <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 flex-shrink-0 flex items-center justify-center shadow-md">
+                                      <GiftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary-600 dark:text-primary-400" />
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center space-x-3 mb-2">
-                                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                                        {cadeau.nom}
-                                      </h4>
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-3 mb-2">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate mb-2 sm:mb-0">
+                                          {cadeau.nom}
+                                        </h4>
+                                      </div>
                                       <div
-                                        className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${
+                                        className={`px-2 py-1 sm:px-3 sm:py-0.5 inline-flex text-xs font-semibold rounded-full border self-start sm:self-center ${
                                           cadeau.actif
                                             ? "bg-gradient-to-r from-green-50 to-green-100 text-green-800 dark:from-green-900/30 dark:to-green-800/30 dark:text-green-200 border-green-200 dark:border-green-700"
                                             : "bg-gradient-to-r from-red-50 to-red-100 text-red-800 dark:from-red-900/30 dark:to-red-800/30 dark:text-red-200 border-red-200 dark:border-red-700"
@@ -2047,43 +2049,43 @@ const CadeauxManagement = () => {
                                       >
                                         {cadeau.actif ? (
                                           <span className="flex items-center">
-                                            <CheckCircleIcon className="h-3 w-3 mr-1" />
+                                            <CheckCircleIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                                             Actif
                                           </span>
                                         ) : (
                                           <span className="flex items-center">
-                                            <ExclamationCircleIcon className="h-3 w-3 mr-1" />
+                                            <ExclamationCircleIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                                             Inactif
                                           </span>
                                         )}
                                       </div>
                                     </div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
+                                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2 sm:mb-3">
                                       {cadeau.description || "Aucune description disponible"}
                                     </p>
                                     {cadeau.valeur && (
-                                      <div className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-                                        <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                      <div className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                                        <span className="text-xs sm:text-sm font-semibold text-blue-800 dark:text-blue-200">
                                           {cadeau.valeur} $
                                         </span>
                                       </div>
                                     )}
                                   </div>
                                 </div>
-                                <div className="flex flex-shrink-0 items-center space-x-2 ml-4">
+                                <div className="flex sm:flex-shrink-0 sm:items-center sm:space-x-2 sm:ml-4 justify-end space-x-2">
                                   <button
                                     onClick={() => handleEditCadeau(cadeau)}
-                                    className="group relative inline-flex items-center p-2.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                                    className="group relative inline-flex items-center p-2 sm:p-2.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
                                     title="Modifier"
                                   >
-                                    <PencilIcon className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
+                                    <PencilIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:scale-110 transition-transform duration-200" />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteCadeau(cadeau)}
-                                    className="group relative inline-flex items-center p-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                                    className="group relative inline-flex items-center p-2 sm:p-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
                                     title="Supprimer"
                                   >
-                                    <TrashIcon className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
+                                    <TrashIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:scale-110 transition-transform duration-200" />
                                   </button>
                                 </div>
                               </div>
@@ -2093,9 +2095,9 @@ const CadeauxManagement = () => {
                     </ul>
 
                     {/* Pagination */}
-                    <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-                      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
+                    <div className="bg-white dark:bg-gray-800 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+                      <div className="flex flex-col sm:flex-1 sm:flex sm:items-center sm:justify-between w-full">
+                        <div className="mb-3 sm:mb-0">
                           {(() => {
                             // Calculer le nombre de cadeaux filtrés
                             const filteredCadeaux = cadeaux
@@ -2151,7 +2153,7 @@ const CadeauxManagement = () => {
                             );
                           })()}
                         </div>
-                        <div>
+                        <div className="flex justify-center sm:justify-end">
                           {(() => {
                             // Calculer le nombre de pages après filtrage
                             const filteredCadeaux = cadeaux
@@ -2190,6 +2192,9 @@ const CadeauxManagement = () => {
                               setTimeout(() => setCurrentPage(1), 0);
                             }
 
+                            // Pagination mobile simplifiée
+                            if (pageCount <= 1) return null;
+
                             return (
                               <nav
                                 className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
@@ -2212,7 +2217,7 @@ const CadeauxManagement = () => {
                                 >
                                   <span className="sr-only">Précédent</span>
                                   <svg
-                                    className="h-5 w-5"
+                                    className="h-4 w-4 sm:h-5 sm:w-5"
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 20 20"
                                     fill="currentColor"
@@ -2226,37 +2231,55 @@ const CadeauxManagement = () => {
                                   </svg>
                                 </button>
 
-                                {/* Pages */}
-                                {Array.from(
-                                  { length: pageCount },
-                                  (_, i) => i + 1
-                                ).map((page) => (
-                                  <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`relative inline-flex items-center px-4 py-2 border ${
-                                      themeColors.border
-                                    } text-sm font-medium ${
-                                      page === currentPage
-                                        ? `${
-                                            isDarkMode
-                                              ? "bg-primary-600"
-                                              : "bg-primary-50"
-                                          } ${
-                                            isDarkMode
-                                              ? "text-white"
-                                              : "text-primary-600"
-                                          } ${
-                                            isDarkMode
-                                              ? "border-primary-500"
-                                              : "border-primary-500"
-                                          }`
-                                        : `${themeColors.bg} ${themeColors.text} hover:bg-gray-50 dark:hover:bg-gray-700`
-                                    }`}
-                                  >
-                                    {page}
-                                  </button>
-                                ))}
+                                {/* Pages visibles limitées sur mobile */}
+                                {(() => {
+                                  const pages = [];
+                                  const maxVisiblePages = 3; // Mobile: montrer max 3 pages
+                                  
+                                  if (pageCount <= maxVisiblePages) {
+                                    // Si peu de pages, tout afficher
+                                    for (let i = 1; i <= pageCount; i++) {
+                                      pages.push(i);
+                                    }
+                                  } else {
+                                    // Si beaucoup de pages, afficher intelligemment
+                                    if (currentPage <= 2) {
+                                      pages.push(1, 2, 3);
+                                    } else if (currentPage >= pageCount - 1) {
+                                      pages.push(pageCount - 2, pageCount - 1, pageCount);
+                                    } else {
+                                      pages.push(currentPage - 1, currentPage, currentPage + 1);
+                                    }
+                                  }
+                                  
+                                  return pages.map((page) => (
+                                    <button
+                                      key={page}
+                                      onClick={() => setCurrentPage(page)}
+                                      className={`relative inline-flex items-center px-2 sm:px-4 py-2 border ${
+                                        themeColors.border
+                                      } text-xs sm:text-sm font-medium ${
+                                        page === currentPage
+                                          ? `${
+                                              isDarkMode
+                                                ? "bg-primary-600"
+                                                : "bg-primary-50"
+                                            } ${
+                                              isDarkMode
+                                                ? "text-white"
+                                                : "text-primary-600"
+                                            } ${
+                                              isDarkMode
+                                                ? "border-primary-500"
+                                                : "border-primary-500"
+                                            }`
+                                          : `${themeColors.bg} ${themeColors.text} hover:bg-gray-50 dark:hover:bg-gray-700`
+                                      }`}
+                                    >
+                                      {page}
+                                    </button>
+                                  ));
+                                })()}
 
                                 <button
                                   onClick={() =>
@@ -2275,7 +2298,7 @@ const CadeauxManagement = () => {
                                 >
                                   <span className="sr-only">Suivant</span>
                                   <svg
-                                    className="h-5 w-5"
+                                    className="h-4 w-4 sm:h-5 sm:w-5"
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 20 20"
                                     fill="currentColor"

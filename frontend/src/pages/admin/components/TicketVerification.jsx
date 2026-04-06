@@ -618,7 +618,7 @@ const TicketVerification = () => {
   };
 
   return (
-    <div className={`${themeColors.bg} ${themeColors.text} p-8 rounded-2xl shadow-xl border ${themeColors.border}`}>
+    <div className={`${themeColors.bg} ${themeColors.text} p-3 rounded-2xl shadow-xl border ${themeColors.border}`}>
       {/* Header amélioré avec design moderne */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
@@ -1343,7 +1343,7 @@ const TicketVerification = () => {
         </Fade>
       </Modal>
 
-      {/* Onglets améliorés avec design moderne - Scroll mobile uniquement */}
+      {/* Onglets - Scroll mobile uniquement */}
       <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-8 shadow-inner overflow-x-auto sm:overflow-x-visible">
         <div className="flex min-w-max sm:min-w-0 sm:w-full">
           <button
@@ -1374,9 +1374,9 @@ const TicketVerification = () => {
       {activeTab === "verification" && (
         <div>
           {/* Section de vérification avec design amélioré */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-8 mb-8 border border-blue-200 dark:border-blue-800 shadow-lg">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-2 mb-8 border border-blue-200 dark:border-blue-800 shadow-lg">
             <div className="flex items-center mb-6">
-              <div className="p-2 bg-blue-500 rounded-lg mr-3">
+              <div className="bg-blue-500 rounded-lg mr-3">
                 <QrCodeIcon className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -1425,7 +1425,7 @@ const TicketVerification = () => {
           </div>
 
           {/* Section d'information améliorée */}
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-6 border border-amber-200 dark:border-amber-800 shadow-md">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-2 border border-amber-200 dark:border-amber-800 shadow-md">
             <div className="flex items-start">
               <div className="p-2 bg-amber-500 rounded-lg mr-3 flex-shrink-0">
                 <InformationCircleIcon className="h-5 w-5 text-white" />

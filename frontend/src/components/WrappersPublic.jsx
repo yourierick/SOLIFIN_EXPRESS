@@ -41,5 +41,7 @@ export default function PublicationsWrapper() {
   }, []);
 
   // Afficher toujours le composant PublicationsDisplay avec les données
-  return <DisplayPublic publications={publications} loading={loading} error={error} />;
+  if (publications.length && !loading) {
+    return <DisplayPublic publications={publications} loading={loading} error={error} />;
+  }
 }

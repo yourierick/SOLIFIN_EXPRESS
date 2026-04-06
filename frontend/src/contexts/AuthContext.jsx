@@ -376,7 +376,33 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: response.data.message };
     } catch (error) {
       console.error("Erreur de connexion:", error);
-      return { success: false, error };
+      
+      // Gérer les différents types d'erreurs
+      let errorMessage = "Une erreur est survenue lors de la connexion";
+      
+      if (error.isNetworkError) {
+        // Erreur réseau gérée par l'intercepteur Axios
+        errorMessage = error.message;
+      } else if (error.response) {
+        // Erreur HTTP du serveur
+        switch (error.response.status) {
+          case 422:
+            errorMessage = error.response.data.message || "Identifiants incorrects";
+            break;
+          case 429:
+            errorMessage = "Trop de tentatives de connexion, veuillez réessayer plus tard";
+            break;
+          case 500:
+            errorMessage = "Erreur serveur, veuillez réessayer ultérieurement";
+            break;
+          default:
+            errorMessage = error.response.data.message || "Erreur lors de la connexion";
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = "La connexion a expiré, veuillez réessayer";
+      }
+      
+      return { success: false, message: errorMessage, error };
     } finally {
       setLoading(false);
     }

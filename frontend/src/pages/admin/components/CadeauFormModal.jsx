@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useTheme } from "../../../contexts/ThemeContext";
-import Notification from "../../../components/Notification";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   XMarkIcon,
   PhotoIcon,
@@ -166,7 +167,7 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
           }
         );
         if (response.data.success) {
-          Notification.success(
+          toast.success(
             "Les modifications du cadeau ont été enregistré avec succès"
           );
           onClose();
@@ -180,15 +181,18 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
         });
 
         if (response.data.success) {
-          Notification.success("Cadeau enregistré avec succès");
+          toast.success("Cadeau enregistré avec succès");
           onClose();
         }
       }
     } catch (error) {
       if (error.response && error.response.data.errors) {
+        console.error(error.response.data.errors);
         setErrors(error.response.data.errors);
+        toast.error("Veuillez corriger les erreurs dans le formulaire");
       } else {
         console.error("Erreur lors de la soumission du formulaire", error);
+        toast.error("Une erreur est survenue lors de la soumission du formulaire");
       }
     } finally {
       setSubmitting(false);
@@ -217,6 +221,21 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
 
     if (formData.stock < 0) {
       newErrors.stock = "Le stock ne peut pas être négatif";
+    }
+
+    // Validation de l'image
+    if (imageFile) {
+      // Vérifier le type de fichier
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+      if (!allowedTypes.includes(imageFile.type)) {
+        newErrors.image_url = "L'image doit être au format PNG, JPG ou JPEG";
+      }
+      
+      // Vérifier la taille (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+      if (imageFile.size > maxSize) {
+        newErrors.image_url = "L'image ne doit pas dépasser 5MB";
+      }
     }
 
     setErrors(newErrors);
@@ -393,7 +412,7 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
                           ou glissez-déposez
                         </p>
                         <p className="text-xs text-gray-500">
-                          PNG, JPG ou JPEG (max. 1MB)
+                          PNG, JPG ou JPEG (max. 5MB)
                         </p>
                       </div>
                     )}
@@ -537,6 +556,19 @@ const CadeauFormModal = ({ open, onClose, onSave, cadeau }) => {
           </form>
         </div>
       </div>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={isDarkMode ? "dark" : "light"}
+      />
     </div>
   );
 };

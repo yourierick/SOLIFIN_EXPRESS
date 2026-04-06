@@ -222,7 +222,7 @@ class JetonEsengoController extends Controller
                     'pack_id' => 'required|exists:packs,id',
                     'nom' => 'required|string|max:255',
                     'description' => 'nullable|string',
-                    'image_url' => 'nullable|image|max:1024', // 1MB max, optionnel
+                    'image_url' => 'nullable|image|max:5120', // 5MB max, optionnel
                     'valeur' => 'required|numeric|min:0',
                     'probabilite' => 'required|numeric|min:0|max:100',
                     'stock' => 'required|integer|min:0',

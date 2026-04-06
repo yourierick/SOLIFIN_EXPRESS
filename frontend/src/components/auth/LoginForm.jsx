@@ -78,7 +78,10 @@ const LoginForm = () => {
       }
     } catch (error) {
       console.error("Erreur de connexion:", error);
-      Notification.error("Une erreur est survenue lors de la connexion");
+      
+      // Afficher le message d'erreur approprié
+      const errorMessage = error.message || "Une erreur est survenue lors de la connexion";
+      Notification.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

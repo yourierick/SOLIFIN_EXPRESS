@@ -52,6 +52,36 @@ instance.interceptors.request.use(async (config) => {
 instance.interceptors.response.use(
     response => response,
     async error => {
+        // Gestion des erreurs de connexion réseau
+        if (!error.response && error.code) {
+            let errorMessage = "Erreur de connexion";
+            
+            switch (error.code) {
+                case 'ERR_NETWORK':
+                case 'ERR_CONNECTION_CLOSED':
+                case 'ERR_CONNECTION_REFUSED':
+                case 'ERR_INTERNET_DISCONNECTED':
+                    errorMessage = "Erreur de connexion, veuillez vérifier votre connexion internet ou sa qualité";
+                    break;
+                case 'ERR_TIMED_OUT':
+                    errorMessage = "La connexion a expiré, veuillez réessayer";
+                    break;
+                case 'ERR_NAME_NOT_RESOLVED':
+                    errorMessage = "Impossible de se connecter au serveur, vérifiez votre configuration réseau";
+                    break;
+                default:
+                    errorMessage = "Erreur de connexion, veuillez vérifier votre accès à internet et réessayer";
+            }
+            
+            // Créer une erreur plus parlante
+            const enhancedError = new Error(errorMessage);
+            enhancedError.code = error.code;
+            enhancedError.isNetworkError = true;
+            enhancedError.originalError = error;
+            
+            return Promise.reject(enhancedError);
+        }
+        
         // Gestion des erreurs 401 (non autorisé)
         if (error.response?.status === 401) {
             // Ignorer les erreurs 401 pour les réinitialisations de mot de passe d'utilisateur par l'admin

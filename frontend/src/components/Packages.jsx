@@ -511,7 +511,7 @@ export default function Packages() {
               </Swiper>
 
               {/* Boutons de navigation mobile */}
-              <div className="flex justify-center items-center mt-6 gap-4">
+              <div className="flex justify-center items-center mt-1 gap-4">
                 <button
                   className="p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 shadow-lg"
                   onClick={() => {
