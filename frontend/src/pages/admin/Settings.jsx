@@ -110,9 +110,9 @@ const Settings = () => {
   // Configuration des onglets avec leurs icônes, titres et descriptions
   const tabs = [
     { 
-      name: "Frais De Transaction", 
+      name: "Méthode de paiement", 
       icon: CurrencyDollarIcon,
-      description: "Gérez les frais de transaction",
+      description: "Gérez les méthodes de paiement",
       color: "blue"
     },
     { 
@@ -414,8 +414,8 @@ const Settings = () => {
                           <CurrencyDollarIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Frais de Transaction</h2>
-                          <p className="text-gray-600 dark:text-gray-400 text-sm">Configurez les frais pour chaque moyen de paiement</p>
+                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Méthode de paiement</h2>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm">Gérez l'activation et la désactivation des méthodes de paiement</p>
                         </div>
                       </div>
                     </div>

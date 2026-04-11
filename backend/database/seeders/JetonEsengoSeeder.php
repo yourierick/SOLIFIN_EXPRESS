@@ -56,7 +56,7 @@ class JetonEsengoSeeder extends Seeder
                 $commonMetadata = [
                     'frequency' => 'monthly',
                     'filleuls_count' => rand(30, 45),
-                    'pack_id' => 1,
+                    'pack_id' => $pack->id,
                     'pack_name' => "Pack Primaire",
                     'points_per_threshold' => 1,
                     'threshold' => 30,
@@ -69,7 +69,7 @@ class JetonEsengoSeeder extends Seeder
                 for ($i = 0; $i < $activeJetonsCount; $i++) {
                     $jeton = UserJetonEsengo::create([
                         'user_id' => $user->id,
-                        'pack_id' => 1,
+                        'pack_id' => $pack->id,
                         'code_unique' => UserJetonEsengo::generateUniqueCode($user->id),
                         'is_used' => false,
                         'date_expiration' => Carbon::now()->addMonths(3),
@@ -92,7 +92,7 @@ class JetonEsengoSeeder extends Seeder
                 for ($i = 0; $i < $usedJetonsCount; $i++) {
                     $jeton = UserJetonEsengo::create([
                         'user_id' => $user->id,
-                        'pack_id' => 1,
+                        'pack_id' => $pack->id,
                         'code_unique' => UserJetonEsengo::generateUniqueCode($user->id),
                         'is_used' => true,
                         'date_expiration' => Carbon::now()->addMonths(3),
@@ -129,7 +129,7 @@ class JetonEsengoSeeder extends Seeder
                     
                     $jeton = UserJetonEsengo::create([
                         'user_id' => $user->id,
-                        'pack_id' => 1,
+                        'pack_id' => $pack->id,
                         'code_unique' => UserJetonEsengo::generateUniqueCode($user->id),
                         'is_used' => false,
                         'date_expiration' => $expirationDate,

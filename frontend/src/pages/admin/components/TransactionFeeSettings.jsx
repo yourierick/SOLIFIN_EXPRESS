@@ -94,11 +94,11 @@ const TransactionFeeSettings = () => {
       }
     } catch (error) {
       console.error(
-        "Erreur lors de la récupération des frais de transaction:",
+        "Erreur lors de la récupération des méthodes de paiement:",
         error
       );
       Notification.error(
-        "Erreur lors de la récupération des frais de transaction"
+        "Erreur lors de la récupération des méthodes de paiement"
       );
     } finally {
       setLoading(false);
@@ -168,7 +168,7 @@ const TransactionFeeSettings = () => {
       }
     } catch (error) {
       console.error(
-        "Erreur lors de la soumission des frais de transaction:",
+        "Erreur lors de la soumission des méthodes de paiement:",
         error
       );
       
@@ -187,7 +187,7 @@ const TransactionFeeSettings = () => {
   const handleDelete = async (id) => {
     if (
       !window.confirm(
-        "Êtes-vous sûr de vouloir supprimer ces frais de transaction ?"
+        "Êtes-vous sûr de vouloir supprimer cette méthode de paiement ?"
       )
     ) {
       return;
@@ -201,12 +201,12 @@ const TransactionFeeSettings = () => {
       });
 
       if (response.data.status === "success") {
-        Notification.success("Frais de transaction supprimés avec succès");
+        Notification.success("méthode supprimée avec succès");
         fetchTransactionFees();
       }
     } catch (error) {
       console.error(
-        "Erreur lors de la suppression des frais de transaction:",
+        "Erreur lors de la suppression de la méthode:",
         error
       );
       Notification.error(
@@ -234,7 +234,7 @@ const TransactionFeeSettings = () => {
 
       if (response.data.status === "success") {
         Notification.success(
-          `Frais de transaction ${
+          `Méthode de paiement ${
             fee.is_active ? "désactivés" : "activés"
           } avec succès`
         );
@@ -242,7 +242,7 @@ const TransactionFeeSettings = () => {
       }
     } catch (error) {
       console.error(
-        "Erreur lors du changement de statut des frais de transaction:",
+        "Erreur lors du changement de statut des méthodes de paiement:",
         error
       );
       Notification.error(
@@ -543,7 +543,7 @@ const TransactionFeeSettings = () => {
             </div>
           ) : displayedFees.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Aucun frais de transaction trouvé
+              Aucune méthode de paiement trouvée
             </div>
           ) : (
             displayedFees.map((fee) => (
@@ -651,7 +651,7 @@ const TransactionFeeSettings = () => {
                     colSpan={8}
                     className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
                   >
-                    Aucun frais de transaction trouvé
+                    Aucune méthode de paiement trouvée
                   </td>
                 </tr>
               ) : (
@@ -872,10 +872,10 @@ const TransactionFeeSettings = () => {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Gestion des frais de transaction
+                Gestion des méthodes de paiement
               </h2>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-                Configurez les frais pour chaque moyen de paiement
+                Gérez l'activation et la désactivation des méthodes de paiement
               </p>
             </div>
           </div>

@@ -271,7 +271,7 @@ const JetonsEsengo = () => {
   }
 
   return (
-    <div className="p-6" style={{ backgroundColor: colors.surface }}>
+    <div className="p-1" style={{ backgroundColor: colors.surface }}>
       {/* En-tête épuré et moderne */}
       <div 
         className="rounded-3xl p-8 mb-8 relative overflow-hidden backdrop-blur-xl"
