@@ -6,6 +6,8 @@ import {
   CheckIcon,
   XMarkIcon,
   ClipboardDocumentIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from "@heroicons/react/24/outline";
 import logo from "../assets/logo.png";
 import { ToastContainer, toast } from "react-toastify";
@@ -81,6 +83,8 @@ export default function Register() {
     acceptTerms: false,
   });
   const [formErrors, setFormErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
   // Fonction pour obtenir l'emoji du drapeau à partir du code pays
   const getFlagEmoji = (countryCode) => {
@@ -616,7 +620,7 @@ export default function Register() {
 
                     <TextField
                       fullWidth
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       label="Mot de passe"
                       name="password"
                       value={formData.password}
@@ -624,6 +628,21 @@ export default function Register() {
                       required
                       error={!!formErrors.password}
                       helperText={formErrors.password}
+                      InputProps={{
+                        endAdornment: (
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            sx={{ color: "#2E7D32" }}
+                          >
+                            {showPassword ? (
+                              <EyeSlashIcon className="h-5 w-5" />
+                            ) : (
+                              <EyeIcon className="h-5 w-5" />
+                            )}
+                          </IconButton>
+                        ),
+                      }}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           "&.Mui-focused fieldset": {
@@ -638,7 +657,7 @@ export default function Register() {
 
                     <TextField
                       fullWidth
-                      type="password"
+                      type={showPasswordConfirmation ? "text" : "password"}
                       label="Confirmer le mot de passe"
                       name="password_confirmation"
                       value={formData.password_confirmation}
@@ -646,6 +665,21 @@ export default function Register() {
                       required
                       error={!!formErrors.password_confirmation}
                       helperText={formErrors.password_confirmation}
+                      InputProps={{
+                        endAdornment: (
+                          <IconButton
+                            onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                            edge="end"
+                            sx={{ color: "#2E7D32" }}
+                          >
+                            {showPasswordConfirmation ? (
+                              <EyeSlashIcon className="h-5 w-5" />
+                            ) : (
+                              <EyeIcon className="h-5 w-5" />
+                            )}
+                          </IconButton>
+                        ),
+                      }}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           "&.Mui-focused fieldset": {

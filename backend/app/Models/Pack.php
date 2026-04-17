@@ -23,6 +23,7 @@ class Pack extends Model
         'duree_publication_en_jour',
         'peux_publier_formation',
         'boost_percentage',
+        'class_letter',
         'abonnement'
     ];
 

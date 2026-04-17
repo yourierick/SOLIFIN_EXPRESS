@@ -10,7 +10,6 @@ class CodeGenerationService
 {
     // Constantes pour les préfixes
     const PREFIX_USER_ACCOUNT = 'USR-';
-    const PREFIX_REFERRAL = 'SPR';
 
     /**
      * Génère un identifiant unique pour un utilisateur
@@ -32,23 +31,17 @@ class CodeGenerationService
      * @param string $packName
      * @return array Tableau contenant le code et ses composants
      */
-    public function generateUniqueReferralCode($packName)
+    public function generateUniqueReferralCode($pack)
     {
-        $referralLetter = substr($packName, 0, 1);
-        $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-        $referralCode = self::PREFIX_REFERRAL . $referralLetter . $referralNumber;
-
-        // Vérifier que le code est unique
-        while (UserPack::where('referral_code', $referralCode)->exists()) {
-            $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-            $referralCode = self::PREFIX_REFERRAL . $referralLetter . $referralNumber;
-        }
+        $classLetter = $pack->class_letter;
+        
+        // Récupérer l'ID du dernier UserPack et ajouter 1
+        $lastUserPackId = UserPack::max('id') ?? 0;
+        $referralNumber = str_pad($lastUserPackId + 1, 4, '0', STR_PAD_LEFT);
+        $referralCode = $classLetter . $referralNumber;
 
         return [
             'code' => $referralCode,
-            'letter' => $referralLetter,
-            'number' => $referralNumber,
-            'prefix' => self::PREFIX_REFERRAL
         ];
     }
 
@@ -60,8 +53,8 @@ class CodeGenerationService
      */
     public function generateReferralLink($referralCode)
     {
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-        return $frontendUrl . "/register?referral_code=" . $referralCode;
+        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
+        return $frontendUrl . "/login?referral_code=" . $referralCode;
     }
     
     /**

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->integer('duree_publication_en_jour');
             $table->boolean('peux_publier_formation')->default(false);
             $table->decimal('boost_percentage', 10, 2)->default(1)->comment('Pourcentage de boost d\'une publication en jour');
+            $table->enum('class_letter', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'])->default('A');
             $table->timestamps();
         });
 
@@ -33,10 +34,6 @@ return new class extends Migration
             $table->timestamp('expiry_date')->nullable();
             $table->boolean('is_admin_pack')->default(false);
             $table->enum('payment_status', ['pending', 'completed', 'failed'])->default('pending');
-            $table->string('referral_prefix');
-            $table->string('referral_pack_name');
-            $table->string('referral_letter', 1);
-            $table->string('referral_number', 4);
             $table->string('referral_code')->unique();
             $table->string('link_referral')->unique();
             $table->timestamps();

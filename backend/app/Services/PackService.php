@@ -86,7 +86,7 @@ class PackService
         }
 
         // Générer un code de parrainage unique
-        $referralData = $this->codeGenerationService->generatePackReferralCode($pack->name);
+        $referralData = $this->codeGenerationService->generatePackReferralCode($pack);
 
         // Traiter le paiement selon la méthode
         if ($paymentData['payment_method'] === 'solifin-wallet') {
@@ -248,10 +248,6 @@ class PackService
             'expiry_date' => now()->addMonths($durationMonths),
             'is_admin_pack' => false,
             'payment_status' => 'completed',
-            'referral_prefix' => $referralData['prefix'],
-            'referral_pack_name' => $pack->name,
-            'referral_letter' => $referralData['letter'],
-            'referral_number' => $referralData['number'],
             'referral_code' => $referralData['code'],
             'link_referral' => $referralData['link'],
             'sponsor_id' => $sponsorId,

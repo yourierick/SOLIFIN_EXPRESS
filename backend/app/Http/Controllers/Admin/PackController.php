@@ -405,21 +405,16 @@ class PackController extends Controller
             })->get();
             
             foreach ($superAdmins as $admin) {
-                $referralLetter = substr($pack->name, 0, 1);
-                $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                $referralCode = 'SPR' . $referralLetter . $referralNumber;
-
-                // Vérifier que le code est unique
-                while (UserPack::where('referral_code', $referralCode)->exists()) {
-                    $referralNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                    $referralCode = 'SPR' . $referralLetter . $referralNumber;
-                }
+                $classLetter = $pack->class_letter;
+                $lastUserPackId = UserPack::max('id') ?? 0;
+                $referralNumber = str_pad($lastUserPackId + 1, 4, '0', STR_PAD_LEFT);
+                $referralCode = $classLetter . $referralNumber;
 
                 // Récupérer l'URL du frontend depuis le fichier .env
-                $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+                $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
 
                 // Créer le lien de parrainage en utilisant l'URL du frontend
-                $referralLink = $frontendUrl . "/register?referral_code=" . $referralCode;
+                $referralLink = $frontendUrl . "/login?referral_code=" . $referralCode;
 
                 $admin->packs()->attach($pack->id, [
                     'status' => 'active',
@@ -427,10 +422,6 @@ class PackController extends Controller
                     'expiry_date' => null, // Durée illimitée pour les admins
                     'is_admin_pack' => true,
                     'payment_status' => 'completed',
-                    'referral_prefix' => 'SPR',
-                    'referral_pack_name' => $pack->name,
-                    'referral_letter' => $referralLetter,
-                    'referral_number' => $referralNumber,
                     'referral_code' => $referralCode,
                     'link_referral' => $referralLink,
                 ]);
