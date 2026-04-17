@@ -291,12 +291,7 @@ class TargetedAuditor
         // Générer fingerprint pour éviter doublons
         $fingerprint = $this->generateTargetedFingerprint($anomaly, $wallet);
         
-        // Vérifier si l'anomalie existe déjà
-        if ($this->existsTargetedDuplicate($fingerprint)) {
-            return null; // Retourner null si doublon
-        }
-        
-        $auditLog = FinancialAuditLog::create([
+        $data = [
             'audit_type' => 'batch',
             'entity_type' => 'wallet',
             'entity_id' => $wallet->id,
@@ -309,8 +304,13 @@ class TargetedAuditor
             'status' => 'pending',
             'fingerprint' => $fingerprint,
             'metadata' => $anomaly['metadata']
-        ]);
-
+        ];
+        
+        $auditLog = FinancialAuditLog::firstOrCreate(
+            ['fingerprint' => $fingerprint],
+            $data
+        );
+        
         return $auditLog;
     }
 
@@ -330,17 +330,7 @@ class TargetedAuditor
         return hash('sha256', json_encode($data));
     }
 
-    /**
-     * Vérifier si un doublon d'audit ciblé existe
-     * Rôle: Éviter les logs en double
-     */
-    private function existsTargetedDuplicate(string $fingerprint): bool
-    {
-        return FinancialAuditLog::where('fingerprint', $fingerprint)
-            ->where('audit_type', 'batch')
-            ->exists();
-    }
-
+    
     private function calculateSeverity(float $difference, float $context): string
     {
         $ratio = $context > 0 ? $difference / $context : $difference;

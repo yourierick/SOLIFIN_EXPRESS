@@ -393,6 +393,7 @@ export default function MyPage() {
 
   // État pour l'onglet actif et pagination backend
   const [activeTab, setActiveTab] = useState(null);
+  const [isMenuVisible, setIsMenuVisible] = useState(true);
   const [tabGroupIndex, setTabGroupIndex] = useState(0);
   const [backendPagination, setBackendPagination] = useState({
     currentPage: 1,
@@ -4362,14 +4363,26 @@ export default function MyPage() {
       </div>
     </div>
 
-    {/* Barre d'icônes verticale - Cachée à droite, apparaît au survol */}
+    {/* Bouton de rétractation - Position fixe au-dessus de la barre d'onglets */}
+    <button 
+      className={`fixed right-0 top-20 z-50 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-gray-600/30 bg-gradient-to-b from-gray-900/15 to-gray-800/10 dark:from-black/15 dark:to-gray-900/10 backdrop-blur-sm border border-gray-700/10 dark:border-gray-600/10 shadow-lg shadow-black/5 ${
+          isMobile ? "w-12" : "w-16"
+        }`}
+      onClick={() => setIsMenuVisible(!isMenuVisible)}
+    >
+      <span className="text-xs font-bold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300">MENU</span>
+    </button>
+
+    {/* Barre d'icônes verticale - Visible par défaut */}
     <div className="fixed right-0 top-32 z-50 h-auto">
       <div className="group relative flex items-center">
-        {/* Zone de survol étendue pour déclencher l'apparition */}
+        {/* Zone de survol étendue pour déclencher l'apparition quand le menu est caché */}
         <div className="absolute -left-8 top-0 w-8 h-full cursor-pointer"></div>
         
         {/* Conteneur de la barre */}
-        <div className={`relative flex flex-col ${isMobile ? "w-12" : "w-16"} bg-gradient-to-b from-gray-900/15 to-gray-800/10 dark:from-black/15 dark:to-gray-900/10 backdrop-blur-sm border border-gray-700/10 dark:border-gray-600/10 items-center py-4 space-y-3 ${isMobile ? "space-y-2" : "space-y-4"} rounded-l-2xl shadow-lg shadow-black/5 transition-all duration-300 ease-out group-hover:translate-x-0 translate-x-full`}>
+        <div className={`relative flex flex-col ${isMobile ? "w-12" : "w-16"} bg-gradient-to-b from-gray-900/15 to-gray-800/10 dark:from-black/15 dark:to-gray-900/10 backdrop-blur-sm border border-gray-700/10 dark:border-gray-600/10 items-center py-4 space-y-3 ${isMobile ? "space-y-2" : "space-y-4"} rounded-l-2xl shadow-lg shadow-black/5 transition-all duration-300 ease-out ${
+          isMenuVisible ? "translate-x-0" : "translate-x-full group-hover:translate-x-0"
+        }`}>
           {/* Publicités */}
           <div className="relative group/tooltip">
             <button 

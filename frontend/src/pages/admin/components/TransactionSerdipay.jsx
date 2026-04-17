@@ -61,10 +61,12 @@ const TransactionSerdipay = () => {
   const [showCallbackModal, setShowCallbackModal] = useState(false);
   const [callbackLoading, setCallbackLoading] = useState(false);
   const [callbackForm, setCallbackForm] = useState({
-    message: "",
-    transaction_id: "",
-    session_id: "",
-    status: "success"
+    message: "Callback traité manuellement",
+    payment: {
+      status: "success",
+      sessionId: "",
+      sessionStatus: 3,
+    }
   });
 
   // États pour le modal de finalisation d'achat
@@ -87,24 +89,44 @@ const TransactionSerdipay = () => {
 
   const exportMenuRef = useRef(null);
 
+  // Fonction pour ouvrir le modal de callback avec les données de la transaction
+  const openCallbackModal = (transaction) => {
+    setCallbackForm({
+      payment: {
+        status: "success",
+        sessionId: transaction.session_id || "",
+      }
+    });
+    setShowCallbackModal(true);
+  };
+
   // Fonction pour traiter le callback manuel
   const handleManualCallback = async () => {
     try {
       setCallbackLoading(true);
       
-      const response = await axios.post('/api/payment/callback', callbackForm);
+      // S'assurer que les champs par défaut sont inclus
+      const callbackData = {
+        message: "Callback traité manuellement",
+        payment: {
+          status: callbackForm.payment.status,
+          sessionId: callbackForm.payment.sessionId,
+          sessionStatus: 3,
+        }
+      };
+      
+      const response = await axios.post('/api/payment/callback', callbackData);
       
       if (response.data.success) {
         toast.success('Callback traité avec succès!');
         setShowCallbackModal(false);
         // Réinitialiser le formulaire
         setCallbackForm({
-          message: "",
+          message: "Callback traité manuellement",
           payment: {
             status: "success",
             sessionId: "",
             sessionStatus: 3,
-            transactionId: ""
           }
         });
         // Rafraîchir les données
@@ -488,6 +510,15 @@ const TransactionSerdipay = () => {
                     >
                       <DocumentArrowDownIcon className="h-5 w-5" />
                     </button>
+                    {transaction.status === 'pending' && (
+                      <button
+                        onClick={() => openCallbackModal(transaction)}
+                        className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300"
+                        title="Callback manuel"
+                      >
+                        <ArrowPathIcon className="h-5 w-5" />
+                      </button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -518,19 +549,6 @@ const TransactionSerdipay = () => {
             </div>
           </div>          
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Bouton Callback Manuel */}
-            <button
-              onClick={() => setShowCallbackModal(true)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                isDarkMode
-                  ? "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg"
-                  : "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg"
-              }`}
-            >
-              <ArrowPathIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Callback manuel</span>
-              <span className="sm:hidden">Callback</span>
-            </button>
             
             {/* Bouton Finaliser un achat */}
             <button
@@ -1199,31 +1217,34 @@ const TransactionSerdipay = () => {
             {/* Formulaire */}
             <div className="px-6 py-4">
               <div className="space-y-4">
-                {/* Message */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                    Message
-                  </label>
-                  <input
-                    type="text"
-                    value={callbackForm.message}
-                    onChange={(e) => setCallbackForm({
-                      ...callbackForm,
-                      message: e.target.value
-                    })}
-                    placeholder="La référence de la transaction"
-                    className={`w-full px-3 py-2 rounded-lg border ${
-                      isDarkMode 
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                  />
-                </div>
-
                 {/* Status */}
                 <div>
+                  {/* Session ID */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Session ID
+                    </label>
+                    <input
+                      type="text"
+                      value={callbackForm.payment.sessionId}
+                      onChange={(e) => setCallbackForm({
+                        ...callbackForm,
+                        payment: {
+                          ...callbackForm.payment,
+                          sessionId: e.target.value
+                        }
+                      })}
+                      placeholder="Ex: 1720786347"
+                      className={`w-full px-3 py-2 rounded-lg border ${
+                        isDarkMode 
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                      } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
+                    />
+                  </div>
+                  
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? "text-gray-300" : "text-gray-700"
                   }`}>
@@ -1244,88 +1265,9 @@ const TransactionSerdipay = () => {
                         : "bg-white border-gray-300 text-gray-900"
                     } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
                   >
-                    <option value="success">Success</option>
-                    <option value="failed">Failed</option>
-                    <option value="pending">Pending</option>
+                    <option value="success">Réussite</option>
+                    <option value="failed">Échec</option>
                   </select>
-                </div>
-
-                {/* Session ID */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                    Session ID
-                  </label>
-                  <input
-                    type="text"
-                    value={callbackForm.payment.sessionId}
-                    onChange={(e) => setCallbackForm({
-                      ...callbackForm,
-                      payment: {
-                        ...callbackForm.payment,
-                        sessionId: e.target.value
-                      }
-                    })}
-                    placeholder="Ex: 1720786347"
-                    className={`w-full px-3 py-2 rounded-lg border ${
-                      isDarkMode 
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                  />
-                </div>
-
-                {/* Session Status */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                    Session Status
-                  </label>
-                  <input
-                    type="number"
-                    value={callbackForm.payment.sessionStatus}
-                    onChange={(e) => setCallbackForm({
-                      ...callbackForm,
-                      payment: {
-                        ...callbackForm.payment,
-                        sessionStatus: parseInt(e.target.value)
-                      }
-                    })}
-                    placeholder="Ex: 3"
-                    className={`w-full px-3 py-2 rounded-lg border ${
-                      isDarkMode 
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                  />
-                </div>
-
-                {/* Transaction ID */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                    Transaction ID
-                  </label>
-                  <input
-                    type="text"
-                    value={callbackForm.payment.transactionId}
-                    onChange={(e) => setCallbackForm({
-                      ...callbackForm,
-                      payment: {
-                        ...callbackForm.payment,
-                        transactionId: e.target.value
-                      }
-                    })}
-                    placeholder="Ex: SERDMG7MW6ZV"
-                    className={`w-full px-3 py-2 rounded-lg border ${
-                      isDarkMode 
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    } focus:ring-2 focus:ring-orange-500 focus:border-transparent`}
-                  />
                 </div>
               </div>
             </div>
@@ -1347,9 +1289,9 @@ const TransactionSerdipay = () => {
                 </button>
                 <button
                   onClick={handleManualCallback}
-                  disabled={callbackLoading || !callbackForm.message || !callbackForm.payment.sessionId}
+                  disabled={callbackLoading || !callbackForm.payment.sessionId}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    callbackLoading || !callbackForm.message || !callbackForm.payment.sessionId
+                    callbackLoading || !callbackForm.payment.sessionId
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg"
                   }`}
@@ -1420,7 +1362,7 @@ const TransactionSerdipay = () => {
                     type="text"
                     value={finalizeForm.session_id}
                     onChange={(e) => setFinalizeForm({...finalizeForm, session_id: e.target.value})}
-                    placeholder="SERDJIPHWD0P7"
+                    placeholder="17746076871374"
                     className={`w-full px-3 py-2 rounded-lg border ${
                       isDarkMode 
                         ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" 

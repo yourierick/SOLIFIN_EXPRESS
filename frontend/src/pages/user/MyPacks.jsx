@@ -1508,7 +1508,7 @@ export default function MyPacks() {
                                 : "warning"
                             }
                             size="small"
-                            onClick={() => handleRenew(userPack)}
+                            onClick={() => handleRenewClick(userPack)}
                             sx={{
                               flex: 1,
                               fontWeight: 600,

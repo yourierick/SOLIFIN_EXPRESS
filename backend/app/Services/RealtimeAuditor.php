@@ -32,18 +32,10 @@ class RealtimeAuditor
         // 2. Vérification non-négativité
         $this->verifyNonNegativeBalance($wallet);
         
-        // 3. Génération fingerprint pour éviter doublons
-        $fingerprint = $this->generateFingerprint($transaction);
-        
-        // 4. Vérification doublon
-        if ($this->existsDuplicate($fingerprint)) {
-            return;
-        }
-        
-        // 5. Détection anomalies spécifiques
+        // 3. Détection anomalies spécifiques
         $this->detectSpecificAnomalies($transaction, $wallet);
         
-        // 6. Queue audit ciblé si anomalie significative
+        // 4. Queue audit ciblé si anomalie significative
         if ($this->requiresTargetedAudit($transaction)) {
             $this->queueTargetedAudit($wallet->id, 'high');
         }
@@ -183,19 +175,7 @@ class RealtimeAuditor
         return hash('sha256', json_encode($data));
     }
 
-    /**
-     * Vérification existence doublon
-     * Rôle: Éviter les alertes multiples pour même problème
-     */
-    private function existsDuplicate(string $fingerprint): bool
-    {
-        return Cache::remember(
-            "audit_duplicate_{$fingerprint}",
-            3600,
-            fn() => FinancialAuditLog::where('fingerprint', $fingerprint)->exists()
-        );
-    }
-
+    
     /**
      * Création log d'audit
      * Rôle: Centraliser la création des logs avec fingerprint et notification
@@ -203,14 +183,26 @@ class RealtimeAuditor
     private function createAuditLog(array $data): FinancialAuditLog
     {
         $data['fingerprint'] = $this->generateFingerprintFromData($data);
-        if ($this->existsDuplicate($data['fingerprint'])) {
-            $auditLog = FinancialAuditLog::where('fingerprint', $data['fingerprint'])->first();
-            return $auditLog;
+        
+        $auditLog = FinancialAuditLog::firstOrCreate(
+            ['fingerprint' => $data['fingerprint']],
+            $data + ['status' => 'pending']
+        );
+        
+        // Notifier seulement si nouvel enregistrement
+        if ($auditLog->wasRecentlyCreated) {
+            $this->notifyUsers($auditLog);
         }
-        $data['status'] = 'pending';
         
-        $auditLog = FinancialAuditLog::create($data);
-        
+        return $auditLog;
+    }
+
+    /**
+     * Notifier les utilisateurs concernés
+     * Rôle: Envoyer les notifications aux super-admins et auditeurs
+     */
+    private function notifyUsers(FinancialAuditLog $auditLog): void
+    {
         $superAdminRole = Role::where('slug', 'super-admin')->first();
         $auditorRole = Role::where('slug', 'auditor')->first();
         
@@ -227,8 +219,6 @@ class RealtimeAuditor
         foreach ($users as $user) {
             $user->notify(new FinancialAnomalyDetected($auditLog, $auditLog->severity));
         }
-        
-        return $auditLog;
     }
 
     /**

@@ -1082,22 +1082,6 @@ export default function VirtualPurchaseForm({ onClose, updateWalletBalance }) {
                       >
                         {transactionResult.message}
                       </p>
-                      <div
-                        className={`p-4 rounded-md mb-4 ${
-                          isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                        }`}
-                      >
-                        <div className="flex justify-between mb-2">
-                          <span>Montant à crédité:</span>
-                          <span>
-                             ${transactionResult.amount}
-                          </span>
-                        </div>
-                        <div className="flex justify-between mb-2">
-                          <span>ID de transaction:</span>
-                          <span>{transactionResult.transactionId}</span>
-                        </div>
-                      </div>
                     </>
                   ) : (
                     <>

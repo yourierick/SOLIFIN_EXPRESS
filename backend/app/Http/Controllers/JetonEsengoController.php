@@ -9,6 +9,7 @@ use App\Models\Cadeau;
 use App\Models\BonusRates;
 use App\Models\UserBonusPoint;
 use App\Models\UserJetonEsengo;
+use App\Models\WalletSystem;
 use App\Models\UserJetonEsengoHistory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -720,6 +721,14 @@ class JetonEsengoController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Ce ticket est expiré'
+                ]);
+            }
+
+            $paymentWallet = WalletSystem::first();
+            if ($paymentWallet->plateforme_benefices < $ticket->cadeau->valeur) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Impossible de terminer l\'opération, fonds insuffisants, veuillez réessayer plus tard'
                 ]);
             }
             

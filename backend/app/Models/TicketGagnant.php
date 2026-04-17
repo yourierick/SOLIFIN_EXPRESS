@@ -112,32 +112,27 @@ class TicketGagnant extends Model
         }
 
         DB::beginTransaction();
-        $admin->wallet->addFunds($this->cadeau->valeur, 'USD', 'funds_receipt', 'completed', [
+
+        //Déduire la valeur du cadeau des bénéfices de la plateforme
+        $walletSystem = WalletSystem::first();
+        $description = "Vous avez payé " . $this->cadeau->valeur . " $ à " . $admin->name . " pour la consommation du cadeau " . $this->cadeau->nom;
+        $walletSystem->addEngagements($this->cadeau->valeur, 'esengo_funds_transfer', 'completed', $description, $admin_id, [
             'ID du Ticket' => $this->id,
             'ID du Cadeau' => $this->cadeau_id,
             'Nom du Cadeau' => $this->cadeau->nom,
             'Valeur du Cadeau' => $this->cadeau->valeur,
             'Code du Ticket' => $this->code_verification,
-            'Déscription' => "Réception des fonds d'une valeur de " . $this->cadeau->valeur . " pour rémise du cadeau " . $this->cadeau->nom,
         ]);
 
-        $walletSystem = WalletSystem::first();
-        $walletSystem->transactions()->create([
-            'wallet_system_id' => $walletSystem->id,
-            'mouvment' => 'out',
-            'type' => 'esengo_funds_transfer',
-            'amount' => $this->cadeau->valeur,
-            'currency' => 'USD',
-            'status' => 'completed',
-            'metadata' => [
-                'ID du Ticket' => $this->id,
-                'ID du Cadeau' => $this->cadeau_id,
-                'Nom du Cadeau' => $this->cadeau->nom,
-                'Valeur du Cadeau' => $this->cadeau->valeur,
-                'Code du Ticket' => $this->code_verification,
-                'Distributeur' => $admin->name,
-                'Déscription' => "Transfert des fonds d'une valeur de " . $this->cadeau->valeur . " pour rémise du cadeau " . $this->cadeau->nom,
-            ],
+
+        //Créditer le compte de l'admin qui a remis le cadeau
+        $description = "Vous avez reçu " . $this->cadeau->valeur . " $ pour la consommation du cadeau " . $this->cadeau->nom;
+        $admin->wallet->addFunds($this->cadeau->valeur, 0, 0, 'funds_receipt', 'completed', $description, $admin->id, [
+            'ID du Ticket' => $this->id,
+            'ID du Cadeau' => $this->cadeau_id,
+            'Nom du Cadeau' => $this->cadeau->nom,
+            'Valeur du Cadeau' => $this->cadeau->valeur,
+            'Code du Ticket' => $this->code_verification,
         ]);
 
         $this->consomme = self::CONSOMME;

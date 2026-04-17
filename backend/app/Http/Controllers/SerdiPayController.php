@@ -112,8 +112,8 @@ class SerdiPayController extends Controller
             $paymentDetails['amount'] = $withdrawal->payment_details['montant_a_retirer'] ?? null;
             $paymentDetails['payment_method'] = $methode_paiement;
             $paymentDetails['payment_type'] = $payment_type;
-            $paymentDetails['userId'] = $withdrawal->user_id ?? null;
-            $paymentDetails['walletId'] = $withdrawal->user->wallet->id ?? null;
+            $paymentDetails['user_id'] = $withdrawal->user_id ?? null;
+            $paymentDetails['wallet_id'] = $withdrawal->user->wallet->id ?? null;
             $paymentDetails['email'] = $withdrawal->user->email ?? null;
             $paymentDetails['cardDetails'] = $withdrawal->payment_details['payment_type'] === 'credit-card' ? $withdrawal->payment_details['payment_details'] : null;
 
@@ -346,6 +346,8 @@ class SerdiPayController extends Controller
                 'amount' => 'required|numeric|min:0',
                 'fees' => 'required|numeric|min:0',
             ]);
+
+            \Log::info($request->all());
             
             // Ajouter des validations conditionnelles manuellement
             if ($request->input('payment_type') === 'mobile-money') {
@@ -853,6 +855,13 @@ class SerdiPayController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Achat non trouvé'
+                ], 404);
+            }
+
+            if ($tempPurchase->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cet achat a déjà été complété'
                 ], 404);
             }
             

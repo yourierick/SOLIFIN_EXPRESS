@@ -472,12 +472,7 @@ class GlobalAuditor
         // Générer fingerprint pour éviter doublons
         $fingerprint = $this->generateGlobalFingerprint($anomaly);
         
-        // Vérifier si l'anomalie existe déjà
-        if ($this->existsGlobalDuplicate($fingerprint)) {
-            return;
-        }
-        
-        $auditLog = FinancialAuditLog::create([
+        $data = [
             'audit_type' => 'global',
             'entity_type' => isset($anomaly['metadata']['wallet_id']) ? 'wallet' : 'system',
             'entity_id' => $anomaly['metadata']['wallet_id'] ?? 1,
@@ -490,8 +485,25 @@ class GlobalAuditor
             'status' => 'pending',
             'fingerprint' => $fingerprint,
             'metadata' => $anomaly['metadata']
-        ]);
+        ];
         
+        $auditLog = FinancialAuditLog::firstOrCreate(
+            ['fingerprint' => $fingerprint],
+            $data
+        );
+        
+        // Notifier seulement si nouvel enregistrement
+        if ($auditLog->wasRecentlyCreated) {
+            $this->notifyGlobalUsers($auditLog);
+        }
+    }
+
+    /**
+     * Notifier les utilisateurs concernés pour audit global
+     * Rôle: Envoyer les notifications aux super-admins et auditeurs
+     */
+    private function notifyGlobalUsers(FinancialAuditLog $auditLog): void
+    {
         $superAdminRole = Role::where('slug', 'super-admin')->first();
         $auditorRole = Role::where('slug', 'auditor')->first();
         
@@ -528,17 +540,7 @@ class GlobalAuditor
         return hash('sha256', json_encode($data));
     }
 
-    /**
-     * Vérifier si un doublon d'audit global existe
-     * Rôle: Éviter les logs en double
-     */
-    private function existsGlobalDuplicate(string $fingerprint): bool
-    {
-        return FinancialAuditLog::where('fingerprint', $fingerprint)
-            ->where('audit_type', 'global')
-            ->exists();
-    }
-
+    
     /**
      * Utils et helpers
      * Rôle: Fonctions utilitaires pour l'audit global

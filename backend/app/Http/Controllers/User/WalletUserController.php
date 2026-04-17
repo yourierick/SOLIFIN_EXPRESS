@@ -942,9 +942,10 @@ class WalletUserController extends Controller
             ];
 
             $montant_net_avec_frais = $request->amount + $request->fees;
+            $montant_net_sans_frais = $request->amount - $request->fees;
 
             //Ajouter les fonds comme entrée au wallet system
-            $walletSystem->addFunds(
+            $walletsystem->addFunds(
                 $montant_net_avec_frais, 
                 self::TYPE_VIRTUAL_SALE,
                 "completed",
@@ -954,11 +955,11 @@ class WalletUserController extends Controller
             );
 
             //Ajouter les fonds net aux dettes utilisateur
-            $transaction = $walletSystem->addEngagements(
-                $request->amount, 
+            $transaction = $walletsystem->addEngagements(
+                $montant_net_sans_frais, 
                 'virtual_send', //Envoie des virtuels à l'utilisateur
                 'completed',
-                'Vous avez envoyé des virtuels d\'un montant de ' . number_format($request->amount, 2) . '$  Solifin au compte ' . $user->account_id,
+                'Vous avez envoyé des virtuels d\'un montant de ' . number_format($montant_net_sans_frais, 2) . '$  Solifin au compte ' . $user->account_id,
                 $user->id,
                 $metadata_system
             );
@@ -967,20 +968,21 @@ class WalletUserController extends Controller
             $metadata_user = [
                 'Méthode de paiement' => $request->payment_method,
                 'Téléphone' => $request->phoneNumber,
-                'Montant net payé' => number_format($request->amount, 2) . " $",
+                'Montant net payé' => number_format($montant_net_sans_frais, 2) . " $",
                 'Transaction source' => "Transaction système - ". $transaction->reference,
                 'Frais de transaction' => number_format($request->fees, 2) . " $",
                 'Description' => 'Achat des virtuels solifin via ' . $request->payment_method
             ];
 
             //Ajouter les fonds virtuels à l'utilisateur les ayant acheté
+            $description_user = 'Vous avez reçu des virtuels d\'un montant de ' . number_format($montant_net_sans_frais, 2) . '$ dans votre portefeuille SOLIFIN';
             $userWallet->addFunds(
-                $request->amount,
+                $montant_net_sans_frais,
                 $request->fees,
                 0,
                 'virtual_receipt',
                 'completed',
-                'Vous avez reçu des virtuels d\'un montant de ' . number_format($request->amount, 2) . '$ dans votre portefeuille SOLIFIN',
+                $description_user,
                 $user->id,
                 $metadata_user
             );
@@ -1161,7 +1163,7 @@ class WalletUserController extends Controller
             'funds_transfer' => 'Transfert des fonds',
             'unfreeze_funds' => 'Déblocage des fonds',
             'freeze_funds' => 'Blocage des fonds',
-            'virtual_receipt' => 'Réception des fonds',
+            'virtual_receipt' => 'Réception des virtuals',
             'digital_product_sale' => 'Vente de produit numérique',
             'commission' => 'Commission de parrainage',
             'transfer_commission' => 'Commission de transfert',

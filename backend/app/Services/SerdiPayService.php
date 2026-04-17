@@ -561,8 +561,6 @@ class SerdiPayService
     {
         $token = $this->getAuthToken();
         
-        \Log::info($paymentMethod);
-        
         if (!$token) {
             return [
                 'success' => false,

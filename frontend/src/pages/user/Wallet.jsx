@@ -926,12 +926,12 @@ export default function Wallets() {
       onClose={() => setShowTransactionDetails(false)}
       sx={{
         '& .MuiDrawer-paper': {
-          width: 540,
+          width: { xs: '100%', sm: 400, md: 540 },
           background: isDarkMode 
             ? 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)' 
             : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-          borderLeft: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-          boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.1)',
+          borderLeft: { xs: 'none', sm: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` },
+          boxShadow: { xs: '0 0 30px rgba(0, 0, 0, 0.2)', sm: '-10px 0 30px rgba(0, 0, 0, 0.1)' },
         },
       }}
     >
@@ -940,7 +940,7 @@ export default function Wallets() {
           {/* Header moderne */}
           <Box 
             sx={{
-              p: 4,
+              p: { xs: 2, sm: 3, md: 4 },
               background: selectedTransaction.flow === "out"
                 ? isDarkMode
                   ? "linear-gradient(135deg, #1e293b 0%, #334155 100%)"
@@ -1231,7 +1231,7 @@ export default function Wallets() {
           </Box>
 
           {/* Contenu principal */}
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: { xs: 2, sm: 3 } }}>
             {/* Informations essentielles */}
             <Box sx={{ mb: 4 }}>
               <Typography 
