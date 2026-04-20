@@ -1461,8 +1461,8 @@ export default function MyPage() {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-gray-50 via-white to-blue-50'
     }`}>
-      <div className={`px-3 py-4 sm:px-4 sm:py-6 lg:px-2 ${
-        isMobile ? "max-w-full" : ""
+      <div className={`py-4 sm:py-6 lg:px-2 ${
+        isMobile ? "w-full overflow-x-hidden" : "px-3 sm:px-4"
       }`}>
         {/* Page Header - Modern Design */}
         <div className={`relative overflow-hidden mb-4 sm:mb-6 transition-all duration-300 hover:shadow-xl ${
@@ -1580,7 +1580,7 @@ export default function MyPage() {
 
       {/* Main Content avec barre d'icônes TikTok style */}
       <div className={`flex relative overflow-hidden transition-all duration-500 hover:shadow-2xl ${
-        isMobile ? "rounded-2xl" : "rounded-3xl"
+        isMobile ? "rounded-2xl w-full" : "rounded-3xl"
       } bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 shadow-xl`}>
         <Tab.Group 
           selectedIndex={tabGroupIndex}

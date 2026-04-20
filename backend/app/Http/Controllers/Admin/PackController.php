@@ -374,6 +374,7 @@ class PackController extends Controller
                 'price' => 'required|numeric|min:0',
                 'status' => 'required|boolean',
                 'avantages' => 'required|json',
+                'class_letter' => 'required|string|in:A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z',
                 'duree_publication_en_jour' => 'required|numeric|min:1',
                 'abonnement' => 'required|string|in:mensuel,trimestriel,semestriel,annuel,triennal,quinquennal',
                 'boost_percentage' => 'required|numeric|min:0|max:100',
@@ -395,6 +396,7 @@ class PackController extends Controller
                 'avantages' => json_decode($request->avantages, true),
                 'duree_publication_en_jour' => $validated['duree_publication_en_jour'],
                 'abonnement' => $validated['abonnement'],
+                'class_letter' => $validated['class_letter'],
                 'peux_publier_formation' => $request->boolean('peux_publier_formation'),
                 'boost_percentage' => $validated['boost_percentage'],
             ]);
@@ -471,6 +473,7 @@ class PackController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'status' => 'required|boolean',
+            'class_letter' => 'required|string|in:A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z',
             'avantages' => 'required|json',
             'abonnement' => 'required|string|in:mensuel,trimestriel,semestriel,annuel,triennal,quinquennal',
             'peux_publier_formation' => 'required|boolean',
@@ -496,6 +499,7 @@ class PackController extends Controller
                 'status' => filter_var($request->status, FILTER_VALIDATE_BOOLEAN),
                 'avantages' => $request->avantages,
                 'abonnement' => $request->abonnement,
+                'class_letter' => $request->class_letter,
                 'peux_publier_formation' => filter_var($request->peux_publier_formation, FILTER_VALIDATE_BOOLEAN),
                 'boost_percentage' => $request->boost_percentage,
             ]);

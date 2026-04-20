@@ -119,6 +119,7 @@ const NotificationCenter = lazy(() =>
 import PrefetchManager from "./components/PrefetchManager";
 import ServiceWorkerUpdater from "./components/ServiceWorkerUpdater";
 import AdBlockDetector from "./components/AdBlockDetector";
+import ReferralHandler from "./components/ReferralHandler";
 
 function App() {
   return (
@@ -131,6 +132,7 @@ function App() {
               <ToastContainer />
               <ChatInterface />
               <PrefetchManager />
+              <ReferralHandler />
               {/* <ServiceWorkerUpdater /> */}
               <Routes>
                 {/* Routes publiques */}

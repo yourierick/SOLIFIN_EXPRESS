@@ -453,7 +453,7 @@ const FormationManagement = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
+    <Box>
       <Box
         sx={{
           display: "flex",
@@ -507,29 +507,42 @@ const FormationManagement = () => {
         >
           Gestion des Formations
         </Typography>
+        {/* Bouton pour afficher/masquer les filtres */}
+        <Button
+          variant="outlined"
+          startIcon={<FilterListIcon />}
+          onClick={() => setShowFilters(!showFilters)}
+          sx={{
+            mb: 2,
+            borderRadius: "8px",
+            textTransform: "none",
+            fontWeight: 500,
+            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.23)" : "rgba(0, 0, 0, 0.23)",
+            color: isDarkMode ? "#e0e0e0" : "#333333",
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
+            "&:hover": {
+              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)",
+            },
+            display: { xs: "flex", sm: "flex" },
+            justifyContent: { xs: "center", sm: "flex-start" },
+            minWidth: { xs: "auto", sm: "auto" },
+            ml: "auto",
+          }}
+        >
+          {showFilters ? (
+            <Box sx={{ display: { xs: "none", sm: "block" } }}>
+              Masquer les filtres
+            </Box>
+          ) : (
+            <Box sx={{ display: { xs: "none", sm: "block" } }}>
+              Afficher les filtres
+            </Box>
+          )}
+        </Button>
       </Box>
 
-      {/* Bouton pour afficher/masquer les filtres */}
-      <Button
-        variant="outlined"
-        startIcon={<FilterListIcon />}
-        onClick={() => setShowFilters(!showFilters)}
-        sx={{
-          mb: 2,
-          borderRadius: "8px",
-          textTransform: "none",
-          fontWeight: 500,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.23)" : "rgba(0, 0, 0, 0.23)",
-          color: isDarkMode ? "#e0e0e0" : "#333333",
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
-          "&:hover": {
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
-            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)",
-          },
-        }}
-      >
-        {showFilters ? "Masquer les filtres" : "Afficher les filtres"}
-      </Button>
+      
 
       {/* Filtres et recherche - conditionnel */}
       {showFilters && (

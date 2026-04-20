@@ -1320,7 +1320,7 @@ export default function PublicationValidation() {
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Validation des publications
@@ -1331,10 +1331,11 @@ export default function PublicationValidation() {
         </div>
         <button
           onClick={fetchAllItems}
-          className="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-600 dark:focus:ring-offset-gray-800"
+          className="mt-3 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-600 dark:focus:ring-offset-gray-800 sm:justify-start"
         >
-          <ArrowPathIcon className="h-5 w-5 mr-2" />
-          Actualiser
+          <ArrowPathIcon className="h-5 w-5 mr-2 sm:mr-2" />
+          <span className="sm:hidden">Actualiser</span>
+          <span className="hidden sm:inline">Actualiser</span>
         </button>
       </div>
 

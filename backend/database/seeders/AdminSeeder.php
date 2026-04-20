@@ -15,7 +15,7 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         // Récupérer l'URL du frontend depuis le fichier .env
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url', 'solifinexpress.com');
         
         // Créer l'administrateur
         $admin = User::create([
@@ -76,11 +76,7 @@ class AdminSeeder extends Seeder
                 
                 UserPack::create([
                     'user_id' => $admin->id,
-                    'pack_id' => $pack->id,
-                    'referral_prefix' => 'SPR',
-                    'referral_pack_name' => $pack->name,
-                    'referral_letter' => $referralLetter,
-                    'referral_number' => $referralNumber,
+                    'pack_id' => $pack->id,r,
                     'referral_code' => $referralCode,
                     'link_referral' => $referralLink,
                     'status' => 'active',

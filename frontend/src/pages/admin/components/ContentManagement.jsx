@@ -50,7 +50,7 @@ const ContentManagement = () => {
 
   // Rendu du composant
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ px: { xs: "5px" }, width: "100%" }}>
       <Typography
         variant="h5"
         component="h1"

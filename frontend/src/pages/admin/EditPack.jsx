@@ -32,6 +32,7 @@ export default function EditPack() {
     categorie: "",
     status: true,
     abonnement: "",
+    class_letter: "",
     peux_publier_formation: false,
     boost_percentage: "",
   });
@@ -54,6 +55,7 @@ export default function EditPack() {
         duree_publication_en_jour: pack.duree_publication_en_jour || "",
         status: pack.status === undefined ? true : Boolean(pack.status),
         abonnement: pack.abonnement || "",
+        class_letter: pack.class_letter || "",
         peux_publier_formation:
           pack.peux_publier_formation === undefined
             ? false
@@ -122,6 +124,12 @@ export default function EditPack() {
         toast.error("Le nom du pack est requis");
         return;
       }
+
+      if (!formData.class_letter.trim()) {
+        toast.warning("La classe des codes est requise");
+        return;
+      }
+
       if (!formData.description.trim()) {
         toast.error("La description du pack est requise");
         return;
@@ -161,6 +169,7 @@ export default function EditPack() {
       formDataToSend.append("price", formData.price);
       formDataToSend.append("status", formData.status ? "1" : "0");
       formDataToSend.append("abonnement", formData.abonnement);
+      formDataToSend.append("class_letter", formData.class_letter);
       formDataToSend.append(
         "peux_publier_formation",
         formData.peux_publier_formation ? "1" : "0"
@@ -468,7 +477,52 @@ export default function EditPack() {
                     placeholder="Pourcentage de boost"
                   />
                 </div>
-              </div>
+                <div>
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <TagIcon className="h-4 w-4 mr-2 text-gray-500" />
+                      Classe
+                    </label>
+                    <select
+                      name="class_letter"
+                      value={formData.class_letter}
+                      onChange={handleInputChange}
+                      required
+                      className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 sm:text-sm"
+                    >
+                      <option value="" disabled>
+                        Sélectionnez la classe des codes à générer
+                      </option>
+                      <option {...(formData.class_letter === "A" ? { selected: true } : {})} value="A">Classe A</option>
+                      <option {...(formData.class_letter === "B" ? { selected: true } : {})} value="B">Classe B</option>
+                      <option {...(formData.class_letter === "C" ? { selected: true } : {})} value="C">Classe C</option>
+                      <option {...(formData.class_letter === "D" ? { selected: true } : {})} value="D">Classe D</option>
+                      <option {...(formData.class_letter === "E" ? { selected: true } : {})} value="E">Classe E</option>
+                      <option {...(formData.class_letter === "F" ? { selected: true } : {})} value="F">Classe F</option>
+                      <option {...(formData.class_letter === "G" ? { selected: true } : {})} value="G">Classe G</option>
+                      <option {...(formData.class_letter === "H" ? { selected: true } : {})} value="H">Classe H</option>
+                      <option {...(formData.class_letter === "I" ? { selected: true } : {})} value="I">Classe I</option>
+                      <option {...(formData.class_letter === "J" ? { selected: true } : {})} value="J">Classe J</option>
+                      <option {...(formData.class_letter === "K" ? { selected: true } : {})} value="K">Classe K</option>
+                      <option {...(formData.class_letter === "L" ? { selected: true } : {})} value="L">Classe L</option>
+                      <option {...(formData.class_letter === "M" ? { selected: true } : {})} value="M">Classe M</option>
+                      <option {...(formData.class_letter === "N" ? { selected: true } : {})} value="N">Classe N</option>
+                      <option {...(formData.class_letter === "O" ? { selected: true } : {})} value="O">Classe O</option>
+                      <option {...(formData.class_letter === "P" ? { selected: true } : {})} value="P">Classe P</option>
+                      <option {...(formData.class_letter === "Q" ? { selected: true } : {})} value="Q">Classe Q</option>
+                      <option {...(formData.class_letter === "R" ? { selected: true } : {})} value="R">Classe R</option>
+                      <option {...(formData.class_letter === "S" ? { selected: true } : {})} value="S">Classe S</option>
+                      <option {...(formData.class_letter === "T" ? { selected: true } : {})} value="T">Classe T</option>
+                      <option {...(formData.class_letter === "U" ? { selected: true } : {})} value="U">Classe U</option>
+                      <option {...(formData.class_letter === "V" ? { selected: true } : {})} value="V">Classe V</option>
+                      <option {...(formData.class_letter === "W" ? { selected: true } : {})} value="W">Classe W</option>
+                      <option {...(formData.class_letter === "X" ? { selected: true } : {})} value="X">Classe X</option>
+                      <option {...(formData.class_letter === "Y" ? { selected: true } : {})} value="Y">Classe Y</option>
+                      <option {...(formData.class_letter === "Z" ? { selected: true } : {})} value="Z">Classe Z</option>
+                    </select>
+                  </div>
+                </div>
+</div>
             </div>
 
             {/* Boutons d'action */}

@@ -206,10 +206,6 @@ class User extends Authenticatable implements MustVerifyEmail
                     ->withPivot([
                         'status',
                         'purchase_date',
-                        'referral_prefix',
-                        'referral_pack_name',
-                        'referral_letter',
-                        'referral_number',
                         'referral_code',
                         'link_referral',
                         'sponsor_id',

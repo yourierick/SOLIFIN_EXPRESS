@@ -600,6 +600,16 @@ export default function PurchasePackForm({
   const [localLoading, setLocalLoading] = useState(false);
   const [noSponsorCode, setNoSponsorCode] = useState(false);
 
+  // Effet pour vérifier et récupérer le referral_code du localStorage
+  useEffect(() => {
+    const storedReferralCode = localStorage.getItem('referral_code');
+    if (storedReferralCode) {
+      setReferralCode(storedReferralCode);
+      // Supprimer le referral_code du localStorage après récupération
+      localStorage.removeItem('referral_code');
+    }
+  }, []); // Exécuter une seule fois à l'ouverture du composant
+
   // État pour stocker les frais récupérés à l'ouverture du modal
   const [initialFees, setInitialFees] = useState({
     percentage: 0,
@@ -832,10 +842,6 @@ export default function PurchasePackForm({
         });
         setFeesError(true);
 
-        // La devise est maintenant gérée globalement via useCurrency
-
-        calculateFees();
-
         return 0;
       }
     } catch (error) {
@@ -846,10 +852,6 @@ export default function PurchasePackForm({
         loaded: true,
       });
       setFeesError(true);
-
-      // La devise est maintenant gérée globalement via useCurrency
-
-      calculateFees();
 
       return 0;
     } finally {

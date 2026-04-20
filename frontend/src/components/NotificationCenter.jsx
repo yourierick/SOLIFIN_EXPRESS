@@ -282,8 +282,8 @@ export default function NotificationCenter() {
                   notification.data?.type || "info"
                 );
                 const notificationLink =
-                  notification.data?.link ||
-                  notification.data?.lien ||
+                  // notification.data?.link ||
+                  // notification.data?.lien ||
                   null;
                 const isRead = !!notification.read_at;
 

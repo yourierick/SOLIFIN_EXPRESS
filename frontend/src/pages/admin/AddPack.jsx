@@ -62,6 +62,7 @@ export default function AddPack() {
     peux_publier_formation: false,
     boost_percentage: "",
     status: true,
+    class_letter: "",
   });
 
   const handleInputChange = (e) => {
@@ -105,6 +106,10 @@ export default function AddPack() {
         Notification.warning("La description du pack est requise");
         return;
       }
+      if (!formData.class_letter.trim()) {
+        Notification.warning("La classe des codes est requise");
+        return;
+      }
       if (!formData.price || formData.price <= 0) {
         Notification.warning("Le prix de base en ($) doit être supérieur à 0");
         return;
@@ -143,7 +148,7 @@ export default function AddPack() {
       formDataToSend.append("description", formData.description.trim());
       formDataToSend.append("price", formData.price);
       formDataToSend.append("status", formData.status ? "1" : "0");
-
+      formDataToSend.append("class_letter", formData.class_letter);
       formDataToSend.append(
         "duree_publication_en_jour",
         formData.duree_publication_en_jour
@@ -385,6 +390,51 @@ export default function AddPack() {
                       className="block w-full rounded-lg border-gray-300 pl-8 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 sm:text-sm"
                       placeholder="0.00"
                     />
+                  </div>
+                </div>
+                <div>
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <TagIcon className="h-4 w-4 mr-2 text-gray-500" />
+                      Classe
+                    </label>
+                    <select
+                      name="class_letter"
+                      value={formData.class_letter}
+                      onChange={handleInputChange}
+                      required
+                      className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all duration-200 sm:text-sm"
+                    >
+                      <option value="" disabled>
+                        Sélectionnez la classe des codes à générer
+                      </option>
+                      <option value="A">Classe A</option>
+                      <option value="B">Classe B</option>
+                      <option value="C">Classe C</option>
+                      <option value="D">Classe D</option>
+                      <option value="E">Classe E</option>
+                      <option value="F">Classe F</option>
+                      <option value="G">Classe G</option>
+                      <option value="H">Classe H</option>
+                      <option value="I">Classe I</option>
+                      <option value="J">Classe J</option>
+                      <option value="K">Classe K</option>
+                      <option value="L">Classe L</option>
+                      <option value="M">Classe M</option>
+                      <option value="N">Classe N</option>
+                      <option value="O">Classe O</option>
+                      <option value="P">Classe P</option>
+                      <option value="Q">Classe Q</option>
+                      <option value="R">Classe R</option>
+                      <option value="S">Classe S</option>
+                      <option value="T">Classe T</option>
+                      <option value="U">Classe U</option>
+                      <option value="V">Classe V</option>
+                      <option value="W">Classe W</option>
+                      <option value="X">Classe X</option>
+                      <option value="Y">Classe Y</option>
+                      <option value="Z">Classe Z</option>
+                    </select>
                   </div>
                 </div>
               </div>

@@ -1066,11 +1066,11 @@ export default function AdminDashboardLayout() {
         </div>
 
         <main
-          className={`py-10 flex-1 overflow-y-auto ${
+          className={`py-5 flex-1 overflow-y-auto ${
             isDarkMode ? "bg-gray-900" : "bg-gray-100"
           }`}
         >
-          <div className="px-4 sm:px-6 lg:px-8">
+          <div className="sm:px-6 lg:px-8">
             <Outlet />
           </div>
         </main>

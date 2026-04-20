@@ -1193,28 +1193,11 @@ const Users = () => {
           </div>
         ) : users.length === 0 ? (
           <div className="mt-8 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 p-12 text-center">
-            <div className="flex flex-col items-end justify-center">
+            <div className="flex flex-col items-center justify-center">
               <PersonIcon sx={{ fontSize: 60, color: "#9ca3af" }} />
               <p className="mt-4 text-lg text-gray-500 dark:text-gray-400">
                 Aucun utilisateur trouvé avec les filtres actuels.
               </p>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={() => {
-                  setFilters({
-                    search: "",
-                    status: "",
-                    has_pack: "",
-                    start_date: null,
-                    end_date: null,
-                  });
-                  fetchUsers();
-                }}
-                className="mt-4"
-              >
-                {showFilters ? "Masquer" : "Filtres"}
-              </Button>
             </div>
           </div>
         ) : (

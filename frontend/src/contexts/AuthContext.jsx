@@ -416,6 +416,9 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       isAuthenticatedRef.current = false;
 
+      // Supprimer le referral_code du localStorage à la déconnexion
+      localStorage.removeItem('referral_code');
+
       // Nettoyer les intervalles
       if (authCheckIntervalRef.current) {
         clearInterval(authCheckIntervalRef.current);

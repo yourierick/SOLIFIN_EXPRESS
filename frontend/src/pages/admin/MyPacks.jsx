@@ -61,6 +61,7 @@ import {
   Close as XMarkIcon,
   KeyboardArrowUp as ChevronUpIcon,
   KeyboardArrowDown as ChevronDownIcon,
+  Link as LinkIcon,
 } from "@mui/icons-material";
 import Notification from "../../components/Notification";
 import Tree from "react-d3-tree";
@@ -71,9 +72,11 @@ import { saveAs } from "file-saver";
 import { Link, useNavigate } from "react-router-dom";
 import PackStatsModal from "../../components/PackStatsModal";
 import { Fade } from "@mui/material";
+import { useAuth } from "../../contexts/AuthContext";
 
 const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { user } = useAuth();
 
   const colors = {
     background: isDarkMode
@@ -121,15 +124,71 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
       onMouseLeave={() => setIsHovered(false)}
       style={{ cursor: "pointer" }}
     >
-      {/* Cercle principal */}
-      <circle
-        r={nodeSize}
-        fill={colors.generation[nodeDatum.attributes.generation]}
-        style={{
-          transition: "all 0.3s ease",
-          transform: isHovered ? "scale(1.1)" : "scale(1)",
-        }}
-      />
+      {/* ClipPath pour le cercle */}
+      <defs>
+        <clipPath id={`circle-clip-${nodeDatum.attributes.userId}`}>
+          <circle
+            r={nodeSize}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        </clipPath>
+      </defs>
+
+      {/* Image de profil ou cercle de couleur par défaut */}
+      {(nodeDatum.attributes.generation === 0 || !nodeDatum.attributes.generation) ? (
+        // Premier nôud (utilisateur connecté) - utiliser la photo depuis AuthContext
+        user?.picture ? (
+          <image
+            href={`${user.picture}`}
+            x={-nodeSize}
+            y={-nodeSize}
+            width={nodeSize * 2}
+            height={nodeSize * 2}
+            clipPath={`url(#circle-clip-${nodeDatum.attributes.userId || 'root'})`}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        ) : (
+          <circle
+            r={nodeSize}
+            fill={colors.generation[0]}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        )
+      ) : (
+        // Autres nôuds - utiliser la photo depuis les attributes
+        nodeDatum.attributes.photo ? (
+          <image
+            href={nodeDatum.attributes.photo}
+            x={-nodeSize}
+            y={-nodeSize}
+            width={nodeSize * 2}
+            height={nodeSize * 2}
+            clipPath={`url(#circle-clip-${nodeDatum.attributes.userId})`}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        ) : (
+          <circle
+            r={nodeSize}
+            fill={colors.generation[nodeDatum.attributes.generation]}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        )
+      )}
 
       {/* Tooltip avec animation */}
       <foreignObject
@@ -185,7 +244,17 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode }) => {
               transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
             }}
           >
-            {nodeDatum.attributes.commission}
+            {nodeDatum.attributes.account_id}
+          </div>
+          <div
+            style={{
+              color: colors.tooltip.textSecondary,
+              marginBottom: "4px",
+              transform: isHovered ? "translateY(0)" : "translateY(5px)",
+              transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
+            }}
+          >
+            {nodeDatum.attributes.whatsapp ? nodeDatum.attributes.whatsapp : nodeDatum.attributes.phone}
           </div>
           <div
             style={{
@@ -517,74 +586,76 @@ export default function MyPacks() {
   }, [currentPackReferrals, currentTab]);
 
   const transformDataToTree = (referrals) => {
+    // Récupérer l'ID de l'utilisateur depuis la première génération
+    const currentUserId = referrals[0] && referrals[0][0] ? referrals[0][0].id_parrain : null;
+    
     const rootNode = {
       name: "Vous",
       attributes: {
-        commission: "$0.00",
+        commission: "USD: $0.00",
         status: "active",
         generation: 0,
+        userId: currentUserId
       },
       children: [],
     };
 
-    // Première génération
-    if (referrals[0]) {
-      rootNode.children = referrals[0].map((ref) => ({
-        name: ref.name,
-        attributes: {
-          commission: `$${parseFloat(ref.total_commission).toFixed(2)}`,
-          status: ref.pack_status,
-          generation: 1,
-          userId: ref.id,
-        },
-        children: [],
-      }));
-
-      // Générations 2 à 4
-      for (let gen = 2; gen <= 4; gen++) {
-        if (referrals[gen - 1]) {
-          const currentGenRefs = referrals[gen - 1];
-
-          // Fonction récursive pour trouver le nœud parent
-          const findParentNode = (nodes, sponsorId) => {
-            for (let node of nodes) {
-              if (node.attributes.userId === sponsorId) {
-                return node;
-              }
-              if (node.children) {
-                const found = findParentNode(node.children, sponsorId);
-                if (found) return found;
-              }
-            }
-            return null;
-          };
-
-          // Ajouter chaque filleul à son parent
-          currentGenRefs.forEach((ref) => {
-            const parentNode = findParentNode(
-              rootNode.children,
-              ref.id_parrain
-            );
-            if (parentNode) {
-              if (!parentNode.children) parentNode.children = [];
-              parentNode.children.push({
-                name: ref.name,
-                attributes: {
-                  commission: `$${parseFloat(ref.total_commission || 0).toFixed(2)}`,
-                  status: ref.pack_status,
-                  generation: gen,
-                  userId: ref.id,
-                  sponsorId: ref.id_parrain,
-                  sponsorName: ref.nom_parrain,
-                },
-                children: [],
-              });
-            }
-          });
-        }
-      }
+    if (!currentUserId) {
+      console.log('Impossible de déterminer l\'ID de l\'utilisateur');
+      return rootNode;
     }
 
+    // Construire une map des nœuds pour un accès rapide
+    const nodeMap = new Map();
+    nodeMap.set('root', rootNode);
+    nodeMap.set(currentUserId, rootNode); // Mapper l'ID de l'utilisateur à la racine
+
+    // Fonction pour créer un nœud à partir d'un referral
+    const createNode = (ref, generation) => ({
+      name: ref.name,
+      attributes: {
+        commission: `$${parseFloat(ref.total_commission || 0).toFixed(2)}`,
+        status: ref.pack_status,
+        generation: generation,
+        userId: ref.id,
+        referral_code: ref.referral_code,
+        account_id: ref.account_id,
+        photo: ref.photo,
+        phone: ref.phone,
+        whatsapp: ref.whatsapp,
+        sponsorId: ref.id_parrain,
+        sponsorName: ref.nom_parrain,
+      },
+      children: [],
+    });
+
+    // Première génération : enfants directs de "Vous"
+    if (referrals[0]) {
+      referrals[0].forEach((ref) => {
+        const childNode = createNode(ref, 1);
+        rootNode.children.push(childNode);
+        nodeMap.set(ref.id, childNode);
+      });
+    }
+
+    // Générations 2 à 4 : attacher les enfants aux bons parents
+    for (let gen = 2; gen <= 4; gen++) {
+      if (!referrals[gen - 1]) continue;
+      
+      referrals[gen - 1].forEach((ref) => {
+        // Chercher le parent par sponsor_id dans la map des nœuds
+        const parentNode = nodeMap.get(ref.id_parrain);
+        
+        if (parentNode) {
+          const childNode = createNode(ref, gen);
+          parentNode.children.push(childNode);
+          nodeMap.set(ref.id, childNode);
+        } else {
+          console.log(`Parent non trouvé pour ${ref.name} (sponsor_id: ${ref.id_parrain})`);
+          console.log('Nœuds disponibles:', Array.from(nodeMap.keys()));
+        }
+      });
+    }
     return rootNode;
   };
 
@@ -948,6 +1019,82 @@ export default function MyPacks() {
                         </IconButton>
                       </Tooltip>
                     </Box>
+
+                    {/* Lien de parrainage */}
+                    {userPack.link_referral && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          p: 2,
+                          borderRadius: "8px",
+                          background: isDarkMode
+                            ? "rgba(34, 197, 94, 0.05)"
+                            : "rgba(34, 197, 94, 0.02)",
+                          border: `1px solid ${isDarkMode ? "rgba(34, 197, 94, 0.1)" : "rgba(34, 197, 94, 0.08)"}`,
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0 }}>
+                          <Box
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "6px",
+                              background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <LinkIcon sx={{ fontSize: '16px', color: "#ffffff" }} />
+                          </Box>
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: isDarkMode ? "#64748b" : "#6b7280",
+                                fontWeight: 600,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                fontSize: "0.7rem",
+                                display: "block",
+                              }}
+                            >
+                              Lien
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                color: isDarkMode ? "#f1f5f9" : "#1e293b",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              {userPack.link_referral}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Tooltip title="Copier le lien">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleCopy(userPack.link_referral)}
+                            sx={{
+                              color: isDarkMode ? "#22c55e" : "#16a34a",
+                              "&:hover": {
+                                background: isDarkMode ? "rgba(34, 197, 94, 0.1)" : "rgba(22, 163, 74, 0.05)",
+                              },
+                            }}
+                          >
+                            <DocumentDuplicateIcon sx={{ fontSize: '16px' }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    )}
 
                     {/* Date d'expiration */}
                     {userPack.expiry_date && (

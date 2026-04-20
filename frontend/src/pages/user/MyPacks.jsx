@@ -68,6 +68,7 @@ import {
   Tune as AdjustmentsHorizontalIcon,
   Warning as ExclamationTriangleIcon,
   Schedule as ClockIcon,
+  Link as LinkIcon,
 } from "@mui/icons-material";
 import {
   Fullscreen,
@@ -88,9 +89,11 @@ import PackStatsModal from "../../components/PackStatsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { KeyboardArrowUp as ChevronUpIcon, KeyboardArrowDown as ChevronDownIcon } from "@mui/icons-material";
+import { useAuth } from "../../contexts/AuthContext";
 
 const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { user } = useAuth();
 
   const colors = {
     background: isDarkMode
@@ -138,15 +141,71 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => 
       onMouseLeave={() => setIsHovered(false)}
       style={{ cursor: "pointer" }}
     >
-      {/* Cercle principal */}
-      <circle
-        r={nodeSize}
-        fill={colors.generation[nodeDatum.attributes.generation]}
-        style={{
-          transition: "all 0.3s ease",
-          transform: isHovered ? "scale(1.1)" : "scale(1)",
-        }}
-      />
+      {/* ClipPath pour le cercle */}
+      <defs>
+        <clipPath id={`circle-clip-${nodeDatum.attributes.userId}`}>
+          <circle
+            r={nodeSize}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        </clipPath>
+      </defs>
+
+      {/* Image de profil ou cercle de couleur par défaut */}
+      {(nodeDatum.attributes.generation === 0 || !nodeDatum.attributes.generation) ? (
+        // Premier nôud (utilisateur connecté) - utiliser la photo depuis AuthContext
+        user?.picture ? (
+          <image
+            href={`${user.picture}`}
+            x={-nodeSize}
+            y={-nodeSize}
+            width={nodeSize * 2}
+            height={nodeSize * 2}
+            clipPath={`url(#circle-clip-${nodeDatum.attributes.userId || 'root'})`}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        ) : (
+          <circle
+            r={nodeSize}
+            fill={colors.generation[0]}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        )
+      ) : (
+        // Autres nôuds - utiliser la photo depuis les attributes
+        nodeDatum.attributes.photo ? (
+          <image
+            href={nodeDatum.attributes.photo}
+            x={-nodeSize}
+            y={-nodeSize}
+            width={nodeSize * 2}
+            height={nodeSize * 2}
+            clipPath={`url(#circle-clip-${nodeDatum.attributes.userId})`}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        ) : (
+          <circle
+            r={nodeSize}
+            fill={colors.generation[nodeDatum.attributes.generation]}
+            style={{
+              transition: "all 0.3s ease",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+            }}
+          />
+        )
+      )}
 
       {/* Tooltip avec animation */}
       <foreignObject
@@ -202,7 +261,17 @@ const CustomNode = ({ nodeDatum, isDarkMode, toggleNode, selectedCurrency }) => 
               transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
             }}
           >
-            {nodeDatum.attributes.commission}
+            {nodeDatum.attributes.account_id}
+          </div>
+          <div
+            style={{
+              color: colors.tooltip.textSecondary,
+              marginBottom: "4px",
+              transform: isHovered ? "translateY(0)" : "translateY(5px)",
+              transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s",
+            }}
+          >
+            {nodeDatum.attributes.whatsapp ? nodeDatum.attributes.whatsapp : nodeDatum.attributes.phone}
           </div>
           <div
             style={{
@@ -739,7 +808,7 @@ export default function MyPacks() {
         commission: "USD: $0.00",
         status: "active",
         generation: 0,
-        userId: currentUserId,
+        userId: currentUserId
       },
       children: [],
     };
@@ -762,6 +831,11 @@ export default function MyPacks() {
         status: ref.pack_status,
         generation: generation,
         userId: ref.id,
+        referral_code: ref.referral_code,
+        account_id: ref.account_id,
+        photo: ref.photo,
+        phone: ref.phone,
+        whatsapp: ref.whatsapp,
         sponsorId: ref.id_parrain,
         sponsorName: ref.nom_parrain,
       },
@@ -1377,6 +1451,62 @@ export default function MyPacks() {
                             </IconButton>
                           </Tooltip>
                         </Box>
+
+                        {/* Lien de parrainage */}
+                        {userPack.link_referral && (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Box
+                              sx={{
+                                borderRadius: "50%",
+                                border: `1px solid ${isDarkMode ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.2)"}`,
+                                background: isDarkMode ? "rgba(34, 197, 94, 0.2)" : "rgba(34, 197, 94, 0.1)",
+                                p: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <LinkIcon sx={{ fontSize: "1rem", color: "#22c55e" }} />
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: isDarkMode ? "#cbd5e1" : "#475569",
+                                  fontWeight: 400,
+                                  fontSize: "0.8rem",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                <Box component="span" sx={{ fontWeight: 600, display: "block", marginBottom: "2px" }}>
+                                  Lien de parrainage
+                                </Box>
+                                <Box component="span" sx={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                                  {userPack.link_referral}
+                                </Box>
+                              </Typography>
+                            </Box>
+                            <Tooltip title="Copier le lien">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCopy(userPack.link_referral)}
+                                sx={{
+                                  color: isDarkMode ? "#22c55e" : "#16a34a",
+                                  flexShrink: 0,
+                                  "&:hover": {
+                                    background: isDarkMode ? "rgba(34, 197, 94, 0.1)" : "rgba(22, 163, 74, 0.05)",
+                                  },
+                                }}
+                              >
+                                <ContentCopy fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        )}
 
                         {/* Date d'expiration */}
                         {userPack.expiry_date && (

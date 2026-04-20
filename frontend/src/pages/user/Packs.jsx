@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useChat } from "../../contexts/ChatContext";
 import { useCurrency } from "../../contexts/CurrencyContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -28,6 +29,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SpeedIcon from "@mui/icons-material/Speed";
 import { useToast } from "../../contexts/ToastContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -165,6 +167,7 @@ const FeaturedBadge = styled(Chip)(({ theme }) => ({
 }));
 
 const Packs = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { isDarkMode } = useTheme();
   const theme = useMuiTheme();
@@ -320,6 +323,33 @@ const Packs = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      {/* Bouton de retour vers mes packs */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="text"
+          startIcon={<ArrowBackIcon sx={{ fontSize: '1rem' }} />}
+          onClick={() => navigate('/dashboard/packs/:id')}
+          sx={{
+            textTransform: "none",
+            fontWeight: 400,
+            fontSize: "0.875rem",
+            px: 1,
+            py: 0.5,
+            color: isDarkMode ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
+            minWidth: "auto",
+            "&:hover": {
+              color: isDarkMode ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.6)",
+              backgroundColor: "transparent",
+            },
+            "& .MuiButton-startIcon": {
+              marginRight: "6px",
+            },
+          }}
+        >
+          Retour
+        </Button>
+      </Box>
+      
       <Grid container spacing={4} alignItems="stretch">
         {packs.map((pack, index) => (
           <Zoom
