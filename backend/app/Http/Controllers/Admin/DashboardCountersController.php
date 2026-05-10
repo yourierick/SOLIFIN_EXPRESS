@@ -35,6 +35,7 @@ class DashboardCountersController extends Controller
                 'business_opportunities' => $this->getPendingBusinessOpportunitiesCount(),
                 'testimonials' => $this->getPendingTestimonialsCount(),
                 'pending_anomalies' => $this->getPendingAnomaliesCount(),
+                'pending_reports' => $this->getPendingReportsCount(),
             ];
 
             return response()->json([
@@ -180,6 +181,21 @@ class DashboardCountersController extends Controller
             return \App\Models\FinancialAuditLog::where('status', 'pending')->count();
         } catch (\Exception $e) {
             \Log::error('Erreur comptage anomalies financières: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Compter le nombre de signalements en attente
+     *
+     * @return int
+     */
+    private function getPendingReportsCount(): int
+    {
+        try {
+            return \App\Models\Report::where('status', 'pending')->count();
+        } catch (\Exception $e) {
+            \Log::error('Erreur comptage signalements: ' . $e->getMessage());
             return 0;
         }
     }

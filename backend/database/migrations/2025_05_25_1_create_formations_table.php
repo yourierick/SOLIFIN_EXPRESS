@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('formations', function (Blueprint $table) {
             $table->id();
+            $table->string('pub_reference')->nullable();
             $table->string('title');
             $table->string('category');
             $table->text('description');

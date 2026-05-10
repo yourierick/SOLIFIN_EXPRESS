@@ -259,7 +259,6 @@
         <div class="footer">
             <div class="footer-info">
                 <strong>SOLIFIN</strong> - Solution Express Pour l'Indépendance Financière<br>
-                123 Commune de la Gombe, Kinshasa, RD Congo<br>
                 solifin2025@yahoo.com | +243 81 82 92 210
             </div>
             

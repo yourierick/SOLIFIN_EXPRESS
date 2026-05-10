@@ -249,6 +249,7 @@ class SerdiPayService
                     'amount' => $amount,
                     'currency' => $currency,
                     'session_id' => $responseData['payment']['sessionId'],
+                    'transaction_id' => $responseData['payment']['transactionId'],
                     'reference' => $reference,
                     'type' => 'payment',
                     'direction' => 'client_to_merchant',
@@ -358,7 +359,7 @@ class SerdiPayService
     public function handleCallback($callbackData)
     {
         try {
-            Log::info('SerdiPay callback processing', $callbackData);
+            \Log::info('SerdiPay callback processing', $callbackData);
             
             $status = $callbackData['payment']['status'] ?? null;
             if ($status === 'failed') {
@@ -647,6 +648,7 @@ class SerdiPayService
                     'amount' => $amount,
                     'currency' => $currency,
                     'session_id' => $responseData['payment']['sessionId'],
+                    'transaction_id' => $responseData['payment']['transactionId'],
                     'reference' => $reference,
                     'type' => 'withdrawal',
                     'direction' => 'merchant_to_client',

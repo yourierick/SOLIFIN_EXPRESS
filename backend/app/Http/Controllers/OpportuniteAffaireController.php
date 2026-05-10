@@ -11,6 +11,7 @@ use App\Models\PageAbonnes;
 use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
 use Illuminate\Http\Request;
+use App\Services\CodeGenerationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -90,105 +91,102 @@ class OpportuniteAffaireController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'type' => 'required|in:opportunité,appel_projet,partenariat',
-            'titre' => 'required|string|max:255',
-            'reference' => 'required|string|max:255',
-            'secteur' => 'required|string|max:255',
-            'pays' => 'required|string|max:255',
-            'ville' => 'required|string|max:255',
-            'description' => 'required|string',
-            'contacts' => 'required|string',
-            'email' => 'nullable|email',
-            'opportunity_file' => 'nullable|file|mimes:pdf|max:5000', // 5MB max
-            'lien' => 'nullable|url',
-            'conditions_participation' => 'nullable|string',
-            'date_limite' => 'nullable|date',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = Auth::user();
-        
-        // Vérifier si l'utilisateur a un pack de publication actif
-        $packActif = false;
-        if ($user->pack_de_publication_id) {
-            $userPack = \App\Models\UserPack::where('user_id', $user->id)
-                ->where('pack_id', $user->pack_de_publication_id)
-                ->where('status', 'active')
-                ->first();
-            $packActif = (bool) $userPack;
-        }
-        
-        if (!$packActif) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Votre pack de publication n\'est pas actif. Veuillez le réactiver pour publier.'
-            ], 403);
-        }
-        
-        // Récupérer ou créer la page de l'utilisateur
-        $page = $user->page;
-        if (!$page) {
-            $page = Page::create([
-                'user_id' => $user->id,
-                'nombre_abonnes' => 0,
-                'nombre_likes' => 0
+        try {
+            $validator = Validator::make($request->all(), [
+                'type' => 'required|in:opportunité,appel_projet,partenariat',
+                'titre' => 'required|string|max:255',
+                'reference' => 'required|string|max:255',
+                'secteur' => 'required|string|max:255',
+                'pays' => 'required|string|max:255',
+                'ville' => 'required|string|max:255',
+                'description' => 'required|string',
+                'contacts' => 'required|string',
+                'email' => 'nullable|email',
+                'opportunity_file' => 'nullable|file|mimes:pdf|max:5000', // 5MB max
+                'lien' => 'nullable|url',
+                'conditions_participation' => 'nullable|string',
+                'date_limite' => 'nullable|date',
             ]);
-        }
 
-        $data = $request->except(['image', 'opportunity_file']);
-        $data['page_id'] = $page->id;
-        $data['statut'] = 'pending';
-        $data['etat'] = 'available';
-
-        // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
-        if ($user->pack_de_publication) {
-            $data['duree_affichage'] = $user->pack_de_publication->duree_publication_en_jour;
-        } else {
-            // Valeur par défaut si le pack n'est pas disponible
-            $data['duree_affichage'] = 1; // 1 jour par défaut
-        }
-
-        // Traitement du fichier PDF
-        if ($request->hasFile('opportunity_file')) {
-            $path = $request->file('opportunity_file')->store('opportunites/files', 'public');
-            $data['opportunity_file'] = $path;
-        }
-        
-        $opportunite = OpportuniteAffaire::create($data);
-        $now = Carbon::now();
-        $opportunite->expiry_date = $now->addDays($data['duree_affichage']);
-        $opportunite->save();
-
-        // Créer une notification pour les administrateurs avec la permission manage-content
-        $admins = \App\Models\User::where('is_admin', true)->get();
-        foreach ($admins as $admin) {
-            if ($admin->hasPermission('manage-content')) {
-                $admin->notify(new \App\Notifications\PublicationSubmitted([
-                    'type' => [
-                        'partenariat' => 'Opportunité de partenariat',
-                        'appel_projet' => 'Appel à projet',
-                    ][$opportunite->type] ?? 'Opportunité d\'affaire',
-                    'id' => $opportunite->id,
-                    'titre' => "Opportunité d'affaire, Secteur: " . $opportunite->secteur,
-                    'message' => 'est en attente d\'approbation.',
-                    'user_id' => $user->id,
-                    'user_name' => $user->name
-                ]));
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
+
+            $user = Auth::user();
+            
+            // Vérifier si l'utilisateur a un pack de publication actif
+            $packActif = false;
+            if ($user->pack_de_publication_id) {
+                $userPack = \App\Models\UserPack::where('user_id', $user->id)
+                    ->where('pack_id', $user->pack_de_publication_id)
+                    ->where('status', 'active')
+                    ->first();
+                $packActif = (bool) $userPack;
+            }
+            
+            if (!$packActif) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre pack de publication n\'est pas actif. Veuillez le réactiver pour publier.'
+                ], 403);
+            }
+            
+            DB::beginTransaction();
+            // Récupérer ou créer la page de l'utilisateur
+            $page = $user->page;
+            if (!$page) {
+                $page = Page::create([
+                    'user_id' => $user->id,
+                    'nombre_abonnes' => 0,
+                    'nombre_likes' => 0
+                ]);
+            }
+
+            $data = $request->except(['image', 'opportunity_file']);
+            $data['page_id'] = $page->id;
+            $data['statut'] = 'approved';
+            $data['etat'] = 'available';
+
+            // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
+            if ($user->pack_de_publication) {
+                $data['duree_affichage'] = $user->pack_de_publication->duree_publication_en_jour;
+            } else {
+                // Valeur par défaut si le pack n'est pas disponible
+                $data['duree_affichage'] = 1; // 1 jour par défaut
+            }
+
+            // Traitement du fichier PDF
+            if ($request->hasFile('opportunity_file')) {
+                $path = $request->file('opportunity_file')->store('opportunites/files', 'public');
+                $data['opportunity_file'] = $path;
+            }
+            
+            $opportunite = OpportuniteAffaire::create($data);
+            $now = Carbon::now();
+            $opportunite->expiry_date = $now->addDays($data['duree_affichage']);
+            // Générer une référence unique pour l'offre d'emploi
+            $codeGenerationService = new CodeGenerationService();
+            $opportunite->pub_reference = $codeGenerationService->generateUniquePubId($opportunite->id, 'OPA');
+            $opportunite->save();
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Opportunité d\'affaire créée avec succès. Elle est en attente de validation.',
+                'opportunite' => $opportunite
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la création de l\'opportunité d\'affaire: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur s\'est produite lors de la création de l\'opportunité d\'affaire'
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Opportunité d\'affaire créée avec succès. Elle est en attente de validation.',
-            'opportunite' => $opportunite
-        ], 201);
     }
 
     /**
@@ -223,75 +221,81 @@ class OpportuniteAffaireController extends Controller
      */
     public function update(Request $request, $id)
     {
-        \Log::info($request->file('opportunity_file'));
-        $opportunite = OpportuniteAffaire::findOrFail($id);
-        $user = Auth::user();
-        
-        // Vérifier si l'utilisateur est autorisé
-        if (!$user->is_admin && $opportunite->page->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à modifier cette opportunité d\'affaire.'
-            ], 403);
-        }
+        try {
+            $opportunite = OpportuniteAffaire::findOrFail($id);
+            $user = Auth::user();
+            
+            // Vérifier si l'utilisateur est autorisé
+            if (!$user->is_admin && $opportunite->page->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous n\'êtes pas autorisé à modifier cette opportunité d\'affaire.'
+                ], 403);
+            }
 
-        $validator = Validator::make($request->all(), [
-            'entreprise' => 'nullable|string|max:255',
-            'type' => 'nullable|in:opportunité,appel_projet,partenariat',
-            'titre' => 'nullable|string|max:255',
-            'reference' => 'nullable|string|max:255',
-            'secteur' => 'nullable|string|max:255',
-            'pays' => 'nullable|string|max:255',
-            'ville' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'contacts' => 'nullable|string',
-            'email' => 'nullable|email',
-            'opportunity_file' => 'nullable|file|mimes:pdf|max:5000', // 5MB max
-            'lien' => 'nullable|url',
-            'conditions_participation' => 'nullable|string',
-            'date_limite' => 'nullable|date',
-            'statut' => 'nullable|in:pending,approved,rejected,expired',
-            'etat' => 'nullable|in:available,unavailable',
-        ]);
+            $validator = Validator::make($request->all(), [
+                'entreprise' => 'nullable|string|max:255',
+                'type' => 'nullable|in:opportunité,appel_projet,partenariat',
+                'titre' => 'nullable|string|max:255',
+                'reference' => 'nullable|string|max:255',
+                'secteur' => 'nullable|string|max:255',
+                'pays' => 'nullable|string|max:255',
+                'ville' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'contacts' => 'nullable|string',
+                'email' => 'nullable|email',
+                'opportunity_file' => 'nullable|file|mimes:pdf|max:5000', // 5MB max
+                'lien' => 'nullable|url',
+                'conditions_participation' => 'nullable|string',
+                'date_limite' => 'nullable|date',
+                'statut' => 'nullable|in:pending,approved,rejected,expired',
+                'etat' => 'nullable|in:available,unavailable',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
-        $data = $request->except(['image', 'opportunity_file']);
-        
-        // Si l'utilisateur n'est pas admin, l'opportunité revient en attente
-        if (!$user->is_admin) {
-            $data['statut'] = 'pending';
-        }
+            $data = $request->except(['image', 'opportunity_file']);
 
-        // Traitement du fichier PDF
-        if ($request->hasFile('opportunity_file')) {
-            // Supprimer l'ancien fichier PDF si elle existe
-            if ($opportunite->opportunity_file) {
-                Storage::disk('public')->delete($opportunite->opportunity_file);
+            DB::beginTransaction();
+            // Traitement du fichier PDF
+            if ($request->hasFile('opportunity_file')) {
+                // Supprimer l'ancien fichier PDF si elle existe
+                if ($opportunite->opportunity_file) {
+                    Storage::disk('public')->delete($opportunite->opportunity_file);
+                }
+                
+                $path = $request->file('opportunity_file')->store('opportunites/files', 'public');
+                $data['opportunity_file'] = $path;
+            } else if ($request->has('remove_opportunity_file') && $request->input('remove_opportunity_file') == '1') {
+                // Supprimer le fichier PDF sans le remplacer
+                if ($opportunite->opportunity_file) {
+                    Storage::disk('public')->delete($opportunite->opportunity_file);
+                    $data['opportunity_file'] = null;
+                }
             }
             
-            $path = $request->file('opportunity_file')->store('opportunites/files', 'public');
-            $data['opportunity_file'] = $path;
-        } else if ($request->has('remove_opportunity_file') && $request->input('remove_opportunity_file') == '1') {
-            // Supprimer le fichier PDF sans le remplacer
-            if ($opportunite->opportunity_file) {
-                Storage::disk('public')->delete($opportunite->opportunity_file);
-                $data['opportunity_file'] = null;
-            }
+            $data['lien'] = $request->lien;
+            $opportunite->update($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Opportunité d\'affaire mise à jour avec succès.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la mise à jour de l\'opportunité d\'affaire: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur s\'est produite lors de la mise à jour de l\'opportunité d\'affaire'
+            ], 500);
         }
-        
-        $data['lien'] = $request->lien;
-        $opportunite->update($data);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Opportunité d\'affaire mise à jour avec succès.',
-        ]);
     }
 
     /**

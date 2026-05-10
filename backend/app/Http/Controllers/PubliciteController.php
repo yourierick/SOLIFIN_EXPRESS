@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Publicite;
 use App\Models\PubliciteLike;
+use App\Http\Controllers\LivreurController;
 use App\Models\PubliciteComment;
 use App\Models\PubliciteShare;
 use App\Models\PageAbonnes;
@@ -11,6 +12,7 @@ use App\Models\Page;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\CodeGenerationService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\TransactionFee;
@@ -156,6 +158,7 @@ class PubliciteController extends Controller
                 ], 403);
             }
             
+            DB::beginTransaction();
             // Récupérer ou créer la page de l'utilisateur
             $page = $user->page;
             if (!$page) {
@@ -177,7 +180,7 @@ class PubliciteController extends Controller
             // Utiliser $requestData pour la suite
             $data = $requestData;
             $data['page_id'] = $page->id;
-            $data['statut'] = 'pending';
+            $data['statut'] = 'approved';
             $data['etat'] = 'available';
             
             // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
@@ -202,21 +205,16 @@ class PubliciteController extends Controller
             $publicite = Publicite::create($data);
             $now = Carbon::now();
             $publicite->expiry_date = $now->addDays($data['duree_affichage']);
+            // Générer une référence unique pour l'offre d'emploi
+            $codeGenerationService = new CodeGenerationService();
+            $publicite->pub_reference = $codeGenerationService->generateUniquePubId($publicite->id, 'PUB');
             $publicite->save();
+            
+            DB::commit();
 
-            // Créer une notification pour les administrateurs avec la permission manage-content
-            $admins = \App\Models\User::where('is_admin', true)->get();
-            foreach ($admins as $admin) {
-                if ($admin->hasPermission('manage-content')) {
-                    $admin->notify(new \App\Notifications\PublicationSubmitted([
-                        'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
-                        'id' => $publicite->id,
-                        'titre' => "Publicité, titre: " . $publicite->titre,
-                        'message' => 'est en attente d\'approbation.',
-                        'user_id' => $user->id,
-                        'user_name' => $user->name
-                    ]));
-                }
+            // Si la publicité a besoin de livreurs, notifier les livreurs approuvés
+            if ($publicite->besoin_livreurs === 'oui') {
+                LivreurController::notifierLivreurs($publicite);
             }
             
             return response()->json([
@@ -225,6 +223,7 @@ class PubliciteController extends Controller
                 'publicite' => $publicite
             ], 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::info($e->getTraceAsString());
             return response()->json([
                 'success' => false,
@@ -271,8 +270,6 @@ class PubliciteController extends Controller
     public function update(Request $request, $id)
     {
         $data = $request->all();
-
-        \Log::info($data);
         
         // Traitement du champ conditions_livraison
         if (isset($data['conditions_livraison'])) {
@@ -311,14 +308,6 @@ class PubliciteController extends Controller
         try {
             $publicite = Publicite::findOrFail($id);
             $user = Auth::user();
-            
-            // Vérifier si l'utilisateur est autorisé
-            // if (!$user->is_admin && $publicite->page->user_id !== $user->id) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Vous n\'êtes pas autorisé à modifier cette publicité.'
-            //     ], 403);
-            // }
 
             $validator = Validator::make($request->all(), [
                 'pays' => 'nullable|string|max:255',
@@ -345,9 +334,7 @@ class PubliciteController extends Controller
                 'lien' => 'nullable|url',
             ]);
             
-            \Log::info($request->all());
             if ($validator->fails()) {
-                \Log::error($validator->errors());
                 return response()->json([
                     'success' => false,
                     'errors' => $validator->errors()
@@ -356,11 +343,7 @@ class PubliciteController extends Controller
 
             $data = $request->except(['image', 'video']);
             
-            // Si l'utilisateur n'est pas admin, la publicité revient en attente
-            if (!$user->is_admin) {
-                $data['statut'] = 'pending';
-            }
-            
+            DB::beginTransaction();
             // Traitement des fichiers
             if ($request->hasFile('image')) {
                 // Supprimer l'ancienne image si elle existe
@@ -396,12 +379,15 @@ class PubliciteController extends Controller
             
             $publicite->update($data);
             
+            DB::commit();
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Publicité mise à jour avec succès.',
                 'publicite' => $publicite
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => "une erreur s'est produite lors de la mise à jour des données"

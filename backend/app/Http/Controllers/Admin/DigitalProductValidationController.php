@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class DigitalProductValidationController extends Controller
 {
@@ -84,25 +85,30 @@ class DigitalProductValidationController extends Controller
      */
     public function approve($id)
     {
-        $product = DigitalProduct::with('page.user')->findOrFail($id);
-        $product->statut = 'approved';
-        $product->raison_rejet = null;
-        $product->save();
-        
-        // Notifier l'utilisateur que son produit numérique a été approuvé
-        $user = $product->page->user;
-        $user->notify(new PublicationStatusChanged([
-            'type' => 'produit_numerique',
-            'id' => $product->id,
-            'titre' => $product->titre,
-            'statut' => 'approved',
-            'message' => 'Votre produit numérique "' . $product->titre . '" a été approuvé et est maintenant disponible à la vente.'
-        ]));
+        try {
+            $product = DigitalProduct::with('page.user')->findOrFail($id);
+            $product->statut = 'approved';
+            $product->raison_rejet = null;
+            $product->save();
+            
+            // Notifier l'utilisateur que son produit numérique a été approuvé
+            $user = $product->page->user;
+            $user->notify(new PublicationStatusChanged([
+                'type' => 'produit_numerique',
+                'id' => $product->id,
+                'titre' => $product->titre,
+                'statut' => 'approved',
+                'message' => 'Votre produit numérique "' . $product->titre . '" a été approuvé et est maintenant disponible à la vente.'
+            ]));
 
-        return response()->json([
-            'message' => 'Produit numérique approuvé avec succès',
-            'product' => $product
-        ]);
+            return response()->json([
+                'message' => 'Produit numérique approuvé avec succès',
+                'product' => $product
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de l\'approbation du produit numérique', 'error' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -114,34 +120,39 @@ class DigitalProductValidationController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'raison_rejet' => 'required|string',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'raison_rejet' => 'required|string',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $product = DigitalProduct::with('page.user')->findOrFail($id);
+            $product->statut = 'rejected';
+            $product->raison_rejet = $request->raison_rejet;
+            $product->save();
+            
+            // Notifier l'utilisateur que son produit numérique a été rejeté
+            $user = $product->page->user;
+            $user->notify(new PublicationStatusChanged([
+                'type' => 'produit_numerique',
+                'id' => $product->id,
+                'titre' => $product->titre,
+                'statut' => 'rejected',
+                'raison' => $request->raison_rejet,
+                'message' => 'Votre produit numérique "' . $product->titre . '" a été rejeté.'
+            ]));
+
+            return response()->json([
+                'message' => 'Produit numérique rejeté avec succès',
+                'product' => $product
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors du rejet du produit numérique', 'error' => $e->getMessage()], 500);
         }
-
-        $product = DigitalProduct::with('page.user')->findOrFail($id);
-        $product->statut = 'rejected';
-        $product->raison_rejet = $request->raison_rejet;
-        $product->save();
-        
-        // Notifier l'utilisateur que son produit numérique a été rejeté
-        $user = $product->page->user;
-        $user->notify(new PublicationStatusChanged([
-            'type' => 'produit_numerique',
-            'id' => $product->id,
-            'titre' => $product->titre,
-            'statut' => 'rejected',
-            'raison' => $request->raison_rejet,
-            'message' => 'Votre produit numérique "' . $product->titre . '" a été rejeté.'
-        ]));
-
-        return response()->json([
-            'message' => 'Produit numérique rejeté avec succès',
-            'product' => $product
-        ]);
     }
 
      /**

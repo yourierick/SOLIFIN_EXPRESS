@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('digital_products', function (Blueprint $table) {
             $table->id();
             $table->foreignId('page_id')->constrained('pages')->onDelete('cascade');
+            $table->string('pub_reference')->nullable();
             $table->string('titre');
             $table->text('description');
             $table->enum('type', ['ebook', 'fichier_admin']);

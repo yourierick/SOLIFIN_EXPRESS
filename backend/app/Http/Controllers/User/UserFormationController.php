@@ -10,6 +10,7 @@ use App\Models\FormationPurchase;
 use App\Models\ExchangeRates;
 use App\Models\UserFormationProgress;
 use App\Models\UserModuleProgress;
+use App\Services\CodeGenerationService;
 use App\Models\Wallet;
 use App\Models\WalletSystem;
 use Illuminate\Http\Request;
@@ -328,48 +329,66 @@ class UserFormationController extends Controller
      */
     public function store(Request $request)
     {
-        $user = Auth::user();
-        
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|max:255',
-            'description' => 'required|string',
-            'thumbnail' => 'nullable|image|max:2048', // Max 2MB
-            'is_paid' => 'required',
-            'price' => 'required_if:is_paid,true|nullable|numeric|min:0',
-        ]);
-        
-        if ($validator->fails()) {
+        try {
+            $user = Auth::user();
+            
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'category' => 'required|string|max:255',
+                'description' => 'required|string',
+                'thumbnail' => 'nullable|image|max:2048', // Max 2MB
+                'is_paid' => 'required',
+                'price' => 'required_if:is_paid,true|nullable|numeric|min:0',
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            DB::beginTransaction();
+            
+            // Traitement de l'image de couverture
+            $thumbnailPath = null;
+            if ($request->hasFile('thumbnail')) {
+                $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
+            }
+            
+            // Création de la formation
+            $formation = Formation::create([
+                'title' => $request->title,
+                'category' => $request->category,
+                'description' => $request->description,
+                'thumbnail' => $thumbnailPath ? asset('storage/' . $thumbnailPath) : null,
+                'status' => 'draft', // Les formations créées par les utilisateurs doivent être validées
+                'type' => 'user',
+                'created_by' => $user->id,
+                'is_paid' => $request->is_paid === "true" ? 1:0,
+                'price' => $request->is_paid === "true" ? $request->price : null,
+            ]);
+
+            // Générer une référence unique pour l'offre d'emploi
+            $codeGenerationService = new CodeGenerationService();
+            $formation->pub_reference = $codeGenerationService->generateUniquePubId($formation->id, 'FORM');
+            $formation->save();
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Formation créée avec succès et en attente de validation',
+                'data' => $formation
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Erreur lors de la création de la formation',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        // Traitement de l'image de couverture
-        $thumbnailPath = null;
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
-        }
-        
-        // Création de la formation
-        $formation = Formation::create([
-            'title' => $request->title,
-            'category' => $request->category,
-            'description' => $request->description,
-            'thumbnail' => $thumbnailPath ? asset('storage/' . $thumbnailPath) : null,
-            'status' => 'draft', // Les formations créées par les utilisateurs doivent être validées
-            'type' => 'user',
-            'created_by' => $user->id,
-            'is_paid' => $request->is_paid === "true" ? 1:0,
-            'price' => $request->is_paid === "true" ? $request->price : null,
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Formation créée avec succès et en attente de validation',
-            'data' => $formation
-        ], 201);
     }
 
     /**
@@ -381,114 +400,125 @@ class UserFormationController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = Auth::user();
-        $formation = Formation::where('created_by', $user->id)->findOrFail($id);
-        
-        // Vérifier si la formation peut être modifiée (seulement si elle est en brouillon ou rejetée)
-        if (!in_array($formation->status, ['draft', 'rejected'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette formation ne peut pas être modifiée dans son état actuel'
-            ], 400);
-        }
-        
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|max:255',
-            'description' => 'required|string',
-            'thumbnail' => 'nullable|image|max:2048', // Max 2MB
-            'is_paid' => 'required',
-            'price' => 'required_if:is_paid,true|nullable|numeric|min:0',
-        ]);
-        
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-        
-        // Traitement de l'image de couverture
-        if ($request->hasFile('thumbnail')) {
-            // Supprimer l'ancienne image si elle existe
-            if ($formation->thumbnail) {
-                $oldPath = str_replace(asset('storage/'), '', $formation->thumbnail);
-                Storage::disk('public')->delete($oldPath);
+        try {
+            $user = Auth::user();
+            $formation = Formation::where('created_by', $user->id)->findOrFail($id);
+            
+            // Vérifier si la formation peut être modifiée (seulement si elle est en brouillon ou rejetée)
+            if (!in_array($formation->status, ['draft', 'rejected'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette formation ne peut pas être modifiée dans son état actuel'
+                ], 400);
             }
             
-            $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
-            $formation->thumbnail = asset('storage/' . $thumbnailPath);
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'category' => 'required|string|max:255',
+                'description' => 'required|string',
+                'thumbnail' => 'nullable|image|max:2048', // Max 2MB
+                'is_paid' => 'required',
+                'price' => 'required_if:is_paid,true|nullable|numeric|min:0',
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            DB::beginTransaction();
+            
+            // Traitement de l'image de couverture
+            if ($request->hasFile('thumbnail')) {
+                // Supprimer l'ancienne image si elle existe
+                if ($formation->thumbnail) {
+                    $oldPath = str_replace(asset('storage/'), '', $formation->thumbnail);
+                    Storage::disk('public')->delete($oldPath);
+                }
+                
+                $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
+                $formation->thumbnail = asset('storage/' . $thumbnailPath);
+            }
+            
+            // Mise à jour de la formation
+            $formation->title = $request->title;
+            $formation->category = $request->category;
+            $formation->description = $request->description;
+            $formation->is_paid = $request->is_paid === "true" ? 1:0;
+            $formation->price = $request->is_paid === "true" ? $request->price : null;
+            $formation->status = 'draft'; // Remettre en draft après modification
+            $formation->rejection_reason = null; // Effacer la raison du rejet précédent
+            
+            $formation->save();
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Formation mise à jour avec succès et en attente de validation',
+                'data' => $formation
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour de la formation',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        // Mise à jour de la formation
-        $formation->title = $request->title;
-        $formation->category = $request->category;
-        $formation->description = $request->description;
-        $formation->is_paid = $request->is_paid === "true" ? 1:0;
-        $formation->price = $request->is_paid === "true" ? $request->price : null;
-        $formation->status = 'draft'; // Remettre en draft après modification
-        $formation->rejection_reason = null; // Effacer la raison du rejet précédent
-        
-        $formation->save();
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Formation mise à jour avec succès et en attente de validation',
-            'data' => $formation
-        ]);
     }
 
     /**
-     * Soumettre une formation pour validation.
+     * Publier une formation.
      *
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function submit($id)
+    public function publish($id)
     {
-        $user = Auth::user();
-        $formation = Formation::where('created_by', $user->id)->findOrFail($id);
-        
-        // Vérifier si la formation peut être soumise (seulement si elle est en brouillon ou rejetée)
-        if (!in_array($formation->status, ['draft', 'rejected'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette formation ne peut pas être soumise dans son état actuel'
-            ], 400);
-        }
-        
-        // Vérifier si la formation a au moins un module
-        if ($formation->modules()->count() === 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'La formation doit avoir au moins un module avant d\'être soumise'
-            ], 400);
-        }
-        
-        $formation->status = 'pending';
-        $formation->rejection_reason = null; // Effacer la raison du rejet précédent
-        $formation->save();
-
-        // Créer une notification pour les administrateurs avec la permission manage-content
-        $admins = \App\Models\User::where('is_admin', true)->get();
-        foreach ($admins as $admin) {
-            if ($admin->hasPermission('manage-content')) {
-                $admin->notify(new \App\Notifications\PublicationSubmitted([
-                    'type' => 'Formation',
-                    'id' => $formation->id,
-                    'titre' => "Formation, titre: " . $formation->title,
-                    'message' => 'est en attente d\'approbation.',
-                    'user_id' => $user->id,
-                    'user_name' => $user->name
-                ]));
+        try {
+            $user = Auth::user();
+            $formation = Formation::where('created_by', $user->id)->findOrFail($id);
+            
+            // Vérifier si la formation peut être soumise (seulement si elle est en brouillon ou rejetée)
+            if (!in_array($formation->status, ['draft'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cette formation ne peut pas être publiée dans son état actuel'
+                ], 400);
             }
+            
+            // Vérifier si la formation a au moins un module
+            if ($formation->modules()->count() === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La formation doit avoir au moins un module avant d\'être soumise'
+                ], 400);
+            }
+            DB::beginTransaction();
+            
+            $formation->status = 'published';
+            $formation->rejection_reason = null; // Effacer la raison du rejet précédent
+            $formation->save();
+            
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Formation soumise avec succès et en attente de validation',
+                'data' => $formation
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la publication de la formation',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Formation soumise avec succès et en attente de validation',
-            'data' => $formation
-        ]);
     }
 
 

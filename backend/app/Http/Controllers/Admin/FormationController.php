@@ -7,9 +7,11 @@ use App\Models\Formation;
 use App\Models\FormationModule;
 use App\Models\Pack;
 use App\Models\UserPack;
+use App\Services\CodeGenerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class FormationController extends Controller
 {
@@ -88,47 +90,65 @@ class FormationController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|max:255',
-            'description' => 'required|string',
-            'thumbnail' => 'nullable|image|max:2048', // Max 2MB
-            'packs' => 'required|array',
-            'packs.*' => 'exists:packs,id',
-        ]);
-        
-        if ($validator->fails()) {
+        try {
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'category' => 'required|string|max:255',
+                'description' => 'required|string',
+                'thumbnail' => 'nullable|image|max:2048', // Max 2MB
+                'packs' => 'required|array',
+                'packs.*' => 'exists:packs,id',
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            DB::beginTransaction();
+            
+            // Traitement de l'image de couverture
+            $thumbnailPath = null;
+            if ($request->hasFile('thumbnail')) {
+                $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
+            }
+            
+            // Création de la formation
+            $formation = Formation::create([
+                'title' => $request->title,
+                'category' => $request->category,
+                'description' => $request->description,
+                'thumbnail' => $thumbnailPath ? asset('storage/' . $thumbnailPath) : null,
+                'status' => 'draft',
+                'type' => 'admin',
+                'created_by' => auth()->id(),
+            ]);
+
+            // Générer une référence unique pour l'offre d'emploi
+            $codeGenerationService = new CodeGenerationService();
+            $formation->pub_reference = $codeGenerationService->generateUniquePubId($formation->id, 'FORM');
+            
+            // Association des packs
+            $formation->packs()->attach($request->packs);
+
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Formation créée avec succès',
+                'data' => $formation
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Erreur lors de la création de la formation',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        // Traitement de l'image de couverture
-        $thumbnailPath = null;
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
-        }
-        
-        // Création de la formation
-        $formation = Formation::create([
-            'title' => $request->title,
-            'category' => $request->category,
-            'description' => $request->description,
-            'thumbnail' => $thumbnailPath ? asset('storage/' . $thumbnailPath) : null,
-            'status' => 'draft', // Les formations créées par l'admin sont publiées directement
-            'type' => 'admin',
-            'created_by' => auth()->id(),
-        ]);
-        
-        // Association des packs
-        $formation->packs()->attach($request->packs);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Formation créée avec succès',
-            'data' => $formation
-        ], 201);
     }
 
     /**
@@ -140,62 +160,74 @@ class FormationController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $formation = Formation::findOrFail($id);
+        try{
+            DB::beginTransaction();
+            $formation = Formation::findOrFail($id);
 
-        $validationRules = [
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|max:255',
-            'description' => 'required|string',
-            'thumbnail' => 'nullable|image|max:2048', // Max 2MB
-            'status' => 'nullable|in:draft,pending,published,rejected',
-        ];
-        
-        // Ajouter la règle pour les packs si c'est une formation admin
-        if ($formation->type === 'admin') {
-            $validationRules['packs'] = 'required|array';
-            $validationRules['packs.*'] = 'exists:packs,id';
-        }
-        
-        $validator = Validator::make($request->all(), $validationRules);
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-                'message' => 'Formulaire invalide'
-            ], 422);
-        }
-        
-        // Traitement de l'image de couverture
-        if ($request->hasFile('thumbnail')) {
-            // Supprimer l'ancienne image si elle existe
-            if ($formation->thumbnail) {
-                $oldPath = str_replace(asset('storage/'), '', $formation->thumbnail);
-                Storage::disk('public')->delete($oldPath);
+            $validationRules = [
+                'title' => 'required|string|max:255',
+                'category' => 'required|string|max:255',
+                'description' => 'required|string',
+                'thumbnail' => 'nullable|image|max:2048', // Max 2MB
+                'status' => 'nullable|in:draft,pending,published,rejected',
+            ];
+            
+            // Ajouter la règle pour les packs si c'est une formation admin
+            if ($formation->type === 'admin') {
+                $validationRules['packs'] = 'required|array';
+                $validationRules['packs.*'] = 'exists:packs,id';
             }
             
-            $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
-            $formation->thumbnail = asset('storage/' . $thumbnailPath);
+            $validator = Validator::make($request->all(), $validationRules);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                    'message' => 'Formulaire invalide'
+                ], 422);
+            }
+            
+            // Traitement de l'image de couverture
+            if ($request->hasFile('thumbnail')) {
+                // Supprimer l'ancienne image si elle existe
+                if ($formation->thumbnail) {
+                    $oldPath = str_replace(asset('storage/'), '', $formation->thumbnail);
+                    Storage::disk('public')->delete($oldPath);
+                }
+                
+                $thumbnailPath = $request->file('thumbnail')->store('formations/thumbnails', 'public');
+                $formation->thumbnail = asset('storage/' . $thumbnailPath);
+            }
+            
+            // Mise à jour de la formation
+            $formation->title = $request->title;
+            $formation->category = $request->category;
+            $formation->description = $request->description;
+            
+            if ($request->has('status')) {
+                $formation->status = $request->status;
+            }
+            
+            $formation->save();
+            
+            // Mise à jour des packs associés
+            $formation->packs()->sync($request->packs);
+            
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Formation mise à jour avec succès',
+                'data' => $formation
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour de la formation',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        // Mise à jour de la formation
-        $formation->title = $request->title;
-        $formation->category = $request->category;
-        $formation->description = $request->description;
-        
-        if ($request->has('status')) {
-            $formation->status = $request->status;
-        }
-        
-        $formation->save();
-        
-        // Mise à jour des packs associés
-        $formation->packs()->sync($request->packs);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Formation mise à jour avec succès',
-            'data' => $formation
-        ]);
     }
 
     /**
@@ -307,6 +339,7 @@ class FormationController extends Controller
     public function publish($id)
     {
         try {
+            DB::beginTransaction();
             $formation = Formation::where('type', 'admin')->findOrFail($id);
             
             // Vérifier que la formation est en brouillon
@@ -329,12 +362,15 @@ class FormationController extends Controller
             $formation->status = 'published';
             $formation->save();
             
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Formation publiée avec succès',
                 'data' => $formation
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la publication de la formation: ' . $e->getMessage()

@@ -11,6 +11,7 @@ use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use App\Services\CodeGenerationService;
 use App\Models\ExchangeRates;
 use App\Models\WalletSystem;
 use App\Models\TransactionFee;
@@ -89,107 +90,107 @@ class OffreEmploiController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'type' => 'required|in:offre_emploi,appel_manifestation_intéret',
-            'titre' => 'required|string|max:255',
-            'reference' => 'nullable|string|max:255',
-            'entreprise' => 'required|string|max:255',
-            'pays' => 'required|string|max:255',
-            'ville' => 'required|string|max:255',
-            'secteur' => 'required|string|max:255',
-            'type_contrat' => 'required|string|max:255',
-            'description' => 'required|string',
-            'date_limite' => 'nullable|date',
-            'email_contact' => 'required|email',
-            'contacts' => 'nullable|string|max:255',
-            'offer_file' => 'nullable|file|mimes:pdf|max:5120', // 5MB max, optionnel
-            'lien' => 'nullable|url|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = Auth::user();
-        
-        // Vérifier si l'utilisateur a un pack de publication actif
-        $packActif = false;
-        if ($user->pack_de_publication_id) {
-            $userPack = \App\Models\UserPack::where('user_id', $user->id)
-                ->where('pack_id', $user->pack_de_publication_id)
-                ->where('status', 'active')
-                ->first();
-            $packActif = (bool) $userPack;
-        }
-        
-        if (!$packActif) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Votre pack de publication n\'est pas actif. Veuillez le réactiver pour publier.'
-            ], 403);
-        }
-        
-        // Récupérer ou créer la page de l'utilisateur
-        $page = $user->page;
-        if (!$page) {
-            $page = Page::create([
-                'user_id' => $user->id,
-                'nombre_abonnes' => 0,
-                'nombre_likes' => 0
+        try {
+            $validator = Validator::make($request->all(), [
+                'type' => 'required|in:offre_emploi,appel_manifestation_intéret',
+                'titre' => 'required|string|max:255',
+                'reference' => 'nullable|string|max:255',
+                'entreprise' => 'required|string|max:255',
+                'pays' => 'required|string|max:255',
+                'ville' => 'required|string|max:255',
+                'secteur' => 'required|string|max:255',
+                'type_contrat' => 'required|string|max:255',
+                'description' => 'required|string',
+                'date_limite' => 'nullable|date',
+                'email_contact' => 'required|email',
+                'contacts' => 'nullable|string|max:255',
+                'offer_file' => 'nullable|file|mimes:pdf|max:5120', // 5MB max, optionnel
+                'lien' => 'nullable|url|max:255',
             ]);
-        }
 
-        
-
-        $data = $request->all();
-        $data['page_id'] = $page->id;
-        $data['statut'] = 'pending';
-        $data['etat'] = 'available';
-
-        // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
-        if ($user->pack_de_publication) {
-            $data['duree_affichage'] = $user->pack_de_publication->duree_publication_en_jour;
-        } else {
-            // Valeur par défaut si le pack n'est pas disponible
-            $data['duree_affichage'] = 1; // 1 jour par défaut
-        }
-        
-        // Traitement du fichier PDF
-        if ($request->hasFile('offer_file') && $request->file('offer_file')->isValid()) {
-            $file = $request->file('offer_file');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('offers', $fileName, 'public');
-            $data['offer_file'] = $filePath;
-        }
-
-        $offre = OffreEmploi::create($data);
-        $now = Carbon::now();
-        $offre->expiry_date = $now->addDays($data['duree_affichage']);
-        $offre->save();
-        
-        // Créer une notification pour les administrateurs avec la permission manage-content
-        $admins = \App\Models\User::where('is_admin', true)->get();
-        foreach ($admins as $admin) {
-            if ($admin->hasPermission('manage-content')) {
-                $admin->notify(new \App\Notifications\PublicationSubmitted([
-                    'type' => $offre->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
-                    'id' => $offre->id,
-                    'titre' => "Offre d'emploi, référence : " . $offre->reference,
-                    'message' => 'est en attente d\'approbation.',
-                    'user_id' => $user->id,
-                    'user_name' => $user->name
-                ]));
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
+
+            $user = Auth::user();
+            
+            // Vérifier si l'utilisateur a un pack de publication actif
+            $packActif = false;
+            if ($user->pack_de_publication_id) {
+                $userPack = \App\Models\UserPack::where('user_id', $user->id)
+                    ->where('pack_id', $user->pack_de_publication_id)
+                    ->where('status', 'active')
+                    ->first();
+                $packActif = (bool) $userPack;
+            }
+            
+            if (!$packActif) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Votre pack de publication n\'est pas actif. Veuillez le réactiver pour publier.'
+                ], 403);
+            }
+
+            DB::beginTransaction();
+            
+            // Récupérer ou créer la page de l'utilisateur
+            $page = $user->page;
+            if (!$page) {
+                $page = Page::create([
+                    'user_id' => $user->id,
+                    'nombre_abonnes' => 0,
+                    'nombre_likes' => 0
+                ]);
+            }
+
+            $data = $request->all();
+            $data['page_id'] = $page->id;
+            $data['statut'] = 'approved';
+            $data['etat'] = 'available';
+
+            // Définir la durée d'affichage basée sur le pack de publication de l'utilisateur
+            if ($user->pack_de_publication) {
+                $data['duree_affichage'] = $user->pack_de_publication->duree_publication_en_jour;
+            } else {
+                // Valeur par défaut si le pack n'est pas disponible
+                $data['duree_affichage'] = 1; // 1 jour par défaut
+            }
+            
+            // Traitement du fichier PDF
+            if ($request->hasFile('offer_file') && $request->file('offer_file')->isValid()) {
+                $file = $request->file('offer_file');
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('offers', $fileName, 'public');
+                $data['offer_file'] = $filePath;
+            }
+
+            $offre = OffreEmploi::create($data);
+            $now = Carbon::now();
+            $offre->expiry_date = $now->addDays($data['duree_affichage']);
+            
+            // Générer une référence unique pour l'offre d'emploi
+            $codeGenerationService = new CodeGenerationService();
+            $offre->pub_reference = $codeGenerationService->generateUniquePubId($offre->id, 'OFE');
+            $offre->save();
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Offre d\'emploi créée avec succès. Elle est en attente de validation.',
+                'offre' => $offre
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la création de l\'offre d\'emploi: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur s\'est produite lors de la soumission de l\'offre d\'emploi'
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Offre d\'emploi créée avec succès. Elle est en attente de validation.',
-            'offre' => $offre
-        ], 201);
     }
 
     /**
@@ -224,72 +225,79 @@ class OffreEmploiController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $offre = OffreEmploi::findOrFail($id);
-        $user = Auth::user();
+        try {
+            $offre = OffreEmploi::findOrFail($id);
+            $user = Auth::user();
 
-        $validator = Validator::make($request->all(), [
-            'type' => 'nullable|in:offre_emploi,appel_manifestation_intéret',
-            'titre' => 'nullable|string|max:255',
-            'reference' => 'nullable|string|max:255',
-            'entreprise' => 'nullable|string|max:255',
-            'pays' => 'nullable|string|max:255',
-            'ville' => 'nullable|string|max:255',
-            'secteur' => 'nullable|string|max:255',
-            'type_contrat' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'date_limite' => 'nullable|date',
-            'email_contact' => 'nullable|email',
-            'contacts' => 'nullable|string|max:255',
-            'offer_file' => 'nullable|file|mimes:pdf|max:5120', // 5MB max
-            'lien' => 'nullable|url|max:255',
-            'statut' => 'nullable|in:pending,approved,rejected,expired',
-            'etat' => 'nullable|in:available,unavailable',
-        ]);
+            $validator = Validator::make($request->all(), [
+                'type' => 'nullable|in:offre_emploi,appel_manifestation_intéret',
+                'titre' => 'nullable|string|max:255',
+                'reference' => 'nullable|string|max:255',
+                'entreprise' => 'nullable|string|max:255',
+                'pays' => 'nullable|string|max:255',
+                'ville' => 'nullable|string|max:255',
+                'secteur' => 'nullable|string|max:255',
+                'type_contrat' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'date_limite' => 'nullable|date',
+                'email_contact' => 'nullable|email',
+                'contacts' => 'nullable|string|max:255',
+                'offer_file' => 'nullable|file|mimes:pdf|max:5120', // 5MB max
+                'lien' => 'nullable|url|max:255',
+                'statut' => 'nullable|in:pending,approved,rejected,expired',
+                'etat' => 'nullable|in:available,unavailable',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            DB::beginTransaction();
+            $data = $request->all();
+            
+            // Traitement du fichier PDF
+            if ($request->hasFile('offer_file') && $request->file('offer_file')->isValid()) {
+                // Supprimer l'ancien fichier s'il existe
+                if ($offre->offer_file) {
+                    \Storage::disk('public')->delete($offre->offer_file);
+                }
+                
+                $file = $request->file('offer_file');
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('offers', $fileName, 'public');
+                $data['offer_file'] = $filePath;
+            }
+            // Gestion de la suppression du fichier PDF
+            elseif ($request->has('remove_offer_file') && $request->input('remove_offer_file') == '1') {
+                // Supprimer le fichier physique
+                if ($offre->offer_file) {
+                    \Storage::disk('public')->delete($offre->offer_file);
+                }
+                
+                // Mettre à null le champ dans la base de données
+                $data['offer_file'] = null;
+            }
+            
+            $offre->update($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Offre d\'emploi mise à jour avec succès.',
+                'offre' => $offre
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la mise à jour de l\'offre d\'emploi: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Une erreur s\'est produite lors de la mise à jour de l\'offre d\'emploi'
+            ], 500);
         }
-
-        $data = $request->all();
-        
-        // Si l'utilisateur n'est pas admin, l'offre revient en attente
-        if (!$user->is_admin) {
-            $data['statut'] = 'pending';
-        }
-        
-        // Traitement du fichier PDF
-        if ($request->hasFile('offer_file') && $request->file('offer_file')->isValid()) {
-            // Supprimer l'ancien fichier s'il existe
-            if ($offre->offer_file) {
-                \Storage::disk('public')->delete($offre->offer_file);
-            }
-            
-            $file = $request->file('offer_file');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('offers', $fileName, 'public');
-            $data['offer_file'] = $filePath;
-        }
-        // Gestion de la suppression du fichier PDF
-        elseif ($request->has('remove_offer_file') && $request->input('remove_offer_file') == '1') {
-            // Supprimer le fichier physique
-            if ($offre->offer_file) {
-                \Storage::disk('public')->delete($offre->offer_file);
-            }
-            
-            // Mettre à null le champ dans la base de données
-            $data['offer_file'] = null;
-        }
-        
-        $offre->update($data);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Offre d\'emploi mise à jour avec succès.',
-            'offre' => $offre
-        ]);
     }
 
     /**

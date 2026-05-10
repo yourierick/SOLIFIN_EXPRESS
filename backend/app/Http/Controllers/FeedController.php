@@ -271,6 +271,7 @@ class FeedController extends Controller
             $post->post_type = $publication->type;
             $post->type = $type;
             $post->title = $publication->titre;
+            $post->pub_reference  = $publication->pub_reference;
             $post->content = $publication->description ?? '';
             $post->external_link = $publication->lien ?? null;
             $post->statut = $publication->statut;

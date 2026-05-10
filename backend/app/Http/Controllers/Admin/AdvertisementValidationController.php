@@ -84,35 +84,35 @@ class AdvertisementValidationController extends Controller
      */
     public function approve($id)
     {
-        $publicite = Publicite::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $publicite = Publicite::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour le statut
+            $publicite->statut = 'approved';
+            $publicite->save();
+            
+            // Notifier l'utilisateur que sa publication a été approuvée
+            $publicite->user->notify(new PublicationStatusChanged([
+                'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
+                'id' => $publicite->id,
+                'titre' => $publicite->titre,
+                'statut' => 'approved',
+                'message' => 'Votre publicité a été approuvée et est maintenant visible par tous les utilisateurs.'
+            ]));
+            
+            return response()->json([
+                'message' => 'Publicité approuvée avec succès',
+                'publicite' => $publicite
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de l\'approbation de la publicité', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour le statut
-        $publicite->statut = 'approved';
-        $publicite->save();
-        
-        // Notifier l'utilisateur que sa publication a été approuvée
-        $publicite->user->notify(new PublicationStatusChanged([
-            'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
-            'id' => $publicite->id,
-            'titre' => $publicite->titre,
-            'statut' => 'approved',
-            'message' => 'Votre publicité a été approuvée et est maintenant visible par tous les utilisateurs.'
-        ]));
-        
-        // Si la publicité a besoin de livreurs, notifier les livreurs approuvés
-        if ($publicite->besoin_livreurs === 'oui') {
-            LivreurController::notifierLivreurs($publicite);
-        }
-        
-        return response()->json([
-            'message' => 'Publicité approuvée avec succès',
-            'publicite' => $publicite
-        ]);
     }
     
     /**
@@ -124,37 +124,42 @@ class AdvertisementValidationController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-        
-        $publicite = Publicite::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $request->validate([
+                'reason' => 'required|string|max:500',
+            ]);
+            
+            $publicite = Publicite::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour le statut
+            $publicite->statut = 'rejected';
+            $publicite->raison_rejet = $request->reason;
+            $publicite->save();
+            
+            // Notifier l'utilisateur que sa publication a été rejetée
+            $user = User::find($publicite->user->id);
+            $user->notify(new PublicationStatusChanged([
+                'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
+                'id' => $publicite->id,
+                'titre' => $publicite->titre,
+                'statut' => 'rejected',
+                'message' => 'Votre publicité a été rejetée.',
+                'raison' => $request->reason
+            ]));
+            
+            return response()->json([
+                'message' => 'Publicité rejetée avec succès',
+                'publicite' => $publicite
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors du rejet de la publicité', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour le statut
-        $publicite->statut = 'rejected';
-        $publicite->raison_rejet = $request->reason;
-        $publicite->save();
-        
-        // Notifier l'utilisateur que sa publication a été rejetée
-        $user = User::find($publicite->user->id);
-        $user->notify(new PublicationStatusChanged([
-            'type' => $publicite->type === "publicité" ? "Publicité" : "Annonce",
-            'id' => $publicite->id,
-            'titre' => $publicite->titre,
-            'statut' => 'rejected',
-            'message' => 'Votre publicité a été rejetée.',
-            'raison' => $request->reason
-        ]));
-        
-        return response()->json([
-            'message' => 'Publicité rejetée avec succès',
-            'publicite' => $publicite
-        ]);
     }
     
     /**
@@ -211,25 +216,30 @@ class AdvertisementValidationController extends Controller
      */
     public function updateEtat(Request $request, $id)
     {
-        $request->validate([
-            'etat' => 'required|string|in:available,unavailable',
-        ]);
-        
-        $publicite = Publicite::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $request->validate([
+                'etat' => 'required|string|in:available,unavailable',
+            ]);
+            
+            $publicite = Publicite::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour l'état
+            $publicite->etat = $request->etat;
+            $publicite->save();
+            
+            return response()->json([
+                'message' => 'L\'état de la publicité mis à jour avec succès',
+                'publicite' => $publicite
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de la mise à jour de l\'état de la publicité', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour l'état
-        $publicite->etat = $request->etat;
-        $publicite->save();
-        
-        return response()->json([
-            'message' => 'L\'état de la publicité mis à jour avec succès',
-            'publicite' => $publicite
-        ]);
     }
     
     /**

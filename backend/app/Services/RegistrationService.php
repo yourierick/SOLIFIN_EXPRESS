@@ -82,7 +82,7 @@ class RegistrationService
         ]);
 
         // Générer un identifiant unique pour l'utilisateur
-        $user->account_id = $this->codeGenerationService->generateUniqueAccountId();
+        $user->account_id = $this->codeGenerationService->generateUniqueAccountId($user->id);
         $user->save();
         
         return $user;

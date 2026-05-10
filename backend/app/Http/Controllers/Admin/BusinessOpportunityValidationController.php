@@ -80,35 +80,39 @@ class BusinessOpportunityValidationController extends Controller
      */
     public function approve($id)
     {
-        $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour le statut
+            $opportuniteAffaire->statut = 'approved';
+            $opportuniteAffaire->save();
+            
+            // Notifier l'utilisateur que sa publication a été approuvée
+            $user = User::find($opportuniteAffaire->user->id);
+            $user->notify(new PublicationStatusChanged([
+                'type' => [
+                        'partenariat' => 'Opportunité de partenariat',
+                        'appel_projet' => 'Appel à projet',
+                    ][$opportuniteAffaire->type] ?? 'Opportunité d\'affaire',
+                'id' => $opportuniteAffaire->id,
+                'titre' => $opportuniteAffaire->titre,
+                'statut' => 'approved',
+                'message' => 'Votre opportunité d\'affaire a été approuvée et est maintenant visible par tous les utilisateurs pendant '. $opportuniteAffaire->duree_affichage . ' jours.'
+            ]));
+            
+            return response()->json([
+                'message' => 'Opportunité d\'affaire approuvée avec succès',
+                'opportuniteAffaire' => $opportuniteAffaire
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de l\'approbation de l\'opportunite d\'affaire', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour le statut
-        $opportuniteAffaire->statut = 'approved';
-        $opportuniteAffaire->created_at = now();
-        $opportuniteAffaire->save();
-        
-        // Notifier l'utilisateur que sa publication a été approuvée
-        $user = User::find($opportuniteAffaire->user->id);
-        $user->notify(new PublicationStatusChanged([
-            'type' => [
-                    'partenariat' => 'Opportunité de partenariat',
-                    'appel_projet' => 'Appel à projet',
-                ][$opportuniteAffaire->type] ?? 'Opportunité d\'affaire',
-            'id' => $opportuniteAffaire->id,
-            'titre' => $opportuniteAffaire->titre,
-            'statut' => 'approved',
-            'message' => 'Votre opportunité d\'affaire a été approuvée et est maintenant visible par tous les utilisateurs pendant '. $opportuniteAffaire->duree_affichage . ' jours.'
-        ]));
-        
-        return response()->json([
-            'message' => 'Opportunité d\'affaire approuvée avec succès',
-            'opportuniteAffaire' => $opportuniteAffaire
-        ]);
     }
     
     /**
@@ -120,40 +124,45 @@ class BusinessOpportunityValidationController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-        
-        $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $request->validate([
+                'reason' => 'required|string|max:500',
+            ]);
+            
+            $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour le statut
+            $opportuniteAffaire->statut = 'rejected';
+            $opportuniteAffaire->raison_rejet = $request->reason;
+            $opportuniteAffaire->save();
+            
+            // Notifier l'utilisateur que sa publication a été rejetée
+            $user = User::find($opportuniteAffaire->user->id);
+            $user->notify(new PublicationStatusChanged([
+                'type' => [
+                        'partenariat' => 'Opportunité de partenariat',
+                        'appel_projet' => 'Appel à projet',
+                    ][$opportuniteAffaire->type] ?? 'Opportunité d\'affaire',
+                'id' => $opportuniteAffaire->id,
+                'titre' => $opportuniteAffaire->titre,
+                'statut' => 'rejected',
+                'message' => 'Votre opportunité d\'affaire a été rejetée.',
+                'raison' => $request->reason
+            ]));
+            
+            return response()->json([
+                'message' => 'Opportunité d\'affaire rejetée avec succès',
+                'opportuniteAffaire' => $opportuniteAffaire
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors du rejet de l\'opportunite d\'affaire', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour le statut
-        $opportuniteAffaire->statut = 'rejected';
-        $opportuniteAffaire->raison_rejet = $request->reason;
-        $opportuniteAffaire->save();
-        
-        // Notifier l'utilisateur que sa publication a été rejetée
-        $user = User::find($opportuniteAffaire->user->id);
-        $user->notify(new PublicationStatusChanged([
-            'type' => [
-                    'partenariat' => 'Opportunité de partenariat',
-                    'appel_projet' => 'Appel à projet',
-                ][$opportuniteAffaire->type] ?? 'Opportunité d\'affaire',
-            'id' => $opportuniteAffaire->id,
-            'titre' => $opportuniteAffaire->titre,
-            'statut' => 'rejected',
-            'message' => 'Votre opportunité d\'affaire a été rejetée.',
-            'raison' => $request->reason
-        ]));
-        
-        return response()->json([
-            'message' => 'Opportunité d\'affaire rejetée avec succès',
-            'opportuniteAffaire' => $opportuniteAffaire
-        ]);
     }
     
     /**
@@ -208,25 +217,30 @@ class BusinessOpportunityValidationController extends Controller
      */
     public function updateEtat(Request $request, $id)
     {
-        $request->validate([
-            'etat' => 'required|string|in:available,unavailable',
-        ]);
-        
-        $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $request->validate([
+                'etat' => 'required|string|in:available,unavailable',
+            ]);
+            
+            $opportuniteAffaire = OpportuniteAffaire::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour l'état
+            $opportuniteAffaire->etat = $request->etat;
+            $opportuniteAffaire->save();
+            
+            return response()->json([
+                'message' => 'État de l\'opportunité d\'affaire mis à jour avec succès',
+                'opportuniteAffaire' => $opportuniteAffaire
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de la mise à jour de l\'état de l\'opportunite d\'affaire', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour l'état
-        $opportuniteAffaire->etat = $request->etat;
-        $opportuniteAffaire->save();
-        
-        return response()->json([
-            'message' => 'État de l\'opportunité d\'affaire mis à jour avec succès',
-            'opportuniteAffaire' => $opportuniteAffaire
-        ]);
     }
     
     /**

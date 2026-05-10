@@ -14,6 +14,7 @@ class SocialEvent extends Model
     protected $fillable = [
         'page_id',
         'user_id',
+        'pub_reference',
         'image',
         'video',
         'description',
@@ -58,14 +59,6 @@ class SocialEvent extends Model
         return $this->views()->count();
     }
     
-    /**
-     * Obtenir les signalements associés à cet événement social.
-     */
-    public function reports(): HasMany
-    {
-        return $this->hasMany(SocialEventReport::class);
-    }
-
     /**
      * Vérifier si un utilisateur a aimé cet événement social.
      */

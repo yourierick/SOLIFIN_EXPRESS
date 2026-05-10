@@ -79,32 +79,36 @@ class JobOfferValidationController extends Controller
      */
     public function approve($id)
     {
-        $offreEmploi = OffreEmploi::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $offreEmploi = OffreEmploi::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour le statut
+            $offreEmploi->statut = 'approved';
+            $offreEmploi->save();
+            
+            // Notifier l'utilisateur que sa publication a été approuvée
+            $user = User::find($offreEmploi->user->id);
+            $user->notify(new PublicationStatusChanged([
+                'type' => $offreEmploi->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
+                'id' => $offreEmploi->id,
+                'titre' => $offreEmploi->titre,
+                'statut' => 'approved',
+                'message' => 'Votre offre d\'emploi a été approuvée et est maintenant visible par tous les utilisateurs pendant '. $offreEmploi->duree_affichage . ' jours.'
+            ]));
+            
+            return response()->json([
+                'message' => 'Offre d\'emploi approuvée avec succès',
+                'offreEmploi' => $offreEmploi
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de l\'approbation de l\'offre d\'emploi', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour le statut
-        $offreEmploi->statut = 'approved';
-        $offreEmploi->created_at = now();
-        $offreEmploi->save();
-        
-        // Notifier l'utilisateur que sa publication a été approuvée
-        $user = User::find($offreEmploi->user->id);
-        $user->notify(new PublicationStatusChanged([
-            'type' => $offreEmploi->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
-            'id' => $offreEmploi->id,
-            'titre' => $offreEmploi->titre,
-            'statut' => 'approved',
-            'message' => 'Votre offre d\'emploi a été approuvée et est maintenant visible par tous les utilisateurs pendant '. $offreEmploi->duree_affichage . ' jours.'
-        ]));
-        
-        return response()->json([
-            'message' => 'Offre d\'emploi approuvée avec succès',
-            'offreEmploi' => $offreEmploi
-        ]);
     }
     
     /**
@@ -116,37 +120,42 @@ class JobOfferValidationController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-        
-        $offreEmploi = OffreEmploi::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $request->validate([
+                'reason' => 'required|string|max:500',
+            ]);
+            
+            $offreEmploi = OffreEmploi::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour le statut
+            $offreEmploi->statut = 'rejected';
+            $offreEmploi->raison_rejet = $request->reason;
+            $offreEmploi->save();
+            
+            // Notifier l'utilisateur que sa publication a été rejetée
+            $user = User::find($offreEmploi->user->id);
+            $user->notify(new PublicationStatusChanged([
+                'type' => $offreEmploi->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
+                'id' => $offreEmploi->id,
+                'titre' => $offreEmploi->titre,
+                'statut' => 'rejected',
+                'message' => 'Votre offre d\'emploi a été rejetée.',
+                'raison' => $request->reason
+            ]));
+            
+            return response()->json([
+                'message' => 'Offre d\'emploi rejetée avec succès',
+                'offreEmploi' => $offreEmploi
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors du rejet de l\'offre d\'emploi', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour le statut
-        $offreEmploi->statut = 'rejected';
-        $offreEmploi->raison_rejet = $request->reason;
-        $offreEmploi->save();
-        
-        // Notifier l'utilisateur que sa publication a été rejetée
-        $user = User::find($offreEmploi->user->id);
-        $user->notify(new PublicationStatusChanged([
-            'type' => $offreEmploi->type === "offre_emploi" ? "Offre d'emploi": "Appel à manifestation d'intérêt",
-            'id' => $offreEmploi->id,
-            'titre' => $offreEmploi->titre,
-            'statut' => 'rejected',
-            'message' => 'Votre offre d\'emploi a été rejetée.',
-            'raison' => $request->reason
-        ]));
-        
-        return response()->json([
-            'message' => 'Offre d\'emploi rejetée avec succès',
-            'offreEmploi' => $offreEmploi
-        ]);
     }
     
     /**
@@ -198,25 +207,30 @@ class JobOfferValidationController extends Controller
      */
     public function updateEtat(Request $request, $id)
     {
-        $request->validate([
-            'etat' => 'required|string|in:available,unavailable',
-        ]);
-        
-        $offreEmploi = OffreEmploi::findOrFail($id);
-        
-        // Vérifier si l'utilisateur est un administrateur
-        if (!Auth::user()->is_admin) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        try {
+            $request->validate([
+                'etat' => 'required|string|in:available,unavailable',
+            ]);
+            
+            $offreEmploi = OffreEmploi::findOrFail($id);
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (!Auth::user()->is_admin) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            // Mettre à jour l'état
+            $offreEmploi->etat = $request->etat;
+            $offreEmploi->save();
+            
+            return response()->json([
+                'message' => 'État de l\'offre d\'emploi mis à jour avec succès',
+                'offreEmploi' => $offreEmploi
+            ]);
+        } catch (\Exception $e) {
+            \Log::error($e->getTraceAsString());
+            return response()->json(['message' => 'Erreur lors de la mise à jour de l\'état de l\'offre d\'emploi', 'error' => $e->getMessage()], 500);
         }
-        
-        // Mettre à jour l'état
-        $offreEmploi->etat = $request->etat;
-        $offreEmploi->save();
-        
-        return response()->json([
-            'message' => 'État de l\'offre d\'emploi mis à jour avec succès',
-            'offreEmploi' => $offreEmploi
-        ]);
     }
     
     /**

@@ -36,6 +36,7 @@ return new class extends Migration
         Schema::create('publicites', function (Blueprint $table) {
             $table->id();
             $table->foreignId('page_id')->constrained()->onDelete('cascade');
+            $table->string('pub_reference')->nullable();
             $table->string('pays');
             $table->string('ville');
             $table->enum('type', ['publicité', 'annonce']);
@@ -71,6 +72,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('page_id')->constrained()->onDelete('cascade');
             $table->enum('type', ['offre_emploi', 'appel_manifestation_intéret']);
+            $table->string('pub_reference')->nullable();
             $table->string('pays');
             $table->string('ville');
             $table->string('secteur');
@@ -97,6 +99,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('page_id')->constrained()->onDelete('cascade');
             $table->enum('type', ['partenariat', 'appel_projet', 'opportunité']);
+            $table->string('pub_reference')->nullable();
             $table->string('pays');
             $table->string('ville');
             $table->string('secteur');
@@ -119,6 +122,7 @@ return new class extends Migration
 
         Schema::create('social_events', function (Blueprint $table) {
             $table->id();
+            $table->string('pub_reference')->nullable();
             $table->foreignId('page_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('image')->nullable();

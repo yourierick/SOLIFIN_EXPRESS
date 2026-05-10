@@ -148,7 +148,7 @@ class SerdiPayController extends Controller
             $withdrawal->transaction_id = $result['transaction_id'];
             $withdrawal->status = self::STATUS_PROCESSING;
             $withdrawal->save();
-                
+
             return [
                 'success' => true,
                 'message' => 'Retrait initialisé avec succès',

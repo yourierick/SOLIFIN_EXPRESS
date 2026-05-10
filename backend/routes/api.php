@@ -199,7 +199,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::prefix('digital-products')->group(function () {
         Route::get('/purchases/my', [App\Http\Controllers\DigitalProductController::class, 'myPurchases']);
         Route::get('/purchase-fee-percentage', [App\Http\Controllers\DigitalProductController::class, 'getPurchaseFeePercentage']);
-        Route::get('/download/{purchaseId}', [App\Http\Controllers\DigitalProductController::class, 'download']);
+        Route::get('/download/{purchaseId}', [App\Http\Controllers\DigitalProductController::class, 'download'])->name('download');
         //Route::get('/', [App\Http\Controllers\DigitalProductController::class, 'index']);
         Route::get('/approved', [App\Http\Controllers\DigitalProductController::class, 'getApprovedProducts']);
         Route::post('/', [App\Http\Controllers\DigitalProductController::class, 'store']);
@@ -374,7 +374,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/my/list', [\App\Http\Controllers\User\UserFormationController::class, 'myFormations']);
         Route::post('/create', [\App\Http\Controllers\User\UserFormationController::class, 'store']);
         Route::put('/{id}/update', [\App\Http\Controllers\User\UserFormationController::class, 'update']);
-        Route::post('/{id}/submit', [\App\Http\Controllers\User\UserFormationController::class, 'submit']);
+        Route::post('/{id}/publish', [\App\Http\Controllers\User\UserFormationController::class, 'publish']);
         
         // Gestion des modules des formations créées par l'utilisateur
         Route::get('/my/{formationId}/modules', [\App\Http\Controllers\User\UserModuleController::class, 'index']);
@@ -390,13 +390,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     
     });
     
-    // Routes pour le signalement des statuts sociaux
-    Route::get('/social-events/report-reasons', [App\Http\Controllers\SocialEventController::class, 'getReportReasons']);
-    Route::get('/social-events/liked', [App\Http\Controllers\SocialEventController::class, 'getLikedStatuses']);
-    Route::post('/social-events/{id}/report', [App\Http\Controllers\SocialEventController::class, 'report']);
-    Route::get('/social-events/{id}/check-reported', [App\Http\Controllers\SocialEventController::class, 'checkReported']);
+    // Routes pour le signalement des comptes
+    Route::get('/reports/reasons', [App\Http\Controllers\ReportController::class, 'getReportReasons']);
+    Route::post('/reports/{id}/report', [App\Http\Controllers\ReportController::class, 'report']);
+    Route::get('/reports/{id}/{ref}/check-reported', [App\Http\Controllers\ReportController::class, 'checkReported']);
     
     // Routes pour les statuts sociaux
+    Route::get('/social-events/liked', [App\Http\Controllers\SocialEventController::class, 'getLikedStatuses']);
     Route::get('/social-events', [App\Http\Controllers\SocialEventController::class, 'index']);
     Route::get('/social-events/my-page', [App\Http\Controllers\SocialEventController::class, 'myPageSocialEvents']);
     Route::get('/social-events/followed-pages', [App\Http\Controllers\SocialEventController::class, 'followedPagesEvents']);
@@ -536,6 +536,7 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::patch('users/{userId}/activate-wallet', [UserController::class, 'activateWallet']);
         Route::patch('users/{userId}/freeze-funds', [UserController::class, 'freezeUserFunds']);
         Route::patch('users/{userId}/unfreeze-funds', [UserController::class, 'unfreezeUserFunds']);
+        Route::patch('users/{userId}/toggle-publishing-rights', [UserController::class, 'togglePublishingRights']);
         Route::get('users/{user}/referrals', [UserController::class, 'referrals']);
         Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::get('/users/{id}/wallet', [UserController::class, 'getWalletData']);
@@ -576,6 +577,16 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
 
 
     Route::middleware('permission:manage-content')->group(function () {
+        
+        // Routes pour l'administration des signalements
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\ReportController::class, 'index']);
+            Route::get('/statistics', [App\Http\Controllers\Admin\ReportController::class, 'statistics']);
+            Route::get('/{id}', [App\Http\Controllers\Admin\ReportController::class, 'show']);
+            Route::post('/{id}/handle-report', [App\Http\Controllers\Admin\ReportController::class, 'handleReport']);
+            Route::delete('/{id}', [App\Http\Controllers\Admin\ReportController::class, 'destroy']);
+        });
+    
         // Routes pour la modération des témoignages
         Route::prefix('testimonials')->group(function () {
             // Récupérer tous les témoignages avec pagination et filtres

@@ -18,6 +18,7 @@ class UserPackController extends Controller
     {
         $user = $request->user();
         $isActive = false;
+        $canPublish = $user->can_publish;
         $packInfo = null;
 
         // Vérifier si l'utilisateur a un pack de publication assigné
@@ -46,6 +47,7 @@ class UserPackController extends Controller
         }
 
         return response()->json([
+            'can_publish' => $canPublish,
             'is_active' => $isActive,
             'pack' => $packInfo
         ]);

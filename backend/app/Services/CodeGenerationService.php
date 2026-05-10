@@ -10,19 +10,28 @@ class CodeGenerationService
 {
     // Constantes pour les préfixes
     const PREFIX_USER_ACCOUNT = 'USR-';
+    const PUB_PREFIX = 'PREF-';
 
     /**
      * Génère un identifiant unique pour un utilisateur
      *
      * @return string
      */
-    public function generateUniqueAccountId()
+    public function generateUniqueAccountId($IdUser)
     {
-        do {
-            $accountId = self::PREFIX_USER_ACCOUNT . rand(1, 100) . "-" . strtoupper(Str::random(4));
-        } while (User::where('account_id', $accountId)->exists());
-
+        $accountId = self::PREFIX_USER_ACCOUNT . $IdUser . "-" . strtoupper(Str::random(4));
         return $accountId;
+    }
+
+    /**
+     * Génère un identifiant unique pour une publication
+     *
+     * @return string
+     */
+    public function generateUniquePubId($IdPub, $Etiquette)
+    {
+        $PubId = self::PUB_PREFIX . $Etiquette . '-' . $IdPub;
+        return $PubId;
     }
 
     /**

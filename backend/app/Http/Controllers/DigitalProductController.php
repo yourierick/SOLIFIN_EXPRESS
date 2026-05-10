@@ -10,6 +10,7 @@ use App\Models\Wallet;
 use App\Models\WalletSystem;
 use App\Models\TransactionFee;
 use App\Models\ExchangeRates;
+use App\Services\CodeGenerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -87,13 +88,19 @@ class DigitalProductController extends Controller
                 'description' => 'required|string',
                 'type' => 'required|in:ebook,fichier_admin',
                 'prix' => 'required|numeric|min:0',
-                'devise' => 'required|string|max:10',
                 'image' => 'nullable|image|max:2048', // 2MB max
                 'fichier' => 'required|file|max:20480', // 20MB max
             ]);
 
+
             if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
+                \Log::info("ça arrive ici");
+                return response()->json(
+                    [
+                    'success' => false,
+                    'errors' => $validator->errors()
+                    ], 
+                422);
             }
 
             $user = Auth::user();
@@ -122,25 +129,15 @@ class DigitalProductController extends Controller
                 'prix' => $request->prix,
                 'image' => $imagePath,
                 'fichier' => $fichierPath,
-                'statut' => 'pending',
+                'statut' => 'approved',
                 'etat' => 'available',
                 'nombre_ventes' => 0,
             ]);
 
-            // Créer une notification pour les administrateurs avec la permission manage-content
-            $admins = \App\Models\User::where('is_admin', true)->get();
-            foreach ($admins as $admin) {
-                if ($admin->hasPermission('manage-content')) {
-                    $admin->notify(new \App\Notifications\PublicationSubmitted([
-                        'type' => 'Produit numérique',
-                        'id' => $product->id,
-                        'titre' => "Produit numérique, titre: " . $product->titre,
-                        'message' => 'est en attente d\'approbation.',
-                        'user_id' => $user->id,
-                        'user_name' => $user->name
-                    ]));
-                }
-            }
+            // Générer une référence unique pour le produit numérique
+            $codeGenerationService = new CodeGenerationService();
+            $product->pub_reference = $codeGenerationService->generateUniquePubId($product->id, 'DIP');
+            $product->save();
 
             DB::commit();
             return response()->json([
@@ -148,8 +145,8 @@ class DigitalProductController extends Controller
                 'product' => $product
             ], 201);
         } catch (\Exception $e) {
-            \Log::error($e->getTraceAsString());
             DB::rollBack();
+            \Log::error($e->getTraceAsString());
             return response()->json([
                 'message' => 'Erreur lors de la création du produit numérique',
                 'error' => $e->getMessage()
@@ -196,7 +193,6 @@ class DigitalProductController extends Controller
                 'description' => 'required|string',
                 'type' => 'required|in:ebook,fichier_admin',
                 'prix' => 'required|numeric|min:0',
-                'devise' => 'required|string|max:10',
                 'image' => 'nullable|image|max:2048', // 2MB max
                 'fichier' => 'nullable|file|max:20480', // 20MB max
             ]);
@@ -239,8 +235,7 @@ class DigitalProductController extends Controller
             $product->description = $request->description;
             $product->type = $request->type;
             $product->prix = $request->prix;
-            $product->devise = $request->devise;
-            $product->statut = 'pending'; // Remettre en attente pour validation
+            $product->statut = 'approved';
             $product->save();
 
             $product->image_url = $product->image ? asset("storage/" . $product->image) : null;
@@ -382,7 +377,7 @@ class DigitalProductController extends Controller
                     'success' => true,
                     'message' => 'Vous avez déjà acheté ce produit',
                     'purchase' => $existingPurchase,
-                    'download_url' => route('digital-products.download', $existingPurchase->id)
+                    'download_url' => url('/api/digital-products/download/' . $existingPurchase->id)
                 ]);
             }
 
@@ -511,7 +506,7 @@ class DigitalProductController extends Controller
                 'success' => true,
                 'message' => 'Achat effectué avec succès',
                 'purchase' => $purchase,
-                'download_url' => route('digital-products.download', $purchase->id)
+                'download_url' => url('/api/digital-products/download/' . $purchase->id)
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -582,7 +577,7 @@ class DigitalProductController extends Controller
         $purchases = DigitalProductPurchase::where('user_id', $user->id)
             ->where('statut', 'completed')
             ->with(['digitalProduct' => function($query) {
-                $query->select('id', 'titre', 'description', 'prix', 'devise', 'type', 'image', 'fichier', 'page_id', 'created_at');
+                $query->select('id', 'titre', 'description', 'prix', 'type', 'image', 'fichier', 'page_id', 'created_at');
             }])
             ->get()
             ->map(function($purchase) {

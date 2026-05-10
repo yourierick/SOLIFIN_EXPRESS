@@ -82,15 +82,8 @@ class SolifinWithdrawalNotification extends Notification implements ShouldQueue
             'type' => 'solifin_withdrawal_completed',
             'title' => 'Retrait des bénéfices SOLIFIN effectué',
             'message' => "Un retrait de {$this->amount} $ (frais: {$this->fees} $) a été effectué par {$this->processedBy}",
-            'amount' => $this->amount,
-            'fees' => $this->fees,
-            'total_amount' => $this->totalAmount,
-            'processed_by' => $this->processedBy,
-            'processed_at' => $this->processedAt->toISOString(),
             'icon' => 'banknotes',
             'color' => 'red',
-            'action_url' => '/admin/finances',
-            'requires_action' => false
         ];
     }
 

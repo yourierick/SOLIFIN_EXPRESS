@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\SocialEvent;
 use App\Models\SocialEventLike;
-use App\Models\SocialEventReport;
 use App\Models\SocialEventView;
 use App\Models\Page;
 use App\Models\PageAbonnes;
+use App\Services\CodeGenerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -146,8 +146,13 @@ class SocialEventController extends Controller
                 $socialEvent->video = $videoPath;
             }
 
+            // Générer une référence unique pour l'offre d'emploi
+            $codeGenerationService = new CodeGenerationService();
             $socialEvent->save();
 
+            $socialEvent->pub_reference = $codeGenerationService->generateUniquePubId($socialEvent->id, 'SOC');
+            $socialEvent->save();
+            
             return response()->json(['message' => 'Statut social créé avec succès', 'social_event' => $socialEvent], 201);
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la création du statut social: ' . $e->getMessage());
@@ -254,85 +259,6 @@ class SocialEventController extends Controller
         $socialEvent->delete();
 
         return response()->json(['message' => 'Statut social supprimé avec succès']);
-    }
-    
-    /**
-     * Signaler un statut social.
-     */
-    public function report(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            'reason' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $user = Auth::user();
-        $socialEvent = SocialEvent::findOrFail($id);
-        
-        // Vérifier si l'utilisateur a déjà signalé ce statut
-        $existingReport = SocialEventReport::where('social_event_id', $id)
-            ->where('user_id', $user->id)
-            ->first();
-            
-        if ($existingReport) {
-            return response()->json([
-                'message' => 'Vous avez déjà signalé ce statut',
-                'report' => $existingReport
-            ], 422);
-        }
-        
-        // Créer un nouveau signalement
-        $report = new SocialEventReport();
-        $report->social_event_id = $id;
-        $report->user_id = $user->id;
-        $report->reason = $request->reason;
-        $report->description = $request->description;
-        $report->status = 'pending';
-        $report->save();
-        
-        return response()->json([
-            'message' => 'Statut social signalé avec succès',
-            'report' => $report
-        ], 201);
-    }
-    
-    /**
-     * Obtenir les raisons de signalement disponibles.
-     */
-    public function getReportReasons()
-    {
-        $reasons = [
-            'inappropriate_content' => 'Contenu inapproprié',
-            'harassment' => 'Harcèlement',
-            'spam' => 'Spam',
-            'false_information' => 'Fausse information',
-            'violence' => 'Violence',
-            'hate_speech' => 'Discours haineux',
-            'other' => 'Autre raison',
-        ];
-
-        return response()->json($reasons);
-    }
-    
-    /**
-     * Vérifier si l'utilisateur a déjà signalé un statut social.
-     */
-    public function checkReported($id)
-    {
-        $user = Auth::user();
-        
-        $report = SocialEventReport::where('social_event_id', $id)
-            ->where('user_id', $user->id)
-            ->first();
-            
-        return response()->json([
-            'reported' => $report ? true : false,
-            'report' => $report
-        ]);
     }
 
     /**

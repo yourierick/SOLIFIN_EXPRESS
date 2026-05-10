@@ -18,6 +18,7 @@ class Publicite extends Model
 
     protected $fillable = [
         'page_id',
+        'pub_reference',
         'pays',
         'ville',
         'type',

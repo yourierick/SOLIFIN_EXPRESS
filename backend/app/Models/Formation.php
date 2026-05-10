@@ -19,6 +19,7 @@ class Formation extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'pub_reference',
         'title',
         'category',
         'description',

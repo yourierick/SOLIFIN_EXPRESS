@@ -20,13 +20,14 @@ class SocialEventAdminController extends Controller
      */
     public function index(Request $request)
     {
+        \Log::info($request->all());
         try {
             // Paramètres de pagination
             $page = $request->get('page', 1);
             $perPage = $request->get('per_page', 10);
             
             // Construction de la requête
-            $query = SocialEvent::with(['user', 'reports'])
+            $query = SocialEvent::with(['user'])
                 ->orderBy('created_at', 'desc');
             
             // Filtres
@@ -53,22 +54,6 @@ class SocialEventAdminController extends Controller
                 if ($socialEvent->user->picture) {
                     $socialEvent->user->picture_url = asset('storage/' . $socialEvent->user->picture);
                 }
-                
-                // Ajouter le nombre de signalements
-                $socialEvent->reports_count = $socialEvent->reports->count();
-                
-                // Regrouper les raisons de signalement pour une meilleure analyse
-                $reasonCounts = [];
-                foreach ($socialEvent->reports as $report) {
-                    if (!isset($reasonCounts[$report->reason])) {
-                        $reasonCounts[$report->reason] = 0;
-                    }
-                    $reasonCounts[$report->reason]++;
-                }
-                $socialEvent->report_reasons = $reasonCounts;
-                
-                // Déterminer si le statut nécessite une attention urgente (plus de 3 signalements)
-                $socialEvent->needs_attention = $socialEvent->reports_count >= 3;
                 
                 return $socialEvent;
             });

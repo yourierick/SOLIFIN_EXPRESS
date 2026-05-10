@@ -14,6 +14,7 @@ class DigitalProduct extends Model
 
     protected $fillable = [
         'page_id',
+        'pub_reference',
         'titre',
         'description',
         'type', // 'ebook', 'fichier_admin'

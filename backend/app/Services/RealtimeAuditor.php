@@ -27,10 +27,10 @@ class RealtimeAuditor
         $wallet = $transaction->wallet;
         
         // 1. Vérification invariant balance
-        $this->verifyBalanceInvariant($wallet);
+        $this->verifyBalanceInvariant($wallet, $transaction);
         
         // 2. Vérification non-négativité
-        $this->verifyNonNegativeBalance($wallet);
+        $this->verifyNonNegativeBalance($wallet, $transaction);
         
         // 3. Détection anomalies spécifiques
         $this->detectSpecificAnomalies($transaction, $wallet);
@@ -45,7 +45,7 @@ class RealtimeAuditor
      * Vérification invariant balance = ledger
      * Rôle: Assurer la cohérence fondamentale du wallet
      */
-    private function verifyBalanceInvariant(Wallet $wallet): void
+    private function verifyBalanceInvariant(Wallet $wallet, WalletTransaction $transaction): void
     {
         $balance = $wallet->balance;
         
@@ -77,7 +77,7 @@ class RealtimeAuditor
                     'ledger_balance' => $ledgerBalance,
                     'wallet_balance' => $balance
                 ]
-            ]);
+            ], $transaction);
         }
     }
 
@@ -85,7 +85,7 @@ class RealtimeAuditor
      * Vérification balance non négative
      * Rôle: Prévenir les soldes négatifs
      */
-    private function verifyNonNegativeBalance(Wallet $wallet): void
+    private function verifyNonNegativeBalance(Wallet $wallet, WalletTransaction $transaction): void
     {
         if ($wallet->balance < 0) {
             $this->createAuditLog([
@@ -103,7 +103,7 @@ class RealtimeAuditor
                     'user' => $wallet->user->name . ' / ' . $wallet->user->account_id,
                     'balance' => $wallet->balance
                 ]
-            ]);
+            ], $transaction);
         }
     }
 
@@ -133,7 +133,7 @@ class RealtimeAuditor
                     'average_amount' => $this->getAverageTransactionAmount($wallet),
                     'flow' => $transaction->flow
                 ]
-            ]);
+            ], $transaction);
         }
         
         // 2. Fréquence anormale
@@ -154,7 +154,7 @@ class RealtimeAuditor
                     'hourly_count' => $this->getHourlyTransactionCount($wallet),
                     'last_hour_transactions' => $this->getLastHourTransactions($wallet)->pluck('id')
                 ]
-            ]);
+            ], $transaction);
         }
     }
 
@@ -164,7 +164,6 @@ class RealtimeAuditor
      */
     private function generateFingerprint(WalletTransaction $transaction): string
     {
-        // Utiliser les mêmes clés que GlobalAuditor pour la cohérence
         $data = [
             'type' => $transaction->type,
             'entity_type' => 'wallet',
@@ -180,9 +179,9 @@ class RealtimeAuditor
      * Création log d'audit
      * Rôle: Centraliser la création des logs avec fingerprint et notification
      */
-    private function createAuditLog(array $data): FinancialAuditLog
+    private function createAuditLog(array $data, WalletTransaction $transaction): FinancialAuditLog
     {
-        $data['fingerprint'] = $this->generateFingerprintFromData($data);
+        $data['fingerprint'] = $this->generateFingerprint($transaction);
         
         $auditLog = FinancialAuditLog::firstOrCreate(
             ['fingerprint' => $data['fingerprint']],
@@ -293,10 +292,6 @@ class RealtimeAuditor
             ->get();
     }
 
-    private function generateFingerprintFromData(array $data): string
-    {
-        return hash('sha256', json_encode($data));
-    }
 
     /**
      * Instance singleton pour les appels statiques

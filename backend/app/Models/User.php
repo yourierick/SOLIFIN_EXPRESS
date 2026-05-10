@@ -43,6 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'pack_de_publication_id',
         'is_admin',
+        'can_publish',
         'role_id',
         'email_verified_at',
         'acquisition_source', // Comment l'utilisateur a connu SOLIFIN
@@ -69,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_admin' => 'boolean',
+        'can_publish' => 'boolean',
         'seen_grade_notif' => 'boolean',
         'status' => 'string',
         'last_seen' => 'datetime',

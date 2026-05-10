@@ -260,8 +260,8 @@ class UserController extends BaseController
                             'type_raw' => $transaction->type, // Pour le filtrage
                             'status' => $transaction->status,
                             'metadata' => $transaction->metadata,
-                            'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
-                            'created_at_raw' => $transaction->created_at->toIso8601String() // Pour le tri
+                            'created_at' => $transaction?->created_at?->format('d/m/Y H:i:s'),
+                            'created_at_raw' => $transaction?->created_at?->toIso8601String() // Pour le tri
                         ];
                     });
                     
@@ -1604,6 +1604,37 @@ class UserController extends BaseController
             return response()->json([
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de l\'activation du portefeuille'
+            ], 500);
+        }
+
+
+    }
+
+    /**
+     * Activer/Désactiver le droit de publication d'un utilisateur
+     */
+    public function togglePublishingRights($userId)
+    {
+        try {
+            $user = User::findOrFail($userId);
+            
+            // Inverser la valeur actuelle
+            $user->can_publish = !$user->can_publish;
+            $user->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => $user->can_publish 
+                    ? 'Le droit de publication a été activé avec succès' 
+                    : 'Le droit de publication a été désactivé avec succès',
+                'can_publish' => $user->can_publish
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la modification du droit de publication: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la modification du droit de publication'
             ], 500);
         }
     }

@@ -223,13 +223,14 @@ class WithdrawalService
      */
     public function paySponsorCommission(User $sponsor, float $commissionFees, WithdrawalRequest $withdrawal): void
     {
-        $sponsor->addFunds(
+        $sponsor->wallet->addFunds(
             $commissionFees,
             0,
             0,
             'withdrawal_commission',
             'completed',
             "Vous avez reçu une commission de retrait de " . $commissionFees . '$ pour le retrait effectué par votre filleul ' . $withdrawal->user->name,  
+            $withdrawal->user->id,
             [
                 "Source" => $withdrawal->user->name, 
                 "Opération" => "Commission de retrait",
