@@ -20,7 +20,6 @@ class SocialEventAdminController extends Controller
      */
     public function index(Request $request)
     {
-        \Log::info($request->all());
         try {
             // Paramètres de pagination
             $page = $request->get('page', 1);
@@ -37,6 +36,18 @@ class SocialEventAdminController extends Controller
             
             if ($request->has('etat') && $request->get('etat') !== 'all') {
                 $query->where('etat', $request->get('etat'));
+            }
+            
+            // Filtre de recherche
+            if ($request->has('search') && !empty($request->get('search'))) {
+                $searchTerm = $request->get('search');
+                $query->where(function($q) use ($searchTerm) {
+                    $q->Where('pub_reference', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhereHas('user', function($userQuery) use ($searchTerm) {
+                          $userQuery->where('name', 'LIKE', '%' . $searchTerm . '%')
+                                   ->orWhere('email', 'LIKE', '%' . $searchTerm . '%');
+                      });
+                });
             }
             
             // Pagination

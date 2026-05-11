@@ -45,12 +45,17 @@ class DigitalProductValidationController extends Controller
                 $query->where('type', $request->type);
             }
 
-            // Recherche par titre ou description
-            if ($request->has('search')) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('titre', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
+            // Filtre de recherche
+            if ($request->has('search') && !empty($request->get('search'))) {
+                $searchTerm = $request->get('search');
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('titre', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhere('description', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhere('pub_reference', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhereHas('page.user', function($userQuery) use ($searchTerm) {
+                          $userQuery->where('name', 'LIKE', '%' . $searchTerm . '%')
+                                   ->orWhere('email', 'LIKE', '%' . $searchTerm . '%');
+                      });
                 });
             }
 

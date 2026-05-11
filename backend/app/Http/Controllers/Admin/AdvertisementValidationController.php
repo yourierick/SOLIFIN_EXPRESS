@@ -47,6 +47,20 @@ class AdvertisementValidationController extends Controller
                 $query->where('etat', $request->get('etat'));
             }
             
+            // Filtre de recherche
+            if ($request->has('search') && !empty($request->get('search'))) {
+                $searchTerm = $request->get('search');
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('titre', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhere('description', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhere('pub_reference', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhereHas('user', function($userQuery) use ($searchTerm) {
+                          $userQuery->where('name', 'LIKE', '%' . $searchTerm . '%')
+                                   ->orWhere('email', 'LIKE', '%' . $searchTerm . '%');
+                      });
+                });
+            }
+            
             // Pagination
             $ads = $query->paginate($perPage, ['*'], 'page', $page);
             
