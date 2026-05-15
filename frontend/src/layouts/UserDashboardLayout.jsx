@@ -40,10 +40,12 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import GlobalStatsModal from "../components/GlobalStatsModal";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import TestimonialPromptWrapper from "../components/TestimonialPromptWrapper";
 import {
   HomeIcon,
@@ -72,7 +74,14 @@ import {
   UserPlusIcon,
   QuestionMarkCircleIcon,
   ChatBubbleLeftRightIcon,
+  CurrencyDollarIcon,
   GiftIcon,
+  DocumentIcon,
+  FolderIcon,
+  Cog6ToothIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import NotificationsDropdown from "../components/NotificationsDropdown";
 
@@ -88,7 +97,22 @@ const navigation = [
   //   href: "/dashboard/news-feed",
   //   icon: NewspaperIcon,
   // },
-  { name: "Ma page", href: "/dashboard/my-page", icon: BuildingOfficeIcon },
+  { 
+    name: "Ma page",  
+    icon: BuildingOfficeIcon,
+    hasSubmenu: true,
+    submenu: [
+      { name: "Mes Publicités", href: "/dashboard/my-page?tab=publications", icon: NewspaperIcon, tab: "publications" },
+      { name: "Levés de fonds", href: "/dashboard/my-page?tab=fundraisings", icon: CurrencyDollarIcon, tab: "fundraisings" },
+      { name: "Offres d'Emploi", href: "/dashboard/my-page?tab=job-offers", icon: BriefcaseIcon, tab: "jobOffers" },
+      { name: "Opportunités d'Affaires", href: "/dashboard/my-page?tab=business-opportunities", icon: LightBulbIcon, tab: "businessOpportunities" },
+      { name: "Formations", href: "/dashboard/my-page?tab=formations", icon: AcademicCapIcon, tab: "formations" },
+      { name: "Produits Numériques", href: "/dashboard/my-page?tab=digital-products", icon: DocumentTextIcon, tab: "digitalProducts" },
+      { name: "Mes Abonnés", href: "/dashboard/my-page?tab=pages", icon: UsersIcon, tab: "pages" },
+      { name: "Social", href: "/dashboard/my-page?tab=social", icon: ChatBubbleLeftRightIcon, tab: "social" },
+      { name: "Livreurs", href: "/dashboard/my-page?tab=livreurs", icon: CubeIcon, tab: "livreurs" },
+    ]
+  },
   // { name: "Formations", href: "/dashboard/formations", icon: AcademicCapIcon },
   { name: "FAQ", href: "/dashboard/faq", icon: QuestionMarkCircleIcon },
 ];
@@ -97,6 +121,8 @@ export default function UserDashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState(null);
+  const [submenuPosition, setSubmenuPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
   const sidebarRef = useRef(null);
   const [sidebarHover, setSidebarHover] = useState(false);
@@ -159,12 +185,19 @@ export default function UserDashboardLayout() {
     };
   }, [isDarkMode]);
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout, user } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowProfileMenu(false);
+      }
+      // Fermer le sous-menu si on clique ailleurs que sur le bouton du menu actif ou le dropdown
+      const isClickOnSubmenuButton = event.target.closest('[data-submenu-button]');
+      const isClickOnSubmenu = event.target.closest('[data-submenu-dropdown]');
+      if (!isClickOnSubmenuButton && !isClickOnSubmenu) {
+        setOpenSubmenu(null);
       }
     };
 
@@ -240,7 +273,82 @@ export default function UserDashboardLayout() {
           }}
         >
           {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || 
+              (item.hasSubmenu && item.submenu?.some(subItem => {
+                // Vérifier si l'URL correspond exactement ou si c'est une page avec paramètres
+                return location.pathname + location.search === subItem.href ||
+                       (location.pathname === '/dashboard/my-page' && subItem.href.includes('/dashboard/my-page?tab='));
+              }));
+            const isSubmenuOpen = openSubmenu === item.name;
+            
+            if (item.hasSubmenu) {
+              return (
+                <div key={item.name} className="relative">
+                  <button
+                    onClick={() => {
+                      setOpenSubmenu(isSubmenuOpen ? null : item.name);
+                    }}
+                    className={`relative flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      isActive || isSubmenuOpen
+                        ? isDarkMode
+                          ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-900/30"
+                          : "bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 shadow-sm"
+                        : isDarkMode
+                        ? "text-gray-300 hover:bg-gray-700/70 hover:translate-x-1 hover:shadow-md hover:shadow-primary-900/10"
+                        : "text-gray-700 hover:bg-gray-50/90 hover:translate-x-1 hover:shadow-md hover:shadow-primary-600/10"
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      {isActive && (
+                        <span
+                          className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 rounded-r-full ${
+                            isDarkMode ? "bg-primary-400" : "bg-primary-600"
+                          }`}
+                        />
+                      )}
+                      <item.icon className="h-5 w-5" />
+                      <span className="ml-3">{item.name}</span>
+                    </div>
+                    {isSubmenuOpen ? (
+                      <ChevronUpIcon className="h-4 w-4" />
+                    ) : (
+                      <ChevronDownIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                  
+                  {isSubmenuOpen && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {item.submenu.map((subItem) => {
+                        const isSubActive = location.pathname + location.search === subItem.href;
+                        return (
+                          <button
+                            key={subItem.name}
+                            data-submenu-dropdown="true"
+                            onClick={() => {
+                              setSidebarOpen(false);
+                              navigate(subItem.href);
+                            }}
+                            className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-left ${
+                              isSubActive
+                                ? isDarkMode
+                                  ? "bg-primary-700 text-white"
+                                  : "bg-primary-100 text-primary-700"
+                                : isDarkMode
+                                ? "text-gray-400 hover:bg-gray-700/50"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <subItem.icon className="h-4 w-4" />
+                            <span className="ml-3">{subItem.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            
             return (
               <Link
                 key={item.name}
@@ -345,7 +453,214 @@ export default function UserDashboardLayout() {
             >
               <ul role="list" className="py-4 space-y-1">
                 {navigation.map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = location.pathname === item.href || 
+                    (item.hasSubmenu && item.submenu?.some(subItem => {
+                      // Vérifier si l'URL correspond exactement ou si c'est une page avec paramètres
+                      return location.pathname + location.search === subItem.href ||
+                             (location.pathname === '/dashboard/my-page' && subItem.href.includes('/dashboard/my-page?tab='));
+                    }));
+                  const isSubmenuOpen = openSubmenu === item.name;
+                  
+                  if (item.hasSubmenu) {
+                    return (
+                      <li key={item.name} className="relative">
+                        <button
+                          data-submenu-button="true"
+                          onClick={(e) => {
+                            // Faire disparaître le tooltip au clic
+                            setShowTooltip(null);
+                            if (!isSubmenuOpen) {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const sidebarRect = sidebarRef.current.getBoundingClientRect();
+                              setSubmenuPosition({
+                                top: rect.top,
+                                left: sidebarRect.right
+                              });
+                            }
+                            setOpenSubmenu(isSubmenuOpen ? null : item.name);
+                          }}
+                          className={`relative flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                            isActive || isSubmenuOpen
+                              ? isDarkMode
+                                ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-900/30"
+                                : "bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 shadow-sm"
+                              : isDarkMode
+                              ? "text-gray-300 hover:bg-gray-700/70 hover:translate-x-1 hover:shadow-md hover:shadow-primary-900/10"
+                              : "text-gray-700 hover:bg-gray-50/90 hover:translate-x-1 hover:shadow-md hover:shadow-primary-600/10"
+                          }`}
+                          ref={
+                            showTooltip === item.name ? tooltipTargetRef : null
+                          }
+                          onMouseEnter={(e) => {
+                            if (isSidebarCollapsed) {
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              setTooltipPosition({
+                                top: rect.top - 10,
+                                left: rect.right + 15,
+                              });
+                              setShowTooltip(item.name);
+                            }
+                          }}
+                          onMouseLeave={() => setShowTooltip(null)}
+                        >
+                          <div className="flex items-center">
+                            {isActive && (
+                              <span
+                                className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 rounded-r-full ${
+                                  isDarkMode ? "bg-primary-400" : "bg-primary-600"
+                                }`}
+                              />
+                            )}
+                            <div className="relative">
+                              <item.icon
+                                className={`h-5 w-5 ${
+                                  location.pathname === item.href && !isDarkMode
+                                    ? "text-primary-600"
+                                    : ""
+                                }`}
+                              />
+                            </div>
+                            {!isSidebarCollapsed && (
+                              <span className="ml-3">{item.name}</span>
+                            )}
+                          </div>
+                          {!isSidebarCollapsed && (
+                            isSubmenuOpen ? (
+                              <ChevronUpIcon className="h-4 w-4" />
+                            ) : (
+                              <ChevronDownIcon className="h-4 w-4" />
+                            )
+                          )}
+                          {isSidebarCollapsed && showTooltip === item.name && !isSubmenuOpen && createPortal(
+                            <div
+                              className="fixed z-[9999] px-3 py-2 rounded-lg shadow-xl text-sm font-medium whitespace-nowrap ${
+                              isDarkMode ? 'bg-gray-800 text-white border border-primary-600' : 'bg-white text-black border border-primary-600'
+                            } animate-slideUpFade tooltip-content"
+                              style={{
+                                top: `${tooltipPosition.top}px`,
+                                left: `${tooltipPosition.left}px`,
+                                backgroundColor: isDarkMode
+                                  ? "rgb(31, 41, 55)"
+                                  : "white",
+                                color: isDarkMode ? "white" : "black",
+                                opacity: 1,
+                              }}
+                            >
+                              {item.name}
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  left: "-4px",
+                                  top: "50%",
+                                  transform: "translateY(-50%) rotate(45deg)",
+                                  width: "8px",
+                                  height: "8px",
+                                  backgroundColor: isDarkMode
+                                    ? "rgb(31, 41, 55)"
+                                    : "white",
+                                  borderLeft: "1px solid #16a34a",
+                                  borderBottom: "1px solid #16a34a",
+                                  opacity: 1,
+                                }}
+                              ></div>
+                            </div>,
+                            document.body
+                          )}
+                          
+                          {/* Dropdown pour mode rétracté */}
+                          {isSidebarCollapsed && isSubmenuOpen && createPortal(
+                            <div
+                              data-submenu-dropdown="true"
+                              className={`fixed z-[9998] w-64 rounded-lg shadow-xl border ${
+                                isDarkMode 
+                                  ? 'bg-gray-800 border-gray-700' 
+                                  : 'bg-white border-gray-200'
+                              }`}
+                              style={{
+                                left: `${tooltipPosition.left + 20}px`,
+                                top: `${tooltipPosition.top - 8}px`,
+                              }}
+                                                          >
+                              <div className="py-2">
+                                {item.submenu.map((subItem) => {
+                                  const isSubActive = location.pathname + location.search === subItem.href;
+                                  return (
+                                    <button
+                                      key={subItem.name}
+                                      onClick={() => {
+                                        setOpenSubmenu(null);
+                                        navigate(subItem.href);
+                                      }}
+                                      className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors text-left ${
+                                        isSubActive
+                                          ? isDarkMode
+                                            ? "bg-primary-700 text-white"
+                                            : "bg-primary-50 text-primary-700"
+                                          : isDarkMode
+                                          ? "text-gray-300 hover:bg-gray-700"
+                                          : "text-gray-700 hover:bg-gray-50"
+                                      }`}
+                                    >
+                                      <subItem.icon className="h-4 w-4" />
+                                      <span className="ml-3">{subItem.name}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>,
+                            document.body
+                          )}
+                        </button>
+                        
+                        {/* Dropdown à côté du sidebar pour desktop uniquement */}
+                        {isSubmenuOpen && !isSidebarCollapsed && createPortal(
+                          <div
+                            data-submenu-dropdown="true"
+                            className={`hidden lg:block fixed z-[9998] w-64 rounded-lg shadow-xl border ${
+                              isDarkMode 
+                                ? 'bg-gray-800 border-gray-700' 
+                                : 'bg-white border-gray-200'
+                            }`}
+                            style={{
+                              left: `${submenuPosition.left + 8}px`,
+                              top: `${submenuPosition.top}px`,
+                            }}
+                          >
+                            <div className="py-2">
+                              {item.submenu.map((subItem) => {
+                                const isSubActive = location.pathname + location.search === subItem.href;
+                                return (
+                                  <button
+                                    key={subItem.name}
+                                    onClick={() => {
+                                      setOpenSubmenu(null);
+                                      navigate(subItem.href);
+                                    }}
+                                    className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors text-left ${
+                                      isSubActive
+                                        ? isDarkMode
+                                          ? "bg-primary-700 text-white"
+                                          : "bg-primary-50 text-primary-700"
+                                        : isDarkMode
+                                        ? "text-gray-300 hover:bg-gray-700"
+                                        : "text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    <subItem.icon className="h-4 w-4" />
+                                    <span className="ml-3">{subItem.name}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>,
+                          document.body
+                        )}
+                        
+                      </li>
+                    );
+                  }
+                  
                   return (
                     <li key={item.name} className="relative">
                       <Link
@@ -701,6 +1016,20 @@ export default function UserDashboardLayout() {
 
       {/* Composant d'invitation à témoigner */}
       <TestimonialPromptWrapper />
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable={false}
+        zIndex={9999}
+        pauseOnHover
+        theme={isDarkMode ? "dark" : "light"}
+      />
     </div>
   );
 }

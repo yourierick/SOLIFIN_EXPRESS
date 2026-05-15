@@ -266,11 +266,11 @@ export default function BoostPublicationModal({
       const response = await axios.get("/api/userwallet/balance");
       if (response.data.success) {
         // Nettoyer les valeurs avant de les parser
-        const cleanBalanceUSD = (response.data.balance_usd || "0").replace(
+        const cleanBalanceUSD = (response.data.available_balance || "0").replace(
           /[^0-9.-]/g,
           ""
         );
-        const cleanBalanceCDF = (response.data.balance_cdf || "0").replace(
+        const cleanBalanceCDF = (response.data.available_balance || "0").replace(
           /[^0-9.-]/g,
           ""
         );

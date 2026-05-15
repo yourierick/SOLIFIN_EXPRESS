@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useChat } from "../../contexts/ChatContext";
 import { useCurrency } from "../../contexts/CurrencyContext";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import {
   Container,
   Grid,
@@ -678,20 +677,6 @@ const Packs = () => {
         open={purchaseDialogOpen}
         onClose={handlePurchaseClose}
         pack={selectedPack}
-      />
-      
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        zIndex={9999}
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
       />
     </Container>
   );

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import {
@@ -1402,20 +1401,6 @@ const FundsTransferModal = ({
           </motion.div>
         )}
       </AnimatePresence>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        zIndex={9999}
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
-      />
-      
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;

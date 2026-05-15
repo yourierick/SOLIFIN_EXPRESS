@@ -18,6 +18,7 @@ const useDashboardCounters = (isAdmin = false) => {
     business_opportunities: 0,
     testimonials: 0,
     pending_anomalies: 0,
+    pending_reports: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,6 +57,7 @@ const useDashboardCounters = (isAdmin = false) => {
         business_opportunities: 0,
         testimonials: 0,
         pending_anomalies: 0,
+        pending_reports: 0,
       });
     } finally {
       setLoading(false);
@@ -76,6 +78,7 @@ const useDashboardCounters = (isAdmin = false) => {
         business_opportunities: 0,
         testimonials: 0,
         pending_anomalies: 0,
+        pending_reports: 0,
       });
       return;
     }
@@ -119,6 +122,7 @@ const useDashboardCounters = (isAdmin = false) => {
     pendingTestimonialsCount: counters.testimonials,
     pendingPublicationsCount: (counters.digital_products || 0) + (counters.advertisements || 0) + (counters.job_offers || 0) + (counters.social_events || 0) + (counters.business_opportunities || 0),
     pendingAnomaliesCount: counters.pending_anomalies,
+    pendingReportsCount: counters.pending_reports,
   };
 };
 

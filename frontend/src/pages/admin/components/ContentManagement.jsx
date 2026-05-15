@@ -12,6 +12,7 @@ import {
   School as SchoolIcon,
   Comment as CommentIcon,
   VerifiedUser as VerifiedUserIcon,
+  Flag as FlagIcon,
 } from "@mui/icons-material";
 import { useTheme } from "../../../contexts/ThemeContext";
 import useDashboardCounters from "../../../hooks/useDashboardCounters";
@@ -23,12 +24,14 @@ const TestimonialManagement = lazy(() => import("../TestimonialManagement"));
 const PublicationValidation = lazy(() =>
   import("../PublicationValidation")
 );
+const ReportManagement = lazy(() => import("./ReportManagement"));
 
 /**
- * Composant de gestion du contenu avec trois onglets principaux:
+ * Composant de gestion du contenu avec quatre onglets principaux:
  * - Formations: Gestion des formations
  * - Témoignages: Gestion des témoignages
  * - Validations: Validation des différents types de contenu
+ * - Signalements: Gestion des signalements
  */
 const ContentManagement = () => {
   const { isDarkMode } = useTheme();
@@ -40,7 +43,8 @@ const ContentManagement = () => {
   const { 
     pendingFormationsCount, 
     pendingTestimonialsCount, 
-    pendingPublicationsCount 
+    pendingPublicationsCount,
+    pendingReportsCount
   } = useDashboardCounters(user.is_admin);
 
   // Gestionnaire de changement d'onglet
@@ -248,6 +252,36 @@ const ContentManagement = () => {
               transform: tabHover === 2 ? "translateY(-2px)" : "none",
             }}
           />
+          <Tab
+            icon={
+              <Badge
+                badgeContent={pendingReportsCount}
+                color="error"
+                max={99}
+                invisible={pendingReportsCount === 0}
+                sx={{
+                  "& .MuiBadge-badge": {
+                    right: -3,
+                    top: -3,
+                    fontSize: { xs: "0.625rem", sm: "0.65rem" },
+                    padding: "0 4px",
+                    minWidth: { xs: 16, sm: 18 },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 600,
+                  },
+                }}
+              >
+                <FlagIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+              </Badge>
+            }
+            iconPosition="start"
+            label="Signalements"
+            onMouseEnter={() => setTabHover(3)}
+            onMouseLeave={() => setTabHover(null)}
+            sx={{
+              transform: tabHover === 0 ? "translateY(-2px)" : "none",
+            }}
+          />
         </Tabs>
 
         {/* Contenu des onglets */}
@@ -338,6 +372,36 @@ const ContentManagement = () => {
                 }
               >
                 <PublicationValidation />
+              </Suspense>
+            </Box>
+          )}
+
+          {/* Onglet Signalements */}
+          {activeTab === 3 && (
+            <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
+              <Suspense
+                fallback={
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: "400px",
+                    }}
+                  >
+                    <CircularProgress color="primary" />
+                    <Typography 
+                      variant="body2" 
+                      ml={2} 
+                      color="textSecondary"
+                      sx={{ fontSize: { xs: "0.8125rem", sm: "0.875rem" } }}
+                    >
+                      Chargement des signalements...
+                    </Typography>
+                  </Box>
+                }
+              >
+                <ReportManagement />
               </Suspense>
             </Box>
           )}

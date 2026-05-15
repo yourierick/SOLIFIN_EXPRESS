@@ -98,7 +98,7 @@ const PurchaseDigitalProductModal = ({
   // Vérifier si l'utilisateur a suffisamment de fonds
   const hasSufficientFunds = () => {
     if (!userWallet) return false;
-    return userWallet.balance_usd >= calculateTotal();
+    return userWallet.available_balance >= calculateTotal();
   };
 
   // Acheter le produit numérique
@@ -447,7 +447,7 @@ const PurchaseDigitalProductModal = ({
                 color={hasSufficientFunds() ? "success.main" : "error.main"}
                 sx={{ fontWeight: 600 }}
               >
-                {userWallet?.balance_usd || "0.00"} $
+                {userWallet?.available_balance || "0.00"} $
               </Typography>
             </Box>
 

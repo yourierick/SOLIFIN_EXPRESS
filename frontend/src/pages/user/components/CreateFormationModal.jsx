@@ -34,6 +34,9 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import {
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
+import {
   Close as CloseIcon,
   CloudUpload as CloudUploadIcon,
   School as SchoolIcon,
@@ -688,27 +691,44 @@ const CreateFormationModal = ({ open, onClose, onFormationCreated }) => {
 
                 <Grid item xs={12}>
                   <Alert
-                    severity="info"
+                    severity="error"
                     sx={{
                       borderRadius: 2,
                       "& .MuiAlert-message": { fontSize: "0.875rem" },
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "flex-start" }}>
-                      <InfoIcon sx={{ mr: 1, mt: 0.5, fontSize: 20 }} />
                       <Box>
-                        <Typography
-                          variant="body2"
-                          fontWeight={500}
-                          gutterBottom
-                        >
-                          Processus de validation
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Votre formation sera soumise à validation par un
-                          administrateur avant d'être publiée. Vous pourrez
-                          ajouter des modules une fois la formation créée.
-                        </Typography>
+                        <div className="flex">
+                          <div className="ml-3">
+                            <p className="text-sm text-yellow-700 font-medium mb-2">
+                              AVERTISSEMENT IMPORTANT
+                            </p>
+                            <div className="text-sm text-yellow-700 space-y-2">
+                              <p>
+                                <strong>Contenus strictement interdits :</strong>
+                              </p>
+                              <ul className="list-disc list-inside ml-4 space-y-1">
+                                <li>Contenu pour adultes (pornographie, érotisme)</li>
+                                <li>Discours haineux, racisme, discrimination</li>
+                                <li>Violence, incitation à la haine</li>
+                                <li>Contenu illégal, drogues, armes</li>
+                                <li>Arnaques, fraudes, escroqueries</li>
+                                <li>Violations de droits d'auteur</li>
+                                <li>Fake news, désinformation</li>
+                              </ul>
+                              <p className="mt-3">
+                                <strong>Conséquences en cas de violation :</strong>
+                              </p>
+                              <ul className="list-disc list-inside ml-4 space-y-1">
+                                <li><strong>Suppression immédiate</strong> de toute publication non conforme</li>
+                                <li><strong>Blocage temporaire</strong> de votre compte</li>
+                                <li><strong>Bannissement permanent</strong> en cas de récidive</li>
+                                <li><strong>Poursuites judiciaires</strong> pour faits graves</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
                       </Box>
                     </Box>
                   </Alert>

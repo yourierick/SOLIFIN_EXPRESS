@@ -83,7 +83,7 @@ const DigitalProductCard = ({ product, onEdit, onDelete, onChangeStatus }) => {
   const formatStatus = (status) => {
     switch (status) {
       case "approved":
-        return "Approuvé";
+        return "Publié";
       case "rejected":
         return "Rejeté";
       case "pending":

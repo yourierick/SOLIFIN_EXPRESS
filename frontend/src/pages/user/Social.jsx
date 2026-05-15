@@ -4,13 +4,14 @@ import { Tab } from "@headlessui/react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import axios from "axios";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import ReportModal from "../../components/ReportModal";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import EmojiPicker from "emoji-picker-react";
+import { usePublicationPack } from "../../contexts/PublicationPackContext";
 import {
   PlusIcon,
   PhotoIcon,
@@ -71,11 +72,8 @@ export default function Social() {
 
   // États pour le signalement
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportDescription, setReportDescription] = useState("");
-  const [reportReasons, setReportReasons] = useState([]);
-  const [isReportSubmitting, setIsReportSubmitting] = useState(false);
-  const [isStatusReported, setIsStatusReported] = useState(false);
+  const [currentStatusId, setCurrentStatusId] = useState(null);
+  const [socialReference, setSocialReference] = useState(null);
   const [currentStatusGroup, setCurrentStatusGroup] = useState(null); // 'my' ou 'followed'
   const [currentPageStatuses, setCurrentPageStatuses] = useState([]);
   const [currentPageInfo, setCurrentPageInfo] = useState(null);
@@ -108,11 +106,17 @@ export default function Social() {
   const [likedStatuses, setLikedStatuses] = useState([]);
   const [isLiking, setIsLiking] = useState(false);
 
+  const {
+    isActive: isPackActive,
+    canPublish: can_publish,
+    packInfo,
+    refreshPackStatus,
+  } = usePublicationPack();
+
   // Récupérer les statuts sociaux
   useEffect(() => {
     fetchMyStatuses(); // Cette fonction récupère déjà l'utilisateur courant
     fetchFollowedStatuses();
-    fetchReportReasons();
     fetchLikedStatuses();
   }, []);
 
@@ -708,79 +712,17 @@ export default function Social() {
     resetStatusView();
   };
 
-  // Fonction pour récupérer les raisons de signalement disponibles
-  const fetchReportReasons = async () => {
-    try {
-      const response = await axios.get("/api/social-events/report-reasons");
-      setReportReasons(response.data);
-    } catch (error) {
-      console.error(
-        "Erreur lors de la récupération des raisons de signalement:",
-        error
-      );
-    }
-  };
-
-  // Fonction pour vérifier si un statut a déjà été signalé
-  const checkIfReported = async (statusId) => {
-    try {
-      const response = await axios.get(
-        `/api/social-events/${statusId}/check-reported`
-      );
-      setIsStatusReported(response.data.reported);
-    } catch (error) {
-      console.error("Erreur lors de la vérification du signalement:", error);
-    }
-  };
-
-  // Fonction pour ouvrir le modal de signalement
-  const openReportModal = () => {
+  // Fonctions pour le signalement
+  const openReportModal = (userId, socialRef) => {
+    setCurrentStatusId(userId);
+    setSocialReference(socialRef);
     setIsReportModalOpen(true);
-    setReportReason("");
-    setReportDescription("");
     setIsPaused(true); // Mettre en pause le défilement automatique
   };
 
-  // Fonction pour fermer le modal de signalement
   const closeReportModal = () => {
     setIsReportModalOpen(false);
-    setReportReason("");
-    setReportDescription("");
-  };
-
-  // Fonction pour soumettre un signalement
-  const submitReport = async () => {
-    if (!reportReason) {
-      toast.error("Veuillez sélectionner une raison de signalement");
-      return;
-    }
-
-    try {
-      setIsReportSubmitting(true);
-      const currentStatus = currentPageStatuses[currentStatusIndex];
-
-      await axios.post(`/api/social-events/${currentStatus.id}/report`, {
-        reason: reportReason,
-        description: reportDescription,
-      });
-
-      setIsStatusReported(true);
-      closeReportModal();
-      toast.success("Statut signalé avec succès");
-    } catch (error) {
-      console.error("Erreur lors du signalement:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error("Une erreur est survenue lors du signalement");
-      }
-    } finally {
-      setIsReportSubmitting(false);
-    }
+    setCurrentStatusId(null);
   };
 
   // Rendu du formulaire de création
@@ -1770,19 +1712,12 @@ export default function Social() {
                         <motion.button
                           onClick={(e) => {
                             e.stopPropagation();
-                            openReportModal();
+                            openReportModal(currentStatus.user_id, currentStatus.pub_reference);
                           }}
-                          className={`text-white hover:bg-white/20 rounded-full transition-all duration-200 ${
-                            isStatusReported ? "text-red-500" : ""
-                          } ${isMobile ? 'p-1.5' : 'p-2'}`}
-                          disabled={isStatusReported}
-                          title={
-                            isStatusReported
-                              ? "Vous avez déjà signalé ce statut"
-                              : "Signaler ce statut"
-                          }
-                          whileHover={{ scale: !isStatusReported ? 1.1 : 1 }}
-                          whileTap={{ scale: !isStatusReported ? 0.9 : 1 }}
+                          className={`text-white hover:bg-white/20 rounded-full transition-all duration-200 ${isMobile ? 'p-1.5' : 'p-2'}`}
+                          title="Signaler"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                         >
                           <ExclamationCircleIcon className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
                         </motion.button>
@@ -2048,7 +1983,7 @@ export default function Social() {
       
       <div className={`container mx-auto px-4 py-6 ${
         isMobile ? "px-3 py-4" : "px-4 py-6"
-      } max-w-4xl`}>
+      }`}>
         {/* En-tête optimisé pour mobile avec design moderne */}
         <div className={`relative mb-8 ${
           isMobile ? "mb-6" : "mb-8"
@@ -2088,7 +2023,8 @@ export default function Social() {
               </div>
               
               {/* Bouton de création */}
-              {!isCreating && (
+              {can_publish && (
+                !isCreating && (
                 <motion.button
                   type="button"
                   onClick={() => setIsCreating(true)}
@@ -2107,6 +2043,7 @@ export default function Social() {
                     Créer un statut
                   </span>
                 </motion.button>
+                )
               )}
             </div>
             
@@ -2156,146 +2093,14 @@ export default function Social() {
         />
       </div>
 
-      {/* Modal de signalement - rendu avec createPortal */}
-      {isReportModalOpen && createPortal(
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity"
-              aria-hidden="true"
-            >
-              <div className="absolute inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm"></div>
-            </div>
-
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-
-            <div
-              className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${
-                isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-              }`}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="modal-headline"
-            >
-              <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              }`}>
-                <div className="sm:flex sm:items-start">
-                  <div
-                    className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${
-                      isDarkMode ? "bg-red-900" : "bg-red-100"
-                    } sm:mx-0 sm:h-10 sm:w-10`}
-                  >
-                    <ExclamationCircleIcon
-                      className={`h-6 w-6 ${
-                        isDarkMode ? "text-red-200" : "text-red-600"
-                      }`}
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3
-                      className={`text-lg leading-6 font-medium ${
-                        isDarkMode ? "text-white" : "text-gray-900"
-                      }`}
-                      id="modal-headline"
-                    >
-                      Signaler ce statut
-                    </h3>
-                    <div className="mt-2">
-                      <p
-                        className={`text-sm ${
-                          isDarkMode ? "text-gray-300" : "text-gray-500"
-                        }`}
-                      >
-                        Pour quelle raison signalez-vous ce statut ?
-                      </p>
-                      <div className="mt-4">
-                        <select
-                          value={reportReason}
-                          onChange={(e) => setReportReason(e.target.value)}
-                          className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white"
-                              : "bg-white border-gray-300 text-gray-900"
-                          }`}
-                        >
-                          <option value="">Sélectionnez une raison</option>
-                          {Object.entries(reportReasons).map(([key, value]) => (
-                            <option key={key} value={key}>
-                              {value}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="mt-4">
-                        <textarea
-                          value={reportDescription}
-                          onChange={(e) => setReportDescription(e.target.value)}
-                          rows={3}
-                          placeholder="Description optionnelle..."
-                          className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                            isDarkMode
-                              ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                              : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div
-                className={`px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse ${
-                  isDarkMode ? "bg-gray-700" : "bg-gray-50"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={submitReport}
-                  disabled={isReportSubmitting || !reportReason}
-                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm ${
-                    isReportSubmitting || !reportReason
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  {isReportSubmitting ? "Envoi en cours..." : "Signaler"}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeReportModal}
-                  className={`mt-3 w-full inline-flex justify-center rounded-md border ${
-                    isDarkMode
-                      ? "border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  } shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`}
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-      
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
+      {/* Modal de signalement */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={closeReportModal}
+        reportedUserId={currentStatusId}
+        reportedPubType = "Social"
+        reportedPubRef ={socialReference}
+        isDarkMode={isDarkMode}
       />
     </>
   );

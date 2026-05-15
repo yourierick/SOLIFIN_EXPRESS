@@ -76,10 +76,10 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import ModuleForm from "../../../pages/admin/components/ModuleForm";
-import { getModalStyle } from "../../../styles/modalStyles";
+import { usePublicationPack } from "../../../contexts/PublicationPackContext";
+import PublicationPackAlert from "../../../components/PublicationPackAlert";
 
 // Composant TabPanel pour les onglets avec animations
 function TabPanel(props) {
@@ -146,6 +146,13 @@ const FormationEditor = () => {
     currency: "",
     thumbnail: null,
   });
+
+  const {
+    isActive: isPackActive,
+    canPublish: can_publish,
+    packInfo,
+    refreshPackStatus,
+  } = usePublicationPack();
 
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
 
@@ -367,7 +374,7 @@ const FormationEditor = () => {
   const handlePublishFormation = async () => {
     setPublishLoading(true);
     try {
-      const response = await axios.post(`/api/formations/${id}/submit`);
+      const response = await axios.post(`/api/formations/${id}/publish`);
 
       setFormation(response.data.data);
       setPublishConfirmOpen(false);
@@ -533,6 +540,10 @@ const FormationEditor = () => {
 
   return (
     <Box sx={{ p: { xs: 1, sm: 3 } }}>
+      {/* Alert si le pack n'est pas actif */}
+      {!isPackActive || !can_publish && (
+        <PublicationPackAlert isActive={isPackActive} canPublish={can_publish} packInfo={packInfo} />
+      )}
       <Box
         sx={{
           display: "flex",
@@ -546,7 +557,7 @@ const FormationEditor = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/dashboard/my-page")}
+          onClick={() => navigate("/dashboard/my-page?tab=formations")}
           sx={{
             borderRadius: "8px",
             boxShadow: isDarkMode
@@ -561,10 +572,10 @@ const FormationEditor = () => {
             },
           }}
         >
-          Retour à ma page
+          Retour
         </Button>
-
-        {formation.status === "draft" && (
+        {can_publish && (
+          formation.status === "draft" && (
           <Button
             variant="contained"
             color="primary"
@@ -591,6 +602,7 @@ const FormationEditor = () => {
           >
             Publier la formation
           </Button>
+        )
         )}
       </Box>
 
@@ -1268,8 +1280,8 @@ const FormationEditor = () => {
             </Typography>
           </Box>
 
-          {(formation.status === "draft" ||
-            formation.status === "published") && (
+          {can_publish && (
+            formation.status === "draft") && (
             <Button
               variant="contained"
               color="primary"
@@ -2436,8 +2448,7 @@ const FormationEditor = () => {
         <DialogTitle>Confirmer la publication</DialogTitle>
         <DialogContent>
           <Typography variant="body1" paragraph>
-            Êtes-vous sûr de vouloir publier cette formation ? Une fois publiée,
-            elle sera soumise à validation par un administrateur.
+            Êtes-vous sûr de vouloir publier cette formation ?
           </Typography>
           <Typography variant="body1">
             Vous ne pourrez plus modifier les informations de base ni
@@ -3109,20 +3120,6 @@ const FormationEditor = () => {
           />
         </DialogContent>
       </Dialog>
-
-      {/* Conteneur pour les notifications toast */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
-      />
     </Box>
   );
 };

@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Tab } from "@headlessui/react";
 import Formations from "./components/Formations";
+import ReportModal from "../../components/ReportModal";
 import {
   NewspaperIcon,
   BriefcaseIcon,
@@ -53,7 +54,8 @@ import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Comment as CommentIcon,
-  Share as ShareIcon
+  Share as ShareIcon,
+  ReportProblem as ReportProblemIcon
 } from '@mui/icons-material';
 
 function classNames(...classes) {
@@ -90,6 +92,14 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [lastId, setLastId] = useState(0);
+
+  // États pour le modal de signalement
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportData, setCurrentReportData] = useState({
+    userId: null,
+    pubType: null,
+    pubRef: null
+  });
 
   // États pour la pagination des offres d'emploi (Material-UI)
   const [jobOffersPage, setJobOffersPage] = useState(0);
@@ -1973,6 +1983,36 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                               </svg>
                               <span className="text-xs">{post.comments_count || 0}</span>
                             </button>
+
+                            {/* Bouton de signalement */}
+                            {user &&
+                              post.user &&
+                              user.id &&
+                              post.user.id &&
+                              user.id !== post.user.id && (
+                              <button
+                                onClick={() => {
+                                  setCurrentReportData({
+                                    userId: post.user.id,
+                                    pubType: "Offre d'emploi",
+                                    pubRef: post.pub_reference
+                                  });
+                                  setIsReportModalOpen(true);
+                                  setIsShareMenuOpen(false);
+                                }}
+                                className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
+                                  isDarkMode
+                                    ? "bg-red-700 hover:bg-red-600 text-red-300 hover:text-white"
+                                    : "bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700"
+                                }`}
+                                title="Signaler cette publication"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                Signaler
+                              </button>
+                            )}
                           </div>
 
                           {/* Bouton détails */}
@@ -2031,7 +2071,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                               '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
                               cursor: 'pointer'
                             }}
-                            onClick={() => openPostDetail(post.id, post.type)}
                           >
                             <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -2073,6 +2112,36 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                             </TableCell>
                             <TableCell>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {/* Bouton de signalement */}
+                                {user &&
+                                  post.user &&
+                                  user.id &&
+                                  post.user.id &&
+                                  user.id !== post.user.id && (
+                                  <Tooltip title="Signaler cette publication">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => {
+                                        setCurrentReportData({
+                                          userId: post.user.id,
+                                          pubType: "Offre d'emploi",
+                                          pubRef: post.pub_reference
+                                        });
+                                        setIsReportModalOpen(true);
+                                      }}
+                                      sx={{
+                                        color: isDarkMode ? '#fca5a5' : '#dc2626',
+                                        '&:hover': {
+                                          backgroundColor: isDarkMode ? 'rgba(220, 38, 38, 0.08)' : 'rgba(220, 38, 38, 0.04)',
+                                          color: isDarkMode ? '#f87171' : '#b91c1c',
+                                        }
+                                      }}
+                                    >
+                                      <ReportProblemIcon sx={{ fontSize: '1.2rem' }} />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                                
                                 {/* Actions sociales */}
                                 <Tooltip title="J'aime">
                                   <IconButton 
@@ -2124,7 +2193,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                                   >
                                     <VisibilityIcon />
                                   </IconButton>
-                                </Tooltip>
+                                </Tooltip>                                
                               </Box>
                             </TableCell>
                           </TableRow>
@@ -2504,7 +2573,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                     .map((post) => (
                       <div
                         key={post.id}
-                        onClick={() => openPostDetail(post.id, post.type)}
                         className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
                           isDarkMode
                             ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
@@ -2575,6 +2643,36 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
 
                         {/* Actions */}
                         <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                          {/* Bouton de signalement */}
+                          {user &&
+                            post.user &&
+                            user.id &&
+                            post.user.id &&
+                            user.id !== post.user.id && (
+                            <button
+                              onClick={() => {
+                                setCurrentReportData({
+                                  userId: post.user.id,
+                                  pubType: "Opportunité d'affaire",
+                                  pubRef: post.pub_reference
+                                });
+                                setIsReportModalOpen(true);
+                                setIsShareMenuOpen(false);
+                              }}
+                              className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
+                                isDarkMode
+                                  ? "bg-red-700 hover:bg-red-600 text-red-300 hover:text-white"
+                                  : "bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700"
+                              }`}
+                              title="Signaler cette publication"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              Signaler
+                            </button>
+                          )}
+                          
                           <div className="flex items-center space-x-4">
                             {/* Actions sociales */}
                             <button
@@ -2590,8 +2688,7 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                               </svg>
                               <span className="text-xs">{post.likes_count || 0}</span>
-                            </button>
-                            
+                            </button>                         
 
                             <button
                               onClick={(e) => {
@@ -2662,7 +2759,6 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                               '&:hover': { backgroundColor: isDarkMode ? '#374151' : '#f9fafb' },
                               cursor: 'pointer'
                             }}
-                            onClick={() => openPostDetail(post.id, post.type)}
                           >
                             <TableCell sx={{ color: isDarkMode ? '#ffffff' : '#111827' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -2712,6 +2808,37 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
                             </TableCell>
                             <TableCell>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {/* Bouton de signalement */}
+                                {user &&
+                                  post.user &&
+                                  user.id &&
+                                  post.user.id &&
+                                  user.id !== post.user.id && (
+                                  <Tooltip title="Signaler cette publication">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => {
+                                        setCurrentReportData({
+                                          userId: post.user.id,
+                                          pubType: "Opportunité d'affaire",
+                                          pubRef: post.pub_reference
+                                        });
+                                        setIsReportModalOpen(true);
+                                        setIsShareMenuOpen(false);
+                                      }}
+                                      sx={{
+                                        color: isDarkMode ? '#fca5a5' : '#dc2626',
+                                        '&:hover': {
+                                          backgroundColor: isDarkMode ? 'rgba(220, 38, 38, 0.08)' : 'rgba(220, 38, 38, 0.04)',
+                                          color: isDarkMode ? '#f87171' : '#b91c1c',
+                                        }
+                                      }}
+                                    >
+                                      <ReportProblemIcon sx={{ fontSize: '1.2rem' }} />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+
                                 {/* Actions sociales */}
                                 <Tooltip title="J'aime">
                                   <IconButton
@@ -2830,6 +2957,16 @@ export default function NewsFeed({ initialActiveTab = 0, showTabs = true }) {
           isDarkMode={isDarkMode}
         />
       )}
+
+      {/* Modal de signalement */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedUserId={currentReportData.userId}
+        reportedPubType={currentReportData.pubType}
+        reportedPubRef={currentReportData.pubRef}
+        isDarkMode={isDarkMode}
+      />
       </div>
     </div>
   );

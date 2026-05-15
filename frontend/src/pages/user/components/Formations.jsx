@@ -64,13 +64,17 @@ import {
   ExpandLess as ExpandLessIcon,
   Clear as ClearIcon,
   Tune as TuneIcon,
+  ErrorOutline as ErrorOutlineIcon,
 } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import FormationModal from "./FormationModal";
+import { useAuth } from "../../../contexts/AuthContext";
 import CreateFormationModal from "./CreateFormationModal";
 import PurchaseFormationModal from "./PurchaseFormationModal";
+import ReportModal from "../../../components/ReportModal";
+import { usePublicationPack } from "../../../contexts/PublicationPackContext";
 
 // Composant TabPanel amélioré pour les onglets
 function TabPanel(props) {
@@ -100,6 +104,8 @@ const Formations = ({ compact = false }) => {
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
 
+  const { user } = useAuth();
+
   const [formations, setFormations] = useState([]);
   const [myFormations, setMyFormations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +132,20 @@ const Formations = ({ compact = false }) => {
   const [tabValue, setTabValue] = useState(0);
   const [openFormationModal, setOpenFormationModal] = useState(false);
   const [openCreateModal, setOpenCreateModal] = useState(false);
+
+  // États pour le modal de signalement
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportData, setCurrentReportData] = useState({
+    userId: null,
+    pubType: null,
+    pubRef: null
+  });
+  const {
+    isActive: isPackActive,
+    canPublish: can_publish,
+    packInfo,
+    refreshPackStatus,
+  } = usePublicationPack();
   const [openPurchaseModal, setOpenPurchaseModal] = useState(false);
   const [selectedFormation, setSelectedFormation] = useState(null);
   const [purchasedFormations, setPurchasedFormations] = useState([]);
@@ -694,6 +714,7 @@ const Formations = ({ compact = false }) => {
                           </Box>
                         )}
 
+                      <Box sx={{ position: 'relative' }}>
                       <CardMedia
                         component="img"
                         height={isMobile ? 120 : 160}
@@ -709,6 +730,51 @@ const Formations = ({ compact = false }) => {
                             }),
                         }}
                       />
+                      
+                      {/* Bouton de signalement par-dessus l'image */}
+                      {formation.creator && formation.creator.id && formation.creator.id !== user?.id && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            zIndex: 2,
+                            borderRadius: '50%',
+                            padding: 0.5,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            transition: 'all 0.2s ease-in-out',
+                            '&:hover': {
+                              transform: 'scale(1.1)',
+                            }
+                          }}
+                        >
+                          <Tooltip title="Signaler cette formation">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setCurrentReportData({
+                                  userId: formation.creator.id,
+                                  pubType: 'Formation',
+                                  pubRef: formation.pub_reference
+                                });
+                                setIsReportModalOpen(true);
+                              }}
+                              sx={{
+                                color: isDarkMode ? '#fca5a5' : '#dc2626',
+                                '&:hover': {
+                                  color: isDarkMode ? '#f87171' : '#b91c1c',
+                                  backgroundColor: 'transparent'
+                                }
+                              }}
+                            >
+                              <ErrorOutlineIcon sx={{ fontSize: '1.2rem' }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
+                    </Box>
 
                       <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
                         <Box
@@ -1102,7 +1168,8 @@ const Formations = ({ compact = false }) => {
                   Mes formations créées
                 </Typography>
               </Box>
-              {!packsLoading &&
+              {can_publish && (
+                !packsLoading &&
                 userPacks.some(
                   (pack) =>
                     pack.status === "active" &&
@@ -1127,7 +1194,8 @@ const Formations = ({ compact = false }) => {
                   >
                     {isMobile ? "Créer" : "Créer une formation"}
                   </Button>
-                )}
+                )
+              )}
             </Box>
           </Paper>
         </Zoom>
@@ -1478,6 +1546,16 @@ const Formations = ({ compact = false }) => {
           }}
         />
       )}
+
+      {/* Modal de signalement */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedUserId={currentReportData.userId}
+        reportedPubType={currentReportData.pubType}
+        reportedPubRef={currentReportData.pubRef}
+        isDarkMode={isDarkMode}
+      />
     </Box>
   );
 };

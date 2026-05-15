@@ -2102,55 +2102,6 @@ export default function PurchasePackForm({
                         </div>
                       )}
 
-                      {/* Section d'information sur le prix */}
-                      {selectedPaymentOption && (
-                        <div className="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <svg
-                                className="w-3 h-3 text-amber-600 dark:text-amber-400 mr-2"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                                />
-                              </svg>
-                              <div>
-                                <Typography
-                                  variant="body2"
-                                  className="text-amber-800 dark:text-amber-200 text-xs font-medium"
-                                >
-                                  Informations sur le prix
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  className="text-xs text-amber-600 dark:text-amber-400"
-                                >
-                                  {pack.price}
-                                  <span className="text-xs font-normal">
-                                    $
-                                  </span>
-                                </Typography>
-                              </div>
-                            </div>
-                            <Typography
-                              variant="subtitle1"
-                              className="font-semibold text-amber-800 dark:text-amber-200 text-sm"
-                            >
-                              {pack.price}
-                              <span className="text-xs font-normal">
-                                $
-                              </span>
-                            </Typography>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Frais avec design amélioré */}
                       {selectedPaymentOption && (
                         <div className="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">

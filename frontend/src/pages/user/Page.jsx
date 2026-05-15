@@ -50,8 +50,7 @@ import PostCard from "./components/PostCard";
 import PostDetailModal from "./components/PostDetailModal";
 import Modal from "../../components/Modal";
 import LivreurForm from "./components/LivreurForm";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -4591,20 +4590,6 @@ export default function Page() {
           />
         </Modal>
       )}
-
-      {/* Configuration des notifications toast */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
-      />
     </div>
   );
 }

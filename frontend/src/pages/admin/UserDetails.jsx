@@ -131,10 +131,20 @@ export default function UserDetails({ userId }) {
   const [walletStatusModal, setWalletStatusModal] = useState(false);
   const [walletStatusAction, setWalletStatusAction] = useState(''); // 'activate' ou 'deactivate'
 
+  // États pour le modal de confirmation du droit de publication
+  const [publishingRightsModal, setPublishingRightsModal] = useState(false);
+  const [publishingRightsAction, setPublishingRightsAction] = useState(''); // 'activate' ou 'deactivate'
+
   // Fonctions pour les actions sur le wallet
   const handleWalletStatusToggle = () => {
     setWalletStatusAction(userWallet?.is_active ? 'deactivate' : 'activate');
     setWalletStatusModal(true);
+  };
+
+  // Fonction pour gérer le droit de publication
+  const handlePublishingRightsToggle = () => {
+    setPublishingRightsAction(user?.can_publish ? 'deactivate' : 'activate');
+    setPublishingRightsModal(true);
   };
 
   const handleWalletStatusConfirm = async () => {
@@ -161,6 +171,27 @@ export default function UserDetails({ userId }) {
     } catch (error) {
       console.error('Erreur lors du changement de statut du wallet:', error);
       toast.error(error.response?.data?.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublishingRightsConfirm = async () => {
+    try {
+      setLoading(true);
+      
+      const endpoint = `/api/admin/users/${effectiveId}/toggle-publishing-rights`
+
+      const response = await axios.patch(endpoint);
+      if (response.data.success) {
+        // Rafraîchir les données du wallet
+        setPublishingRightsModal(false)
+        await fetchUserDetails();
+        toast.success(response.data.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la modification du droit de publication:", error);
+      toast.error("Une erreur est survenue lors de la modification du droit de publication");
     } finally {
       setLoading(false);
     }
@@ -3810,6 +3841,46 @@ export default function UserDetails({ userId }) {
                               </button>
                             </div>
                           </div>
+
+                          {/* Activation/Désactivation du droit de publication */}
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-3">
+                              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Droit de publication
+                              </h5>
+                              {user?.can_publish ? (
+                                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <XCircleIcon className="h-5 w-5 text-red-500" />
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                  {user?.can_publish ? 'L\'utilisateur peut actuellement publier du contenu' : 'L\'utilisateur ne peut pas publier du contenu'}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500">
+                                  {user?.can_publish ? 'Cliquez pour désactiver' : 'Cliquez pour activer'}
+                                </p>
+                              </div>
+                              <button
+                                onClick={handlePublishingRightsToggle}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-lg ${
+                                  user?.can_publish
+                                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+                                    : 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
+                                }`}
+                                disabled={loading}
+                                title={user?.can_publish ? 'Désactiver le droit de publication' : 'Activer le droit de publication'}
+                              >
+                                {user?.can_publish ? (
+                                  <XCircleIcon className="h-6 w-6" />
+                                ) : (
+                                  <CheckCircleIcon className="h-6 w-6" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -5363,9 +5434,23 @@ export default function UserDetails({ userId }) {
         onConfirm={handleWalletStatusConfirm}
         title={walletStatusAction === 'activate' ? 'Activer le portefeuille' : 'Désactiver le portefeuille'}
         message={`Êtes-vous sûr de vouloir ${walletStatusAction === 'activate' ? 'activer' : 'désactiver'} le portefeuille de cet utilisateur ?`}
-        confirmButtonText={walletStatusAction === 'activate' ? 'Activer' : 'Désactiver'}
-        cancelButtonText="Annuler"
-        type={walletStatusAction === 'activate' ? 'info' : 'danger'}
+        confirmText={walletStatusAction === 'activate' ? 'Activer' : 'Désactiver'}
+        cancelText="Annuler"
+        type={walletStatusAction === 'activate' ? 'success' : 'danger'}
+        isDarkMode={isDarkMode}
+        isLoading={loading}
+      />
+
+      {/* Modal de confirmation pour le droit de publication */}
+      <ConfirmationModal
+        isOpen={publishingRightsModal}
+        onClose={() => setPublishingRightsModal(false)}
+        onConfirm={handlePublishingRightsConfirm}
+        title={publishingRightsAction === 'activate' ? 'Activer le droit de publication' : 'Désactiver le droit de publication'}
+        message={`Êtes-vous sûr de vouloir ${publishingRightsAction === 'activate' ? 'activer' : 'désactiver'} le droit de publication de cet utilisateur ?`}
+        confirmText={publishingRightsAction === 'activate' ? 'Activer' : 'Désactiver'}
+        cancelText="Annuler"
+        type={publishingRightsAction === 'activate' ? 'success' : 'danger'}
         isDarkMode={isDarkMode}
         isLoading={loading}
       />

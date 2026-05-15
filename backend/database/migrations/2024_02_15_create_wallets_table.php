@@ -30,7 +30,7 @@ return new class extends Migration
             $table->enum('flow', ['in', 'out', 'freeze', 'unfreeze']);
             $table->enum('nature', ['external', 'internal']);
             $table->enum('type', [
-                'funds_receipt', 'funds_withdrawal', 'freeze_funds', 'unfreeze_funds', 'funds_transfer', 
+                'funds_receipt', 'fundraising', 'funds_withdrawal', 'freeze_funds', 'unfreeze_funds', 'funds_transfer', 
                 'pack_purchase', 'virtual_purchase', 'virtual_receipt', 'boost_purchase', 
                 'digital_product_purchase', 'digital_product_sale', 
                 'commission', 'withdrawal_commission', 'transfer_commission', 'adjustment', 'reverse'

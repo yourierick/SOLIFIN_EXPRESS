@@ -441,7 +441,7 @@ const Users = () => {
 
   return (
     <div className="bg-gray-50 p-4 dark:bg-gray-900 min-h-screen">
-      <div className="mb-4 p-3 sm:mb-6 max-w-4xl">
+      <div className="mb-4 p-3 sm:mb-6">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg sm:text-xl font-semibold flex items-center text-gray-900 dark:text-white">
             <PersonIcon
@@ -481,7 +481,7 @@ const Users = () => {
         </div>
       )}
 
-      <div className="mb-4 sm:mb-6 max-w-5xl mx-auto">
+      <div className="mb-4 sm:mb-6 mx-auto">
         <div className="mt-3 flex justify-between items-center">
           {!showFilters &&
             (filters.search ||
@@ -839,7 +839,7 @@ const Users = () => {
         )}
 
         {/* Tableau de bord statistiques */}
-        <div className="mb-6 max-w-5xl">
+        <div className="mb-6">
           {statsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, index) => (
@@ -1202,7 +1202,7 @@ const Users = () => {
           </div>
         ) : (
           <div>
-            <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-w-5xl mx-auto transition-all duration-300 ease-in-out hover:shadow-2xl animate__animated animate__fadeIn animate__faster">
+            <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 mx-auto transition-all duration-300 ease-in-out hover:shadow-2xl animate__animated animate__fadeIn animate__faster">
               <div className="overflow-x-auto">
                 <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 text-white">
@@ -2100,6 +2100,8 @@ const Users = () => {
         <DialogContent
           sx={{
             padding: 0,
+            maxHeight: '80vh',
+            overflow: 'auto',
             borderTop: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
             borderBottom: isDarkMode
               ? "1px solid #374151"

@@ -12,8 +12,7 @@ import {
   HandThumbDownIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import Notification from "../../components/Notification";
 
 export default function Faq() {
@@ -151,18 +150,6 @@ export default function Faq() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import {
   CheckCircleIcon,
   InformationCircleIcon,
+  ExclamationTriangleIcon,
   PlusIcon,
   XMarkIcon,
   TrashIcon,
@@ -1101,24 +1102,45 @@ export default function PublicationForm({
         </div>
       )}
       <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <InformationCircleIcon
-                  className="h-5 w-5 text-yellow-400"
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  Votre publication sera soumise à validation par l'équipe
-                  d'administration avant d'être visible publiquement.
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <ExclamationTriangleIcon
+                className="h-5 w-5 text-yellow-400"
+                aria-hidden="true"
+              />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700 font-medium mb-2">
+                ⚠️ AVERTISSEMENT IMPORTANT
+              </p>
+              <div className="text-sm text-yellow-700 space-y-2">
+                <p>
+                  <strong>Contenus strictement interdits :</strong>
                 </p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                  <li>Contenu pour adultes (pornographie, érotisme)</li>
+                  <li>Discours haineux, racisme, discrimination</li>
+                  <li>Violence, incitation à la haine</li>
+                  <li>Contenu illégal, drogues, armes</li>
+                  <li>Arnaques, fraudes, escroqueries</li>
+                  <li>Violations de droits d'auteur</li>
+                  <li>Fake news, désinformation</li>
+                </ul>
+                <p className="mt-3">
+                  <strong>Conséquences en cas de violation :</strong>
+                </p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                  <li><strong>Suppression immédiate</strong> de toute publication non conforme</li>
+                  <li><strong>Blocage temporaire</strong> de votre compte</li>
+                  <li><strong>Bannissement permanent</strong> en cas de récidive</li>
+                  <li><strong>Poursuites judiciaires</strong> pour faits graves</li>
+                </ul>
               </div>
             </div>
           </div>
-
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Champ pays rendu en dur pour tous les types de formulaire */}
           <div className="space-y-2">
             <label

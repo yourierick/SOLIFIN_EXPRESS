@@ -9,8 +9,7 @@ import TransactionsTable from "./components/TransactionsTable";
 import WalletExportButtons from "./components/WalletExportButtons";
 import { getOperationType } from "../../components/OperationTypeFormatter";
 import FiltreParTypeOperationUser from "../../components/FiltreParTypeOperationUser";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -2525,20 +2524,6 @@ export default function Wallets() {
           />,
           document.body
         )}
-
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        zIndex={9999}
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
-      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ export const PublicationPackProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
   const [packStatus, setPackStatus] = useState({
     isActive: false,
+    canPublish: false,
     packInfo: null,
     loading: true,
     error: null
@@ -21,6 +22,7 @@ export const PublicationPackProvider = ({ children }) => {
       console.log('Aucun utilisateur connecté, arrêt de la vérification du pack');
       setPackStatus({
         isActive: false,
+        canPublish: false,
         packInfo: null,
         loading: false,
         error: null
@@ -34,6 +36,7 @@ export const PublicationPackProvider = ({ children }) => {
       
       setPackStatus({
         isActive: response.data.is_active,
+        canPublish: response.data.can_publish,
         packInfo: response.data.pack,
         loading: false,
         error: null
@@ -41,6 +44,7 @@ export const PublicationPackProvider = ({ children }) => {
     } catch (error) {
       setPackStatus({
         isActive: false,
+        canPublish: false,
         packInfo: null,
         loading: false,
         error: 'Erreur lors de la vérification du pack'

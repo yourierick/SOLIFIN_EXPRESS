@@ -426,6 +426,20 @@ class ReportController extends Controller
                     $publication->delete();
                 }
             }
+
+            if ($report->publication_type === "Fundraising") {
+                $publication = FundRaising::where('pub_reference', $report->publication_reference)->first();
+                if ($publication) {
+                    // Supprimer l'image et le fichier du produit numérique
+                    if ($publication->image && Storage::exists($publication->image)) {
+                        Storage::delete($publication->image);
+                    }
+                    if ($publication->video && Storage::exists($publication->video)) {
+                        Storage::delete($publication->video);
+                    }
+                    $publication->delete();
+                }
+            }
             
             // Mettre à jour le statut du signalement
             $report->status = 'reviewed';

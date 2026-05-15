@@ -2,8 +2,7 @@ import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import axios from "../utils/axios";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import {
   PhoneIcon,
   CreditCardIcon,
@@ -770,18 +769,6 @@ export default function WithdrawalForm({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <style>{customStyles}</style>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={isDarkMode ? "dark" : "light"}
-      />
       <div className="modal-overlay">
         <div className="modal-container">
           <div
@@ -1297,7 +1284,7 @@ export default function WithdrawalForm({
                                   isDarkMode ? "text-gray-400" : "text-gray-600"
                                 }`}
                               >
-                                Commission parrainage (
+                                Commission de retrait (
                                 {referralCommissionPercentage}%):
                               </span>
                               <span

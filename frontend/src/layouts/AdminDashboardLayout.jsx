@@ -126,14 +126,16 @@ const navigationItems = [
     badge: (
       pendingPublicationsCount,
       pendingFormationsCount,
-      pendingTestimonialsCount
+      pendingTestimonialsCount,
+      pendingReportsCount
     ) => {
       // S'assurer que toutes les valeurs sont des nombres valides
       const publications = Number(pendingPublicationsCount) || 0;
       const formations = Number(pendingFormationsCount) || 0;
       const testimonials = Number(pendingTestimonialsCount) || 0;
+      const reports = Number(pendingReportsCount) || 0;
 
-      const total = publications + formations + testimonials;
+      const total = publications + formations + testimonials + reports;
 
       return total > 0 ? total : null;
     },
@@ -171,6 +173,7 @@ const getNavigation = (
   pendingFormationsCount = 0,
   pendingPublicationsCount = 0,
   pendingTestimonialsCount = 0,
+  pendingReportsCount = 0,
   userPermissions = []
 ) => {
   // Si l'utilisateur est super admin ou si aucune permission n'est fournie, afficher tous les éléments
@@ -183,10 +186,13 @@ const getNavigation = (
             ? item.badge(
                 pendingPublicationsCount,
                 pendingFormationsCount,
-                pendingTestimonialsCount
+                pendingTestimonialsCount,
+                pendingReportsCount
               )
             : item.name === "Validations"
             ? item.badge(pendingPublicationsCount)
+            : item.name === "Signalements"
+            ? item.badge(pendingReportsCount)
             : item.badge(pendingFormationsCount)
           : item.badge,
       // Pour les éléments avec sous-menu, filtrer également les enfants
@@ -224,10 +230,13 @@ const getNavigation = (
             ? item.badge(
                 pendingPublicationsCount,
                 pendingFormationsCount,
-                pendingTestimonialsCount
+                pendingTestimonialsCount,
+                pendingReportsCount
               )
             : item.name === "Validations"
             ? item.badge(pendingPublicationsCount)
+            : item.name === "Signalements"
+            ? item.badge(pendingReportsCount)
             : item.badge(pendingFormationsCount)
           : item.badge,
       // Pour les éléments avec sous-menu, filtrer également les enfants en fonction des permissions
@@ -246,10 +255,13 @@ const getNavigation = (
                     ? subItem.badge(
                         pendingPublicationsCount,
                         pendingFormationsCount,
-                        pendingTestimonialsCount
+                        pendingTestimonialsCount,
+                        pendingReportsCount
                       )
                     : item.name === "Validations"
                     ? subItem.badge(pendingPublicationsCount)
+                    : item.name === "Signalements"
+                    ? item.badge(pendingReportsCount)
                     : subItem.badge(pendingFormationsCount)
                   : subItem.badge,
             }))
@@ -318,7 +330,8 @@ export default function AdminDashboardLayout() {
     pendingFormationsCount, 
     pendingTestimonialsCount, 
     pendingPublicationsCount,
-    pendingAnomaliesCount 
+    pendingAnomaliesCount,
+    pendingReportsCount,
   } = useDashboardCounters(user?.is_admin);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showTooltip, setShowTooltip] = useState(null);
@@ -417,6 +430,7 @@ export default function AdminDashboardLayout() {
     pendingFormationsCount,
     pendingPublicationsCount,
     pendingTestimonialsCount,
+    pendingReportsCount,
     userPermissions
   );
 

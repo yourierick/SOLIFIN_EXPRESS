@@ -13,10 +13,13 @@ import {
   ExclamationCircleIcon,
   ShieldExclamationIcon,
   DocumentTextIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import AdminPostDetailModal from "./components/AdminPostDetailModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import FilterControls from "./components/FilterControls";
+import FundRaisingValidation from "./components/FundRaisingValidation";
 import { toast } from "react-toastify";
 
 function classNames(...classes) {
@@ -75,12 +78,13 @@ export default function PublicationValidation() {
     }),
     [allItems]
   );
+  // États pour les filtres
   const [filters, setFilters] = useState({
-    publications: { statut: "all", etat: "all" },
-    jobOffers: { statut: "all", etat: "all" },
-    businessOpportunities: { statut: "all", etat: "all" },
-    socialEvents: { statut: "all", etat: "all" },
-    digitalProducts: { statut: "all", etat: "all" },
+    publications: { statut: "all", etat: "all", search: "" },
+    jobOffers: { statut: "all", etat: "all", search: "" },
+    businessOpportunities: { statut: "all", etat: "all", search: "" },
+    digitalProducts: { statut: "all", etat: "all", search: "" },
+    socialEvents: { statut: "all", etat: "all", search: "" }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -97,15 +101,6 @@ export default function PublicationValidation() {
 
   // Recharger les données lorsque les filtres changent
   useEffect(() => {
-    // Ne pas appeler fetchData au premier chargement (déjà fait par fetchAllItems)
-    if (pagination.publications.currentPage === 1 && 
-        pagination.jobOffers.currentPage === 1 && 
-        pagination.businessOpportunities.currentPage === 1 && 
-        pagination.socialEvents.currentPage === 1 && 
-        pagination.digitalProducts.currentPage === 1) {
-      // Premier chargement - ne rien faire, fetchAllItems s'en occupe
-      return;
-    }
     // Pour les changements de filtres, appeler fetchData
     fetchData();
   }, [filters]);
@@ -163,15 +158,10 @@ export default function PublicationValidation() {
     }));
     
     // Réinitialiser la page à 1 lors du changement de filtre
-    const paginationKey = type === "publication" ? "publications" :
-                         type === "jobOffer" ? "jobOffers" :
-                         type === "businessOpportunity" ? "businessOpportunities" :
-                         type === "digitalProduct" ? "digitalProducts" : "socialEvents";
-    
     setPagination(prev => ({
       ...prev,
-      [paginationKey]: {
-        ...prev[paginationKey],
+      [type]: {
+        ...prev[type],
         currentPage: 1
       }
     }));
@@ -188,14 +178,21 @@ export default function PublicationValidation() {
         socialEventsRes,
         digitalProductsRes,
       ] = await Promise.all([
-        axios.get(`/api/admin/publications?page=${pagination.publications.currentPage}&per_page=${pagination.publications.itemsPerPage}&statut=${filters.publications.statut}&etat=${filters.publications.etat}`),
-        axios.get(`/api/admin/job-offers?page=${pagination.jobOffers.currentPage}&per_page=${pagination.jobOffers.itemsPerPage}&statut=${filters.jobOffers.statut}&etat=${filters.jobOffers.etat}`),
-        axios.get(`/api/admin/business-opportunities?page=${pagination.businessOpportunities.currentPage}&per_page=${pagination.businessOpportunities.itemsPerPage}&statut=${filters.businessOpportunities.statut}&etat=${filters.businessOpportunities.etat}`),
-        axios.get(`/api/admin/social-events?page=${pagination.socialEvents.currentPage}&per_page=${pagination.socialEvents.itemsPerPage}&statut=${filters.socialEvents.statut}&etat=${filters.socialEvents.etat}`),
-        axios.get(`/api/admin/digital-products?page=${pagination.digitalProducts.currentPage}&per_page=${pagination.digitalProducts.itemsPerPage}&statut=${filters.digitalProducts.statut}&etat=${filters.digitalProducts.etat}`),
+        axios.get(`/api/admin/publications?page=${pagination.publications.currentPage}&per_page=${pagination.publications.itemsPerPage}&statut=${filters.publications.statut}&etat=${filters.publications.etat}&search=${filters.publications.search}`),
+        axios.get(`/api/admin/job-offers?page=${pagination.jobOffers.currentPage}&per_page=${pagination.jobOffers.itemsPerPage}&statut=${filters.jobOffers.statut}&etat=${filters.jobOffers.etat}&search=${filters.jobOffers.search}`),
+        axios.get(`/api/admin/business-opportunities?page=${pagination.businessOpportunities.currentPage}&per_page=${pagination.businessOpportunities.itemsPerPage}&statut=${filters.businessOpportunities.statut}&etat=${filters.businessOpportunities.etat}&search=${filters.businessOpportunities.search}`),
+        axios.get(`/api/admin/social-events?page=${pagination.socialEvents.currentPage}&per_page=${pagination.socialEvents.itemsPerPage}&statut=${filters.socialEvents.statut}&etat=${filters.socialEvents.etat}&search=${filters.socialEvents.search}`),
+        axios.get(`/api/admin/digital-products?page=${pagination.digitalProducts.currentPage}&per_page=${pagination.digitalProducts.itemsPerPage}&statut=${filters.digitalProducts.statut}&etat=${filters.digitalProducts.etat}&search=${filters.digitalProducts.search}`),
       ]);
 
       // Mettre à jour les données et la pagination
+      console.log('Données reçues dans fetchData:', {
+        publications: publicationsRes.data.publications,
+        jobOffers: jobOffersRes.data.jobOffers,
+        businessOpportunities: businessOpportunitiesRes.data.businessOpportunities,
+        socialEvents: socialEventsRes.data.socialEvents,
+        digitalProducts: digitalProductsRes.data.digitalProducts,
+      });
       setAllItems({
         publications: publicationsRes.data.publications,
         jobOffers: jobOffersRes.data.jobOffers,
@@ -297,32 +294,6 @@ export default function PublicationValidation() {
     setIsRejectModalOpen(false);
     setSelectedItem(null);
     setRejectionReason("");
-  };
-
-  const closeReportModal = () => {
-    setReportModalOpen(false);
-    setSelectedReportedStatus(null);
-  };
-
-  // Fonction pour supprimer un statut social signalé
-  const handleDeleteReportedStatus = async (id) => {
-    try {
-      await axios.delete(`/api/admin/social-events/${id}`);
-
-      // Mettre à jour la liste des statuts sociaux
-      setAllItems((prev) => ({
-        ...prev,
-        socialEvents: prev.socialEvents.filter((item) => item.id !== id),
-      }));
-
-      closeReportModal();
-      toast.success("Le statut social a été supprimé avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la suppression du statut social:", error);
-      toast.error(
-        "Une erreur est survenue lors de la suppression du statut social"
-      );
-    }
   };
 
   const handleApprove = async (id, type) => {
@@ -566,7 +537,7 @@ export default function PublicationValidation() {
           return {
             bg: "bg-green-100 dark:bg-green-900/30",
             text: "text-green-800 dark:text-green-300",
-            label: "Approuvé",
+            label: "Publié",
           };
         case "rejected":
           return {
@@ -612,7 +583,7 @@ export default function PublicationValidation() {
           };
         default:
           return {
-            bg: "bg-gray-100 dark:bg-gray-700",
+            bg: "bg-yellow-100 dark:bg-yellow-700",
             text: "text-gray-800 dark:text-gray-300",
             label: state,
           };
@@ -822,23 +793,7 @@ export default function PublicationValidation() {
                     <div className="flex flex-wrap gap-2 items-center">
                       <StatusBadge status={item.statut} />
                       {item.etat && <StateBadge state={item.etat} />}
-
-                      {/* Badge de signalement pour les statuts sociaux */}
-                      {type === "socialEvent" && item.reports_count > 0 && (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            item.needs_attention
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                          }`}
-                          title={`${item.reports_count} signalement${
-                            item.reports_count > 1 ? "s" : ""
-                          }`}
-                        >
-                          <ExclamationCircleIcon className="h-3 w-3 mr-1" />
-                          {item.reports_count}
-                        </span>
-                      )}
+                      {item.pub_reference && <StateBadge state={item.pub_reference} />}
                     </div>
                   </div>
 
@@ -865,29 +820,6 @@ export default function PublicationValidation() {
                   </div>
                 </div>
                 <div className="flex flex-wrap md:flex-nowrap gap-2 items-center justify-end md:justify-start mt-4 md:mt-0">
-                  {/* Bouton pour voir les signalements (uniquement pour les statuts sociaux) */}
-                  {type === "socialEvent" && item.reports_count > 0 && (
-                    <button
-                      title={`Voir les ${item.reports_count} signalement${
-                        item.reports_count > 1 ? "s" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedReportedStatus(item);
-                        setReportModalOpen(true);
-                      }}
-                      className={`p-2 rounded-full transition-all duration-200 ${
-                        item.needs_attention
-                          ? "text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
-                          : "text-yellow-500 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30"
-                      }`}
-                      aria-label={`Voir les ${item.reports_count} signalement${
-                        item.reports_count > 1 ? "s" : ""
-                      }`}
-                    >
-                      <ShieldExclamationIcon className="h-5 w-5" />
-                    </button>
-                  )}
-
                   <button
                     title="Voir les détails"
                     onClick={() => openPreviewModal(item, type)}
@@ -1063,60 +995,7 @@ export default function PublicationValidation() {
     }
   };
 
-  // Composant de filtres pour chaque type
-  const FilterControls = ({ type, typeLabel }) => {
-    const currentType = type === "publications" ? "publication" :
-                         type === "jobOffers" ? "jobOffer" :
-                         type === "businessOpportunities" ? "businessOpportunity" :
-                         type === "digitalProducts" ? "digitalProduct" : "socialEvent";
-    const itemsCount = getItemsForType(currentType).length;
-
-    return (
-      <div className="flex flex-wrap gap-4 mb-6">
-        {/* Filtre par statut */}
-        <div>
-          <label htmlFor={`statut-filter-${type}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Statut
-          </label>
-          <select
-            id={`statut-filter-${type}`}
-            name={`statut-filter-${type}`}
-            value={filters[type].statut}
-            onChange={(e) => updateFilter(type, "statut", e.target.value)}
-            className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
-          >
-            <option value="all">Tous</option>
-            <option value="pending">En attente</option>
-            <option value="approved">Approuvé</option>
-            <option value="rejected">Rejeté</option>
-          </select>
-        </div>
-
-        {/* Filtre par état (si applicable) */}
-        <div>
-          <label htmlFor={`etat-filter-${type}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            État
-          </label>
-          <select
-            id={`etat-filter-${type}`}
-            name={`etat-filter-${type}`}
-            value={filters[type].etat}
-            onChange={(e) => updateFilter(type, "etat", e.target.value)}
-            className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
-          >
-            <option value="all">Tous</option>
-            <option value="available">Disponible</option>
-            <option value="unavailable">Terminé</option>
-          </select>
-        </div>
-
-        <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
-          {itemsCount} {typeLabel}{itemsCount > 1 ? "s" : ""} affiché{itemsCount > 1 ? "s" : ""}
-        </div>
-      </div>
-    );
-  };
-
+  
   // Rendu du modal de détails avec le nouveau composant
   const renderPreviewModal = () => {
     if (!selectedItem) return null;
@@ -1209,137 +1088,20 @@ export default function PublicationValidation() {
     );
   };
 
-  // Rendu du modal de signalements
-  const renderReportModal = () => {
-    if (!selectedReportedStatus) return null;
-
-    // Obtenir les raisons de signalement et les compter
-    const reportReasons = selectedReportedStatus.report_reasons || {};
-    const totalReports = selectedReportedStatus.reports_count || 0;
-
-    // Traduire les raisons de signalement
-    const reasonTranslations = {
-      inappropriate_content: "Contenu inapproprié",
-      harassment: "Harcèlement",
-      spam: "Spam",
-      false_information: "Fausse information",
-      violence: "Violence",
-      hate_speech: "Discours haineux",
-      other: "Autre raison",
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
-          <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
-              Signalements
-              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                {totalReports}
-              </span>
-            </h3>
-            <button
-              onClick={closeReportModal}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            >
-              <XCircleIcon className="h-6 w-6" />
-            </button>
-          </div>
-
-          <div className="p-6 dark:text-white">
-            <div className="mb-4">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                Statut signalé
-              </h4>
-              <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
-                <p className="text-sm text-gray-800 dark:text-gray-200">
-                  {selectedReportedStatus.content}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Créé par{" "}
-                  {selectedReportedStatus.user?.nom ||
-                    selectedReportedStatus.user?.name}{" "}
-                  {selectedReportedStatus.user?.prenom} •
-                  {new Date(
-                    selectedReportedStatus.created_at
-                  ).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                Raisons des signalements
-              </h4>
-              <div className="mt-2 space-y-2">
-                {Object.entries(reportReasons).map(([reason, count]) => (
-                  <div
-                    key={reason}
-                    className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {reasonTranslations[reason] || reason}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-red-500 dark:text-red-400 font-medium">
-                {selectedReportedStatus.needs_attention
-                  ? "⚠️ Ce statut a reçu un nombre important de signalements et nécessite votre attention."
-                  : "Ce statut a reçu quelques signalements."}
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={closeReportModal}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                Fermer
-              </button>
-              <button
-                onClick={() =>
-                  handleDeleteReportedStatus(selectedReportedStatus.id)
-                }
-                className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
-              >
-                Supprimer le statut
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-col sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Validation des publications
-          </h1>
-          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Gérez les publications en attente de validation.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <button
           onClick={fetchAllItems}
-          className="mt-3 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-600 dark:focus:ring-offset-gray-800 sm:justify-start"
+          className="mt-1 sm:mt-0 inline-flex items-center justify-center px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-md text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
-          <ArrowPathIcon className="h-5 w-5 mr-2 sm:mr-2" />
+          <ArrowPathIcon className="h-4 w-4 mr-1.5 sm:mr-1.5" />
           <span className="sm:hidden">Actualiser</span>
           <span className="hidden sm:inline">Actualiser</span>
         </button>
       </div>
 
-      <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden">
+      <div className="mt-2 sm:mt-3 bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden">
         <Tab.Group>
           {/* Container avec scroll horizontal pour mobile */}
           <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
@@ -1437,6 +1199,22 @@ export default function PublicationValidation() {
                 }
               >
                 <div className="relative flex items-center justify-center">
+                  <BanknotesIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+                  FundRaising
+                </div>
+              </Tab>
+              <Tab
+                className={({ selected }) =>
+                  classNames(
+                    "flex-shrink-0 sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200",
+                    "focus:outline-none focus:ring-2 ring-offset-2 ring-offset-primary-400 ring-white ring-opacity-60",
+                    selected
+                      ? "bg-white dark:bg-gray-800 shadow-md text-primary-700 dark:text-primary-400"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] dark:hover:bg-gray-700/[0.8] hover:text-primary-600 dark:hover:text-primary-400"
+                  )
+                }
+              >
+                <div className="relative flex items-center justify-center">
                   {pendingCounts.socialEvents > 0 && (
                     <span className="absolute -top-1.5 sm:-top-2 -right-1.5 sm:-right-2 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300">
                     {pendingCounts.socialEvents}
@@ -1456,7 +1234,7 @@ export default function PublicationValidation() {
                 </div>
               ) : (
                 <>
-                  <FilterControls type="publications" typeLabel="publicité" />
+                  <FilterControls type="publications" typeLabel="publicité" filters={filters} updateFilter={updateFilter} getItemsForType={getItemsForType} />
                   {renderItemList("publication")}
                   <Pagination type="publication" />
                 </>
@@ -1469,7 +1247,7 @@ export default function PublicationValidation() {
                 </div>
               ) : (
                 <>
-                  <FilterControls type="jobOffers" typeLabel="offre d'emploi" />
+                  <FilterControls type="jobOffers" typeLabel="offre d'emploi" filters={filters} updateFilter={updateFilter} getItemsForType={getItemsForType} />
                   {renderItemList("jobOffer")}
                   <Pagination type="jobOffer" />
                 </>
@@ -1485,6 +1263,9 @@ export default function PublicationValidation() {
                   <FilterControls
                     type="businessOpportunities"
                     typeLabel="opportunité d'affaire"
+                    filters={filters}
+                    updateFilter={updateFilter}
+                    getItemsForType={getItemsForType}
                   />
                   {renderItemList("businessOpportunity")}
                   <Pagination type="businessOpportunity" />
@@ -1501,11 +1282,17 @@ export default function PublicationValidation() {
                   <FilterControls
                     type="digitalProducts"
                     typeLabel="produit numérique"
+                    filters={filters}
+                    updateFilter={updateFilter}
+                    getItemsForType={getItemsForType}
                   />
                   {renderItemList("digitalProduct")}
                   <Pagination type="digitalProduct" />
                 </>
               )}
+            </Tab.Panel>
+            <Tab.Panel className="p-4">
+              <FundRaisingValidation />
             </Tab.Panel>
             <Tab.Panel className="p-4">
               {isLoading ? (
@@ -1517,6 +1304,9 @@ export default function PublicationValidation() {
                   <FilterControls
                     type="socialEvents"
                     typeLabel="statut social"
+                    filters={filters}
+                    updateFilter={updateFilter}
+                    getItemsForType={getItemsForType}
                   />
                   {renderItemList("socialEvent")}
                   <Pagination type="socialEvent" />

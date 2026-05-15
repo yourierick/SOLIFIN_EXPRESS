@@ -22,39 +22,12 @@ import {
   NewspaperIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../../contexts/AuthContext";
-
-// Fonctions d'aide pour les badges de type de post
-const getPostTypeLabel = (type) => {
-  switch (type) {
-    case "offres-emploi":
-      return "Offre d'emploi";
-    case "opportunites-affaires":
-      return "Opportunité d'affaires";
-    default:
-      return "Publication";
-  }
-};
-
-const getPostTypeBadgeStyles = (type, isDark) => {
-  switch (type) {
-    case "offres-emploi":
-      return isDark
-        ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/30"
-        : "bg-blue-100 text-blue-800 ring-1 ring-blue-200";
-    case "opportunites-affaires":
-      return isDark
-        ? "bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-400/30"
-        : "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200";
-    default:
-      return isDark
-        ? "bg-gray-600/40 text-gray-300 ring-1 ring-gray-500/30"
-        : "bg-gray-100 text-gray-700 ring-1 ring-gray-200";
-  }
-};
+import ReportModal from "../../../components/ReportModal";
 
 export default function PostCard({
   post,
@@ -65,9 +38,18 @@ export default function PostCard({
   onViewDetails,
   isDarkMode,
   user,
+  onReport, // Ajout de la fonction de signalement
 }) {
   // Hook pour détecter si on est en mode mobile
   const [isMobile, setIsMobile] = useState(false);
+  
+  // États pour le modal de signalement
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportData, setCurrentReportData] = useState({
+    userId: null,
+    pubType: null,
+    pubRef: null
+  });
 
   useEffect(() => {
     const checkMobile = () => {
@@ -100,6 +82,26 @@ export default function PostCard({
 
   // États pour les filtres cachés par défaut
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+
+  // Référence pour le menu de partage
+  const shareMenuRef = useRef(null);
+
+  // Effet pour fermer le menu de partage lors d'un clic ailleurs sur la page
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target)) {
+        setIsShareMenuOpen(false);
+      }
+    };
+
+    if (isShareMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isShareMenuOpen]);
 
   // Fonction pour ouvrir le chat avec l'auteur de la publication
   const handleOpenChat = async () => {
@@ -253,72 +255,6 @@ export default function PostCard({
     return text.substring(0, maxLength) + "...";
   };
 
-  // Afficher l'icône appropriée selon le type de post
-  const renderTypeIcon = () => {
-    switch (post.type) {
-      case "offres-emploi":
-        return <BriefcaseIcon className="h-5 w-5 text-blue-500" />;
-      case "opportunites-affaires":
-        return <LightBulbIcon className="h-5 w-5 text-yellow-500" />;
-      default:
-        return <NewspaperIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  // Afficher les informations spécifiques selon le type de post
-  const renderTypeSpecificInfo = () => {
-    if (post.type === "offres-emploi") {
-      return (
-        <div
-          className={`mt-2 text-sm ${
-            isDarkMode ? "text-gray-400" : "text-gray-600"
-          }`}
-        >
-          {post.company_name && (
-            <div className="flex items-center mb-1">
-              <BuildingOfficeIcon className="h-4 w-4 mr-1" />
-              <span>{post.company_name}</span>
-            </div>
-          )}
-          {post.location && (
-            <div className="flex items-center mb-1">
-              <MapPinIcon className="h-4 w-4 mr-1" />
-              <span>{post.location}</span>
-            </div>
-          )}
-          {post.salary_range && (
-            <div className="flex items-center mb-1">
-              <CurrencyDollarIcon className="h-4 w-4 mr-1" />
-              <span>{post.salary_range}</span>
-            </div>
-          )}
-        </div>
-      );
-    } else if (post.type === "opportunites-affaires") {
-      return (
-        <div
-          className={`mt-2 text-sm ${
-            isDarkMode ? "text-gray-400" : "text-gray-600"
-          }`}
-        >
-          {post.investment_amount && (
-            <div className="flex items-center mb-1">
-              <CurrencyDollarIcon className="h-4 w-4 mr-1" />
-              <span>Investissement: {post.investment_amount}</span>
-            </div>
-          )}
-          {post.sector && (
-            <div className="flex items-center mb-1">
-              <BuildingOfficeIcon className="h-4 w-4 mr-1" />
-              <span>Secteur: {post.sector}</span>
-            </div>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <div
       className={`rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl h-full flex flex-col ${
@@ -376,6 +312,38 @@ export default function PostCard({
               <span className="truncate">{formatDate(post.created_at)}</span>
             </div>
           </div>
+
+          {/* Bouton Voir les détails - toujours visible */}
+          <button
+            onClick={() => onViewDetails(post.id, post.type)}
+            className={`inline-flex items-center justify-center p-1.5 rounded-lg shadow-sm text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
+              isDarkMode
+                ? "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800"
+            }`}
+            title="Voir les détails"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+          </button>
           
           {/* Bouton En savoir plus dans l'en-tête - seulement l'icône */}
           {post.external_link && (
@@ -393,24 +361,59 @@ export default function PostCard({
               <ArrowTopRightOnSquareIcon className="h-4 w-4" />
             </a>
           )}
+          {/* Bouton WhatsApp - toujours visible si numéro disponible */}
+          {post.user?.phone && (
+            <a
+              href={`https://wa.me/${post.user.phone.replace(/[^0-9]/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 rounded-lg shadow-sm text-xs font-medium text-green-700 hover:text-green-500"
+              title="Contacter via WhatsApp"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
+              >
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              <span>{isMobile ? "" : "WhatsApp"}</span>
+            </a>
+          )}
+
+          {/* Bouton de signalement */}
+          {user &&
+            post.user &&
+            user.id &&
+            post.user.id &&
+            user.id !== post.user.id && (
+            <button
+              onClick={() => {
+                setCurrentReportData({
+                  userId: post.user.id,
+                  pubType: "Publicité",
+                  pubRef: post.pub_reference
+                });
+                setIsReportModalOpen(true);
+                setIsShareMenuOpen(false);
+              }}
+              className={`inline-flex items-center justify-center p-1.5 rounded-lg shadow-sm text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
+                isDarkMode
+                  ? "bg-red-700 hover:bg-gray-600 text-red-300 hover:text-white"
+                  : "bg-red-100 hover:bg-gray-200 text-red-600 hover:text-gray-800"
+              }`}
+              title="Signaler cette publication"
+            >
+              <ExclamationCircleIcon className="h-4 w-4" />
+              <span className="ml-1">{isMobile ? "" : "Signaler"}</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Contenu du post */}
       <div className="px-1.5 sm:px-3 py-1.5 sm:py-2 flex-1 flex flex-col">
-        {/* Badge de type de post */}
-        <div className="flex items-center mb-1.5 sm:mb-2">
-          <div
-            className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-medium ${getPostTypeBadgeStyles(
-              post.type,
-              isDarkMode
-            )}`}
-          >
-            {renderTypeIcon()}
-            <span className="ml-1 text-xs">{getPostTypeLabel(post.type)}</span>
-          </div>
-        </div>
-
         {/* Titre du post avec style moderne */}
         {post.title && (
           <h3
@@ -434,9 +437,6 @@ export default function PostCard({
             {post.content}
           </div>
         </div>
-
-        {/* Informations spécifiques au type de post */}
-        <div className="mb-2 sm:mb-3">{renderTypeSpecificInfo()}</div>
 
         {/* Carrousel de médias (images et vidéos) avec design moderne */}
         {mediaItems.length > 0 && (
@@ -559,59 +559,6 @@ export default function PostCard({
                     </div>
                   )
                 )}
-
-                {/* Badge indiquant le type de média */}
-                <div className="absolute top-2 sm:top-3 left-2 sm:left-3 backdrop-blur-md bg-black/50 text-white text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-full z-10 flex items-center space-x-1 sm:space-x-1.5 shadow-lg">
-                  {mediaItems[currentMediaIndex]?.type === "image" ? (
-                    <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 sm:h-3.5 sm:w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <span className="text-xs">
-                        {isMobile
-                          ? `${currentMediaIndex + 1}/${mediaItems.length}`
-                          : `Image ${currentMediaIndex + 1}/${
-                              mediaItems.length
-                            }`}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 sm:h-3.5 sm:w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <span className="text-xs">
-                        {isMobile
-                          ? `${currentMediaIndex + 1}/${mediaItems.length}`
-                          : `Vidéo ${currentMediaIndex + 1}/${
-                              mediaItems.length
-                            }`}
-                      </span>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -671,141 +618,87 @@ export default function PostCard({
             )}
           </div>
         )}
-
-        {/* Lien externe - plus nécessaire car déplacé dans l'en-tête */}
-
-        {/* Boutons WhatsApp et Voir les détails - sur la même ligne */}
-        <div className="mt-1.5 sm:mt-2 flex items-start space-x-2">
-          {/* Bouton WhatsApp - toujours visible si numéro disponible */}
-          {post.user?.phone && (
-            <a
-              href={`https://wa.me/${post.user.phone.replace(/[^0-9]/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 rounded-lg shadow-sm text-xs font-medium bg-green-600 hover:bg-green-700 text-white"
-              title="Contacter via WhatsApp"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-3 w-3 sm:h-4 sm:w-4 mr-1"
-              >
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-              </svg>
-              <span>{isMobile ? "WA" : "WhatsApp"}</span>
-            </a>
-          )}
-
-          {/* Bouton Voir les détails - toujours visible */}
-          <button
-            onClick={() => onViewDetails(post.id, post.type)}
-            className={`inline-flex items-center justify-center p-1.5 rounded-lg shadow-sm text-xs font-medium transition-all duration-200 transform hover:scale-105 ${
-              isDarkMode
-                ? "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
-                : "bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800"
-            }`}
-            title="Voir les détails"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>
-          </button>
-        </div>
       </div>
 
       {/* Actions */}
       <div
-        className={`px-1.5 sm:px-3 py-1 sm:py-1.5 flex border-t ${
+        className={`px-1.5 gap-8 sm:px-3 py-1 sm:py-1.5 flex border-t ${
           isDarkMode ? "border-gray-700" : "border-gray-200"
         }`}
       >
-        <button
-          onClick={() => onLike(post.id, post.type)}
-          className={`flex items-center justify-center flex-1 py-1 sm:py-1.5 rounded-lg relative ${
-            isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-          } ${
-            post.is_liked
-              ? "text-primary-500"
-              : isDarkMode
-              ? "text-gray-400"
-              : "text-gray-500"
-          }`}
-        >
-          {post.is_liked ? (
-            <HeartIconSolid className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-          ) : (
-            <HeartIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-          )}
-          <span className="text-xs">J'aime</span>
-          {post.likes_count > 0 && (
-            <span
-              className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
-                post.is_liked
-                  ? "bg-red-100 text-red-600"
-                  : isDarkMode
-                  ? "bg-gray-700 text-gray-300"
-                  : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {post.likes_count > 99 ? "99+" : post.likes_count}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            if (showComments) {
-              // Reset visible comments count when hiding comments
-              setVisibleCommentsCount(5);
-            }
-            setShowComments(!showComments);
-          }}
-          className={`flex items-center justify-center flex-1 py-1 sm:py-1.5 rounded-lg relative ${
-            isDarkMode
-              ? "hover:bg-gray-700 text-gray-400"
-              : "hover:bg-gray-100 text-gray-500"
-          }`}
-        >
-          <ChatBubbleLeftIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-          <span className="text-xs">{showComments ? "Masquer" : "Commenter"}</span>
-          {post.comments_count > 0 && (
-            <span
-              className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
-                isDarkMode
-                  ? "bg-blue-900/40 text-blue-300"
-                  : "bg-blue-100 text-blue-600"
-              }`}
-            >
-              {post.comments_count > 99 ? "99+" : post.comments_count}
-            </span>
-          )}
-        </button>
-        {/* Afficher le bouton "Discuter" uniquement si l'utilisateur n'est pas l'auteur de la publication */}
-        {user &&
-          post.user &&
-          user.id &&
-          post.user.id &&
-          user.id !== post.user.id && (
+        {/* Boutons principaux : J'aime, Commenter, Discuter */}
+        <div className="flex items-center space-x-1 sm:space-x-2 mb-2">
+          <button
+            onClick={() => onLike(post.id, post.type)}
+            className={`flex items-center p-2 justify-center flex-1 py-1.5 sm:py-2 rounded-lg relative transition-all duration-200 ${
+              isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+            } ${
+              post.is_liked
+                ? "text-primary-500"
+                : isDarkMode
+                ? "text-gray-400"
+                : "text-gray-500"
+            }`}
+          >
+            {post.is_liked ? (
+              <HeartIconSolid className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            ) : (
+              <HeartIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            )}
+            <span className="text-xs sm:text-sm font-medium">J'aime</span>
+            {post.likes_count > 0 && (
+              <span
+                className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
+                  post.is_liked
+                    ? "bg-red-100 text-red-600"
+                    : isDarkMode
+                    ? "bg-gray-700 text-gray-300"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {post.likes_count > 99 ? "99+" : post.likes_count}
+              </span>
+            )}
+          </button>
+          
+          <button
+            onClick={() => {
+              if (showComments) {
+                // Reset visible comments count when hiding comments
+                setVisibleCommentsCount(5);
+              }
+              setShowComments(!showComments);
+            }}
+            className={`flex p-2 items-center justify-center flex-1 py-1.5 sm:py-2 rounded-lg relative transition-all duration-200 ${
+              isDarkMode
+                ? "hover:bg-gray-700 text-gray-400"
+                : "hover:bg-gray-100 text-gray-500"
+            }`}
+          >
+            <ChatBubbleLeftIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="text-xs sm:text-sm font-medium">{showComments ? "Masquer" : "Commenter"}</span>
+            {post.comments_count > 0 && (
+              <span
+                className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
+                  isDarkMode
+                    ? "bg-blue-900/40 text-blue-300"
+                    : "bg-blue-100 text-blue-600"
+                }`}
+              >
+                {post.comments_count > 99 ? "99+" : post.comments_count}
+              </span>
+            )}
+          </button>
+          
+          {/* Bouton Discuter - uniquement si l'utilisateur n'est pas l'auteur */}
+          {user &&
+            post.user &&
+            user.id &&
+            post.user.id &&
+            user.id !== post.user.id && (
             <button
               onClick={handleOpenChat}
-              className={`flex items-center justify-center flex-1 py-1.5 sm:py-2 rounded-lg ${
+              className={`flex p-2 items-center justify-center flex-1 py-1.5 sm:py-2 rounded-lg transition-all duration-200 ${
                 isDarkMode
                   ? "hover:bg-gray-700 text-gray-400"
                   : "hover:bg-gray-100 text-gray-500"
@@ -825,105 +718,135 @@ export default function PostCard({
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              <span className="text-xs sm:text-sm">
+              <span className="text-xs sm:text-sm font-medium">
                 {isMobile ? "Chat" : "Discuter"}
               </span>
             </button>
           )}
-        <div className="relative flex-1">
-          <button
-            onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
-            className={`flex items-center justify-center w-full py-1 sm:py-1.5 rounded-lg relative ${
-              isDarkMode
-                ? "hover:bg-gray-700 text-gray-400"
-                : "hover:bg-gray-100 text-gray-500"
-            }`}
-          >
-            <ShareIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-            <span className="text-xs">Partager</span>
-            {post.shares_count > 0 && (
-              <span
-                className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
-                  isDarkMode
-                    ? "bg-green-900/40 text-green-300"
-                    : "bg-green-100 text-green-600"
-                }`}
-              >
-                {post.shares_count > 99 ? "99+" : post.shares_count}
-              </span>
-            )}
-          </button>
+        </div>
 
-          {/* Menu de partage */}
-          <AnimatePresence>
-            {isShareMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.1 }}
-                style={{ position: "absolute", right: "0", top: "-160px" }}
-                className={`w-44 sm:w-48 rounded-md shadow-lg z-50 ${
-                  isDarkMode ? "bg-gray-700" : "bg-white"
-                } ring-1 ring-black ring-opacity-5`}
-              >
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      onShare(post.type, post.id, "facebook");
-                      setIsShareMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${
-                      isDarkMode
-                        ? "text-gray-300 hover:bg-gray-600"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    Facebook
-                  </button>
-                  <button
-                    onClick={() => {
-                      onShare(post.type, post.id, "twitter");
-                      setIsShareMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${
-                      isDarkMode
-                        ? "text-gray-300 hover:bg-gray-600"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    X/Twitter
-                  </button>
-                  <button
-                    onClick={() => {
-                      onShare(post.type, post.id, "linkedin");
-                      setIsShareMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${
-                      isDarkMode
-                        ? "text-gray-300 hover:bg-gray-600"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    LinkedIn
-                  </button>
-                  <button
-                    onClick={() => {
-                      onShare(post.type, post.id, "whatsapp");
-                      setIsShareMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm ${
-                      isDarkMode
-                        ? "text-gray-300 hover:bg-gray-600"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    WhatsApp
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Boutons secondaires : Partager */}
+        <div className="relative flex-1">
+            <button
+              onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
+              className={`flex p-2 items-center justify-center py-1.5 sm:py-2 rounded-lg relative transition-all duration-200 ${
+                isDarkMode
+                  ? "hover:bg-gray-700 text-gray-400"
+                  : "hover:bg-gray-100 text-gray-500"
+              }`}
+            >
+              <ShareIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="text-xs sm:text-sm font-medium">Partager</span>
+              {post.shares_count > 0 && (
+                <span
+                  className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-medium ${
+                    isDarkMode
+                      ? "bg-green-900/40 text-green-300"
+                      : "bg-green-100 text-green-600"
+                  }`}
+                >
+                  {post.shares_count > 99 ? "99+" : post.shares_count}
+                </span>
+              )}
+            </button>
+
+            {/* Menu de partage */}
+            <AnimatePresence>
+              {isShareMenuOpen && (
+                <motion.div
+                  ref={shareMenuRef}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.1 }}
+                  style={{ position: "absolute", top: "-160px" }}
+                  className={`w-44 sm:w-48 rounded-md shadow-lg z-50 ${
+                    isDarkMode ? "bg-gray-700" : "bg-white"
+                  } ring-1 ring-black ring-opacity-5`}
+                >
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        onShare(post.type, post.id, "facebook");
+                        setIsShareMenuOpen(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode
+                          ? "text-gray-300 hover:bg-gray-600"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      Facebook
+                    </button>
+                    <button
+                      onClick={() => {
+                        onShare(post.type, post.id, "twitter");
+                        setIsShareMenuOpen(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode
+                          ? "text-gray-300 hover:bg-gray-600"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      X/Twitter
+                    </button>
+                    <button
+                      onClick={() => {
+                        onShare(post.type, post.id, "linkedin");
+                        setIsShareMenuOpen(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode
+                          ? "text-gray-300 hover:bg-gray-600"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      LinkedIn
+                    </button>
+                    <button
+                      onClick={() => {
+                        onShare(post.type, post.id, "whatsapp");
+                        setIsShareMenuOpen(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode
+                          ? "text-gray-300 hover:bg-gray-600"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      WhatsApp
+                    </button>
+                    {/* Bouton de signalement */}
+                    {user &&
+                      post.user &&
+                      user.id &&
+                      post.user.id &&
+                      user.id !== post.user.id && (
+                      <button
+                        onClick={() => {
+                          setCurrentReportData({
+                            userId: post.user.id,
+                            pubType: "Publicité",
+                            pubRef: post.pub_reference
+                          });
+                          setIsReportModalOpen(true);
+                          setIsShareMenuOpen(false);
+                        }}
+                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${
+                          isDarkMode
+                            ? "text-red-300 hover:bg-red-600"
+                            : "text-red-700 hover:bg-red-100"
+                        }`}
+                      >
+                        <ExclamationCircleIcon className="h-4 w-4 mr-2" />
+                        Signaler
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
         </div>
       </div>
 
@@ -1263,6 +1186,16 @@ export default function PostCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal de signalement */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedUserId={currentReportData.userId}
+        reportedPubType={currentReportData.pubType}
+        reportedPubRef={currentReportData.pubRef}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

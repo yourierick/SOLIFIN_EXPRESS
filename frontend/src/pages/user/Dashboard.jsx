@@ -379,31 +379,6 @@ export default function UserDashboard() {
         />
       )}
 
-      {/* Carrousel */}
-      <SectionDivider
-        title="Actualités et événements"
-        icon={
-          <HomeIcon
-            className={`h-6 w-6 ${
-              isDarkMode ? "text-gray-400" : "text-gray-500"
-            }`}
-          />
-        }
-        isDarkMode={isDarkMode}
-      />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className={`px-0 py-6 sm:px-6 rounded-xl ${
-          isDarkMode 
-            ? "bg-gray-800/50 border border-gray-700/50" 
-            : "bg-gray-50 border border-gray-200"
-        }`}
-      >
-        <DashboardCarousel />
-      </motion.div>
-
       {/* Statistiques */}
       <SectionDivider
         title="Vos statistiques financières"

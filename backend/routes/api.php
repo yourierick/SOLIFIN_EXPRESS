@@ -448,6 +448,22 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/opportunites-affaires/{id}/share', [App\Http\Controllers\OpportuniteAffaireController::class, 'share']);
     Route::get('/opportunites-affaires/{id}/shares', [App\Http\Controllers\OpportuniteAffaireController::class, 'getShares']);
 
+    // Routes pour les levés de fonds
+    Route::prefix('fundraisings')->group(function () {
+        Route::get('/', [App\Http\Controllers\User\FundraisingController::class, 'index']);
+        Route::get('/my-fundraisings', [App\Http\Controllers\User\FundraisingController::class, 'myFundraisings']);
+        Route::post('/', [App\Http\Controllers\User\FundraisingController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\User\FundraisingController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\User\FundraisingController::class, 'update']);
+        Route::put('/{id}/publish', [App\Http\Controllers\User\FundraisingController::class, 'publish']);
+        Route::delete('/{id}', [App\Http\Controllers\User\FundraisingController::class, 'destroy']);
+        Route::post('/{id}/like', [App\Http\Controllers\User\FundraisingController::class, 'like']);
+        Route::post('/{id}/comment', [App\Http\Controllers\User\FundraisingController::class, 'comment']);
+        Route::get('/{id}/comments', [App\Http\Controllers\User\FundraisingController::class, 'getComments']);
+        Route::delete('/comments/{commentId}', [App\Http\Controllers\User\FundraisingController::class, 'deleteComment']);
+        Route::post('/{id}/finance', [App\Http\Controllers\User\FundraisingController::class, 'finance']);
+    });
+
     // Route pour vérifier le statut du pack de publication
     Route::get('/user-pack/status', [App\Http\Controllers\UserPackController::class, 'checkPackStatus']);
 
@@ -663,6 +679,14 @@ Route::middleware(['auth:sanctum', 'admin', 'admin-throttle'])->prefix('admin')-
         Route::post('/social-events/{id}/reject', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'reject']);
         Route::patch('/social-events/{id}/status', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'updateStatus']);
         Route::delete('/social-events/{id}', [App\Http\Controllers\Admin\SocialEventAdminController::class, 'destroy']);
+        
+        // Routes pour les levés de fonds
+        Route::get('/fundraisings', [App\Http\Controllers\Admin\FundraisingValidationController::class, 'index']);
+        Route::get('/fundraisings/{id}', [App\Http\Controllers\Admin\FundraisingValidationController::class, 'show']);
+        Route::post('/fundraisings/{id}/approve', [App\Http\Controllers\Admin\FundraisingValidationController::class, 'approve']);
+        Route::post('/fundraisings/{id}/suspend', [App\Http\Controllers\Admin\FundraisingValidationController::class, 'suspend']);
+        Route::delete('/fundraisings/{id}', [App\Http\Controllers\Admin\FundraisingValidationController::class, 'destroy']);
+        
         Route::post('/business-opportunities/{id}/reject', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'reject']);
         Route::patch('/business-opportunities/{id}/status', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'updateStatus']);
         Route::patch('/business-opportunities/{id}/etat', [App\Http\Controllers\Admin\BusinessOpportunityValidationController::class, 'updateEtat']);

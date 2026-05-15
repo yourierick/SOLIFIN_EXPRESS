@@ -384,7 +384,7 @@ export default function PublicationDetailsModal({
       case "pending":
         return "En attente";
       case "approved":
-        return "Approuvé";
+        return "Publié";
       case "rejected":
         return "Rejeté";
       case "expired":

@@ -800,6 +800,7 @@ const FormationManagement = () => {
                 <TableRow sx={{ backgroundColor: isDarkMode ? "#293545ff" : "#f5f5f5" }}>
                   {[
                     { id: "title", label: "Titre" },
+                    { id: "pub_reference", label: "Référence de publication" },
                     { id: "type", label: "Type" },
                     { id: "status", label: "Statut" },
                     { id: "creator", label: "Créé par" },
@@ -860,6 +861,9 @@ const FormationManagement = () => {
                             {formation.title}
                           </Typography>
                         </Tooltip>
+                      </TableCell>
+                      <TableCell sx={{ py: 2, px: 2 }}>
+                        {formation.pub_reference}
                       </TableCell>
                       <TableCell sx={{ py: 2, px: 2 }}>
                         {renderType(formation.type)}

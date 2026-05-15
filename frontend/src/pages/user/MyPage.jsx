@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Tab } from "@headlessui/react";
+import { useSearchParams } from "react-router-dom";
 import {
   PlusIcon,
   CheckCircleIcon,
@@ -28,8 +29,7 @@ import axios from "../../utils/axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { usePublicationPack } from "../../contexts/PublicationPackContext";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import {
   Table,
   TableBody,
@@ -56,12 +56,14 @@ import PublicationDetailsModal from "./components/PublicationDetailsModal";
 import SearchFilterBar from "./components/SearchFilterBar";
 import Modal from "../../components/Modal";
 import Pagination from "../../components/Pagination";
+import ReportModal from "../../components/ReportModal";
 import BoostPublicationModal from "./components/BoostPublicationModal";
 import LivreursList from "./components/LivreursList";
 import Social from "./Social";
 import Formations from "./components/Formations";
 import NewsFeed from "./NewsFeed";
 import PageSearch from "./components/PageSearch";
+import Fundraising from "./components/Fundraising";
 import SubTabsPanel from "./components/SubTabsPanel";
 import DigitalProductCard from "../../components/DigitalProductCard";
 import DigitalProductForm from "../../components/DigitalProductForm";
@@ -134,7 +136,7 @@ const getStatutLabel = (statut) => {
     case "pending":
       return "En attente";
     case "approved":
-      return "Approuvé";
+      return "Publié";
     case "rejeted":
       return "rejeté";
     case "expired":
@@ -164,6 +166,23 @@ const getStatutColor = (statut) => {
 };
 
 export default function MyPage() {
+  // Mapper les paramètres d'URL vers les noms d'onglets corrects
+  const tabMapping = {
+    'publications': 'publications',
+    'fundraisings': 'fundraisings',
+    'job-offers': 'jobOffers',
+    'business-opportunities': 'businessOpportunities',
+    'livreurs': 'livreurs',
+    'formations': 'formations',
+    'pages': 'pages',
+    'digital-products': 'digitalProducts',
+    'social': 'social'
+  };
+
+  // Lire le paramètre d'onglet depuis l'URL
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  
   // Injection des styles CSS personnalisés
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -199,6 +218,14 @@ export default function MyPage() {
   const [currentFormType, setCurrentFormType] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentPublication, setCurrentPublication] = useState(null);
+
+  // États pour le modal de signalement
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportData, setCurrentReportData] = useState({
+    userId: null,
+    pubType: null,
+    pubRef: null
+  });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteInfo, setDeleteInfo] = useState({ id: null, type: null });
@@ -210,6 +237,7 @@ export default function MyPage() {
   const { user } = useAuth();
   const {
     isActive: isPackActive,
+    canPublish: can_publish,
     packInfo,
     refreshPackStatus,
   } = usePublicationPack();
@@ -392,9 +420,54 @@ export default function MyPage() {
   });
 
   // État pour l'onglet actif et pagination backend
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    // Mapper les paramètres d'URL vers les noms d'onglets corrects
+    const tabMapping = {
+      'publications': 'publications',
+      'fundraisings': 'fundraisings',
+      'job-offers': 'jobOffers',
+      'business-opportunities': 'businessOpportunities',
+      'livreurs': 'livreurs',
+      'formations': 'formations',
+      'pages': 'pages',
+      'digital-products': 'digitalProducts',
+      'social': 'social'
+    };
+    return tabFromUrl ? tabMapping[tabFromUrl] || 'publications' : 'publications';
+  });
   const [isMenuVisible, setIsMenuVisible] = useState(true);
   const [tabGroupIndex, setTabGroupIndex] = useState(0);
+
+  // Effet pour écouter les changements de paramètres d'URL et mettre à jour l'onglet
+  useEffect(() => {
+    if (tabFromUrl) {
+      const tabMapping = {
+        'publications': 'publications',
+        'fundraisings': 'fundraisings',
+        'job-offers': 'jobOffers',
+        'business-opportunities': 'businessOpportunities',
+        'livreurs': 'livreurs',
+        'formations': 'formations',
+        'pages': 'pages',
+        'digital-products': 'digitalProducts',
+        'social': 'social'
+      };
+      const mappedTab = tabMapping[tabFromUrl];
+      if (mappedTab && mappedTab !== activeTab) {
+        setActiveTab(mappedTab);
+      }
+    }
+  }, [tabFromUrl]);
+
+  // Effet pour synchroniser tabGroupIndex avec activeTab
+  useEffect(() => {
+    const tabTypes = ['publications', 'fundraisings', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
+    const newIndex = tabTypes.indexOf(activeTab);
+    if (newIndex !== -1 && newIndex !== tabGroupIndex) {
+      setTabGroupIndex(newIndex);
+    }
+  }, [activeTab]);
+
   const [backendPagination, setBackendPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -593,7 +666,6 @@ export default function MyPage() {
 
   // Gestionnaire pour la fermeture du modal de boost
   const handleBoostModalClose = (success) => {
-    console.log(success)
     if (success) {
       // Si le boost a réussi, rafraîchir les données
       fetchPageData();
@@ -961,9 +1033,10 @@ export default function MyPage() {
       refreshPackStatus();
     }
 
-    // Charger les publicités par défaut au chargement (un seul appel)
-    setActiveTab('publications');
-    loadTabData('publications');
+    // Charger l'onglet par défaut ou celui depuis l'URL au chargement
+    const initialTab = tabFromUrl ? tabMapping[tabFromUrl] || 'publications' : 'publications';
+    setActiveTab(initialTab);
+    loadTabData(initialTab);
     
     fetchCatalogProducts();
   }, [user.id]);
@@ -1352,31 +1425,6 @@ export default function MyPage() {
     }));
   };
 
-  // Effet pour synchroniser tabGroupIndex avec activeTab
-  useEffect(() => {
-    if (activeTab) {
-      const tabTypes = ['publications', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
-      const index = tabTypes.indexOf(activeTab);
-      if (index !== -1) {
-        setTabGroupIndex(index);
-      }
-    }
-  }, [activeTab]);
-
-  // Effet pour recharger les données quand les filtres changent
-  useEffect(() => {
-    if (activeTab) {
-      loadTabData(activeTab);
-    }
-  }, [filters, activeTab]);
-
-  // Effet pour recharger les données quand le terme de recherche change
-  useEffect(() => {
-    if (activeTab) {
-      loadTabData(activeTab);
-    }
-  }, [searchTerm, activeTab]);
-
   // Fonction pour gérer le changement de page
   const handlePageChange = (type, newPage) => {
     setPagination((prev) => ({
@@ -1574,18 +1622,18 @@ export default function MyPage() {
         </div>
 
         {/* Alert si le pack n'est pas actif */}
-        {!isPackActive && (
-          <PublicationPackAlert isActive={isPackActive} packInfo={packInfo} />
+        {!isPackActive || !can_publish && (
+          <PublicationPackAlert isActive={isPackActive} canPublish={can_publish} packInfo={packInfo} />
         )}
 
-      {/* Main Content avec barre d'icônes TikTok style */}
+      {/* Main Content avec barre d'icônes */}
       <div className={`flex relative overflow-hidden transition-all duration-500 hover:shadow-2xl ${
         isMobile ? "rounded-2xl w-full" : "rounded-3xl"
       } bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 shadow-xl`}>
         <Tab.Group 
           selectedIndex={tabGroupIndex}
           onChange={(index) => {
-            const tabTypes = ['publications', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
+            const tabTypes = ['publications', 'fundraisings', 'jobOffers', 'businessOpportunities', 'livreurs', 'formations', 'pages', 'digitalProducts', 'social'];
             if (index < tabTypes.length) {
               setActiveTab(tabTypes[index]);
               loadTabData(tabTypes[index]);
@@ -1596,6 +1644,7 @@ export default function MyPage() {
           {/* Tab.List caché pour que selectedIndex fonctionne */}
           <Tab.List className="hidden">
             <Tab>Publications</Tab>
+            <Tab>Levés de fonds</Tab>
             <Tab>Offres d'emploi</Tab>
             <Tab>Opportunités</Tab>
             <Tab>Livreurs</Tab>
@@ -1681,19 +1730,19 @@ export default function MyPage() {
                                       ? "gap-2 px-3 py-2 text-xs flex-1 justify-center"
                                       : "gap-2 px-5 py-2.5"
                                   } ${
-                                    isPackActive
+                                    isPackActive && can_publish
                                       ? "bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 dark:from-primary-600 dark:to-primary-700 dark:hover:from-primary-700 dark:hover:to-primary-800 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-600/35"
                                       : "bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed opacity-60"
                                   } text-white ${
                                     isMobile ? "rounded-xl" : "rounded-xl"
                                   } transition-all duration-300 hover:scale-105 transform border border-primary-400/50 dark:border-primary-600/50 ${
-                                    isPackActive ? "hover:-translate-y-0.5" : ""
+                                    isPackActive && can_publish ? "hover:-translate-y-0.5" : ""
                                   }`}
-                                  disabled={!isPackActive}
+                                  disabled={!isPackActive || !can_publish}
                                   title={
                                     !isPackActive
                                       ? "Veuillez activer votre pack de publication pour créer une publicité"
-                                      : ""
+                                      : !can_publish ? "Ce compte ne peut pas publier de contenu, veuillez contacter le support pour plus d'informations" : ""
                                   }
                                 >
                                   <PlusIcon className={`${
@@ -1957,7 +2006,7 @@ export default function MyPage() {
                                             <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
                                             <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
                                             <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
-                                            <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                            <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date de publication</TableCell>
                                             <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
                                           </TableRow>
                                         </TableHead>
@@ -2200,6 +2249,11 @@ export default function MyPage() {
                   />
                 </Tab.Panel>
 
+                {/* Levés de fonds Panel */}
+                <Tab.Panel className="p-0">
+                  <Fundraising />
+                </Tab.Panel>
+
                 {/* Job Offers Panel */}
                 <Tab.Panel className={`${isMobile ? "p-2" : "p-4"}`}>
                   <SubTabsPanel
@@ -2281,17 +2335,17 @@ export default function MyPage() {
                                       ? "gap-1 px-2 py-1.5 text-xs flex-1 justify-center"
                                       : "gap-2 px-4 py-2"
                                   } ${
-                                    isPackActive
+                                    isPackActive && can_publish
                                       ? "bg-primary-600 hover:bg-primary-700"
                                       : "bg-gray-400 cursor-not-allowed"
                                   } text-white ${
                                     isMobile ? "rounded-md" : "rounded-lg"
                                   } transition-colors`}
-                                  disabled={!isPackActive}
+                                  disabled={!isPackActive || !can_publish}
                                   title={
                                     !isPackActive
-                                      ? "Veuillez activer votre pack de publication pour créer une offre d'emploi"
-                                      : ""
+                                      ? "Veuillez activer votre pack de publication pour créer une publicité"
+                                      : !can_publish ? "Ce compte ne peut pas publier de contenu, veuillez contacter le support pour plus d'informations" : ""
                                   }
                                 >
                                   <PlusIcon
@@ -2559,7 +2613,7 @@ export default function MyPage() {
                                           <TableCell sx={{ width: { xs: "60px", sm: "80px" } }}>ID</TableCell>
                                           <TableCell sx={{ width: { xs: "200px", sm: "250px" } }}>Titre</TableCell>
                                           <TableCell sx={{ width: { xs: "120px", sm: "140px" } }}>Statut</TableCell>
-                                          <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date</TableCell>
+                                          <TableCell sx={{ width: { xs: "100px", sm: "120px" } }}>Date de publication</TableCell>
                                           <TableCell sx={{ width: { xs: "80px", sm: "100px" } }} align="center">Actions</TableCell>
                                         </TableRow>
                                       </TableHead>
@@ -2884,17 +2938,17 @@ export default function MyPage() {
                                       ? "gap-1 px-2 py-1.5 text-xs flex-1 justify-center"
                                       : "gap-2 px-4 py-2"
                                   } ${
-                                    isPackActive
+                                    isPackActive && can_publish
                                       ? "bg-primary-600 hover:bg-primary-700"
                                       : "bg-gray-400 cursor-not-allowed"
                                   } text-white ${
                                     isMobile ? "rounded-md" : "rounded-lg"
                                   } transition-colors`}
-                                  disabled={!isPackActive}
+                                  disabled={!isPackActive || can_publish}
                                   title={
                                     !isPackActive
-                                      ? "Veuillez activer votre pack de publication pour créer une opportunité d'affaires"
-                                      : ""
+                                      ? "Veuillez activer votre pack de publication pour créer une publicité"
+                                      : !can_publish ? "Ce compte ne peut pas publier de contenu, veuillez contacter le support pour plus d'informations" : ""
                                   }
                                 >
                                   <PlusIcon
@@ -3612,8 +3666,29 @@ export default function MyPage() {
                                                     "Utilisateur"}
                                                 </span>
                                               </div>
-                                              <div className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                                                {product.prix} $
+                                              <div className="flex items-center gap-2">
+                                                <div className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                                                  {product.prix} $
+                                                </div>
+                                                {/* Bouton de signalement */}
+                                                {product.page?.user?.id && product.page?.user?.id !== user?.id && (
+                                                  <Tooltip title="Signaler ce produit">
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => {
+                                                        setCurrentReportData({
+                                                          userId: product.page?.user?.id,
+                                                          pubType: 'Produit numérique',
+                                                          pubRef: product.pub_reference
+                                                        });
+                                                        setIsReportModalOpen(true);
+                                                      }}
+                                                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                    >
+                                                      <ExclamationTriangleIcon className="h-4 w-4" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                )}
                                               </div>
                                             </div>
                                             {product.page?.user?.id === user.id ? (
@@ -3866,15 +3941,15 @@ export default function MyPage() {
                                       ? "px-2 py-2 text-xs flex-1"
                                       : "px-4 py-2"
                                   } ${
-                                    isPackActive
+                                    isPackActive && can_publish
                                       ? "bg-primary-600 hover:bg-primary-700"
                                       : "bg-gray-400 cursor-not-allowed"
                                   } text-white rounded-lg transition-colors`}
-                                  disabled={!isPackActive}
+                                  disabled={!isPackActive || !can_publish}
                                   title={
                                     !isPackActive
-                                      ? "Veuillez activer votre pack de publication pour créer un produit numérique"
-                                      : ""
+                                      ? "Veuillez activer votre pack de publication pour créer une publicité"
+                                      : !can_publish ? "Ce compte ne peut pas publier de contenu, veuillez contacter le support pour plus d'informations" : ""
                                   }
                                 >
                                   <PlusIcon
@@ -4348,285 +4423,17 @@ export default function MyPage() {
           document.body
         )}
 
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme={isDarkMode ? "dark" : "light"}
+        {/* Modal de signalement */}
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserId={currentReportData.userId}
+          reportedPubType={currentReportData.pubType}
+          reportedPubRef={currentReportData.pubRef}
+          isDarkMode={isDarkMode}
         />
       </div>
-    </div>
-
-    {/* Bouton de rétractation - Position fixe au-dessus de la barre d'onglets */}
-    <button 
-      className={`fixed right-0 top-20 z-50 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-gray-600/30 bg-gradient-to-b from-gray-900/15 to-gray-800/10 dark:from-black/15 dark:to-gray-900/10 backdrop-blur-sm border border-gray-700/10 dark:border-gray-600/10 shadow-lg shadow-black/5 ${
-          isMobile ? "w-12" : "w-16"
-        }`}
-      onClick={() => setIsMenuVisible(!isMenuVisible)}
-    >
-      <span className="text-xs font-bold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300">MENU</span>
-    </button>
-
-    {/* Barre d'icônes verticale - Visible par défaut */}
-    <div className="fixed right-0 top-32 z-50 h-auto">
-      <div className="group relative flex items-center">
-        {/* Zone de survol étendue pour déclencher l'apparition quand le menu est caché */}
-        <div className="absolute -left-8 top-0 w-8 h-full cursor-pointer"></div>
-        
-        {/* Conteneur de la barre */}
-        <div className={`relative flex flex-col ${isMobile ? "w-12" : "w-16"} bg-gradient-to-b from-gray-900/15 to-gray-800/10 dark:from-black/15 dark:to-gray-900/10 backdrop-blur-sm border border-gray-700/10 dark:border-gray-600/10 items-center py-4 space-y-3 ${isMobile ? "space-y-2" : "space-y-4"} rounded-l-2xl shadow-lg shadow-black/5 transition-all duration-300 ease-out ${
-          isMenuVisible ? "translate-x-0" : "translate-x-full group-hover:translate-x-0"
-        }`}>
-          {/* Publicités */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'publications' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('publications')}
-            >
-              <svg className={`h-5 w-5 ${activeTab === 'publications' ? "text-white" : "text-gray-400 group-hover:text-white"}`} viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2V2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-              {activeTab === 'publications' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  📢 Mes Publicités
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Gérer vos publicités et promotions</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Offres d'emploi */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'jobOffers' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('jobOffers')}
-            >
-              <svg className={`h-5 w-5 ${activeTab === 'jobOffers' ? "text-white" : "text-gray-400 group-hover:text-white"}`} viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-                <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
-              </svg>
-              {activeTab === 'jobOffers' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  💼 Offres d'Emploi
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Publier et gérer vos offres d'emploi</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Opportunités */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'businessOpportunities' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('businessOpportunities')}
-            >
-              <svg className={`h-5 w-5 ${activeTab === 'businessOpportunities' ? "text-white" : "text-gray-400 group-hover:text-white"}`} viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415l.707-.708zM3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
-              </svg>
-              {activeTab === 'businessOpportunities' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  🚀 Opportunités d'Affaires
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Découvrir et partager des opportunités</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Livreurs */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'livreurs' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('livreurs')}
-            >
-              <svg className={`h-5 w-5 ${activeTab === 'livreurs' ? "text-white" : "text-gray-400 group-hover:text-white"}`} viewBox="0 0 20 20" fill="currentColor">
-                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-              </svg>
-              {activeTab === 'livreurs' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  🚚 Livreurs
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Gérer les livraisons et les livreurs</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Formations */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'formations' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('formations')}
-            >
-              <AcademicCapIcon className={`h-5 w-5 ${activeTab === 'formations' ? "text-white" : "text-gray-400 group-hover:text-white"}`} />
-              {activeTab === 'formations' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  🎓 Formations
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Accéder à vos formations et apprentissages</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Pages */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'pages' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('pages')}
-            >
-              <UsersIcon className={`h-5 w-5 ${activeTab === 'pages' ? "text-white" : "text-gray-400 group-hover:text-white"}`} />
-              {activeTab === 'pages' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  👥 Mes Abonnés
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Gérer votre communauté et abonnés</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Produits numériques */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'digitalProducts' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('digitalProducts')}
-            >
-              <DocumentTextIcon className={`h-5 w-5 ${activeTab === 'digitalProducts' ? "text-white" : "text-gray-400 group-hover:text-white"}`} />
-              {activeTab === 'digitalProducts' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  📚 Produits Numériques
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Vendre et gérer vos produits digitaux</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Social */}
-          <div className="relative group/tooltip">
-            <button 
-              className={`group relative p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${
-                activeTab === 'social' 
-                  ? "bg-gradient-to-r from-primary-500/80 to-primary-600/80 shadow-lg shadow-primary-500/40" 
-                  : "hover:bg-gray-600/30"
-              }`}
-              onClick={() => setActiveTab('social')}
-            >
-              <ChatBubbleLeftRightIcon className={`h-5 w-5 ${activeTab === 'social' ? "text-white" : "text-gray-400 group-hover:text-white"}`} />
-              {activeTab === 'social' && (
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-full"></div>
-              )}
-            </button>
-            
-            {/* Tooltip personnalisé */}
-            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 pointer-events-none z-50">
-              <div className="relative">
-                <div className="bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                  💬 Social
-                  <div className="text-xs text-gray-300 dark:text-gray-400 mt-1">Interagir avec votre réseau social</div>
-                </div>
-                {/* Flèche du tooltip */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
-</div>
-);
+  );
 }
